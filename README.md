@@ -3,47 +3,57 @@
 🎤 Telegram-бот на FastAPI, который:
 
 1. Получает голосовое сообщение.
-2. Распознаёт его через **Yandex SpeechKit** (STT).
+2. Распознаёт его через **Whisper (локально, offline)**.
 3. Отправляет текст пользователю.
-4. Генерирует ответ голосом через **TTS (Text-To-Speech)**.
-5. Отправляет голосовое сообщение обратно.
+4. (TBD) Генерирует голосовой ответ.
+5. Отправляет его обратно.
 
-## 🚀 Как развернуть
+---
+
+## 📁 Структура проекта
+
+```
+audiobot/
+├── app/
+│   ├── api/
+│   │   └── bot.py              # Telegram webhook, обработка голоса
+│   ├── services/
+│   │   └── whisper_service.py  # Распознавание речи через faster-whisper
+│   └── main.py                 # FastAPI приложение
+│
+├── requirements.txt            # Зависимости
+├── .env.example                # Пример переменных окружения
+├── Dockerfile                  # Docker-образ для Render
+└── README.md                   # Документация
+```
+
+---
+
+## 🚀 Как запустить
 
 ### 1. Переменные окружения `.env`
-
 ```env
 BOT_TOKEN=your_telegram_bot_token
-YANDEX_API_KEY=your_yandex_api_key
-FOLDER_ID=b1g82mk09fb4f18hap3b
-VOICE=oksana
-LANGUAGE=ru-RU
 ```
 
-### 2. Запуск локально
+### 2. Установка и запуск
 ```bash
 make install  # установка зависимостей
-make run      # запуск приложения
+make run      # запуск FastAPI
 ```
-
-### 3. Docker
-```bash
-docker build -t audiobot .
-docker run --env-file .env -p 8000:8000 audiobot
-```
-
-## 🧠 Возможности
-- Распознавание речи (Speech-To-Text)
-- Синтез речи (Text-To-Speech)
-- Отправка текста и голоса в Telegram
 
 ---
 
 ## 📦 Стек:
 - FastAPI
 - Telegram Bot API
-- Yandex SpeechKit
+- [faster-whisper](https://github.com/guillaumekln/faster-whisper)
 - Docker
 - Render (деплой)
 
-Проект создан автоматически — backend генерация идёт далее.
+---
+
+## 🧩 В планах
+- Подключение TTS (Coqui TTS / edge-tts)
+- Поддержка кастомных голосов
+- Автоматическая генерация речи в ответ
