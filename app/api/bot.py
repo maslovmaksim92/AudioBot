@@ -57,6 +57,12 @@ async def send_voice(chat_id: int, audio_path: Path):
             await client.post(f"{API_URL}/sendVoice", data=data, files=files)
 
 
+async def reply(chat_id: int, text: str):
+    await send_text(chat_id, text)
+    voice_path = await tts.synthesize(text)
+    await send_voice(chat_id, voice_path)
+
+
 @router.post("/webhook")
 async def telegram_webhook(update: TelegramMessage):
     msg = update.message
@@ -66,24 +72,34 @@ async def telegram_webhook(update: TelegramMessage):
     if "text" in msg:
         text = msg["text"].strip()
 
+        if text == "/start":
+            return await reply(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.")
+
         if text == "/reset":
             dialog.reset_context(chat_id)
-            return await send_text(chat_id, "Контекст очищен ✅")
+            return await reply(chat_id, "Контекст очищен ✅")
 
         elif text.startswith("/voice"):
             _, voice = text.split(maxsplit=1)
             user_settings[chat_id] = {"voice": voice}
-            return await send_text(chat_id, f"Голос сменён на {voice}")
+            return await reply(chat_id, f"Голос будет сменён на {voice} (в будущем)")
 
         elif text.startswith("/mode"):
             _, mode = text.split(maxsplit=1)
             user_settings[chat_id] = {"mode": mode}
-            return await send_text(chat_id, f"Режим переключён на {mode}")
+            return await reply(chat_id, f"Режим {mode} будет активирован (в будущем)")
 
         elif text == "/help":
-            return await send_text(chat_id, "/reset – очистить память\n/voice female|male\n/mode simple|gpt")
+            help_text = (
+                "/start — приветствие\n"
+                "/reset — очистить память\n"
+                "/voice female|male — выбрать голос (будет)\n"
+                "/mode simple|gpt — выбрать режим (будет)\n"
+                "/help — список команд"
+            )
+            return await reply(chat_id, help_text)
 
-        return await send_text(chat_id, "Я умею работать с голосом. Просто скажи что-нибудь 🎙️")
+        return await reply(chat_id, "Я умею работать с голосом. Просто скажи что-нибудь 🎙️")
 
     # Голос
     if "voice" not in msg:
