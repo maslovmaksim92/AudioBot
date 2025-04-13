@@ -1,11 +1,15 @@
 import httpx
+import os
 from typing import List
 
 SYSTEM_PROMPT = "Ты — голосовой помощник. Отвечай кратко, дружелюбно, в стиле собеседника."
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "mistralai/mistral-7b-instruct"
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or "sk-undefined"
+
 HEADERS = {
-    "Authorization": "Bearer sk-or-public1234567890",  # Публичный ключ openrouter (пример)
+    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
     "Content-Type": "application/json"
 }
 
