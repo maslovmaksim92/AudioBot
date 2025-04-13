@@ -49,13 +49,12 @@ async def send_text(chat_id: int, text: str, buttons: bool = False):
 
     if buttons:
         payload["reply_markup"] = {
-            "inline_keyboard": [
-                [
-                    {"text": "🔁 Сбросить", "callback_data": "/reset"},
-                    {"text": "🎙️ Сменить голос", "callback_data": "/voice female"},
-                    {"text": "🤖 Режим GPT", "callback_data": "/mode gpt"},
-                ]
-            ]
+            "inline_keyboard": [[
+                {"text": "🔁 Сбросить", "callback_data": "/reset"},
+                {"text": "🎙️ Сменить голос", "callback_data": "/voice female"},
+                {"text": "🤖 Режим GPT", "callback_data": "/mode gpt"},
+                {"text": "📊 Статистика", "callback_data": "/usage"}
+            ]]
         }
 
     async with httpx.AsyncClient() as client:
@@ -91,22 +90,28 @@ async def telegram_webhook(update: TelegramMessage):
             dialog.reset_context(chat_id)
             return await reply(chat_id, "Контекст очищен ✅")
 
-        elif text.startswith("/voice"):
+        if text.startswith("/voice"):
             _, voice = text.split(maxsplit=1)
             user_settings[chat_id] = {"voice": voice}
             return await reply(chat_id, f"Голос будет сменён на {voice} (в будущем)")
 
-        elif text.startswith("/mode"):
+        if text.startswith("/mode"):
             _, mode = text.split(maxsplit=1)
             user_settings[chat_id] = {"mode": mode}
             return await reply(chat_id, f"Режим {mode} будет активирован (в будущем)")
 
-        elif text == "/help":
+        if text == "/usage":
+            stats = dialog.sessions.get_usage(chat_id)
+            usage = f"Запросов к ИИ: {stats['requests']}\nСимволов: {stats['tokens']}"
+            return await reply(chat_id, usage)
+
+        if text == "/help":
             help_text = (
                 "/start — приветствие\n"
                 "/reset — очистить память\n"
                 "/voice female|male — выбрать голос (будет)\n"
                 "/mode simple|gpt — выбрать режим (будет)\n"
+                "/usage — статистика общения\n"
                 "/help — список команд"
             )
             return await reply(chat_id, help_text, buttons=True)
