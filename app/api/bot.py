@@ -11,8 +11,8 @@ from app.services.whisper_service import WhisperService
 
 router = APIRouter()
 
-# ⚠️ Временный хардкод токена для теста
-BOT_TOKEN = "8145427551:AAHdkGXuTb5xNng9GFD9prPp-K1b5z4Q_L0"
+# ✅ Новый рабочий токен (audiomynew_bot)
+BOT_TOKEN = "7850360375:AAEVEQCbsqCnP-aHJGlgQCHaTwginuLNm0E"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 whisper = WhisperService()
