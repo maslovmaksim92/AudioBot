@@ -10,6 +10,7 @@ import httpx
 
 from app.services.whisper_service import WhisperService
 from app.services.tts_service import TTSService
+from app.services.dialog_service import DialogService
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 whisper = WhisperService()
 tts = TTSService()
+dialog = DialogService()
 
 
 class TelegramVoice(BaseModel):
@@ -70,10 +72,12 @@ async def telegram_webhook(update: TelegramVoice):
     oga_path = await download_file(file_id)
     wav_path = convert_oga_to_wav(oga_path)
 
-    text = whisper.transcribe(wav_path)
-    await send_text(chat_id, text)
+    user_text = whisper.transcribe(wav_path)
+    response_text = dialog.generate_response(user_text)
 
-    tts_path = await tts.synthesize(text)
+    await send_text(chat_id, response_text)
+
+    tts_path = await tts.synthesize(response_text)
     await send_voice(chat_id, tts_path)
 
     return {"ok": True}
