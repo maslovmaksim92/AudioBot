@@ -1,24 +1,97 @@
-... (весь код без изменений до webhook) ...
+import os
+import tempfile
+import subprocess
+from pathlib import Path
+
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+import httpx
+
+from app.services.whisper_service import WhisperService
+from app.services.tts_service import TTSService
+from app.services.dialog_service import DialogService
+
+router = APIRouter()
+
+BOT_TOKEN = "7850360375:AAEVEQCbsqCnP-aHJGlgQCHaTwginuLNm0E"
+API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+whisper = WhisperService()
+tts = TTSService()
+dialog = DialogService()
+
+user_settings = {}
+
+class TelegramMessage(BaseModel):
+    update_id: int
+    message: dict | None = None
+    callback_query: dict | None = None
+
+
+def convert_oga_to_wav(oga_path: Path) -> Path:
+    wav_path = oga_path.with_suffix(".wav")
+    subprocess.run(["ffmpeg", "-i", str(oga_path), str(wav_path)], check=True)
+    return wav_path
+
+
+async def download_file(file_id: str) -> Path:
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{API_URL}/getFile", params={"file_id": file_id})
+        file_path = r.json()["result"]["file_path"]
+        file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+        r = await client.get(file_url)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".oga") as tmp:
+            tmp.write(r.content)
+            return Path(tmp.name)
+
+
+async def send_text(chat_id: int, text: str, buttons: bool = False):
+    payload = {"chat_id": chat_id, "text": text}
+
+    if buttons:
+        payload["reply_markup"] = {
+            "inline_keyboard": [[
+                {"text": "🔁 Сбросить", "callback_data": "/reset"},
+                {"text": "🎙️ Сменить голос", "callback_data": "/voice female"},
+                {"text": "🤖 Режим GPT", "callback_data": "/mode gpt"},
+                {"text": "📊 Статистика", "callback_data": "/usage"}
+            ]]
+        }
+
+    async with httpx.AsyncClient() as client:
+        await client.post(f"{API_URL}/sendMessage", json=payload)
+
+
+async def send_voice(chat_id: int, audio_path: Path):
+    async with httpx.AsyncClient() as client:
+        with open(audio_path, "rb") as f:
+            files = {"voice": (audio_path.name, f, "audio/ogg")}
+            data = {"chat_id": chat_id}
+            await client.post(f"{API_URL}/sendVoice", data=data, files=files)
+
+
+async def reply(chat_id: int, text: str, buttons: bool = False):
+    await send_text(chat_id, text, buttons)
+    voice_path = await tts.synthesize(text)
+    await send_voice(chat_id, voice_path)
+
 
 @router.post("/webhook")
-async def telegram_webhook(update: dict):
-    # Обработка нажатий на inline-кнопки
-    if "callback_query" in update:
-        query = update["callback_query"]
+async def telegram_webhook(update: TelegramMessage):
+    if update.callback_query:
+        query = update.callback_query
         chat_id = query["from"]["id"]
         data = query["data"]
 
-        # Отвечаем на callback, чтобы Telegram убрал "загрузка..."
         async with httpx.AsyncClient() as client:
             await client.post(f"{API_URL}/answerCallbackQuery", json={"callback_query_id": query["id"]})
 
-        # Обработка callback как команды
-        update["message"] = {"chat": {"id": chat_id}, "text": data}
+        update.message = {"chat": {"id": chat_id}, "text": data}
 
-    if "message" not in update:
+    if not update.message:
         return {"ok": False, "reason": "no message"}
 
-    msg = update["message"]
+    msg = update.message
     chat_id = msg["chat"]["id"]
 
     if "text" in msg:
