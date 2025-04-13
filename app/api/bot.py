@@ -44,9 +44,22 @@ async def download_file(file_id: str) -> Path:
             return Path(tmp.name)
 
 
-async def send_text(chat_id: int, text: str):
+async def send_text(chat_id: int, text: str, buttons: bool = False):
+    payload = {"chat_id": chat_id, "text": text}
+
+    if buttons:
+        payload["reply_markup"] = {
+            "inline_keyboard": [
+                [
+                    {"text": "🔁 Сбросить", "callback_data": "/reset"},
+                    {"text": "🎙️ Сменить голос", "callback_data": "/voice female"},
+                    {"text": "🤖 Режим GPT", "callback_data": "/mode gpt"},
+                ]
+            ]
+        }
+
     async with httpx.AsyncClient() as client:
-        await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
+        await client.post(f"{API_URL}/sendMessage", json=payload)
 
 
 async def send_voice(chat_id: int, audio_path: Path):
@@ -57,8 +70,8 @@ async def send_voice(chat_id: int, audio_path: Path):
             await client.post(f"{API_URL}/sendVoice", data=data, files=files)
 
 
-async def reply(chat_id: int, text: str):
-    await send_text(chat_id, text)
+async def reply(chat_id: int, text: str, buttons: bool = False):
+    await send_text(chat_id, text, buttons)
     voice_path = await tts.synthesize(text)
     await send_voice(chat_id, voice_path)
 
@@ -68,12 +81,11 @@ async def telegram_webhook(update: TelegramMessage):
     msg = update.message
     chat_id = msg["chat"]["id"]
 
-    # Команды (текст)
     if "text" in msg:
         text = msg["text"].strip()
 
         if text == "/start":
-            return await reply(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.")
+            return await reply(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.", buttons=True)
 
         if text == "/reset":
             dialog.reset_context(chat_id)
@@ -97,11 +109,10 @@ async def telegram_webhook(update: TelegramMessage):
                 "/mode simple|gpt — выбрать режим (будет)\n"
                 "/help — список команд"
             )
-            return await reply(chat_id, help_text)
+            return await reply(chat_id, help_text, buttons=True)
 
         return await reply(chat_id, "Я умею работать с голосом. Просто скажи что-нибудь 🎙️")
 
-    # Голос
     if "voice" not in msg:
         return {"ok": False, "reason": "not a voice message"}
 
