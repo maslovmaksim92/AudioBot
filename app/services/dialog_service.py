@@ -1,17 +1,18 @@
-from typing import Optional
+from app.services.gpt_service import GPTService
+from app.services.session_manager import SessionManager
 
 
 class DialogService:
-    def generate_response(self, user_text: str) -> str:
-        user_text = user_text.lower()
+    def __init__(self):
+        self.gpt = GPTService()
+        self.sessions = SessionManager()
 
-        if "привет" in user_text:
-            return "Привет! Рад тебя слышать."
-        if "как дела" in user_text:
-            return "У меня всё отлично! А у тебя как?"
-        if "который час" in user_text:
-            from datetime import datetime
-            return f"Сейчас {datetime.now().strftime('%H:%M')}"
+    async def generate_response(self, chat_id: int, user_text: str) -> str:
+        self.sessions.append(chat_id, "user", user_text)
+        context = self.sessions.get_context(chat_id)
+        reply = await self.gpt.generate(context)
+        self.sessions.append(chat_id, "assistant", reply)
+        return reply
 
-        # по умолчанию — эхо
-        return f"Ты сказал: {user_text}"
+    def reset_context(self, chat_id: int):
+        self.sessions.reset(chat_id)
