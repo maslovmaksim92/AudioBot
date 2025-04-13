@@ -1,21 +1,23 @@
 import os
 import tempfile
 import subprocess
+import asyncio
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from pydantic import BaseModel
 import httpx
 
 from app.services.whisper_service import WhisperService
+from app.services.tts_service import TTSService
 
 router = APIRouter()
 
-# ✅ Новый рабочий токен (audiomynew_bot)
 BOT_TOKEN = "7850360375:AAEVEQCbsqCnP-aHJGlgQCHaTwginuLNm0E"
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 whisper = WhisperService()
+tts = TTSService()
 
 
 class TelegramVoice(BaseModel):
@@ -25,11 +27,9 @@ class TelegramVoice(BaseModel):
 
 async def download_file(file_id: str) -> Path:
     async with httpx.AsyncClient() as client:
-        # 1. Get file path
         r = await client.get(f"{API_URL}/getFile", params={"file_id": file_id})
         file_path = r.json()["result"]["file_path"]
 
-        # 2. Download file
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
         r = await client.get(file_url)
 
@@ -49,6 +49,14 @@ async def send_text(chat_id: int, text: str):
         await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
 
 
+async def send_voice(chat_id: int, audio_path: Path):
+    async with httpx.AsyncClient() as client:
+        with open(audio_path, "rb") as f:
+            files = {"voice": (audio_path.name, f, "audio/ogg")}
+            data = {"chat_id": chat_id}
+            await client.post(f"{API_URL}/sendVoice", data=data, files=files)
+
+
 @router.post("/webhook")
 async def telegram_webhook(update: TelegramVoice):
     message = update.message
@@ -64,5 +72,8 @@ async def telegram_webhook(update: TelegramVoice):
 
     text = whisper.transcribe(wav_path)
     await send_text(chat_id, text)
+
+    tts_path = await tts.synthesize(text)
+    await send_voice(chat_id, tts_path)
 
     return {"ok": True}
