@@ -4,3 +4,4 @@ httpx
 python-multipart
 faster-whisper
 pydantic
+edge-tts
