@@ -24,37 +24,6 @@ class TelegramMessage(BaseModel):
     message: dict | None = None
     callback_query: dict | None = None
 
-
-def convert_oga_to_wav(oga_path: Path) -> Path:
-    wav_path = oga_path.with_suffix(".wav")
-    subprocess.run(["ffmpeg", "-i", str(oga_path), str(wav_path)], check=True)
-    return wav_path
-
-
-async def download_file(file_id: str) -> Path:
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{API_URL}/getFile", params={"file_id": file_id})
-        file_path = r.json()["result"]["file_path"]
-        file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
-        r = await client.get(file_url)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".oga") as tmp:
-            tmp.write(r.content)
-            return Path(tmp.name)
-
-
-async def send_text(chat_id: int, text: str):
-    async with httpx.AsyncClient() as client:
-        await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
-
-
-async def send_voice(chat_id: int, audio_path: Path):
-    async with httpx.AsyncClient() as client:
-        with open(audio_path, "rb") as f:
-            files = {"voice": (audio_path.name, f, "audio/ogg")}
-            data = {"chat_id": chat_id}
-            await client.post(f"{API_URL}/sendVoice", data=data, files=files)
-
-
 @router.post("/webhook")
 async def telegram_webhook(update: TelegramMessage):
     if update.callback_query:
@@ -66,34 +35,19 @@ async def telegram_webhook(update: TelegramMessage):
         update.message = {"chat": {"id": chat_id}, "text": data}
 
     if not update.message:
-        return {"ok": False, "reason": "no message"}
+        return {"ok": False}
 
     msg = update.message
     chat_id = msg["chat"]["id"]
 
     if "text" in msg:
         text = msg["text"].strip()
-        if text.startswith("/model"):
-            _, model = text.split(maxsplit=1)
+        if text.startswith("/reply_mode"):
+            _, mode = text.split(maxsplit=1)
             user_settings[chat_id] = user_settings.get(chat_id, {})
-            user_settings[chat_id]["model"] = model
-            dialog.gpt.model = model
-            return await send_text(chat_id, f"Модель {model.upper()} выбрана ✅")
+            user_settings[chat_id]["reply_mode"] = mode
+            async with httpx.AsyncClient() as client:
+                await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"Режим ответа: {mode.upper()} ✅"})
+            return {"ok": True}
 
-        if text == "/start":
-            return await send_text(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.")
-
-    if "voice" not in msg:
-        return {"ok": False, "reason": "not a voice message"}
-
-    file_id = msg["voice"]["file_id"]
-    oga_path = await download_file(file_id)
-    wav_path = convert_oga_to_wav(oga_path)
-    user_text = whisper.transcribe(wav_path)
-    model = user_settings.get(chat_id, {}).get("model", "gpt-4")
-    dialog.gpt.model = model
-    response_text = await dialog.generate_response(chat_id, user_text)
-    await send_text(chat_id, response_text)
-    tts_path = await tts.synthesize(response_text)
-    await send_voice(chat_id, tts_path)
     return {"ok": True}
