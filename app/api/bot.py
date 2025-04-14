@@ -24,6 +24,26 @@ class TelegramMessage(BaseModel):
     message: dict | None = None
     callback_query: dict | None = None
 
+
+def build_buttons():
+    return {
+        "inline_keyboard": [[
+            {"text": "🔁 Сбросить", "callback_data": "/reset"},
+            {"text": "🗣 Голос", "callback_data": "/reply_mode voice"},
+            {"text": "💬 Текст", "callback_data": "/reply_mode text"},
+            {"text": "📊 Статистика", "callback_data": "/usage"}
+        ]]
+    }
+
+
+async def send_text(chat_id: int, text: str, buttons: bool = False):
+    payload = {"chat_id": chat_id, "text": text}
+    if buttons:
+        payload["reply_markup"] = build_buttons()
+    async with httpx.AsyncClient() as client:
+        await client.post(f"{API_URL}/sendMessage", json=payload)
+
+
 @router.post("/webhook")
 async def telegram_webhook(update: TelegramMessage):
     if update.callback_query:
@@ -46,8 +66,10 @@ async def telegram_webhook(update: TelegramMessage):
             _, mode = text.split(maxsplit=1)
             user_settings[chat_id] = user_settings.get(chat_id, {})
             user_settings[chat_id]["reply_mode"] = mode
-            async with httpx.AsyncClient() as client:
-                await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": f"Режим ответа: {mode.upper()} ✅"})
+            await send_text(chat_id, f"Режим ответа: {mode.upper()} ✅", buttons=True)
             return {"ok": True}
+
+        if text == "/start":
+            return await send_text(chat_id, "Привет! Я голосовой/текстовый бот. Просто скажи что-нибудь.", buttons=True)
 
     return {"ok": True}
