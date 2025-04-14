@@ -1,24 +1,22 @@
-from fastapi import APIRouter
 import os
 import tempfile
 import subprocess
 from pathlib import Path
-import httpx
+from fastapi import APIRouter
 from pydantic import BaseModel
+import httpx
 
 from app.services.whisper_service import WhisperService
 from app.services.tts_service import TTSService
 from app.services.dialog_service import DialogService
 
 router = APIRouter()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 whisper = WhisperService()
 tts = TTSService()
 dialog = DialogService()
-
 user_settings = {}
 
 class TelegramMessage(BaseModel):
@@ -44,19 +42,9 @@ async def download_file(file_id: str) -> Path:
             return Path(tmp.name)
 
 
-async def send_text(chat_id: int, text: str, buttons: bool = False):
-    payload = {"chat_id": chat_id, "text": text}
-    if buttons:
-        payload["reply_markup"] = {
-            "inline_keyboard": [[
-                {"text": "GPT-4", "callback_data": "/model gpt-4"},
-                {"text": "Mistral", "callback_data": "/model mistral"},
-                {"text": "LLaMA 3", "callback_data": "/model llama3"},
-                {"text": "📊 Статистика", "callback_data": "/usage"}
-            ]]
-        }
+async def send_text(chat_id: int, text: str):
     async with httpx.AsyncClient() as client:
-        await client.post(f"{API_URL}/sendMessage", json=payload)
+        await client.post(f"{API_URL}/sendMessage", json={"chat_id": chat_id, "text": text})
 
 
 async def send_voice(chat_id: int, audio_path: Path):
@@ -65,12 +53,6 @@ async def send_voice(chat_id: int, audio_path: Path):
             files = {"voice": (audio_path.name, f, "audio/ogg")}
             data = {"chat_id": chat_id}
             await client.post(f"{API_URL}/sendVoice", data=data, files=files)
-
-
-async def reply(chat_id: int, text: str, buttons: bool = False):
-    await send_text(chat_id, text, buttons)
-    voice_path = await tts.synthesize(text)
-    await send_voice(chat_id, voice_path)
 
 
 @router.post("/webhook")
@@ -91,42 +73,15 @@ async def telegram_webhook(update: TelegramMessage):
 
     if "text" in msg:
         text = msg["text"].strip()
-        if text == "/start":
-            return await reply(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.", buttons=True)
-        if text == "/reset":
-            dialog.reset_context(chat_id)
-            return await reply(chat_id, "Контекст очищен ✅")
-        if text.startswith("/voice"):
-            _, voice = text.split(maxsplit=1)
-            user_settings[chat_id] = {"voice": voice}
-            return await reply(chat_id, f"Голос будет сменён на {voice}")
-        if text.startswith("/mode"):
-            _, mode = text.split(maxsplit=1)
-            user_settings[chat_id] = user_settings.get(chat_id, {})
-            user_settings[chat_id]["mode"] = mode
-            return await reply(chat_id, f"Режим {mode.upper()} активирован ✅")
         if text.startswith("/model"):
             _, model = text.split(maxsplit=1)
             user_settings[chat_id] = user_settings.get(chat_id, {})
             user_settings[chat_id]["model"] = model
             dialog.gpt.model = model
-            return await reply(chat_id, f"Модель {model.upper()} активирована ✅")
-        if text == "/usage":
-            stats = dialog.sessions.get_usage(chat_id)
-            usage = f"Запросов к ИИ: {stats['requests']}\nСимволов: {stats['tokens']}"
-            return await reply(chat_id, usage)
-        if text == "/help":
-            help_text = (
-                "/start — приветствие\n"
-                "/reset — очистить память\n"
-                "/voice female|male — выбрать голос\n"
-                "/mode simple|gpt — выбрать режим\n"
-                "/model gpt-4|mistral|llama3 — выбор модели\n"
-                "/usage — статистика общения\n"
-                "/help — список команд"
-            )
-            return await reply(chat_id, help_text, buttons=True)
-        return await reply(chat_id, "Я умею работать с голосом. Просто скажи что-нибудь 🎙️")
+            return await send_text(chat_id, f"Модель {model.upper()} выбрана ✅")
+
+        if text == "/start":
+            return await send_text(chat_id, "Привет! Я голосовой бот. Просто скажи что-нибудь.")
 
     if "voice" not in msg:
         return {"ok": False, "reason": "not a voice message"}
@@ -135,16 +90,9 @@ async def telegram_webhook(update: TelegramMessage):
     oga_path = await download_file(file_id)
     wav_path = convert_oga_to_wav(oga_path)
     user_text = whisper.transcribe(wav_path)
-
-    mode = user_settings.get(chat_id, {}).get("mode", "gpt")
     model = user_settings.get(chat_id, {}).get("model", "gpt-4")
     dialog.gpt.model = model
-
-    if mode == "simple":
-        response_text = f"Ты сказал: {user_text}"
-    else:
-        response_text = await dialog.generate_response(chat_id, user_text)
-
+    response_text = await dialog.generate_response(chat_id, user_text)
     await send_text(chat_id, response_text)
     tts_path = await tts.synthesize(response_text)
     await send_voice(chat_id, tts_path)
