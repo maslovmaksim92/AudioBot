@@ -14,7 +14,6 @@ router = APIRouter()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-GPT_MODEL = os.getenv("GPT_MODEL", "gpt-4")
 
 whisper = WhisperService()
 tts = TTSService()
@@ -50,9 +49,9 @@ async def send_text(chat_id: int, text: str, buttons: bool = False):
     if buttons:
         payload["reply_markup"] = {
             "inline_keyboard": [[
-                {"text": "🔁 Сбросить", "callback_data": "/reset"},
-                {"text": "🎙️ Сменить голос", "callback_data": "/voice female"},
-                {"text": "🤖 Режим GPT-4", "callback_data": "/mode gpt"},
+                {"text": "GPT-4", "callback_data": "/model gpt-4"},
+                {"text": "Mistral", "callback_data": "/model mistral"},
+                {"text": "LLaMA 3", "callback_data": "/model llama3"},
                 {"text": "📊 Статистика", "callback_data": "/usage"}
             ]]
         }
@@ -106,6 +105,12 @@ async def telegram_webhook(update: TelegramMessage):
             user_settings[chat_id] = user_settings.get(chat_id, {})
             user_settings[chat_id]["mode"] = mode
             return await reply(chat_id, f"Режим {mode.upper()} активирован ✅")
+        if text.startswith("/model"):
+            _, model = text.split(maxsplit=1)
+            user_settings[chat_id] = user_settings.get(chat_id, {})
+            user_settings[chat_id]["model"] = model
+            dialog.gpt.model = model
+            return await reply(chat_id, f"Модель {model.upper()} активирована ✅")
         if text == "/usage":
             stats = dialog.sessions.get_usage(chat_id)
             usage = f"Запросов к ИИ: {stats['requests']}\nСимволов: {stats['tokens']}"
@@ -116,6 +121,7 @@ async def telegram_webhook(update: TelegramMessage):
                 "/reset — очистить память\n"
                 "/voice female|male — выбрать голос\n"
                 "/mode simple|gpt — выбрать режим\n"
+                "/model gpt-4|mistral|llama3 — выбор модели\n"
                 "/usage — статистика общения\n"
                 "/help — список команд"
             )
@@ -131,6 +137,9 @@ async def telegram_webhook(update: TelegramMessage):
     user_text = whisper.transcribe(wav_path)
 
     mode = user_settings.get(chat_id, {}).get("mode", "gpt")
+    model = user_settings.get(chat_id, {}).get("model", "gpt-4")
+    dialog.gpt.model = model
+
     if mode == "simple":
         response_text = f"Ты сказал: {user_text}"
     else:
