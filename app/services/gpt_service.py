@@ -2,24 +2,28 @@ import httpx
 import os
 from typing import List
 
-SYSTEM_PROMPT = "Ты — голосовой помощник. Отвечай кратко, дружелюбно, в стиле собеседника."
-API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "mistralai/mistral-7b-instruct"
+SYSTEM_PROMPT = (
+    "Ты — персональный голосовой ассистент. Отвечай уверенно, дружелюбно, говори кратко и понятно. "
+    "Ты умеешь вести расписание, напоминать о задачах, помогать с планированием, отвечать на вопросы. "
+    "Твоя задача — быть полезным собеседником и помощником в делах пользователя."
+)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or "sk-undefined"
-
+API_URL = "https://api.openai.com/v1/chat/completions"
+MODEL = os.getenv("GPT_MODEL", "gpt-4")
 HEADERS = {
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+    "Authorization": f"Bearer {os.getenv('OPEN_AI_KEY')}",
     "Content-Type": "application/json"
 }
 
-
 class GPTService:
+    def __init__(self):
+        self.model = MODEL
+
     async def generate(self, chat_history: List[dict]) -> str:
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + chat_history
 
         payload = {
-            "model": MODEL,
+            "model": self.model,
             "messages": messages,
             "temperature": 0.7
         }
