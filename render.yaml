@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-assistant
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: MONGO_URL
+        value: mongodb+srv://ai-assistant:password@cluster.mongodb.net/ai_assistant
+      - key: DB_NAME
+        value: ai_assistant
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: EMERGENT_LLM_KEY
+        value: sk-emergent-0A408AfAeF26aCd5aB
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8327964029:AAHBMI1T1Y8ZWLn34wpg92d1-Cb-8RXTSmQ
+      - key: BITRIX24_WEBHOOK_URL
+        value: https://vas-dom.bitrix24.ru/rest/1/gq2ixv9nypiimwi9/
+      - key: BITRIX24_DOMAIN
+        value: vas-dom.bitrix24.ru
