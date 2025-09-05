@@ -256,6 +256,86 @@ async def analyze_meeting(data: dict):
     analysis = await ai_assistant.analyze_meeting_transcript(transcript)
     return analysis
 
+# Bitrix24 integration endpoints
+@api_router.get("/bitrix24/test")
+async def test_bitrix24_connection():
+    """Test Bitrix24 connection"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    result = await bx24.test_connection()
+    return result
+
+@api_router.get("/bitrix24/statistics")
+async def get_bitrix24_statistics():
+    """Get statistics from Bitrix24"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    stats = await bx24.get_cleaning_statistics()
+    return stats
+
+@api_router.get("/bitrix24/deals")
+async def get_bitrix24_deals():
+    """Get deals from Bitrix24"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    deals = await bx24.get_deals()
+    return {"deals": deals, "count": len(deals)}
+
+@api_router.get("/bitrix24/contacts")
+async def get_bitrix24_contacts():
+    """Get contacts from Bitrix24"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    contacts = await bx24.get_contacts()
+    return {"contacts": contacts, "count": len(contacts)}
+
+@api_router.get("/bitrix24/pipeline")
+async def get_cleaning_pipeline():
+    """Get cleaning pipeline info"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    pipeline = await bx24.find_cleaning_pipeline()
+    return {"pipeline": pipeline}
+
+@api_router.post("/bitrix24/create-deal")
+async def create_cleaning_deal_bitrix(deal_data: dict):
+    """Create new cleaning deal in Bitrix24"""
+    from bitrix24_service import get_bitrix24_service
+    
+    bx24 = await get_bitrix24_service()
+    
+    # Find cleaning pipeline
+    pipeline = await bx24.find_cleaning_pipeline()
+    if not pipeline:
+        raise HTTPException(status_code=400, detail="Cleaning pipeline not found")
+    
+    # Prepare deal data for Bitrix24
+    bitrix_deal_data = {
+        "TITLE": deal_data.get("title", "Новая заявка на уборку"),
+        "CATEGORY_ID": pipeline.get("ID"),
+        "STAGE_ID": "NEW",  # Will be updated based on pipeline stages
+        "ASSIGNED_BY_ID": 1,  # Current user
+        "COMMENTS": deal_data.get("description", "")
+    }
+    
+    # Add custom fields if provided
+    if deal_data.get("address"):
+        bitrix_deal_data["UF_CRM_ADDRESS"] = deal_data["address"]
+    if deal_data.get("city"):
+        bitrix_deal_data["UF_CRM_CITY"] = deal_data["city"]
+    
+    deal_id = await bx24.create_deal(bitrix_deal_data)
+    
+    if deal_id:
+        return {"success": True, "deal_id": deal_id, "message": "Deal created successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to create deal in Bitrix24")
+
 # Include router
 app.include_router(api_router)
 
