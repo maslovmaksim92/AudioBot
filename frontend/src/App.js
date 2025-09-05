@@ -336,24 +336,25 @@ const MetricCard = ({ title, value, icon, color, change }) => {
   );
 };
 
-// AI Chat Component
+// AI Chat Component with Voice Integration
 const AIChat = () => {
   const [messages, setMessages] = useState([
     {
       type: 'ai',
-      content: 'Привет! Я ваш AI-ассистент. Могу помочь с управлением сотрудниками, анализом данных и оптимизацией бизнес-процессов. Что вас интересует?',
+      content: 'Привет! Я ваш AI-ассистент для управления компанией. Можете писать или говорить со мной голосом! Скажите "Привет, МАКС!" для голосовой команды.',
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
+  const sendMessage = async (messageText = null) => {
+    const textToSend = messageText || inputMessage;
+    if (!textToSend.trim()) return;
 
     const userMessage = {
       type: 'user',
-      content: inputMessage,
+      content: textToSend,
       timestamp: new Date()
     };
 
@@ -363,7 +364,7 @@ const AIChat = () => {
 
     try {
       const response = await axios.post(`${API}/ai/chat`, {
-        message: inputMessage
+        message: textToSend
       });
 
       const aiMessage = {
@@ -373,6 +374,11 @@ const AIChat = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Text-to-speech for AI responses
+      if (textToSend.toLowerCase().includes('макс') || textToSend.toLowerCase().includes('голос')) {
+        speakResponse(response.data.response);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage = {
@@ -386,6 +392,27 @@ const AIChat = () => {
     }
   };
 
+  const speakResponse = (text) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.rate = 0.9;
+      
+      const voices = speechSynthesis.getVoices();
+      const russianVoice = voices.find(voice => voice.lang.includes('ru'));
+      if (russianVoice) {
+        utterance.voice = russianVoice;
+      }
+      
+      speechSynthesis.speak(utterance);
+    }
+  };
+
+  const handleVoiceMessage = (transcript) => {
+    console.log('Voice message received:', transcript);
+    sendMessage(transcript);
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -397,8 +424,13 @@ const AIChat = () => {
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
         <h3 className="text-lg font-semibold text-white flex items-center">
-          🤖 AI Чат-ассистент
+          🤖 AI Чат-ассистент с голосовым управлением
         </h3>
+      </div>
+      
+      {/* Voice Assistant Component */}
+      <div className="p-4 border-b">
+        <VoiceAssistant onVoiceMessage={handleVoiceMessage} isListening={isLoading} />
       </div>
       
       <div className="h-96 overflow-y-auto p-6 space-y-4">
@@ -442,18 +474,21 @@ const AIChat = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Задайте вопрос AI-ассистенту..."
+            placeholder="Напишите сообщение или используйте голос..."
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
           <button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={isLoading || !inputMessage.trim()}
             className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Отправить
           </button>
         </div>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          💡 Попробуйте: "Привет, МАКС! Покажи статистику по Bitrix24"
+        </p>
       </div>
     </div>
   );
