@@ -331,10 +331,40 @@ async def create_cleaning_deal_bitrix(deal_data: dict):
     
     deal_id = await bx24.create_deal(bitrix_deal_data)
     
-    if deal_id:
-        return {"success": True, "deal_id": deal_id, "message": "Deal created successfully"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to create deal in Bitrix24")
+# Telegram Bot endpoints
+@api_router.post("/telegram/start-bot")
+async def start_telegram_bot(background_tasks):
+    """Start Telegram bot in background"""
+    try:
+        from telegram_bot import run_bot_background
+        
+        # Start bot in background
+        background_tasks.add_task(run_bot_background)
+        
+        return {"success": True, "message": "Telegram bot started in background"}
+    except Exception as e:
+        logger.error(f"Error starting Telegram bot: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start bot: {e}")
+
+@api_router.get("/telegram/bot-info")
+async def get_bot_info():
+    """Get Telegram bot information"""
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        raise HTTPException(status_code=400, detail="Telegram bot token not configured")
+    
+    return {
+        "bot_username": "@aitest123432_bot",
+        "bot_token_configured": bool(bot_token),
+        "features": [
+            "🤖 AI чат с интеграцией GPT-4o-mini",
+            "📊 Дешборд с данными Bitrix24",
+            "💼 Управление сделками",
+            "🎙️ Анализ планерок (голос + текст)",
+            "📝 Система обратной связи",
+            "🏠 Статистика домов по городам"
+        ]
+    }
 
 # Include router
 app.include_router(api_router)
