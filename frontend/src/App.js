@@ -3,6 +3,8 @@ import './App.css';
 import axios from 'axios';
 import VoiceAssistant from './VoiceAssistant';
 import LiveVoiceChat from './LiveVoiceChat';
+import OnboardingChat from './OnboardingChat';
+import MeetingRecorder from './MeetingRecorder';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
