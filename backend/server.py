@@ -140,6 +140,15 @@ async def get_employees():
 async def create_employee(employee: EmployeeCreate):
     """Create new employee"""
     employee_dict = employee.dict()
+    
+    # Convert hire_date string to datetime
+    from datetime import datetime
+    try:
+        hire_date_str = employee_dict.pop('hire_date')
+        employee_dict['hire_date'] = datetime.strptime(hire_date_str, '%Y-%m-%d')
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid hire_date format. Use YYYY-MM-DD")
+    
     employee_obj = Employee(**employee_dict)
     await db.employees.insert_one(employee_obj.dict())
     return employee_obj
