@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 def main():
     """Main function to start the application"""
     try:
-        # Import and run the FastAPI server
-        from backend.server import app
+        # Import and run the FastAPI server (Render version without emergentintegrations)
+        from backend.server_render import app
         
         logger.info("🚀 Starting AI Assistant on Render...")
         logger.info(f"Python version: {sys.version}")
