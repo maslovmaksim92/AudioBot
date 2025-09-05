@@ -231,12 +231,23 @@ app.add_middleware(
 )
 
 # Serve static files (for frontend)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="/app/frontend/build/static"), name="static")
 
 # Serve frontend
-@app.get("/")
-async def serve_frontend():
-    return FileResponse('static/index.html')
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # Serve React frontend for all non-API routes
+    frontend_path = "/app/frontend/build"
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # Try to serve specific file, fallback to index.html for SPA
+    file_path = f"{frontend_path}/{full_path}" if full_path else f"{frontend_path}/index.html"
+    
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    else:
+        return FileResponse(f"{frontend_path}/index.html")
 
 # Configure logging
 logging.basicConfig(
