@@ -502,6 +502,29 @@ const AIChat = () => {
 // Main App Component
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [userProfile, setUserProfile] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    const savedProfile = localStorage.getItem('userProfile');
+    if (savedProfile) {
+      setUserProfile(JSON.parse(savedProfile));
+    } else {
+      // Show onboarding for new users
+      const hasVisited = localStorage.getItem('hasVisited');
+      if (!hasVisited) {
+        setShowOnboarding(true);
+        localStorage.setItem('hasVisited', 'true');
+      }
+    }
+  }, []);
+
+  const handleOnboardingComplete = (profile) => {
+    setUserProfile(profile);
+    localStorage.setItem('userProfile', JSON.stringify(profile));
+    setShowOnboarding(false);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -515,10 +538,17 @@ function App() {
         return <AIChat />;
       case 'live-voice':
         return <LiveVoiceChat />;
+      case 'meetings':
+        return <MeetingRecorder />;
       default:
         return <Dashboard />;
     }
   };
+
+  // Show onboarding if needed
+  if (showOnboarding) {
+    return <OnboardingChat onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -527,10 +557,27 @@ function App() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             🤖 AI Ассистент для управления компанией
+            {userProfile && (
+              <span className="text-2xl text-blue-600 ml-4">
+                Привет, {userProfile.name}! 👋
+              </span>
+            )}
           </h1>
           <p className="text-gray-600">
             Комплексное управление клининговой компанией с помощью искусственного интеллекта
           </p>
+          {userProfile && (
+            <div className="mt-2 flex space-x-4 text-sm text-gray-500">
+              <span>💼 {userProfile.role}</span>
+              <span>⭐ Опыт: {userProfile.experience}</span>
+              <button 
+                onClick={() => setShowOnboarding(true)}
+                className="text-blue-500 hover:underline"
+              >
+                ⚙️ Настроить профиль
+              </button>
+            </div>
+          )}
         </div>
 
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
