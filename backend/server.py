@@ -171,17 +171,46 @@ async def delete_employee(employee_id: str):
 # AI Chat endpoint
 @api_router.post("/ai/chat")
 async def ai_chat(message: dict):
-    """AI Chat endpoint"""
+    """AI Chat endpoint with real GPT-4o-mini integration"""
+    from ai_service import ai_assistant
+    
     user_message = message.get("message", "")
+    session_id = message.get("session_id", "default")
     
-    # Mock AI response for now
-    ai_response = f"Понял ваш запрос: '{user_message}'. В данный момент функция в разработке. Скоро я смогу помочь с анализом данных, управлением сотрудниками и бизнес-процессами."
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message is required")
     
-    return {
-        "response": ai_response,
-        "timestamp": datetime.utcnow().isoformat(),
-        "status": "success"
-    }
+    # Get AI response
+    response = await ai_assistant.chat(user_message, session_id)
+    return response
+
+# Employee analysis endpoint
+@api_router.post("/ai/analyze-employee/{employee_id}")
+async def analyze_employee(employee_id: str):
+    """Analyze employee data with AI"""
+    from ai_service import ai_assistant
+    
+    # Get employee data
+    employee = await db.employees.find_one({"id": employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Analyze with AI
+    analysis = await ai_assistant.analyze_employee_data(employee)
+    return analysis
+
+# Meeting analysis endpoint
+@api_router.post("/ai/analyze-meeting")
+async def analyze_meeting(data: dict):
+    """Analyze meeting transcript"""
+    from ai_service import ai_assistant
+    
+    transcript = data.get("transcript", "")
+    if not transcript:
+        raise HTTPException(status_code=400, detail="Transcript is required")
+    
+    analysis = await ai_assistant.analyze_meeting_transcript(transcript)
+    return analysis
 
 # Include router
 app.include_router(api_router)
