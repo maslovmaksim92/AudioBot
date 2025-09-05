@@ -8,9 +8,10 @@ import sys
 import logging
 from pathlib import Path
 
-# Add backend directory to Python path
-backend_dir = Path(__file__).parent / "backend"
-sys.path.insert(0, str(backend_dir))
+# Add current directory to Python path
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+sys.path.insert(0, str(current_dir / "backend"))
 
 # Configure logging for production
 logging.basicConfig(
@@ -20,24 +21,50 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def main():
-    """Main function to start the application"""
+def create_app():
+    """Create and configure the FastAPI application"""
+    import_error = None
+    
     try:
-        # Import and run the FastAPI server (Render version without emergentintegrations)
+        # Import the render version of server
         from backend.server_render import app
         
-        logger.info("🚀 Starting AI Assistant on Render...")
+        logger.info("🚀 AI Assistant loaded successfully")
         logger.info(f"Python version: {sys.version}")
         logger.info(f"Working directory: {os.getcwd()}")
+        logger.info(f"Python path: {sys.path[:3]}")
         
         return app
         
+    except ImportError as e:
+        import_error = e
+        logger.error(f"❌ Import error: {e}")
+        # Fallback to basic FastAPI app
+        from fastapi import FastAPI
+        
+        fallback_app = FastAPI(title="AI Assistant", version="1.0.0")
+        
+        @fallback_app.get("/")
+        async def root():
+            return {
+                "message": "AI Assistant Fallback Mode",
+                "status": "partial",
+                "error": str(import_error),
+                "note": "Some features may not be available"
+            }
+        
+        @fallback_app.get("/health")
+        async def health():
+            return {"status": "ok", "mode": "fallback"}
+        
+        return fallback_app
+        
     except Exception as e:
-        logger.error(f"❌ Failed to start application: {e}")
+        logger.error(f"❌ Failed to create application: {e}")
         raise
 
-# Create app instance for ASGI servers
-app = main()
+# Create app instance for ASGI servers (Render uses this)
+app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
