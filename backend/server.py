@@ -475,6 +475,23 @@ async def get_company_info():
             departments = await db.departments.find().to_list(100)
             processes = await db.business_processes.find().to_list(100)
             
+            # If database is empty, return mock data
+            if not company:
+                return {
+                    "success": True,
+                    "company": {
+                        "name": "Клининговая компания ВасДом",
+                        "description": "Уборка подъездов в Калуге и Кемерово", 
+                        "cities": ["Калуга", "Кемерово"],
+                        "houses_count": {"Калуга": 500, "Кемерово": 100}
+                    },
+                    "departments": [
+                        {"name": "Управление", "description": "Руководство компании"},
+                        {"name": "Клининг", "description": "Отдел уборки подъездов"},
+                        {"name": "Строительство", "description": "Строительные работы"}
+                    ]
+                }
+            
             return {
                 "success": True,
                 "company": company,
@@ -493,12 +510,13 @@ async def get_company_info():
             },
             "departments": [
                 {"name": "Управление", "description": "Руководство компании"},
-                {"name": "Клининг", "description": "Отдел уборки подъездов"}, 
+                {"name": "Клининг", "description": "Отдел уборки подъездов"},
                 {"name": "Строительство", "description": "Строительные работы"}
             ]
         }
         
     except Exception as e:
+        logger.error(f"Error getting company info: {e}")
         return {"success": False, "error": str(e)}
 
 # Telegram Bot endpoints
