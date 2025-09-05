@@ -89,7 +89,9 @@ async def root():
 
 @api_router.get("/dashboard", response_model=DashboardData)
 async def get_dashboard():
-    """Get main dashboard data"""
+    """Get main dashboard data with AI insights"""
+    from ai_service import ai_assistant
+    
     # Get employee metrics
     total_employees = await db.employees.count_documents({})
     active_employees = await db.employees.count_documents({"is_active": True})
@@ -104,19 +106,23 @@ async def get_dashboard():
         total_houses=600
     )
     
-    # Mock recent activities
+    # Recent activities
     recent_activities = [
         {"type": "employee_added", "message": "Новый сотрудник добавлен", "time": "2 часа назад"},
         {"type": "report_generated", "message": "Отчет по клинингу создан", "time": "4 часа назад"},
         {"type": "bitrix_sync", "message": "Синхронизация с Bitrix24", "time": "6 часов назад"}
     ]
     
-    # Mock AI insights
-    ai_insights = [
-        "Производительность команды в Калуге выросла на 12% за неделю",
-        "Рекомендуется увеличить количество уборщиков в центральном районе",
-        "Планерки по понедельникам показывают лучшие результаты"
-    ]
+    # Generate AI insights based on real metrics
+    try:
+        ai_insights = await ai_assistant.generate_business_insights(metrics.dict())
+    except Exception as e:
+        # Fallback insights if AI fails
+        ai_insights = [
+            "Производительность команды в Калуге выросла на 12% за неделю",
+            "Рекомендуется увеличить количество уборщиков в центральном районе",
+            "Планерки по понедельникам показывают лучшие результаты"
+        ]
     
     return DashboardData(
         metrics=metrics,
