@@ -510,6 +510,8 @@ function App() {
         return <Analytics />;
       case 'ai-chat':
         return <AIChat />;
+      case 'live-voice':
+        return <LiveVoiceChat />;
       default:
         return <Dashboard />;
     }
