@@ -331,6 +331,176 @@ async def create_cleaning_deal_bitrix(deal_data: dict):
     
     deal_id = await bx24.create_deal(bitrix_deal_data)
     
+    if deal_id:
+        return {"success": True, "deal_id": deal_id, "message": "Deal created successfully"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to create deal in Bitrix24")
+
+# User Profile endpoints
+@api_router.post("/user/profile/update")
+async def update_user_profile(profile_data: dict):
+    """Update user profile during onboarding"""
+    try:
+        # Save to database
+        profile_id = str(uuid.uuid4())
+        profile_document = {
+            "id": profile_id,
+            "field": profile_data.get("field"),
+            "value": profile_data.get("value"), 
+            "full_profile": profile_data.get("profile", {}),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        if db:
+            await db.user_profiles.insert_one(profile_document)
+        
+        logger.info(f"User profile updated: {profile_data.get('field')} = {profile_data.get('value')}")
+        
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "profile_id": profile_id
+        }
+    except Exception as e:
+        logger.error(f"Error updating user profile: {e}")
+        return {
+            "success": False, 
+            "message": "Error updating profile",
+            "error": str(e)
+        }
+
+@api_router.get("/user/profile/{profile_id}")
+async def get_user_profile(profile_id: str):
+    """Get user profile by ID"""
+    try:
+        if db:
+            profile = await db.user_profiles.find_one({"id": profile_id})
+            if profile:
+                return {"success": True, "profile": profile}
+        
+        return {"success": False, "message": "Profile not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# Company Database Creation endpoint
+@api_router.post("/company/create-database")
+async def create_company_database():
+    """Create initial company database structure"""
+    try:
+        # Create collections and initial data
+        collections_created = []
+        
+        if db:
+            # Company information
+            company_info = {
+                "id": str(uuid.uuid4()),
+                "name": "Клининговая компания ВасДом",
+                "description": "Уборка подъездов в Калуге и Кемерово",
+                "cities": ["Калуга", "Кемерово"],
+                "houses_count": {"Калуга": 500, "Кемерово": 100},
+                "founded": "2020",
+                "services": [
+                    "Уборка подъездов",
+                    "Строительные работы", 
+                    "Текущий ремонт",
+                    "Отделочные работы"
+                ],
+                "created_at": datetime.utcnow()
+            }
+            await db.company_info.insert_one(company_info)
+            collections_created.append("company_info")
+            
+            # Sample departments
+            departments = [
+                {"id": str(uuid.uuid4()), "name": "Управление", "description": "Руководство компании"},
+                {"id": str(uuid.uuid4()), "name": "Клининг", "description": "Отдел уборки подъездов"},
+                {"id": str(uuid.uuid4()), "name": "Строительство", "description": "Строительные и ремонтные работы"},
+                {"id": str(uuid.uuid4()), "name": "Бухгалтерия", "description": "Финансовый учет"}
+            ]
+            await db.departments.insert_many(departments)
+            collections_created.append("departments")
+            
+            # Sample business processes
+            processes = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Процесс уборки подъезда",
+                    "steps": [
+                        "Получение заявки от управляющей компании",
+                        "Назначение бригады уборщиков",
+                        "Выполнение уборки",
+                        "Фотоотчет о выполненной работе",
+                        "Отправка отчета в Bitrix24"
+                    ],
+                    "department": "Клининг"
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Процесс ремонтных работ",
+                    "steps": [
+                        "Осмотр объекта и составление сметы",
+                        "Согласование с заказчиком",
+                        "Закупка материалов",
+                        "Выполнение работ",
+                        "Приемка работ"
+                    ],
+                    "department": "Строительство"
+                }
+            ]
+            await db.business_processes.insert_many(processes)
+            collections_created.append("business_processes")
+        
+        return {
+            "success": True,
+            "message": "База данных компании создана успешно",
+            "collections_created": collections_created,
+            "company_info": company_info
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating company database: {e}")
+        return {
+            "success": False,
+            "message": "Ошибка при создании базы данных",
+            "error": str(e)
+        }
+
+@api_router.get("/company/info")
+async def get_company_info():
+    """Get company information"""
+    try:
+        if db:
+            company = await db.company_info.find_one()
+            departments = await db.departments.find().to_list(100)
+            processes = await db.business_processes.find().to_list(100)
+            
+            return {
+                "success": True,
+                "company": company,
+                "departments": departments,
+                "processes": processes
+            }
+        
+        # Mock data if no database
+        return {
+            "success": True,
+            "company": {
+                "name": "Клининговая компания ВасДом",
+                "description": "Уборка подъездов в Калуге и Кемерово",
+                "cities": ["Калуга", "Кемерово"],
+                "houses_count": {"Калуга": 500, "Кемерово": 100}
+            },
+            "departments": [
+                {"name": "Управление", "description": "Руководство компании"},
+                {"name": "Клининг", "description": "Отдел уборки подъездов"},
+                {"name": "Строительство", "description": "Строительные работы"}
+            ]
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # Telegram Bot endpoints
 @api_router.post("/telegram/start-bot")
 async def start_telegram_bot(background_tasks):
