@@ -53,7 +53,7 @@ class Employee(BaseModel):
     email: Optional[str] = None
     telegram_id: Optional[int] = None
     phone: Optional[str] = None
-    hire_date: date
+    hire_date: datetime
     city: str  # Калуга или Кемерово
     is_active: bool = True
     profile_data: Dict[str, Any] = Field(default_factory=dict)
@@ -65,7 +65,7 @@ class EmployeeCreate(BaseModel):
     email: Optional[str] = None
     telegram_id: Optional[int] = None
     phone: Optional[str] = None
-    hire_date: date
+    hire_date: str  # String format for input
     city: str
 
 class CompanyMetrics(BaseModel):
