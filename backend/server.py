@@ -470,7 +470,7 @@ async def create_company_database():
 async def get_company_info():
     """Get company information"""
     try:
-        if db:
+        if db is not None:
             company = await db.company_info.find_one()
             departments = await db.departments.find().to_list(100)
             processes = await db.business_processes.find().to_list(100)
@@ -493,7 +493,7 @@ async def get_company_info():
             },
             "departments": [
                 {"name": "Управление", "description": "Руководство компании"},
-                {"name": "Клининг", "description": "Отдел уборки подъездов"},
+                {"name": "Клининг", "description": "Отдел уборки подъездов"}, 
                 {"name": "Строительство", "description": "Строительные работы"}
             ]
         }
