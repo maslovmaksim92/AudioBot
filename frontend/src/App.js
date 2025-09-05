@@ -13,7 +13,8 @@ const Navigation = ({ activeTab, setActiveTab }) => {
     { id: 'dashboard', name: '📊 Дашборд', icon: '📊' },
     { id: 'employees', name: '👥 Сотрудники', icon: '👥' },
     { id: 'analytics', name: '📈 Аналитика', icon: '📈' },
-    { id: 'ai-chat', name: '🤖 AI Чат', icon: '🤖' }
+    { id: 'ai-chat', name: '🤖 AI Чат', icon: '🤖' },
+    { id: 'live-voice', name: '📞 Live Голос', icon: '📞' }
   ];
 
   return (
