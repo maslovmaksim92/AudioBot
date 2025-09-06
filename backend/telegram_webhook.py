@@ -5,7 +5,6 @@ import os
 import asyncio
 import logging
 from fastapi import APIRouter, Request, HTTPException
-from telegram_bot import process_telegram_update
 import json
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ async def telegram_webhook_handler(request: Request):
         # Parse webhook data
         update_data = await request.json()
         
-        # Process the update
+        # Process the update using aiogram dispatcher
         await process_telegram_update(update_data)
         
         return {"status": "ok"}
@@ -42,6 +41,7 @@ async def telegram_webhook_handler(request: Request):
 async def set_telegram_webhook():
     """Set up Telegram webhook URL (call this once after deployment)"""
     try:
+        # Import bot here to avoid circular imports
         from telegram_bot import bot
         
         # Get webhook URL from environment
@@ -99,14 +99,14 @@ async def get_webhook_info():
 async def process_telegram_update(update_data: dict):
     """Process incoming Telegram update"""
     try:
-        from telegram_bot import dp
+        from telegram_bot import dp, bot
         from aiogram.types import Update
         
         # Convert dict to Telegram Update object
         update = Update.model_validate(update_data)
         
         # Process update through dispatcher
-        await dp.feed_update(bot=None, update=update)
+        await dp.feed_update(bot=bot, update=update)
         
     except Exception as e:
         logger.error(f"Error processing Telegram update: {e}")
