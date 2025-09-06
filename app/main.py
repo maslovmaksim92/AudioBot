@@ -302,7 +302,7 @@ async def set_telegram_webhook():
     
     try:
         webhook_url = os.environ.get("TELEGRAM_WEBHOOK_URL")
-        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
         
         print(f"🔗 TELEGRAM_WEBHOOK_URL: {webhook_url}")
         print(f"🔗 TELEGRAM_BOT_TOKEN: {'✅ ЕСТЬ' if bot_token else '❌ НЕТ'}")
