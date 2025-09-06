@@ -99,50 +99,160 @@ app = FastAPI(
 )
 
 
-# Define Models
-class StatusCheck(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
-
-# Include the router in the main app
-app.include_router(api_router)
-
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=config.CORS_ORIGINS.split(','),
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Root endpoint
+@app.get("/")
+async def root():
+    """Service information endpoint"""
+    return {
+        "service": "VasDom AI Assistant",
+        "version": "1.0.0",
+        "status": "running",
+        "environment": config.APP_ENV,
+        "features": {
+            "telegram_bot": bool(config.TELEGRAM_BOT_TOKEN),
+            "bitrix24_integration": bool(config.BITRIX24_WEBHOOK_URL),
+            "ai_service": bool(config.EMERGENT_LLM_KEY)
+        }
+    }
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+# Health check endpoints
+@app.get("/health")
+async def health_check():
+    """Basic health check"""
+    return {"status": "healthy", "timestamp": dashboard_service.get_current_time()}
+
+@app.get("/healthz")
+async def detailed_health_check():
+    """Detailed health check with service status"""
+    health_data = {
+        "status": "healthy",
+        "timestamp": dashboard_service.get_current_time(),
+        "services": {}
+    }
+    
+    # Check AI service
+    try:
+        ai_status = await ai_service.health_check()
+        health_data["services"]["ai"] = {"status": "healthy", "details": ai_status}
+    except Exception as e:
+        health_data["services"]["ai"] = {"status": "unhealthy", "error": str(e)}
+    
+    # Check Bitrix24 service
+    try:
+        bitrix_status = await bitrix24_service.test_connection()
+        health_data["services"]["bitrix24"] = {"status": "healthy", "details": bitrix_status}
+    except Exception as e:
+        health_data["services"]["bitrix24"] = {"status": "unhealthy", "error": str(e)}
+    
+    # Check Telegram service
+    if telegram_service:
+        try:
+            telegram_status = await telegram_service.get_status()
+            health_data["services"]["telegram"] = {"status": "healthy", "details": telegram_status}
+        except Exception as e:
+            health_data["services"]["telegram"] = {"status": "unhealthy", "error": str(e)}
+    else:
+        health_data["services"]["telegram"] = {"status": "not_configured"}
+    
+    return health_data
+
+# Dashboard endpoints
+@app.get("/dashboard")
+async def get_dashboard():
+    """Get dashboard data"""
+    try:
+        dashboard_data = await dashboard_service.get_dashboard_data()
+        return dashboard_data
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/logs")
+async def get_logs(lines: int = 100):
+    """Get system logs"""
+    try:
+        logs = await dashboard_service.get_recent_logs(lines)
+        return {"logs": logs}
+    except Exception as e:
+        logger.error(f"Logs error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Telegram webhook endpoint
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """Handle Telegram webhook"""
+    if not telegram_service:
+        raise HTTPException(status_code=503, detail="Telegram service not initialized")
+    
+    try:
+        update_data = await request.json()
+        logger.info(f"📥 Received Telegram update: {update_data.get('update_id', 'unknown')}")
+        
+        await telegram_service.handle_webhook(update_data)
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"❌ Telegram webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/telegram/set-webhook")
+async def set_telegram_webhook():
+    """Set Telegram webhook"""
+    if not telegram_service:
+        raise HTTPException(status_code=503, detail="Telegram service not initialized")
+    
+    try:
+        result = await telegram_service.set_webhook()
+        return {"status": "success", "result": result}
+    except Exception as e:
+        logger.error(f"❌ Set webhook error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Bitrix24 API endpoints
+@app.get("/api/bitrix24/test")
+async def test_bitrix24():
+    """Test Bitrix24 connection"""
+    try:
+        result = await bitrix24_service.test_connection()
+        return result
+    except Exception as e:
+        logger.error(f"❌ Bitrix24 test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bitrix24/deals")
+async def get_bitrix24_deals(start: int = 0, limit: int = 50):
+    """Get Bitrix24 deals with pagination"""
+    try:
+        deals = await bitrix24_service.get_deals(start=start, limit=limit)
+        return {"deals": deals, "count": len(deals)}
+    except Exception as e:
+        logger.error(f"❌ Bitrix24 deals error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/bitrix24/cleaning-houses") 
+async def get_cleaning_houses():
+    """Get addresses from 'Уборка подъездов' pipeline"""
+    try:
+        houses = await bitrix24_service.get_cleaning_houses()
+        return {"houses": houses, "count": len(houses)}
+    except Exception as e:
+        logger.error(f"❌ Cleaning houses error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Error handlers
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Handle general exceptions"""
+    logger.error(f"❌ Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error": str(exc)}
+    )
