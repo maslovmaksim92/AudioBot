@@ -494,19 +494,46 @@ async def get_company_info():
         return {"success": False, "error": str(e)}
 
 # Telegram Bot endpoints
-@api_router.post("/telegram/start-bot")
-async def start_telegram_bot(background_tasks):
-    """Start Telegram bot in background"""
+@api_router.get("/telegram/setup-production")
+async def setup_telegram_production():
+    """Setup Telegram bot for production environment"""
     try:
-        from telegram_bot import run_bot_background
+        webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL")
+        webhook_secret = os.getenv("TELEGRAM_WEBHOOK_SECRET")
         
-        # Start bot in background
-        background_tasks.add_task(run_bot_background)
+        if not webhook_url:
+            return {
+                "error": "TELEGRAM_WEBHOOK_URL not configured",
+                "instruction": "Add TELEGRAM_WEBHOOK_URL=https://your-app.onrender.com/api/telegram/webhook to Render environment",
+                "status": "configuration_required"
+            }
         
-        return {"success": True, "message": "Telegram bot started in background"}
+        # Import and setup webhook
+        from telegram_bot import bot
+        
+        await bot.set_webhook(
+            url=webhook_url,
+            secret_token=webhook_secret if webhook_secret else None,
+            drop_pending_updates=True
+        )
+        
+        return {
+            "status": "success",
+            "webhook_url": webhook_url,
+            "webhook_set": True,
+            "message": "Telegram bot configured for production"
+        }
+        
     except Exception as e:
-        logger.error(f"Error starting Telegram bot: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to start bot: {e}")
+        return {
+            "error": str(e),
+            "status": "failed",
+            "troubleshooting": [
+                "Check TELEGRAM_BOT_TOKEN is correct",
+                "Verify TELEGRAM_WEBHOOK_URL matches your Render domain",
+                "Ensure webhook URL is publicly accessible"
+            ]
+        }
 
 @api_router.get("/telegram/bot-info")
 async def get_bot_info():
