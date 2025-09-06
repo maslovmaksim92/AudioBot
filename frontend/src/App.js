@@ -5,6 +5,8 @@ import VoiceAssistant from './VoiceAssistant';
 import LiveVoiceChat from './LiveVoiceChat';
 import OnboardingChat from './OnboardingChat';
 import MeetingRecorder from './MeetingRecorder';
+import FinancialAnalytics from './components/FinancialAnalytics';
+import Employees from './components/Employees';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
