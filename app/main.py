@@ -242,6 +242,20 @@ async def get_dashboard():
     print(f"📊 Дашборд готов: {len(str(dashboard_data))} символов")
     return dashboard_data
 
+@app.get("/logs")
+async def get_logs():
+    """Endpoint для просмотра всех логов"""
+    
+    print("📋 ========== ЛОГИ ЗАПРОС ==========")
+    print(f"📋 Возвращаем {len(application_logs)} логов")
+    
+    return {
+        "total_logs": len(application_logs),
+        "logs": application_logs,
+        "system_status": system_status,
+        "telegram_messages": telegram_messages
+    }
+
 @app.get("/live-status")
 async def live_status():
     """Живой статус для мониторинга в реальном времени"""
