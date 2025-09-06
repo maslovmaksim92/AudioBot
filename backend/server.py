@@ -306,28 +306,41 @@ async def bitrix24_webhook_handler(request: Request):
 # Bitrix24 integration endpoints  
 @api_router.get("/bitrix24/test")
 async def test_bitrix24_connection():
-    """Test Bitrix24 connection - using mock data for demo"""
+    """Test Bitrix24 connection - РЕАЛЬНАЯ ИНТЕГРАЦИЯ"""
     try:
-        from bitrix24_mock import get_mock_bitrix24_service
+        # Пробуем реальную интеграцию
+        from bitrix24_service import get_bitrix24_service
         
-        bx24 = await get_mock_bitrix24_service()
+        bx24 = await get_bitrix24_service()
         result = await bx24.test_connection()
         
-        # Добавляем информацию о настройке
-        result["setup_info"] = {
-            "portal": "vas-dom.bitrix24.ru",
-            "app_id": os.getenv("BITRIX24_CLIENT_ID", "настроено"),
-            "status": "Используются демо-данные",
-            "next_steps": [
-                "1. Создайте входящий вебхук в Bitrix24",
-                "2. Обновите BITRIX24_WEBHOOK_URL в переменных",
-                "3. Система автоматически переключится на реальные данные"
-            ]
-        }
+        # Если реальная интеграция работает, используем её
+        result["integration_status"] = "✅ РЕАЛЬНЫЕ ДАННЫЕ BITRIX24"
+        result["webhook_url"] = os.getenv("BITRIX24_WEBHOOK_URL")
         
         return result
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+        
+    except Exception as real_error:
+        # Если реальная интеграция не работает, используем мок
+        try:
+            from bitrix24_mock import get_mock_bitrix24_service
+            
+            bx24 = await get_mock_bitrix24_service()
+            result = await bx24.test_connection()
+            
+            result["integration_status"] = "⚠️ ДЕМО-ДАННЫЕ (Bitrix24 недоступен)"
+            result["real_error"] = str(real_error)
+            result["webhook_url"] = os.getenv("BITRIX24_WEBHOOK_URL")
+            
+            return result
+            
+        except Exception as mock_error:
+            return {
+                "status": "error",
+                "message": f"И реальная интеграция, и мок не работают",
+                "real_error": str(real_error),
+                "mock_error": str(mock_error)
+            }
 
 @api_router.get("/bitrix24/statistics")
 async def get_bitrix24_statistics():
