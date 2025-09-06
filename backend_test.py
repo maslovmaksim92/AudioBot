@@ -838,7 +838,9 @@ class TelegramBotTester:
         
         # CYCLE 1 specific tests
         await self.test_ai_persistent_memory()
-        await self.test_financial_forecasting()
+        await self.test_new_financial_apis()
+        await self.test_updated_dashboard_metrics()
+        await self.test_bitrix24_integration_updates()
         await self.test_smart_notifications()
         await self.test_enhanced_company_context()
         await self.test_database_functionality()
