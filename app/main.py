@@ -252,6 +252,45 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal server error", "error": str(exc)}
     )
 
+# Mount static files and setup SPA routing for production
+static_dir = Path(__file__).parent.parent / "frontend" / "build"
+if static_dir.exists():
+    # Serve static files
+    app.mount("/static", StaticFiles(directory=static_dir / "static"), name="static")
+    
+    # Serve React app for all non-API routes
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve React SPA for all non-API routes"""
+        # Don't intercept API routes
+        if full_path.startswith("api/") or full_path.startswith("telegram/") or full_path in ["health", "healthz", "dashboard", "logs"]:
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Serve index.html for all other routes (React Router will handle them)
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        else:
+            return HTMLResponse("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>VasDom AI Assistant</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+            </head>
+            <body>
+                <div id="root">
+                    <h1>🏠 VasDom AI Assistant</h1>
+                    <p>Frontend build not found. System running in API-only mode.</p>
+                    <p>Backend API: <a href="/healthz">Health Check</a> | <a href="/dashboard">Dashboard Data</a></p>
+                </div>
+            </body>
+            </html>
+            """)
+else:
+    logger.warning("⚠️ Frontend build directory not found, serving API only")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
