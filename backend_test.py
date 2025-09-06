@@ -466,8 +466,8 @@ class TelegramBotTester:
                         data = await response.json()
                         if data.get('success') and 'expense_analysis' in data:
                             breakdown = data['expense_analysis']
-                            expected_categories = ['salaries', 'materials', 'transport', 'utilities', 'other']
-                            found_categories = [cat for cat in expected_categories if cat in breakdown]
+                            expected_categories = ['salaries', 'materials', 'transport', 'overhead', 'other']
+                            found_categories = [cat['category'] for cat in breakdown if cat['category'] in expected_categories]
                             
                             if len(found_categories) >= 3:
                                 self.log_test("Expense Breakdown API", "PASS", 
