@@ -59,7 +59,15 @@ class Bitrix24Service:
             async with session.post(url, json=params) as response:
                 if response.status == 200:
                     result = await response.json()
-                    return result
+                    # Bitrix24 возвращает структуру {result: ..., time: ...}
+                    if "result" in result:
+                        logger.info(f"✅ Bitrix24 API success: {method}")
+                        return result
+                    elif "error" in result:
+                        logger.error(f"❌ Bitrix24 API error: {result['error']}")
+                        return result
+                    else:
+                        return result
                 else:
                     error_text = await response.text()
                     logger.error(f"Bitrix24 API error {response.status}: {error_text}")
