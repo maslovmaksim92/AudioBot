@@ -14,14 +14,23 @@ class AIService:
     
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.client = None
         self.model = "gpt-4o-mini"  # Default model
-        self.max_tokens = 1000
-        self.temperature = 0.7
+        self.provider = "openai"
+        self.system_message = """Ты - AI-помощник компании ВасДом, которая занимается:
+- Уборкой подъездов и придомовых территорий
+- Управлением недвижимостью  
+- Клининговыми услугами
+- Работой с ЖКХ
+
+Отвечай дружелюбно, профессионально и по-русски. Помогай клиентам с:
+- Вопросами об услугах
+- Записью на уборку
+- Информацией о ценах
+- Решением проблем
+
+Если нужна дополнительная информация, предложи связаться с менеджером."""
         
-        if api_key:
-            self.client = EmergentLLMIntegration(api_key=api_key)
-        else:
+        if not api_key:
             logger.warning("⚠️ AI Service initialized without API key")
     
     async def health_check(self) -> Dict[str, Any]:
