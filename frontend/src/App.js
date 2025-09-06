@@ -7,6 +7,7 @@ import OnboardingChat from './OnboardingChat';
 import MeetingRecorder from './MeetingRecorder';
 import FinancialAnalytics from './components/FinancialAnalytics';
 import EmployeesComponent from './components/Employees';
+import LogsDashboard from './components/LogsDashboard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
