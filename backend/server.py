@@ -852,8 +852,8 @@ async def cleanup_old_conversations(retention_days: int = 90):
     return result
 
 # Include routers
-app.include_router(api_router, prefix="/api")
-app.include_router(webhook_router, prefix="/api")  # Add webhook router
+app.include_router(api_router)
+app.include_router(webhook_router)  # Add webhook router
 
 # CORS
 app.add_middleware(
