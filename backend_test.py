@@ -433,7 +433,7 @@ class TelegramBotTester:
                                 
                                 # Check data structure for plan vs fact
                                 first_month = monthly_data[0]
-                                required_fields = ['month', 'plan_revenue', 'actual_revenue', 'plan_expenses', 'actual_expenses']
+                                required_fields = ['period', 'revenue', 'expenses', 'profit']
                                 if all(field in first_month for field in required_fields):
                                     self.log_test("Plan vs Fact Data Structure", "PASS", 
                                                 f"All required fields present")
