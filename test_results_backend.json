@@ -1,237 +1,243 @@
 {
-  "total_tests": 38,
-  "passed": 32,
-  "failed": 3,
-  "warnings": 3,
-  "success_rate": 84.21052631578947,
+  "total_tests": 39,
+  "passed": 35,
+  "failed": 2,
+  "warnings": 2,
+  "success_rate": 89.74358974358975,
   "results": [
     {
       "test": "Bot Token Configuration",
       "status": "PASS",
       "details": "Token configured: 8327964628...",
-      "timestamp": "2025-09-06T07:12:58.948465"
+      "timestamp": "2025-09-06T07:25:10.535758"
     },
     {
       "test": "AI Service Key",
       "status": "PASS",
       "details": "Emergent key configured: sk-emergent-0A4...",
-      "timestamp": "2025-09-06T07:12:58.948505"
+      "timestamp": "2025-09-06T07:25:10.535798"
     },
     {
       "test": "Bitrix24 Webhook",
       "status": "PASS",
-      "details": "Webhook configured: https://vas-dom.bitrix24.ru/rest/1/R1qMvqyRcQuvgM",
-      "timestamp": "2025-09-06T07:12:58.948531"
+      "details": "Webhook configured: https://vas-dom.bitrix24.ru/rest/1/2e11sgsjz1nf9l5h/",
+      "timestamp": "2025-09-06T07:25:10.535827"
     },
     {
       "test": "Telegram Bot Connection",
       "status": "FAIL",
       "details": "HTTP 401",
-      "timestamp": "2025-09-06T07:13:00.778700"
+      "timestamp": "2025-09-06T07:25:10.909599"
     },
     {
       "test": "AI Chat Functionality",
       "status": "PASS",
-      "details": "AI responded: Привет! Я проанализировал текущие показатели компа...",
-      "timestamp": "2025-09-06T07:13:05.152582"
+      "details": "AI responded: Привет! В компании все идет в соответствии с плано...",
+      "timestamp": "2025-09-06T07:25:15.331240"
     },
     {
       "test": "AI Business Insights",
       "status": "PASS",
       "details": "Generated 5 insights",
-      "timestamp": "2025-09-06T07:13:10.023880"
+      "timestamp": "2025-09-06T07:25:18.793860"
     },
     {
       "test": "Bitrix24 Connection",
       "status": "FAIL",
       "details": "Invalid response from Bitrix24",
-      "timestamp": "2025-09-06T07:13:10.655940"
+      "timestamp": "2025-09-06T07:25:19.566561"
     },
     {
       "test": "Bitrix24 Statistics",
       "status": "PASS",
-      "details": "Retrieved stats: 0 deals, 0 contacts",
-      "timestamp": "2025-09-06T07:13:11.239456"
+      "details": "Retrieved stats: 50 deals, 50 contacts",
+      "timestamp": "2025-09-06T07:25:20.203710"
     },
     {
       "test": "Bitrix24 Deals Retrieval",
       "status": "PASS",
-      "details": "Retrieved 0 deals",
-      "timestamp": "2025-09-06T07:13:11.439226"
+      "details": "Retrieved 50 deals",
+      "timestamp": "2025-09-06T07:25:20.423798"
     },
     {
       "test": "Bitrix24 Pipeline Detection",
-      "status": "WARN",
-      "details": "No cleaning pipeline found",
-      "timestamp": "2025-09-06T07:13:11.635651"
+      "status": "PASS",
+      "details": "Found pipeline: Уборка подъездов",
+      "timestamp": "2025-09-06T07:25:20.627524"
     },
     {
       "test": "Main Menu Creation",
       "status": "PASS",
       "details": "Menu has 4 rows",
-      "timestamp": "2025-09-06T07:13:13.337477"
+      "timestamp": "2025-09-06T07:25:22.334135"
     },
     {
       "test": "Feedback Keyboard",
       "status": "PASS",
       "details": "Feedback keyboard has 3 buttons",
-      "timestamp": "2025-09-06T07:13:13.337667"
+      "timestamp": "2025-09-06T07:25:22.334352"
     },
     {
       "test": "Improvement Button Implementation",
       "status": "PASS",
       "details": "Button code found in ai_chat_handler (lines 332-336)",
-      "timestamp": "2025-09-06T07:13:13.337712"
+      "timestamp": "2025-09-06T07:25:22.334403"
     },
     {
       "test": "Backend Root Endpoint",
       "status": "PASS",
       "details": "API version: 1.0.0",
-      "timestamp": "2025-09-06T07:13:13.399664"
+      "timestamp": "2025-09-06T07:25:22.395974"
     },
     {
       "test": "AI Chat Endpoint",
       "status": "PASS",
-      "details": "AI response received: 213 chars",
-      "timestamp": "2025-09-06T07:13:14.626967"
+      "details": "AI response received: 221 chars",
+      "timestamp": "2025-09-06T07:25:23.517574"
     },
     {
       "test": "Bitrix24 Test Endpoint",
       "status": "PASS",
       "details": "Status: error",
-      "timestamp": "2025-09-06T07:13:15.100216"
+      "timestamp": "2025-09-06T07:25:23.986671"
     },
     {
       "test": "Dashboard Endpoint",
       "status": "PASS",
       "details": "Houses: 0, Employees: 0",
-      "timestamp": "2025-09-06T07:13:19.483117"
+      "timestamp": "2025-09-06T07:25:28.204418"
     },
     {
       "test": "Bot Token Loading",
       "status": "PASS",
       "details": "Token loaded successfully",
-      "timestamp": "2025-09-06T07:13:19.483564"
+      "timestamp": "2025-09-06T07:25:28.204852"
     },
     {
       "test": "Bot Instance Creation",
       "status": "PASS",
       "details": "Bot instance created",
-      "timestamp": "2025-09-06T07:13:19.483598"
+      "timestamp": "2025-09-06T07:25:28.204890"
     },
     {
       "test": "Dispatcher Creation",
       "status": "PASS",
       "details": "Dispatcher created",
-      "timestamp": "2025-09-06T07:13:19.483621"
+      "timestamp": "2025-09-06T07:25:28.204914"
     },
     {
       "test": "Bot Webhook Info",
       "status": "WARN",
       "details": "Webhook info error: Telegram server says - Unauthorized",
-      "timestamp": "2025-09-06T07:13:19.846352"
+      "timestamp": "2025-09-06T07:25:28.569621"
     },
     {
       "test": "Suggest Improvement Handler",
       "status": "WARN",
       "details": "Handler not found in dispatcher",
-      "timestamp": "2025-09-06T07:13:19.846526"
+      "timestamp": "2025-09-06T07:25:28.569800"
     },
     {
       "test": "Improvement Button Creation",
       "status": "PASS",
       "details": "Button can be created successfully",
-      "timestamp": "2025-09-06T07:13:19.846618"
+      "timestamp": "2025-09-06T07:25:28.569893"
     },
     {
       "test": "AI Memory - First Message",
       "status": "PASS",
-      "details": "Session created with memory: test_memory_1757142799.846677",
-      "timestamp": "2025-09-06T07:13:20.939493"
+      "details": "Session created with memory: test_memory_1757143528.569951",
+      "timestamp": "2025-09-06T07:25:29.582677"
     },
     {
       "test": "AI Memory - Context Retention",
       "status": "PASS",
       "details": "AI remembered 3/5 context items",
-      "timestamp": "2025-09-06T07:13:25.344726"
+      "timestamp": "2025-09-06T07:25:34.820706"
     },
     {
       "test": "Conversation Stats API",
       "status": "PASS",
-      "details": "Stats: 2 sessions, 8 messages",
-      "timestamp": "2025-09-06T07:13:25.390162"
+      "details": "Stats: 9 sessions, 45 messages",
+      "timestamp": "2025-09-06T07:25:34.863070"
     },
     {
       "test": "Financial Forecast Generation",
-      "status": "FAIL",
-      "details": "Invalid response: No deals data available for forecasting",
-      "timestamp": "2025-09-06T07:13:25.604887"
+      "status": "PASS",
+      "details": "Generated 3 monthly forecasts",
+      "timestamp": "2025-09-06T07:25:35.416652"
+    },
+    {
+      "test": "Forecast Data Structure",
+      "status": "PASS",
+      "details": "All required fields present",
+      "timestamp": "2025-09-06T07:25:35.416763"
     },
     {
       "test": "AI Business Insights",
       "status": "PASS",
       "details": "Generated 7 business insights",
-      "timestamp": "2025-09-06T07:13:41.534906"
+      "timestamp": "2025-09-06T07:25:51.106872"
     },
     {
       "test": "Performance Metrics API",
       "status": "PASS",
       "details": "All metric sections present",
-      "timestamp": "2025-09-06T07:13:41.935932"
+      "timestamp": "2025-09-06T07:25:51.563677"
     },
     {
       "test": "Daily Summary Endpoint",
       "status": "PASS",
       "details": "Summary generation: Failed to send",
-      "timestamp": "2025-09-06T07:13:48.638119"
+      "timestamp": "2025-09-06T07:26:00.242932"
     },
     {
       "test": "Business Alert Endpoint",
       "status": "PASS",
       "details": "Alert generation: Failed to send",
-      "timestamp": "2025-09-06T07:13:48.766349"
+      "timestamp": "2025-09-06T07:26:00.793347"
     },
     {
       "test": "Notification Service Import",
       "status": "PASS",
       "details": "Service imported successfully",
-      "timestamp": "2025-09-06T07:13:48.802992"
+      "timestamp": "2025-09-06T07:26:00.827368"
     },
     {
       "test": "Notification Methods",
       "status": "PASS",
       "details": "Required methods available",
-      "timestamp": "2025-09-06T07:13:48.803123"
+      "timestamp": "2025-09-06T07:26:00.827497"
     },
     {
       "test": "Company Context Integration",
       "status": "PASS",
       "details": "AI included 8/9 company context items",
-      "timestamp": "2025-09-06T07:13:52.081678"
+      "timestamp": "2025-09-06T07:26:05.974704"
     },
     {
       "test": "Company Info API",
       "status": "PASS",
       "details": "Company data available: Клининговая компания ВасДом",
-      "timestamp": "2025-09-06T07:13:52.102543"
+      "timestamp": "2025-09-06T07:26:06.024729"
     },
     {
       "test": "Database Cleanup",
       "status": "PASS",
       "details": "Cleanup completed: {'messages_deleted': 0, 'sessions_deleted': 0}",
-      "timestamp": "2025-09-06T07:13:52.123099"
+      "timestamp": "2025-09-06T07:26:06.045754"
     },
     {
       "test": "Database Manager",
       "status": "PASS",
       "details": "Database manager initialized",
-      "timestamp": "2025-09-06T07:13:52.123430"
+      "timestamp": "2025-09-06T07:26:06.046055"
     },
     {
       "test": "Conversation Manager",
       "status": "PASS",
       "details": "Conversation manager available",
-      "timestamp": "2025-09-06T07:13:52.123502"
+      "timestamp": "2025-09-06T07:26:06.046124"
     }
   ]
 }
