@@ -504,7 +504,7 @@ class TelegramBotTester:
                                 
                                 # Check forecast structure
                                 first_forecast = cash_flow[0]
-                                required_fields = ['month', 'opening_balance', 'inflow', 'outflow', 'closing_balance']
+                                required_fields = ['period', 'opening_balance', 'inflow', 'outflow', 'closing_balance']
                                 if all(field in first_forecast for field in required_fields):
                                     self.log_test("Cash Flow Data Structure", "PASS", 
                                                 f"All required fields present")
