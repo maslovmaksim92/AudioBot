@@ -550,6 +550,51 @@ async def telegram_webhook(request: Request):
         system_status["errors"] += 1
         
         return {"ok": False, "error": str(e)}
+# Bitrix24 integration endpoints
+@app.get("/api/bitrix24/test")
+async def test_bitrix24():
+    """Test Bitrix24 connection"""
+    try:
+        import httpx
+        webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
+        if not webhook_url:
+            return {"status": "error", "message": "BITRIX24_WEBHOOK_URL not configured"}
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(f"{webhook_url}user.current")
+            if response.status_code == 200:
+                result = response.json()
+                user = result.get("result", {})
+                return {
+                    "status": "success", 
+                    "user": {"NAME": user.get("NAME"), "LAST_NAME": user.get("LAST_NAME")},
+                    "integration_status": "✅ РЕАЛЬНЫЕ ДАННЫЕ BITRIX24"
+                }
+            else:
+                return {"status": "error", "message": f"HTTP {response.status_code}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/bitrix24/deals") 
+async def get_bitrix24_deals():
+    """Get deals from Bitrix24"""
+    try:
+        import httpx
+        webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
+        if not webhook_url:
+            return {"error": "BITRIX24_WEBHOOK_URL not configured"}
+            
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.post(f"{webhook_url}crm.deal.list", 
+                json={"select": ["ID", "TITLE", "STAGE_ID", "OPPORTUNITY"], "start": 0})
+            if response.status_code == 200:
+                result = response.json()
+                deals = result.get("result", [])
+                return {"deals": deals, "count": len(deals), "data_source": "✅ РЕАЛЬНЫЕ ДАННЫЕ BITRIX24"}
+            else:
+                return {"error": f"HTTP {response.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}
 
 # Startup event
 @app.on_event("startup")
