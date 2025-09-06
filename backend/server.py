@@ -247,6 +247,27 @@ async def get_cleaning_houses():
         logger.error(f"❌ Cleaning houses error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# AI Testing endpoint
+@app.get("/test-ai")
+async def test_ai_generation():
+    """Test AI response generation"""
+    try:
+        test_message = "Привет! Расскажи о услугах ВасДом по уборке подъездов в Калуге"
+        response = await ai_service.generate_response(test_message)
+        
+        return {
+            "status": "success",
+            "test_message": test_message,
+            "ai_response": response,
+            "response_length": len(response),
+            "model": ai_service.model,
+            "provider": ai_service.provider,
+            "timestamp": dashboard_service.get_current_time()
+        }
+    except Exception as e:
+        logger.error(f"❌ AI test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Error handlers
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
