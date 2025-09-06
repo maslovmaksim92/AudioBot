@@ -54,15 +54,17 @@ class Bitrix24Service:
         
         url = f"{self.webhook_url}{method}"
         logger.info(f"🔗 Calling Bitrix24: {method} at {url}")
-        session = await self._get_session()
         
         try:
-            async with session.post(url, json=params) as response:
-                if response.status == 200:
-                    result = await response.json()
+            # Используем httpx напрямую для более надежного подключения
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, json=params if params else None)
+                
+                if response.status_code == 200:
+                    result = response.json()
                     # Bitrix24 возвращает структуру {result: ..., time: ...}
                     if "result" in result:
-                        logger.info(f"✅ Bitrix24 API success: {method}")
+                        logger.info(f"✅ Bitrix24 API success: {method} - {len(result.get('result', []))} items")
                         return result
                     elif "error" in result:
                         logger.error(f"❌ Bitrix24 API error: {result['error']}")
@@ -70,9 +72,9 @@ class Bitrix24Service:
                     else:
                         return result
                 else:
-                    error_text = await response.text()
-                    logger.error(f"Bitrix24 API error {response.status}: {error_text}")
-                    return {"error": f"HTTP {response.status}: {error_text}"}
+                    error_text = response.text
+                    logger.error(f"Bitrix24 API error {response.status_code}: {error_text}")
+                    return {"error": f"HTTP {response.status_code}: {error_text}"}
         except Exception as e:
             logger.error(f"Bitrix24 API call failed: {e}")
             return {"error": str(e)}
