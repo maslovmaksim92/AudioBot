@@ -53,6 +53,7 @@ class Bitrix24Service:
             params = {}
         
         url = f"{self.webhook_url}{method}"
+        logger.info(f"🔗 Calling Bitrix24: {method} at {url}")
         session = await self._get_session()
         
         try:
