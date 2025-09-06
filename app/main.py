@@ -145,7 +145,7 @@ async def health_check():
     
     # Проверяем переменные окружения
     env_vars = {
-        "TELEGRAM_BOT_TOKEN": os.environ.get("TELEGRAM_BOT_TOKEN"),
+        "TELEGRAM_BOT_TOKEN": os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN"),
         "TELEGRAM_WEBHOOK_URL": os.environ.get("TELEGRAM_WEBHOOK_URL"),
         "BITRIX24_WEBHOOK_URL": os.environ.get("BITRIX24_WEBHOOK_URL"),
         "EMERGENT_LLM_KEY": os.environ.get("EMERGENT_LLM_KEY")
