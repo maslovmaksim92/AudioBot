@@ -492,9 +492,37 @@ async def telegram_webhook(request: Request):
             
             add_log("SUCCESS", f"💬 СООБЩЕНИЕ ОТ ПОЛЬЗОВАТЕЛЯ", message_info)
             
-            # Здесь должна быть отправка ответа через Telegram API
-            print("🤖 ✅ Сообщение обработано успешно!")
-            add_log("SUCCESS", "✅ СООБЩЕНИЕ ОБРАБОТАНО УСПЕШНО", {
+            # Отправляем ответ через Telegram API
+            try:
+                import httpx
+                bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
+                if bot_token:
+                    # Простой ответ для тестирования
+                    response_text = f"🤖 МАКС получил ваше сообщение: '{text}'\n\nСистема работает! Время: {datetime.utcnow().strftime('%H:%M:%S')}"
+                    
+                    send_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                    send_data = {
+                        "chat_id": chat_id,
+                        "text": response_text,
+                        "parse_mode": "Markdown"
+                    }
+                    
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        telegram_response = await client.post(send_url, json=send_data)
+                        if telegram_response.status_code == 200:
+                            print("🤖 ✅ Ответ отправлен успешно!")
+                            add_log("SUCCESS", "✅ ОТВЕТ ОТПРАВЛЕН В TELEGRAM", {
+                                "chat_id": chat_id,
+                                "response_text": response_text[:100]
+                            })
+                        else:
+                            print(f"🤖 ❌ Ошибка отправки: {telegram_response.status_code}")
+                            add_log("ERROR", f"❌ ОШИБКА ОТПРАВКИ ОТВЕТА: {telegram_response.status_code}")
+            except Exception as send_error:
+                print(f"🤖 ❌ Ошибка отправки ответа: {send_error}")
+                add_log("ERROR", f"❌ ОШИБКА ОТПРАВКИ ОТВЕТА: {str(send_error)}")
+                
+            add_log("SUCCESS", "✅ СООБЩЕНИЕ ОБРАБОТАНО", {
                 "processed_at": datetime.utcnow().isoformat()
             })
         
