@@ -14,15 +14,27 @@ class Bitrix24Service:
     """Service for Bitrix24 API integration"""
     
     def __init__(self):
-        self.webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
-        if not self.webhook_url:
-            raise ValueError("BITRIX24_WEBHOOK_URL not found in environment variables")
+        # Получаем данные приложения
+        self.portal_url = os.getenv("BITRIX24_PORTAL_URL", "https://vas-dom.bitrix24.ru")
+        self.client_id = os.getenv("BITRIX24_CLIENT_ID")
+        self.client_secret = os.getenv("BITRIX24_CLIENT_SECRET")
+        
+        # Формируем webhook URL на основе данных приложения
+        if self.client_id:
+            self.webhook_url = f"{self.portal_url}/rest/1/{self.client_id}/"
+            logger.info(f"Using Bitrix24 app integration: {self.client_id}")
+        else:
+            # Fallback на старый webhook URL
+            self.webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
+            if not self.webhook_url:
+                raise ValueError("BITRIX24_CLIENT_ID or BITRIX24_WEBHOOK_URL must be provided")
         
         # Ensure webhook URL ends with /
         if not self.webhook_url.endswith('/'):
             self.webhook_url += '/'
         
         self.session = None
+        logger.info(f"Bitrix24 service initialized with URL: {self.webhook_url}")
         
     async def _get_session(self):
         """Get or create aiohttp session"""
