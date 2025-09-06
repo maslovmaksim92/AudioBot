@@ -353,20 +353,41 @@ async def get_bitrix24_statistics():
 
 @api_router.get("/bitrix24/deals")
 async def get_bitrix24_deals():
-    """Get deals from Bitrix24 - using mock data for demo"""
+    """Get deals from Bitrix24 - РЕАЛЬНЫЕ + FALLBACK ДАННЫЕ"""
     try:
-        from bitrix24_mock import get_mock_bitrix24_service
+        # Сначала пробуем реальную интеграцию
+        from bitrix24_service import get_bitrix24_service
         
-        bx24 = await get_mock_bitrix24_service()
+        bx24 = await get_bitrix24_service()
         deals = await bx24.get_deals()
         
         return {
             "deals": deals,
             "count": len(deals),
-            "note": "Демо-данные. Для реальных данных настройте Bitrix24 webhook."
+            "data_source": "✅ РЕАЛЬНЫЕ ДАННЫЕ BITRIX24",
+            "webhook_url": os.getenv("BITRIX24_WEBHOOK_URL")
         }
-    except Exception as e:
-        return {"error": str(e)}
+        
+    except Exception as real_error:
+        # Fallback на мок-данные
+        try:
+            from bitrix24_mock import get_mock_bitrix24_service
+            
+            bx24 = await get_mock_bitrix24_service()
+            deals = await bx24.get_deals()
+            
+            return {
+                "deals": deals,
+                "count": len(deals),
+                "data_source": "⚠️ ДЕМО-ДАННЫЕ (Bitrix24 недоступен)",
+                "error": str(real_error)
+            }
+        except Exception as mock_error:
+            return {
+                "error": "Нет данных",
+                "real_error": str(real_error),
+                "mock_error": str(mock_error)
+            }
 
 @api_router.get("/bitrix24/contacts")
 async def get_bitrix24_contacts():
