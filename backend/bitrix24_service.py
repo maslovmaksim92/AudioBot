@@ -141,7 +141,11 @@ class Bitrix24Service:
                                   "DATE_CREATE", "DATE_MODIFY", "OPPORTUNITY", "CURRENCY_ID", "COMPANY_ID"]
             
             result = await self.call_method("crm.deal.list", params)
-            return result.get("result", [])
+            deals = result.get("result", [])
+            logger.info(f"📋 Retrieved {len(deals)} deals from Bitrix24")
+            if len(deals) == 0:
+                logger.warning(f"⚠️ No deals found. Full result: {result}")
+            return deals
         except Exception as e:
             logger.error(f"Error getting deals: {e}")
             return []
