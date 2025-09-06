@@ -3,7 +3,11 @@ import asyncio
 from typing import Dict, Any, List, Optional
 from loguru import logger
 import httpx
-from emergentintegrations import EmergentLLMIntegration
+from dotenv import load_dotenv
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+# Load environment variables
+load_dotenv()
 
 class AIService:
     """AI Service using Emergent LLM integration for smart responses"""
