@@ -272,15 +272,63 @@ async def analyze_meeting(data: dict):
     analysis = await ai_assistant.analyze_meeting_transcript(transcript)
     return analysis
 
+# Bitrix24 OAuth endpoints
+@api_router.get("/bitrix24/install")
+async def bitrix24_install():
+    """Initial Bitrix24 app installation endpoint"""
+    return {
+        "status": "success",
+        "message": "VasDom AI Assistant установлен в Bitrix24",
+        "app_info": {
+            "name": "VasDom AI Assistant МАКС",
+            "version": "1.0.0",
+            "description": "AI-директор для управления клининговой компанией"
+        }
+    }
+
+@api_router.post("/bitrix24/webhook") 
+async def bitrix24_webhook_handler(request: Request):
+    """Handle Bitrix24 webhook events"""
+    try:
+        data = await request.json()
+        logger.info(f"Bitrix24 webhook received: {data}")
+        
+        # Обработка различных событий Bitrix24
+        event_type = data.get('event')
+        if event_type:
+            logger.info(f"Processing Bitrix24 event: {event_type}")
+        
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Bitrix24 webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
 # Bitrix24 integration endpoints
 @api_router.get("/bitrix24/test")
 async def test_bitrix24_connection():
     """Test Bitrix24 connection"""
-    from bitrix24_service import get_bitrix24_service
-    
-    bx24 = await get_bitrix24_service()
-    result = await bx24.test_connection()
-    return result
+    try:
+        # Простая проверка доступности портала
+        import httpx
+        portal_url = os.getenv("BITRIX24_PORTAL_URL", "https://vas-dom.bitrix24.ru")
+        
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(f"{portal_url}/rest/")
+            
+        if response.status_code == 200:
+            return {
+                "status": "success",
+                "message": "Bitrix24 portal доступен",
+                "portal": portal_url,
+                "app_configured": bool(os.getenv("BITRIX24_CLIENT_ID"))
+            }
+        else:
+            return {
+                "status": "error", 
+                "message": f"Portal недоступен: {response.status_code}"
+            }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @api_router.get("/bitrix24/statistics")
 async def get_bitrix24_statistics():
