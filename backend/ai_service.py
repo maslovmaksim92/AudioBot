@@ -53,45 +53,30 @@ class AIService:
     
     async def generate_response(self, user_message: str, context: str = "") -> str:
         """Generate AI response for user message"""
-        if not self.client:
+        if not self.api_key:
             return "🤖 AI сервис временно недоступен. Попробуйте позже."
         
         try:
-            # Build system prompt for VasDom context
-            system_prompt = """Ты - AI-помощник компании ВасДом, которая занимается:
-- Уборкой подъездов и придомовых территорий
-- Управлением недвижимостью  
-- Клининговыми услугами
-- Работой с ЖКХ
-
-Отвечай дружелюбно, профессионально и по-русски. Помогай клиентам с:
-- Вопросами об услугах
-- Записью на уборку
-- Информацией о ценах
-- Решением проблем
-
-Если нужна дополнительная информация, предложи связаться с менеджером."""
-
-            # Add context if provided
+            # Create system message with context
+            system_msg = self.system_message
             if context:
-                system_prompt += f"\n\nКонтекст: {context}"
+                system_msg += f"\n\nКонтекст: {context}"
             
-            # Generate response using Emergent LLM
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ]
+            # Initialize chat
+            chat = LlmChat(
+                api_key=self.api_key,
+                session_id=f"vasdom_chat_{hash(user_message)}",
+                system_message=system_msg
+            ).with_model(self.provider, self.model)
             
-            response = await self.client.generate_completion(
-                messages=messages,
-                model=self.model,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature
-            )
+            # Create user message
+            message = UserMessage(text=user_message)
             
-            # Extract content from response
-            if isinstance(response, dict) and "choices" in response:
-                return response["choices"][0]["message"]["content"]
+            # Get response
+            response = await chat.send_message(message)
+            
+            if response and hasattr(response, 'text'):
+                return response.text
             elif isinstance(response, str):
                 return response
             else:
