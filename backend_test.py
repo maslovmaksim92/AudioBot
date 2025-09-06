@@ -464,8 +464,8 @@ class TelegramBotTester:
                 async with session.get(f"{self.api_base}/financial/expense-breakdown") as response:
                     if response.status == 200:
                         data = await response.json()
-                        if data.get('success') and 'breakdown' in data:
-                            breakdown = data['breakdown']
+                        if data.get('success') and 'expense_analysis' in data:
+                            breakdown = data['expense_analysis']
                             expected_categories = ['salaries', 'materials', 'transport', 'utilities', 'other']
                             found_categories = [cat for cat in expected_categories if cat in breakdown]
                             
