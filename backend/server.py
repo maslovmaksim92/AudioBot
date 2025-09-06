@@ -86,9 +86,51 @@ class DashboardData(BaseModel):
     ai_insights: List[str]
 
 # API Endpoints
+@api_router.get("/test/webhook-setup")
+async def test_webhook_setup():
+    """Test endpoint to verify webhook configuration and setup"""
+    try:
+        webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL")
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        
+        # Basic configuration check
+        config_status = {
+            "webhook_url_configured": bool(webhook_url),
+            "bot_token_configured": bool(bot_token),
+            "emergent_llm_configured": bool(os.getenv("EMERGENT_LLM_KEY")),
+            "bitrix24_configured": bool(os.getenv("BITRIX24_WEBHOOK_URL"))
+        }
+        
+        # Instructions for manual webhook setup
+        instructions = [
+            f"1. Open browser: {webhook_url.replace('/webhook', '/set-webhook') if webhook_url else 'Configure TELEGRAM_WEBHOOK_URL first'}",
+            "2. Should see 'success' message",
+            "3. Test bot: message @aitest123432_bot with /start",
+            "4. Check system: /api/system/health"
+        ]
+        
+        return {
+            "status": "configuration_check",
+            "config": config_status,
+            "bot_username": "@aitest123432_bot",
+            "manual_setup_instructions": instructions,
+            "next_step": "After deploy, visit the set-webhook URL in browser"
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @api_router.get("/")
-async def root():
-    return {"message": "AI Assistant API", "status": "active", "version": "1.0.0"}
+async def root_endpoint():
+    """Root API endpoint"""
+    return {
+        "service": "AI Assistant МАКС для ВасДом", 
+        "version": "2.0.0",
+        "status": "running",
+        "telegram_bot": "@aitest123432_bot",
+        "setup_webhook": "/api/telegram/set-webhook",
+        "health_check": "/api/system/health"
+    }
 
 @api_router.get("/dashboard", response_model=DashboardData)
 async def get_dashboard():
