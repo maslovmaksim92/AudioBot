@@ -4,6 +4,10 @@ from fastapi import FastAPI, APIRouter, Request
 from loguru import logger
 from datetime import datetime
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from backend/.env
+load_dotenv("/app/backend/.env")
 
 # Настройка логирования для Render Dashboard
 logger.remove()  # Убираем стандартный логгер
