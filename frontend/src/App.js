@@ -23,7 +23,8 @@ const Navigation = ({ activeTab, setActiveTab }) => {
     { id: 'live-voice', name: '📞 Live Голос', icon: '📞' },
     { id: 'meetings', name: '🎙️ Планерка', icon: '🎙️' },
     { id: 'notifications', name: '📢 Уведомления', icon: '📢' },
-    { id: 'telegram-info', name: '📱 Telegram Бот', icon: '📱' }
+    { id: 'telegram-info', name: '📱 Telegram Бот', icon: '📱' },
+    { id: 'logs', name: '📋 Логи системы', icon: '📋' }
   ];
 
   return (
