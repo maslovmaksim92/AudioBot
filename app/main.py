@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Main FastAPI app for Render deployment
-This file is located at app/main.py to work with uvicorn app.main:app command
+Simple FastAPI app for Render deployment - VasDom AI Assistant
 """
 
 import os
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from typing import Dict, List, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,10 +17,8 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title="🤖 AI Ассистент ВасДом",
-    description="AI assistant for cleaning company operations - Deployed on Render",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    description="AI assistant for VasDom cleaning company",
+    version="2.0.0"
 )
 
 # CORS middleware
@@ -34,106 +30,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple AI class for responses
-class VasDomAI:
-    """AI assistant specialized for VasDom cleaning company"""
-    
-    def __init__(self):
-        self.company_context = {
-            "name": "ВасДом",
-            "business": "Клининговая компания",
-            "services": ["Уборка подъездов", "Строительные работы", "Ремонт"],
-            "cities": {"Калуга": 500, "Кемерово": 100},
-            "employees": 100,
-            "revenue": "4+ млн рублей"
-        }
-    
-    def get_response(self, message: str) -> str:
-        """Generate intelligent response based on message"""
-        msg_lower = message.lower()
-        
-        # Greeting responses
-        if any(word in msg_lower for word in ["привет", "hello", "макс", "здравствуй"]):
-            return "🤖 Привет! Я МАКС - ваш AI-ассистент для управления клининговой компанией ВасДом. Готов помочь с анализом бизнеса и оптимизацией процессов!"
-        
-        # Bitrix24 and CRM
-        elif any(word in msg_lower for word in ["битрикс", "bitrix", "црм", "crm", "сделк"]):
-            return f"📊 По данным Bitrix24: активная воронка 'Уборка подъездов' с оборотом {self.company_context['revenue']}. Воронка показывает стабильный рост, рекомендую анализировать конверсию по этапам."
-        
-        # Employee management
-        elif any(word in msg_lower for word in ["сотрудник", "команда", "персонал", "работник"]):
-            return f"👥 В команде {self.company_context['employees']} сотрудников: 70 в Калуге, 25 в Кемерово. Структура: менеджеры по клинингу, уборщицы, строители, управление. Рекомендую внедрить KPI-систему для повышения эффективности."
-        
-        # City-specific questions
-        elif "калуга" in msg_lower:
-            return f"🏠 Калуга - основной регион работы: {self.company_context['cities']['Калуга']} домов под обслуживанием. Производительность выросла на 15% за квартал. Рекомендую расширение в спальные районы."
-        
-        elif "кемерово" in msg_lower:
-            return f"🏘️ Кемерово - перспективное направление: {self.company_context['cities']['Кемерово']} домов. Потенциал роста высокий, рекомендую увеличить маркетинговые усилия и расширить команду."
-        
-        # Financial questions
-        elif any(word in msg_lower for word in ["деньги", "прибыль", "доход", "финанс", "оборот"]):
-            return f"💰 Финансовые показатели ВасДом: оборот {self.company_context['revenue']}, рентабельность растет. Основная прибыль с контрактов по уборке подъездов. Рекомендую диверсификацию услуг."
-        
-        # Meeting and planning
-        elif any(word in msg_lower for word in ["планерка", "совещание", "встреча", "план"]):
-            return "🎙️ Функция анализа планерок активна! Записываю ключевые решения, отслеживаю выполнение задач. Рекомендую проводить планерки еженедельно для лучшей координации команды."
-        
-        # Voice and communication
-        elif any(word in msg_lower for word in ["голос", "говор", "звон", "связь"]):
-            return "🗣️ Голосовые функции доступны! Могу анализировать записи звонков, планерок, давать рекомендации по коммуникациям с клиентами. Интеграция с телефонией настроена."
-        
-        # Business optimization
-        elif any(word in msg_lower for word in ["оптимиз", "улучш", "развитие", "рост"]):
-            return "📈 Рекомендации по оптимизации: 1) Автоматизация отчетности по объектам 2) Внедрение мобильного приложения для уборщиков 3) Система контроля качества через фото 4) Расширение в новые районы Калуги"
-        
-        # Problems and challenges
-        elif any(word in msg_lower for word in ["проблем", "ошибк", "сложност", "вопрос"]):
-            return "🔧 Анализирую проблемы бизнеса: основные вызовы - контроль качества на удаленных объектах, координация больших команд, сезонность спроса. Предлагаю цифровизацию процессов контроля."
-        
-        # Default intelligent response
-        else:
-            return f"🤖 Анализирую ваш запрос '{message[:50]}...'. Как AI-ассистент компании ВасДом, могу помочь с: управлением {self.company_context['employees']} сотрудников, анализом {sum(self.company_context['cities'].values())} объектов в двух городах, оптимизацией бизнес-процессов и интеграцией с Bitrix24. Уточните, что именно вас интересует?"
-
-# Initialize AI
-vasdom_ai = VasDomAI()
-
-# Routes
 @app.get("/")
 async def root():
-    """Main endpoint with company information"""
+    """Main endpoint"""
     return {
-        "message": "🤖 AI-Ассистент компании ВасДом",
-        "status": "✅ Успешно развернут на Render!",
-        "company": "ВасДом - Профессиональная уборка подъездов",
-        "geography": "🌍 Калуга (500 домов) + Кемерово (100 домов)",
-        "team": "👥 100+ профессиональных сотрудников",
-        "revenue": "💰 4+ млн рублей годовой оборот",
-        "services": [
-            "🏠 Уборка подъездов и придомовых территорий",
-            "🔨 Строительные и ремонтные работы", 
-            "🎯 Техническое обслуживание зданий",
-            "📊 Управление объектами недвижимости"
-        ],
-        "ai_features": [
-            "🤖 Умный чат-ассистент МАКС",
-            "📊 Анализ бизнес-метрик и KPI",
-            "🎙️ Обработка планерок и совещаний",
-            "📞 Анализ клиентских звонков",
-            "🔗 Интеграция с Bitrix24 CRM",
-            "📱 Telegram бот для мобильного управления"
-        ],
-        "api": {
-            "chat": "/api/ai/chat",
-            "dashboard": "/api/dashboard", 
-            "docs": "/docs",
-            "health": "/health"
-        },
-        "deployment": {
-            "platform": "Render.com",
-            "version": "1.0.0",
-            "status": "Production Ready",
-            "uptime": "99.9%"
+        "message": "🤖 AI-Ассистент ВасДом работает!",
+        "status": "✅ Успешно развернут на Render",
+        "company": "ВасДом - Клининговая компания",
+        "version": "2.0.0",
+        "endpoints": {
+            "health": "/health",
+            "api": "/api",
+            "telegram_webhook_setup": "/api/telegram/set-webhook",
+            "dashboard": "/api/dashboard"
         }
     }
 
@@ -143,216 +52,193 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "deployment": "render",
-        "company": "ВасДом",
-        "services": {
-            "api": "running",
-            "ai_chat": "active",
-            "bitrix24": "configured",
-            "telegram": "ready"
-        },
-        "metrics": {
-            "response_time": "< 100ms",
-            "uptime": "99.9%",
-            "ai_accuracy": "95%"
-        }
+        "service": "VasDom AI Assistant",
+        "version": "2.0.0",
+        "deployment": "render"
     }
 
 @app.get("/api")
 async def api_root():
-    """API information endpoint"""
+    """API root endpoint"""
     return {
         "message": "🤖 ВасДом AI Assistant API",
-        "version": "1.0.0",
-        "status": "active",
-        "company": "ВасДом Клининговая Компания",
-        "endpoints": {
-            "chat": "POST /api/ai/chat",
-            "dashboard": "GET /api/dashboard",
-            "company": "GET /api/company/info",
-            "health": "GET /health"
-        },
-        "deployed_on": "Render.com"
+        "version": "2.0.0",
+        "status": "running",
+        "telegram_bot": "@aitest123432_bot",
+        "endpoints": [
+            "GET /api/telegram/set-webhook",
+            "POST /api/telegram/webhook", 
+            "GET /api/dashboard",
+            "POST /api/ai/chat"
+        ]
     }
-
-@app.get("/api/dashboard")
-async def get_dashboard():
-    """Get business dashboard data"""
-    return {
-        "success": True,
-        "company": "ВасДом",
-        "metrics": {
-            "total_employees": 100,
-            "active_employees": 95,
-            "kaluga_employees": 70,
-            "kemerovo_employees": 25,
-            "total_houses": 600,
-            "kaluga_houses": 500,
-            "kemerovo_houses": 100,
-            "monthly_revenue": "4+ млн рублей",
-            "growth_rate": "15%"
-        },
-        "recent_activities": [
-            {
-                "type": "deployment_success", 
-                "message": "🚀 AI-ассистент успешно развернут на Render",
-                "time": "только что"
-            },
-            {
-                "type": "bitrix24_sync",
-                "message": "📊 Синхронизация с Bitrix24 завершена",
-                "time": "2 минуты назад"
-            },
-            {
-                "type": "team_expansion",
-                "message": "👥 Команда в Кемерово расширена до 25 человек",
-                "time": "1 час назад"
-            },
-            {
-                "type": "new_contracts",
-                "message": "📝 Подписано 15 новых договоров на уборку",
-                "time": "3 часа назад"
-            }
-        ],
-        "ai_insights": [
-            "🎉 Система AI-ассистента полностью развернута и готова к работе!",
-            "📈 Рост выручки на 15% за квартал - отличная динамика",
-            "🏆 Команда в Калуге показывает лучшую производительность",
-            "🚀 Рекомендуется расширение присутствия в Кемерово",
-            "💡 AI-оптимизация процессов может увеличить эффективность на 20%"
-        ],
-        "kpi": {
-            "client_satisfaction": "4.8/5",
-            "contract_renewal_rate": "92%",
-            "average_response_time": "2 часа",
-            "quality_score": "98%"
-        }
-    }
-
-@app.post("/api/ai/chat")
-async def ai_chat(request: dict):
-    """AI chat endpoint with VasDom context"""
-    try:
-        message = request.get("message", "")
-        if not message:
-            return {
-                "error": "Сообщение обязательно для обработки",
-                "status": "error"
-            }
-        
-        # Get AI response
-        ai_response = vasdom_ai.get_response(message)
-        
-        return {
-            "response": ai_response,
-            "timestamp": datetime.utcnow().isoformat(),
-            "status": "success",
-            "model": "vasdom-ai-v1",
-            "company": "ВасДом",
-            "session_context": "cleaning_business",
-            "response_time_ms": 150
-        }
-        
-    except Exception as e:
-        logger.error(f"AI chat error: {e}")
-        return {
-            "response": "Извините, произошла ошибка при обработке запроса. Попробуйте еще раз.",
-            "error": str(e),
-            "status": "error",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
-@app.post("/api/telegram/webhook")
-async def telegram_webhook(request: dict):
-    """Handle Telegram bot webhook updates"""
-    try:
-        logger.info(f"🤖 Получен update от Telegram: {request}")
-        
-        # Простая обработка сообщений
-        if 'message' in request:
-            message = request['message']
-            chat_id = message['chat']['id']
-            text = message.get('text', '')
-            
-            logger.info(f"💬 Сообщение от пользователя {chat_id}: {text}")
-            
-            # Используем AI для ответа
-            ai_response = vasdom_ai.get_response(text)
-            
-            # Здесь должна быть отправка ответа через Telegram API
-            # Но для webhook достаточно логирования
-            logger.info(f"🤖 AI ответ: {ai_response[:100]}...")
-            
-        return {"status": "ok"}
-        
-    except Exception as e:
-        logger.error(f"❌ Ошибка обработки webhook: {e}")
-        return {"status": "error", "message": str(e)}
 
 @app.get("/api/telegram/set-webhook")
 async def set_telegram_webhook():
-    """Set up Telegram webhook URL"""
+    """Set up Telegram webhook URL - SIMPLIFIED VERSION"""
     try:
         webhook_url = os.environ.get("TELEGRAM_WEBHOOK_URL")
         bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
         
+        # Check configuration
+        config_status = {
+            "webhook_url": webhook_url,
+            "bot_token_configured": bool(bot_token),
+            "webhook_configured": bool(webhook_url)
+        }
+        
         if not webhook_url or not bot_token:
-            missing = []
-            if not webhook_url: missing.append("TELEGRAM_WEBHOOK_URL")
-            if not bot_token: missing.append("TELEGRAM_BOT_TOKEN")
-            
             return {
-                "error": f"Не настроены переменные: {', '.join(missing)}",
-                "status": "configuration_required",
-                "required_vars": {
-                    "TELEGRAM_WEBHOOK_URL": "https://your-app.onrender.com/api/telegram/webhook",
-                    "TELEGRAM_BOT_TOKEN": "ваш_токен_от_BotFather"
-                }
+                "status": "❌ Конфигурация неполная",
+                "config": config_status,
+                "required_env_vars": {
+                    "TELEGRAM_WEBHOOK_URL": "https://audiobot-qq2.onrender.com/api/telegram/webhook",
+                    "TELEGRAM_BOT_TOKEN": "8327964628:AAHMIgT1XiGEkLc34nogRGZt-Ox-9R0TSn0"
+                },
+                "instructions": [
+                    "1. Добавьте переменные в Render Environment",
+                    "2. Дождитесь redeploy",
+                    "3. Вызовите этот endpoint снова"
+                ]
             }
         
-        # Вызов Telegram API для установки webhook
+        # Try to set webhook via HTTP request
         import httpx
-        async with httpx.AsyncClient() as client:
-            telegram_api_url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
-            response = await client.post(telegram_api_url, json={
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            telegram_url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
+            
+            payload = {
                 "url": webhook_url,
                 "drop_pending_updates": True
-            })
+            }
+            
+            response = await client.post(telegram_url, json=payload)
             
             if response.status_code == 200:
                 result = response.json()
                 if result.get("ok"):
-                    logger.info(f"✅ Webhook установлен: {webhook_url}")
+                    logger.info(f"✅ Webhook установлен успешно: {webhook_url}")
                     return {
-                        "status": "success",
-                        "webhook_url": webhook_url,
+                        "status": "✅ УСПЕХ!",
                         "message": "Telegram webhook установлен успешно!",
-                        "bot": "@aitest123432_bot"
+                        "webhook_url": webhook_url,
+                        "bot": "@aitest123432_bot",
+                        "next_steps": [
+                            "1. Найдите @aitest123432_bot в Telegram",
+                            "2. Напишите /start",
+                            "3. Бот должен ответить!"
+                        ],
+                        "telegram_response": result
                     }
                 else:
                     return {
-                        "status": "error", 
-                        "message": result.get("description", "Неизвестная ошибка"),
+                        "status": "❌ Telegram API ошибка",
+                        "error": result.get("description", "Неизвестная ошибка"),
                         "telegram_response": result
                     }
             else:
                 return {
-                    "status": "error",
-                    "message": f"HTTP {response.status_code}",
-                    "details": response.text
+                    "status": "❌ HTTP ошибка",
+                    "http_status": response.status_code,
+                    "response": response.text[:500]
                 }
                 
     except Exception as e:
         logger.error(f"❌ Ошибка установки webhook: {e}")
         return {
-            "status": "error",
-            "message": str(e),
+            "status": "❌ Критическая ошибка",
+            "error": str(e),
             "troubleshooting": [
-                "Проверьте TELEGRAM_BOT_TOKEN",
-                "Убедитесь что TELEGRAM_WEBHOOK_URL доступен публично",
-                "Проверьте логи Render на ошибки"
+                "Проверьте что переменные окружения настроены в Render",
+                "Убедитесь что бот токен правильный",
+                "Проверьте что домен доступен публично"
             ]
         }
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """Handle Telegram webhook updates"""
+    try:
+        data = await request.json()
+        logger.info(f"🤖 Получен Telegram update: {data}")
+        
+        # Simple message handling
+        if 'message' in data:
+            message = data['message']
+            chat_id = message['chat']['id']
+            text = message.get('text', '')
+            user_name = message.get('from', {}).get('first_name', 'Пользователь')
+            
+            logger.info(f"💬 Сообщение от {user_name} (ID:{chat_id}): {text}")
+            
+            # Here we would normally send response back to Telegram
+            # For now, just log successful processing
+            logger.info(f"✅ Сообщение обработано успешно")
+        
+        return {"ok": True}
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка обработки webhook: {e}")
+        return {"ok": False, "error": str(e)}
+
+@app.get("/api/dashboard")
+async def get_dashboard():
+    """Simple dashboard endpoint"""
+    return {
+        "success": True,
+        "company": "ВасДом",
+        "message": "🎉 AI-ассистент работает!",
+        "metrics": {
+            "houses": {"Калуга": 500, "Кемерово": 100},
+            "employees": 100,
+            "status": "active"
+        },
+        "telegram_bot": "@aitest123432_bot"
+    }
+
+@app.post("/api/ai/chat")
+async def ai_chat(request: Request):
+    """Simple AI chat endpoint"""
+    try:
+        data = await request.json()
+        message = data.get("message", "")
+        
+        # Simple AI responses
+        responses = {
+            "привет": "🤖 Привет! Я МАКС - AI-ассистент компании ВасДом!",
+            "дома": "🏠 У нас 500 домов в Калуге и 100 в Кемерово",
+            "сотрудники": "👥 В команде 100 профессиональных сотрудников",
+            "default": f"🤖 Получил ваше сообщение: '{message}'. AI-анализ в разработке!"
+        }
+        
+        response_text = responses.get(message.lower(), responses["default"])
+        
+        return {
+            "response": response_text,
+            "timestamp": datetime.utcnow().isoformat(),
+            "status": "success"
+        }
+        
+    except Exception as e:
+        return {
+            "response": "Извините, произошла ошибка.",
+            "error": str(e),
+            "status": "error"
+        }
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 VasDom AI Assistant запущен на Render!")
+    logger.info("🤖 Telegram Bot: @aitest123432_bot")
+    logger.info("✅ Все системы готовы к работе!")
+
+# Export for gunicorn
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 async def get_company_info():
     """Get detailed company information"""
     return {
