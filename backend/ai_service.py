@@ -35,16 +35,17 @@ class AIService:
     
     async def health_check(self) -> Dict[str, Any]:
         """Check AI service health"""
-        if not self.client:
+        if not self.api_key:
             return {"status": "not_configured", "api_key": False}
         
         try:
             # Test with a simple request
-            response = await self.generate_response("Тест", "Проверка связи")
+            response = await self.generate_response("Тест")
             return {
                 "status": "healthy",
                 "api_key": True,
                 "model": self.model,
+                "provider": self.provider,
                 "test_response_length": len(response)
             }
         except Exception as e:
