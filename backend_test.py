@@ -194,6 +194,7 @@ class VasDomAPITester:
         try:
             self.test_basic_endpoints()
             self.test_dashboard_endpoints()
+            self.test_ai_endpoints()
             self.test_telegram_endpoints()
             self.test_bitrix24_endpoints()
             self.test_error_handling()
