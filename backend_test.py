@@ -474,8 +474,9 @@ class TelegramBotTester:
                                             f"Found {len(found_categories)} expense categories")
                                 
                                 # Check if salaries are 45% as per checklist
-                                if 'salaries' in breakdown:
-                                    salaries_pct = breakdown['salaries'].get('percentage', 0)
+                                salaries_item = next((item for item in breakdown if item['category'] == 'salaries'), None)
+                                if salaries_item:
+                                    salaries_pct = salaries_item.get('budget_percent', 0)
                                     if 40 <= salaries_pct <= 50:  # Allow some variance
                                         self.log_test("Salary Expense Percentage", "PASS", 
                                                     f"Salaries: {salaries_pct}% (expected ~45%)")
