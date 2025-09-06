@@ -107,7 +107,7 @@ class AIService:
     
     async def analyze_user_intent(self, message: str) -> Dict[str, Any]:
         """Analyze user intent from message"""
-        if not self.client:
+        if not self.api_key:
             return {"intent": "unknown", "confidence": 0.0}
         
         try:
