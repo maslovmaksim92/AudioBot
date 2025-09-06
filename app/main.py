@@ -242,18 +242,36 @@ async def get_dashboard():
     print(f"📊 Дашборд готов: {len(str(dashboard_data))} символов")
     return dashboard_data
 
-@app.get("/logs")
-async def get_logs():
-    """Endpoint для просмотра всех логов"""
+@app.get("/live-status")
+async def live_status():
+    """Живой статус для мониторинга в реальном времени"""
     
-    print("📋 ========== ЛОГИ ЗАПРОС ==========")
-    print(f"📋 Возвращаем {len(application_logs)} логов")
+    print("📺 ========== LIVE STATUS CHECK ==========")
+    print(f"📺 Время: {datetime.utcnow().isoformat()}")
+    print(f"📺 Запросов: {system_status['total_requests']}")
+    print(f"📺 Telegram updates: {system_status['telegram_updates']}")
+    print(f"📺 Ошибок: {system_status['errors']}")
+    print(f"📺 Логов: {len(application_logs)}")
+    
+    # Проверяем последние 5 логов
+    recent_logs = application_logs[-5:] if application_logs else []
+    print("📺 Последние 5 логов:")
+    for log in recent_logs:
+        print(f"📺   [{log['timestamp']}] {log['level']}: {log['message']}")
     
     return {
-        "total_logs": len(application_logs),
-        "logs": application_logs,
-        "system_status": system_status,
-        "telegram_messages": telegram_messages
+        "live_time": datetime.utcnow().isoformat(),
+        "status": "✅ ALIVE",
+        "uptime_seconds": (datetime.utcnow() - datetime.fromisoformat(system_status["startup_time"])).total_seconds(),
+        "statistics": system_status,
+        "recent_logs": recent_logs,
+        "environment_check": {
+            "telegram_bot_token": "✅" if os.environ.get("TELEGRAM_BOT_TOKEN") else "❌",
+            "telegram_webhook_url": "✅" if os.environ.get("TELEGRAM_WEBHOOK_URL") else "❌",
+            "bitrix24_webhook_url": "✅" if os.environ.get("BITRIX24_WEBHOOK_URL") else "❌",
+            "emergent_llm_key": "✅" if os.environ.get("EMERGENT_LLM_KEY") else "❌"
+        },
+        "message": "🎉 Система работает и логирует ВСЕ действия!"
     }
 
 @app.get("/telegram/set-webhook")
