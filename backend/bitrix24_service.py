@@ -1,5 +1,6 @@
 import os
 import aiohttp
+import httpx
 from typing import Dict, List, Optional
 from datetime import datetime
 from dotenv import load_dotenv
