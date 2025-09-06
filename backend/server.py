@@ -762,6 +762,110 @@ async def get_mobile_schedule_endpoint(employee_id: str):
     schedule = await mobile_api_service.get_employee_schedule_mobile(employee_id)
     return schedule
 
+# Telegram webhook setup endpoint
+@api_router.get("/telegram/set-webhook")
+async def setup_telegram_webhook():
+    """Setup Telegram webhook for production"""
+    try:
+        import httpx
+        
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
+        webhook_url = os.environ.get("TELEGRAM_WEBHOOK_URL")
+        
+        if not bot_token:
+            return {
+                "error": "TELEGRAM_BOT_TOKEN not configured",
+                "instruction": "Add TELEGRAM_BOT_TOKEN to environment variables"
+            }
+        
+        if not webhook_url:
+            webhook_url = "https://telegram-bitrix.preview.emergentagent.com/api/telegram/webhook"
+        
+        # Set webhook using Telegram Bot API
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            telegram_api_url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
+            
+            payload = {
+                "url": webhook_url,
+                "drop_pending_updates": True,
+                "allowed_updates": ["message", "callback_query"]
+            }
+            
+            response = await client.post(telegram_api_url, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("ok"):
+                    return {
+                        "status": "✅ SUCCESS!",
+                        "message": "Telegram webhook установлен успешно!",
+                        "webhook_url": webhook_url,
+                        "bot": "@aitest123432_bot",
+                        "telegram_response": result,
+                        "next_steps": [
+                            "1. Найдите @aitest123432_bot в Telegram",
+                            "2. Напишите /start",
+                            "3. Бот должен ответить мгновенно!",
+                            "4. Проверьте /api/system/health для статуса"
+                        ]
+                    }
+                else:
+                    return {
+                        "status": "❌ Telegram API ошибка",
+                        "error": result.get("description", "Неизвестная ошибка")
+                    }
+            else:
+                return {
+                    "status": "❌ HTTP ошибка",
+                    "http_status": response.status_code,
+                    "response": response.text[:500]
+                }
+                
+    except Exception as e:
+        return {
+            "status": "❌ КРИТИЧЕСКАЯ ОШИБКА",
+            "error": str(e)
+        }
+
+# Telegram webhook handler
+@api_router.post("/telegram/webhook")
+async def handle_telegram_webhook(request: Request):
+    """Handle incoming Telegram webhook updates"""
+    try:
+        data = await request.json()
+        
+        # Process message if exists
+        if 'message' in data:
+            message = data['message']
+            chat_id = message.get('chat', {}).get('id')
+            text = message.get('text', '')
+            user_info = message.get('from', {})
+            user_name = user_info.get('first_name', 'Unknown')
+            
+            # Simple response for testing
+            if text:
+                import httpx
+                bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
+                
+                if bot_token and chat_id:
+                    response_text = f"🤖 МАКС получил ваше сообщение: '{text}'\n\nСистема работает! Время: {datetime.utcnow().strftime('%H:%M:%S')}"
+                    
+                    send_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                    send_data = {
+                        "chat_id": chat_id,
+                        "text": response_text,
+                        "parse_mode": "Markdown"
+                    }
+                    
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        await client.post(send_url, json=send_data)
+        
+        return {"ok": True}
+        
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"ok": False, "error": str(e)}
+
 # System health and monitoring endpoints
 @api_router.get("/system/health")
 async def system_health_endpoint():
