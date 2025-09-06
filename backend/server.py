@@ -1002,9 +1002,9 @@ app.include_router(api_router)
 # Add webhook router
 try:
     app.include_router(webhook_router)  # Add webhook router
-    logger.info("✅ Telegram webhook router included")
+    print("✅ Telegram webhook router included")
 except Exception as e:
-    logger.error(f"❌ Failed to include webhook router: {e}")
+    print(f"❌ Failed to include webhook router: {e}")
 
 # CORS
 app.add_middleware(
