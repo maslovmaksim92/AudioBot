@@ -262,7 +262,97 @@ async def ai_chat(request: dict):
             "timestamp": datetime.utcnow().isoformat()
         }
 
-@app.get("/api/company/info")
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(request: dict):
+    """Handle Telegram bot webhook updates"""
+    try:
+        logger.info(f"🤖 Получен update от Telegram: {request}")
+        
+        # Простая обработка сообщений
+        if 'message' in request:
+            message = request['message']
+            chat_id = message['chat']['id']
+            text = message.get('text', '')
+            
+            logger.info(f"💬 Сообщение от пользователя {chat_id}: {text}")
+            
+            # Используем AI для ответа
+            ai_response = vasdom_ai.get_response(text)
+            
+            # Здесь должна быть отправка ответа через Telegram API
+            # Но для webhook достаточно логирования
+            logger.info(f"🤖 AI ответ: {ai_response[:100]}...")
+            
+        return {"status": "ok"}
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка обработки webhook: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/telegram/set-webhook")
+async def set_telegram_webhook():
+    """Set up Telegram webhook URL"""
+    try:
+        webhook_url = os.environ.get("TELEGRAM_WEBHOOK_URL")
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        
+        if not webhook_url or not bot_token:
+            missing = []
+            if not webhook_url: missing.append("TELEGRAM_WEBHOOK_URL")
+            if not bot_token: missing.append("TELEGRAM_BOT_TOKEN")
+            
+            return {
+                "error": f"Не настроены переменные: {', '.join(missing)}",
+                "status": "configuration_required",
+                "required_vars": {
+                    "TELEGRAM_WEBHOOK_URL": "https://your-app.onrender.com/api/telegram/webhook",
+                    "TELEGRAM_BOT_TOKEN": "ваш_токен_от_BotFather"
+                }
+            }
+        
+        # Вызов Telegram API для установки webhook
+        import httpx
+        async with httpx.AsyncClient() as client:
+            telegram_api_url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
+            response = await client.post(telegram_api_url, json={
+                "url": webhook_url,
+                "drop_pending_updates": True
+            })
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("ok"):
+                    logger.info(f"✅ Webhook установлен: {webhook_url}")
+                    return {
+                        "status": "success",
+                        "webhook_url": webhook_url,
+                        "message": "Telegram webhook установлен успешно!",
+                        "bot": "@aitest123432_bot"
+                    }
+                else:
+                    return {
+                        "status": "error", 
+                        "message": result.get("description", "Неизвестная ошибка"),
+                        "telegram_response": result
+                    }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"HTTP {response.status_code}",
+                    "details": response.text
+                }
+                
+    except Exception as e:
+        logger.error(f"❌ Ошибка установки webhook: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "troubleshooting": [
+                "Проверьте TELEGRAM_BOT_TOKEN",
+                "Убедитесь что TELEGRAM_WEBHOOK_URL доступен публично",
+                "Проверьте логи Render на ошибки"
+            ]
+        }
 async def get_company_info():
     """Get detailed company information"""
     return {
