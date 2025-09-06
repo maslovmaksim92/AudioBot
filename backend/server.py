@@ -340,12 +340,20 @@ async def get_bitrix24_statistics():
 
 @api_router.get("/bitrix24/deals")
 async def get_bitrix24_deals():
-    """Get deals from Bitrix24"""
-    from bitrix24_service import get_bitrix24_service
-    
-    bx24 = await get_bitrix24_service()
-    deals = await bx24.get_deals()
-    return {"deals": deals, "count": len(deals)}
+    """Get deals from Bitrix24 - using mock data for demo"""
+    try:
+        from bitrix24_mock import get_mock_bitrix24_service
+        
+        bx24 = await get_mock_bitrix24_service()
+        deals = await bx24.get_deals()
+        
+        return {
+            "deals": deals,
+            "count": len(deals),
+            "note": "Демо-данные. Для реальных данных настройте Bitrix24 webhook."
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 @api_router.get("/bitrix24/contacts")
 async def get_bitrix24_contacts():
