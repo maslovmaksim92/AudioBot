@@ -496,8 +496,8 @@ class TelegramBotTester:
                 async with session.get(f"{self.api_base}/financial/cash-flow?months=6") as response:
                     if response.status == 200:
                         data = await response.json()
-                        if data.get('success') and 'cash_flow' in data:
-                            cash_flow = data['cash_flow']
+                        if data.get('success') and 'cash_flow_forecast' in data:
+                            cash_flow = data['cash_flow_forecast']
                             if len(cash_flow) == 6:  # 6 months requested
                                 self.log_test("Cash Flow Forecast API", "PASS", 
                                             f"Generated {len(cash_flow)} months of cash flow forecast")
