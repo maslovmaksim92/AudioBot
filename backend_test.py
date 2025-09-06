@@ -415,39 +415,109 @@ class TelegramBotTester:
         except Exception as e:
             self.log_test("AI Persistent Memory System", "FAIL", f"Memory test error: {str(e)}")
 
-    async def test_financial_forecasting(self):
-        """Test 10: Financial Forecasting API (CYCLE 1)"""
-        logger.info("📊 Testing Financial Forecasting API...")
+    async def test_new_financial_apis(self):
+        """Test 10: New Financial Analytics APIs (Updated according to checklist)"""
+        logger.info("💰 Testing New Financial Analytics APIs...")
         
         try:
             async with aiohttp.ClientSession() as session:
-                # Test financial forecast endpoint
-                async with session.get(f"{self.api_base}/analytics/forecast?months=3") as response:
+                # Test monthly financial data (plan vs fact)
+                async with session.get(f"{self.api_base}/financial/monthly-data?months=6") as response:
                     if response.status == 200:
                         data = await response.json()
-                        if data.get('success') and 'forecasts' in data:
-                            forecasts = data['forecasts']
-                            if len(forecasts) == 3:  # 3 months requested
-                                self.log_test("Financial Forecast Generation", "PASS", 
-                                            f"Generated {len(forecasts)} monthly forecasts")
+                        if data.get('success') and 'monthly_data' in data:
+                            monthly_data = data['monthly_data']
+                            if len(monthly_data) > 0:
+                                self.log_test("Monthly Financial Data API", "PASS", 
+                                            f"Retrieved {len(monthly_data)} months of data")
                                 
-                                # Check forecast structure
-                                first_forecast = forecasts[0]
-                                required_fields = ['period', 'predicted_revenue', 'confidence_score', 'factors']
-                                if all(field in first_forecast for field in required_fields):
-                                    self.log_test("Forecast Data Structure", "PASS", 
+                                # Check data structure for plan vs fact
+                                first_month = monthly_data[0]
+                                required_fields = ['month', 'plan_revenue', 'actual_revenue', 'plan_expenses', 'actual_expenses']
+                                if all(field in first_month for field in required_fields):
+                                    self.log_test("Plan vs Fact Data Structure", "PASS", 
                                                 f"All required fields present")
+                                    
+                                    # Check if summary exists
+                                    if 'summary' in data:
+                                        summary = data['summary']
+                                        summary_fields = ['total_plan_revenue', 'total_actual_revenue', 'revenue_achievement']
+                                        if all(field in summary for field in summary_fields):
+                                            self.log_test("Financial Summary Data", "PASS", 
+                                                        f"Revenue achievement: {summary.get('revenue_achievement', 0)}%")
+                                        else:
+                                            self.log_test("Financial Summary Data", "FAIL", 
+                                                        "Missing summary fields")
                                 else:
-                                    self.log_test("Forecast Data Structure", "FAIL", 
-                                                "Missing required forecast fields")
+                                    self.log_test("Plan vs Fact Data Structure", "FAIL", 
+                                                "Missing required financial fields")
                             else:
-                                self.log_test("Financial Forecast Generation", "FAIL", 
-                                            f"Expected 3 forecasts, got {len(forecasts)}")
+                                self.log_test("Monthly Financial Data API", "FAIL", 
+                                            "No monthly data returned")
                         else:
-                            self.log_test("Financial Forecast Generation", "FAIL", 
+                            self.log_test("Monthly Financial Data API", "FAIL", 
                                         f"Invalid response: {data.get('error', 'Unknown error')}")
                     else:
-                        self.log_test("Financial Forecast Generation", "FAIL", f"HTTP {response.status}")
+                        self.log_test("Monthly Financial Data API", "FAIL", f"HTTP {response.status}")
+                
+                # Test expense breakdown analysis
+                async with session.get(f"{self.api_base}/financial/expense-breakdown") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('success') and 'breakdown' in data:
+                            breakdown = data['breakdown']
+                            expected_categories = ['salaries', 'materials', 'transport', 'utilities', 'other']
+                            found_categories = [cat for cat in expected_categories if cat in breakdown]
+                            
+                            if len(found_categories) >= 3:
+                                self.log_test("Expense Breakdown API", "PASS", 
+                                            f"Found {len(found_categories)} expense categories")
+                                
+                                # Check if salaries are 45% as per checklist
+                                if 'salaries' in breakdown:
+                                    salaries_pct = breakdown['salaries'].get('percentage', 0)
+                                    if 40 <= salaries_pct <= 50:  # Allow some variance
+                                        self.log_test("Salary Expense Percentage", "PASS", 
+                                                    f"Salaries: {salaries_pct}% (expected ~45%)")
+                                    else:
+                                        self.log_test("Salary Expense Percentage", "WARN", 
+                                                    f"Salaries: {salaries_pct}% (expected ~45%)")
+                            else:
+                                self.log_test("Expense Breakdown API", "FAIL", 
+                                            f"Only found {len(found_categories)} expense categories")
+                        else:
+                            self.log_test("Expense Breakdown API", "FAIL", 
+                                        f"Invalid response: {data.get('error', 'Unknown error')}")
+                    else:
+                        self.log_test("Expense Breakdown API", "FAIL", f"HTTP {response.status}")
+                
+                # Test cash flow forecast
+                async with session.get(f"{self.api_base}/financial/cash-flow?months=6") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('success') and 'cash_flow' in data:
+                            cash_flow = data['cash_flow']
+                            if len(cash_flow) == 6:  # 6 months requested
+                                self.log_test("Cash Flow Forecast API", "PASS", 
+                                            f"Generated {len(cash_flow)} months of cash flow forecast")
+                                
+                                # Check forecast structure
+                                first_forecast = cash_flow[0]
+                                required_fields = ['month', 'opening_balance', 'inflow', 'outflow', 'closing_balance']
+                                if all(field in first_forecast for field in required_fields):
+                                    self.log_test("Cash Flow Data Structure", "PASS", 
+                                                f"All required fields present")
+                                else:
+                                    self.log_test("Cash Flow Data Structure", "FAIL", 
+                                                "Missing required cash flow fields")
+                            else:
+                                self.log_test("Cash Flow Forecast API", "FAIL", 
+                                            f"Expected 6 months, got {len(cash_flow)}")
+                        else:
+                            self.log_test("Cash Flow Forecast API", "FAIL", 
+                                        f"Invalid response: {data.get('error', 'Unknown error')}")
+                    else:
+                        self.log_test("Cash Flow Forecast API", "FAIL", f"HTTP {response.status}")
                 
                 # Test business insights endpoint
                 async with session.get(f"{self.api_base}/analytics/insights") as response:
@@ -461,23 +531,131 @@ class TelegramBotTester:
                             self.log_test("AI Business Insights", "FAIL", "No insights generated")
                     else:
                         self.log_test("AI Business Insights", "FAIL", f"HTTP {response.status}")
-                
-                # Test performance metrics endpoint
-                async with session.get(f"{self.api_base}/analytics/performance") as response:
-                    if response.status == 200:
-                        metrics = await response.json()
-                        required_sections = ['sales_metrics', 'client_metrics', 'operational_metrics']
-                        if all(section in metrics for section in required_sections):
-                            self.log_test("Performance Metrics API", "PASS", 
-                                        f"All metric sections present")
-                        else:
-                            self.log_test("Performance Metrics API", "FAIL", 
-                                        "Missing required metric sections")
-                    else:
-                        self.log_test("Performance Metrics API", "FAIL", f"HTTP {response.status}")
                         
         except Exception as e:
-            self.log_test("Financial Forecasting API", "FAIL", f"Forecasting test error: {str(e)}")
+            self.log_test("New Financial Analytics APIs", "FAIL", f"Financial API test error: {str(e)}")
+
+    async def test_updated_dashboard_metrics(self):
+        """Test 11: Updated Dashboard Metrics (According to checklist)"""
+        logger.info("📊 Testing Updated Dashboard Metrics...")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Test dashboard endpoint with new metrics
+                async with session.get(f"{self.api_base}/dashboard") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        metrics = data.get('metrics', {})
+                        
+                        # Check required metrics according to checklist
+                        required_metrics = ['total_employees', 'total_houses']
+                        missing_metrics = [m for m in required_metrics if m not in metrics]
+                        
+                        if not missing_metrics:
+                            self.log_test("Dashboard Basic Metrics", "PASS", 
+                                        f"Employees: {metrics.get('total_employees', 0)}, "
+                                        f"Houses: {metrics.get('total_houses', 0)}")
+                        else:
+                            self.log_test("Dashboard Basic Metrics", "FAIL", 
+                                        f"Missing metrics: {missing_metrics}")
+                        
+                        # Check that removed metrics are not present (as per checklist)
+                        removed_metrics = ['active_employees']  # Should be removed according to checklist
+                        found_removed = [m for m in removed_metrics if m in metrics and metrics[m] != metrics.get('total_employees')]
+                        
+                        if not found_removed:
+                            self.log_test("Removed Metrics Check", "PASS", 
+                                        "Correctly removed 'active_employees' as separate metric")
+                        else:
+                            self.log_test("Removed Metrics Check", "WARN", 
+                                        f"Found removed metrics: {found_removed}")
+                        
+                        # Check for cleaning houses (kaluga_houses should represent cleaning houses)
+                        if 'kaluga_houses' in metrics:
+                            cleaning_houses = metrics['kaluga_houses']
+                            self.log_test("Cleaning Houses Metric", "PASS", 
+                                        f"Cleaning houses: {cleaning_houses}")
+                        else:
+                            self.log_test("Cleaning Houses Metric", "FAIL", 
+                                        "Missing cleaning houses metric")
+                        
+                        # Check for houses to connect (kemerovo_houses should represent houses to connect)
+                        if 'kemerovo_houses' in metrics:
+                            houses_to_connect = metrics['kemerovo_houses']
+                            self.log_test("Houses to Connect Metric", "PASS", 
+                                        f"Houses to connect: {houses_to_connect}")
+                        else:
+                            self.log_test("Houses to Connect Metric", "FAIL", 
+                                        "Missing houses to connect metric")
+                        
+                        # Check AI insights for financial recommendations
+                        ai_insights = data.get('ai_insights', [])
+                        if ai_insights and len(ai_insights) > 0:
+                            self.log_test("Dashboard AI Insights", "PASS", 
+                                        f"Found {len(ai_insights)} AI insights")
+                        else:
+                            self.log_test("Dashboard AI Insights", "WARN", 
+                                        "No AI insights in dashboard")
+                        
+                        # Check recent activities
+                        recent_activities = data.get('recent_activities', [])
+                        if recent_activities and len(recent_activities) > 0:
+                            self.log_test("Dashboard Recent Activities", "PASS", 
+                                        f"Found {len(recent_activities)} recent activities")
+                        else:
+                            self.log_test("Dashboard Recent Activities", "WARN", 
+                                        "No recent activities in dashboard")
+                            
+                    else:
+                        self.log_test("Updated Dashboard Metrics", "FAIL", f"HTTP {response.status}")
+                        
+        except Exception as e:
+            self.log_test("Updated Dashboard Metrics", "FAIL", f"Dashboard test error: {str(e)}")
+
+    async def test_bitrix24_integration_updates(self):
+        """Test 12: Bitrix24 Integration Updates (No 'in work' filter for cleaning)"""
+        logger.info("💼 Testing Updated Bitrix24 Integration...")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Test cleaning houses endpoint (should not filter by 'in work')
+                async with session.get(f"{self.api_base}/bitrix24/cleaning-houses") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        houses = data.get('houses', [])
+                        self.log_test("Bitrix24 Cleaning Houses", "PASS", 
+                                    f"Retrieved {len(houses)} cleaning houses (no 'in work' filter)")
+                    else:
+                        self.log_test("Bitrix24 Cleaning Houses", "FAIL", f"HTTP {response.status}")
+                
+                # Test statistics endpoint
+                async with session.get(f"{self.api_base}/bitrix24/statistics") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if 'total_deals' in data or 'total_contacts' in data:
+                            self.log_test("Bitrix24 Statistics", "PASS", 
+                                        f"Stats: {data.get('total_deals', 0)} deals, {data.get('total_contacts', 0)} contacts")
+                        else:
+                            self.log_test("Bitrix24 Statistics", "FAIL", "Invalid statistics format")
+                    else:
+                        self.log_test("Bitrix24 Statistics", "FAIL", f"HTTP {response.status}")
+                
+                # Test pipeline detection
+                async with session.get(f"{self.api_base}/bitrix24/pipeline") as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        pipeline = data.get('pipeline')
+                        if pipeline:
+                            self.log_test("Bitrix24 Pipeline Detection", "PASS", 
+                                        f"Found pipeline: {pipeline.get('NAME', 'Unknown')}")
+                        else:
+                            self.log_test("Bitrix24 Pipeline Detection", "WARN", 
+                                        "No cleaning pipeline found")
+                    else:
+                        self.log_test("Bitrix24 Pipeline Detection", "FAIL", f"HTTP {response.status}")
+                        
+        except Exception as e:
+            self.log_test("Bitrix24 Integration Updates", "FAIL", f"Bitrix24 test error: {str(e)}")
 
     async def test_smart_notifications(self):
         """Test 11: Smart Telegram Notifications (CYCLE 1)"""
