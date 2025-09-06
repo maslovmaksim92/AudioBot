@@ -1049,6 +1049,8 @@ function App() {
         return <SmartNotifications />;
       case 'telegram-info':
         return <TelegramInfo />;
+      case 'logs':
+        return <Logs />;
       default:
         return <Dashboard />;
     }
