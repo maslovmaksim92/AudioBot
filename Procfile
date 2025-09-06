@@ -1,1 +1,2 @@
+release: cd frontend && yarn build
 web: cd app && gunicorn main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 2 --timeout 120
