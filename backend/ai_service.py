@@ -142,7 +142,7 @@ class AIService:
     
     async def generate_summary(self, conversation: List[Dict]) -> str:
         """Generate conversation summary"""
-        if not self.client or not conversation:
+        if not self.api_key or not conversation:
             return "Краткий разговор без особенностей"
         
         try:
