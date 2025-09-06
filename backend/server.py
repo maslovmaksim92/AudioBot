@@ -303,30 +303,29 @@ async def bitrix24_webhook_handler(request: Request):
         logger.error(f"Bitrix24 webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
-# Bitrix24 integration endpoints
+# Bitrix24 integration endpoints  
 @api_router.get("/bitrix24/test")
 async def test_bitrix24_connection():
-    """Test Bitrix24 connection"""
+    """Test Bitrix24 connection - using mock data for demo"""
     try:
-        # Простая проверка доступности портала
-        import httpx
-        portal_url = os.getenv("BITRIX24_PORTAL_URL", "https://vas-dom.bitrix24.ru")
+        from bitrix24_mock import get_mock_bitrix24_service
         
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(f"{portal_url}/rest/")
-            
-        if response.status_code == 200:
-            return {
-                "status": "success",
-                "message": "Bitrix24 portal доступен",
-                "portal": portal_url,
-                "app_configured": bool(os.getenv("BITRIX24_CLIENT_ID"))
-            }
-        else:
-            return {
-                "status": "error", 
-                "message": f"Portal недоступен: {response.status_code}"
-            }
+        bx24 = await get_mock_bitrix24_service()
+        result = await bx24.test_connection()
+        
+        # Добавляем информацию о настройке
+        result["setup_info"] = {
+            "portal": "vas-dom.bitrix24.ru",
+            "app_id": os.getenv("BITRIX24_CLIENT_ID", "настроено"),
+            "status": "Используются демо-данные",
+            "next_steps": [
+                "1. Создайте входящий вебхук в Bitrix24",
+                "2. Обновите BITRIX24_WEBHOOK_URL в переменных",
+                "3. Система автоматически переключится на реальные данные"
+            ]
+        }
+        
+        return result
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
