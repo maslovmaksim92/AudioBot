@@ -1,0 +1,15 @@
+{
+  "name": "vasdom-ai-assistant",
+  "version": "1.0.0",
+  "description": "VasDom AI Assistant with Telegram bot and Bitrix24 integration",
+  "engines": {
+    "node": "18.x",
+    "yarn": "1.22.x"
+  },
+  "scripts": {
+    "build": "cd frontend && yarn install && yarn build",
+    "start": "cd app && python main.py"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
