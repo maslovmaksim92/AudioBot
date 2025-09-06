@@ -89,75 +89,45 @@ async def root():
 
 @api_router.get("/dashboard", response_model=DashboardData)
 async def get_dashboard():
-    """Get main dashboard data with real Bitrix24 integration"""
-    from ai_service import ai_assistant
-    from bitrix24_service import get_bitrix24_service
+    """Get enhanced dashboard data with real Bitrix24 integration according to checklist"""
+    from dashboard_service import get_enhanced_dashboard_data
     
-    # Get Bitrix24 service
-    bx24 = await get_bitrix24_service()
+    # Get enhanced dashboard data with all requirements
+    enhanced_data = await get_enhanced_dashboard_data()
     
-    # Get real statistics from Bitrix24
-    try:
-        bitrix_stats = await bx24.get_cleaning_statistics()
-        
-        # Combine with local employee data
-        total_employees = await db.employees.count_documents({})
-        active_employees = await db.employees.count_documents({"is_active": True})
-        kaluga_employees = await db.employees.count_documents({"city": "Калуга", "is_active": True})
-        kemerovo_employees = await db.employees.count_documents({"city": "Кемерово", "is_active": True})
-        
+    if enhanced_data.get("success"):
+        # Format data for the existing DashboardData model
         metrics = CompanyMetrics(
-            total_employees=total_employees or 0,
-            active_employees=active_employees or 0,
-            kaluga_employees=kaluga_employees or 0,
-            kemerovo_employees=kemerovo_employees or 0,
-            total_houses=bitrix_stats.get("kaluga_properties", 0) + bitrix_stats.get("kemerovo_properties", 0),
-            kaluga_houses=bitrix_stats.get("kaluga_properties", 0),
-            kemerovo_houses=bitrix_stats.get("kemerovo_properties", 0)
+            total_employees=enhanced_data["metrics"]["total_employees"],
+            active_employees=enhanced_data["metrics"]["total_employees"],  # Keep for compatibility
+            kaluga_employees=0,  # Removed as per checklist
+            kemerovo_employees=0,  # Removed as per checklist  
+            total_houses=enhanced_data["metrics"]["cleaning_houses"] + enhanced_data["metrics"]["houses_to_connect"],
+            kaluga_houses=enhanced_data["metrics"]["cleaning_houses"],  # Cleaning houses
+            kemerovo_houses=enhanced_data["metrics"]["houses_to_connect"]  # Houses to connect
         )
         
-        # Recent activities with Bitrix24 data
-        recent_activities = [
-            {"type": "bitrix24_sync", "message": f"Синхронизация с Bitrix24: {bitrix_stats.get('total_deals', 0)} сделок", "time": "только что"},
-            {"type": "pipeline_found", "message": "Воронка 'Уборка подъездов' найдена", "time": "1 минуту назад"},
-            {"type": "employee_added", "message": "Новый сотрудник добавлен", "time": "2 часа назад"}
-        ]
-        
-    except Exception as e:
-        logger.error(f"Error getting Bitrix24 data: {e}")
-        # Fallback to basic metrics
-        total_employees = await db.employees.count_documents({})
-        active_employees = await db.employees.count_documents({"is_active": True})
-        
+        return DashboardData(
+            metrics=metrics,
+            recent_activities=enhanced_data["recent_activities"],
+            ai_insights=enhanced_data["ai_insights"]
+        )
+    else:
+        # Fallback to basic data
+        fallback_data = enhanced_data.get("fallback_data", {})
         metrics = CompanyMetrics(
-            total_employees=total_employees or 0,
-            active_employees=active_employees or 0,
+            total_employees=fallback_data.get("metrics", {}).get("total_employees", 0),
+            active_employees=fallback_data.get("metrics", {}).get("total_employees", 0),
             kaluga_employees=0,
             kemerovo_employees=0,
-            total_houses=600  # Default
+            total_houses=fallback_data.get("metrics", {}).get("cleaning_houses", 0)
         )
         
-        recent_activities = [
-            {"type": "error", "message": "Ошибка синхронизации с Bitrix24", "time": "только что"},
-            {"type": "employee_added", "message": "Новый сотрудник добавлен", "time": "2 часа назад"}
-        ]
-    
-    # Generate AI insights based on real metrics
-    try:
-        ai_insights = await ai_assistant.generate_business_insights(metrics.dict())
-    except Exception as e:
-        # Fallback insights if AI fails
-        ai_insights = [
-            "Подключение к Bitrix24 выполнено успешно - найдена воронка 'Уборка подъездов'",
-            "Рекомендуется заполнить базу контактов домами в Калуге и Кемерово",
-            "AI-анализ готов к работе с реальными данными из CRM"
-        ]
-    
-    return DashboardData(
-        metrics=metrics,
-        recent_activities=recent_activities,
-        ai_insights=ai_insights
-    )
+        return DashboardData(
+            metrics=metrics,
+            recent_activities=fallback_data.get("recent_activities", []),
+            ai_insights=fallback_data.get("ai_insights", [])
+        )
 
 @api_router.get("/employees", response_model=List[Employee])
 async def get_employees():
