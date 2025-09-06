@@ -758,7 +758,7 @@ async def system_health_endpoint():
             "timestamp": datetime.utcnow().isoformat()
         }
 
-# Financial forecasting endpoints
+# Enhanced Financial endpoints
 @api_router.get("/analytics/forecast")
 async def get_financial_forecast_endpoint(period: str = "monthly", months: int = 3):
     """Get financial forecast based on Bitrix24 data"""
@@ -766,6 +766,30 @@ async def get_financial_forecast_endpoint(period: str = "monthly", months: int =
     
     forecast = await get_financial_forecast(period, months)
     return forecast
+
+@api_router.get("/financial/monthly-data")
+async def get_monthly_financial_data_endpoint(months: int = 6):
+    """Get comprehensive monthly financial data with plan vs fact"""
+    from financial_service import get_monthly_financial_data
+    
+    data = await get_monthly_financial_data(months)
+    return data
+
+@api_router.get("/financial/expense-breakdown")
+async def get_expense_breakdown_endpoint():
+    """Get detailed expense breakdown analysis"""
+    from financial_service import get_expense_breakdown_analysis
+    
+    breakdown = await get_expense_breakdown_analysis()
+    return breakdown
+
+@api_router.get("/financial/cash-flow")
+async def get_cash_flow_forecast_endpoint(months: int = 6):
+    """Get cash flow forecast"""
+    from financial_service import get_cash_flow_forecast
+    
+    cash_flow = await get_cash_flow_forecast(months)
+    return cash_flow
 
 @api_router.get("/analytics/insights")
 async def get_business_insights_endpoint(force_refresh: bool = False):
