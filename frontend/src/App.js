@@ -257,94 +257,9 @@ const Dashboard = () => {
   );
 };
 
-// Employees Component
+// Enhanced Employees Component  
 const Employees = () => {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await axios.get(`${API}/employees`);
-      setEmployees(response.data);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const positionNames = {
-    'general_director': 'Генеральный директор',
-    'director': 'Директор',
-    'accountant': 'Бухгалтер',
-    'hr_manager': 'HR менеджер',
-    'cleaning_manager': 'Менеджер по клинингу',
-    'construction_manager': 'Менеджер по стройке',
-    'architect': 'Архитектор-сметчик',
-    'cleaner': 'Уборщица',
-    'other': 'Другое'
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Управление сотрудниками</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          + Добавить сотрудника
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {employees.length === 0 ? (
-            <div className="col-span-full text-center py-8">
-              <p className="text-gray-500">Сотрудники не найдены. Добавьте первого сотрудника!</p>
-            </div>
-          ) : (
-            employees.map((employee) => (
-              <div key={employee.id} className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {employee.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{employee.name}</h3>
-                    <p className="text-sm text-gray-600">{positionNames[employee.position] || employee.position}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <p><span className="font-medium">Город:</span> {employee.city}</p>
-                  <p><span className="font-medium">Email:</span> {employee.email || 'Не указан'}</p>
-                  <p><span className="font-medium">Телефон:</span> {employee.phone || 'Не указан'}</p>
-                  <p><span className="font-medium">Дата найма:</span> {new Date(employee.hire_date).toLocaleDateString('ru-RU')}</p>
-                </div>
-                <div className="mt-4 flex space-x-2">
-                  <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded text-sm hover:bg-gray-200">
-                    Редактировать
-                  </button>
-                  <button className="bg-red-100 text-red-700 py-2 px-3 rounded text-sm hover:bg-red-200">
-                    Удалить
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
+  return <EmployeesComponent />;
 };
 
 // Enhanced Analytics Component with Financial Data
