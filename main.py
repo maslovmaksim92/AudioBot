@@ -181,6 +181,34 @@ async def health_check():
     
     return health_status
 
+@app.get("/test-ai")
+async def test_ai_service():
+    """Тестирование AI сервиса напрямую"""
+    
+    print("🧠 ========== ТЕСТ AI СЕРВИСА ==========")
+    
+    test_message = "Привет! Расскажите о ваших услугах по уборке подъездов."
+    
+    add_log("INFO", "🧠 Запуск теста AI сервиса", {"test_message": test_message})
+    
+    try:
+        ai_response = await generate_ai_response(test_message)
+        
+        return {
+            "status": "✅ AI РАБОТАЕТ",
+            "test_message": test_message,
+            "ai_response": ai_response,
+            "response_length": len(ai_response),
+            "timestamp": datetime.utcnow().isoformat(),
+            "model": "gpt-4o-mini via Emergent LLM"
+        }
+    except Exception as e:
+        return {
+            "status": "❌ AI ОШИБКА",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @app.get("/test-chat")
 async def test_chat():
     """Тестовый endpoint для проверки чата"""
