@@ -596,7 +596,70 @@ async def get_bitrix24_deals():
     except Exception as e:
         return {"error": str(e)}
 
-# Startup event
+@app.get("/api/bitrix24/cleaning-houses")
+async def get_cleaning_houses():
+    """Get all houses from Уборка подъездов pipeline - БЕЗ ФИЛЬТРА В РАБОТЕ"""
+    try:
+        import httpx
+        webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
+        if not webhook_url:
+            return {"error": "BITRIX24_WEBHOOK_URL not configured"}
+        
+        # Сначала найдем воронку "Уборка подъездов"
+        async with httpx.AsyncClient(timeout=15) as client:
+            # Получить все воронки
+            response = await client.post(f"{webhook_url}crm.dealcategory.list")
+            if response.status_code == 200:
+                result = response.json()
+                categories = result.get("result", [])
+                
+                # Найти воронку "Уборка подъездов"
+                cleaning_category = None
+                for cat in categories:
+                    if "уборка" in cat.get("NAME", "").lower() and "подъезд" in cat.get("NAME", "").lower():
+                        cleaning_category = cat
+                        break
+                
+                if cleaning_category:
+                    category_id = cleaning_category["ID"]
+                    
+                    # Получить ВСЕ сделки из этой воронки (убираем фильтр "в работе")
+                    deals_response = await client.post(f"{webhook_url}crm.deal.list", json={
+                        "select": ["ID", "TITLE", "STAGE_ID", "OPPORTUNITY", "ASSIGNED_BY_ID", "DATE_CREATE"],
+                        "filter": {"CATEGORY_ID": category_id},  # Только категория, без статуса
+                        "start": 0
+                    })
+                    
+                    if deals_response.status_code == 200:
+                        deals_result = deals_response.json()
+                        deals = deals_result.get("result", [])
+                        
+                        # Извлекаем адреса из названий сделок
+                        addresses = []
+                        for deal in deals:
+                            title = deal.get("TITLE", "")
+                            addresses.append({
+                                "id": deal.get("ID"),
+                                "address": title,
+                                "stage": deal.get("STAGE_ID"),
+                                "opportunity": deal.get("OPPORTUNITY", "0"),
+                                "date_create": deal.get("DATE_CREATE")
+                            })
+                        
+                        return {
+                            "success": True,
+                            "pipeline": cleaning_category["NAME"],
+                            "pipeline_id": category_id,
+                            "total_houses": len(addresses),
+                            "addresses": addresses,
+                            "note": "ВСЕ адреса из воронки (фильтр 'в работе' убран)"
+                        }
+                else:
+                    return {"error": "Воронка 'Уборка подъездов' не найдена"}
+            else:
+                return {"error": f"HTTP {response.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}
 @app.on_event("startup")
 async def startup_event():
     print("🚀 ========== СИСТЕМА ЗАПУСКАЕТСЯ ==========")
