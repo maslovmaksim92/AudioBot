@@ -263,6 +263,11 @@ const Employees = () => {
   return <EmployeesComponent />;
 };
 
+// Logs Dashboard Component
+const Logs = () => {
+  return <LogsDashboard />;
+};
+
 // Enhanced Analytics Component with Financial Data
 const Analytics = () => {
   return <FinancialAnalytics />;
