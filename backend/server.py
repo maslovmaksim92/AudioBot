@@ -895,7 +895,12 @@ async def cleanup_old_conversations(retention_days: int = 90):
 
 # Include routers
 app.include_router(api_router)
-app.include_router(webhook_router)  # Add webhook router
+# Add webhook router
+try:
+    app.include_router(webhook_router)  # Add webhook router
+    logger.info("✅ Telegram webhook router included")
+except Exception as e:
+    logger.error(f"❌ Failed to include webhook router: {e}")
 
 # CORS
 app.add_middleware(
