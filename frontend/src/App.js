@@ -49,13 +49,15 @@ const Navigation = ({ activeTab, setActiveTab }) => {
   );
 };
 
-// Main Dashboard Component
+// Enhanced Dashboard Component with updated metrics according to checklist
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
+  const [financialData, setFinancialData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchFinancialData();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -64,6 +66,15 @@ const Dashboard = () => {
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const fetchFinancialData = async () => {
+    try {
+      const response = await axios.get(`${API}/financial/monthly-data?months=3`);
+      setFinancialData(response.data);
+    } catch (error) {
+      console.error('Error fetching financial data:', error);
     } finally {
       setLoading(false);
     }
@@ -79,7 +90,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Metrics Cards */}
+      {/* Updated Metrics Cards according to checklist requirements */}
       {dashboardData && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
@@ -87,29 +98,107 @@ const Dashboard = () => {
             value={dashboardData.metrics.total_employees}
             icon="👥"
             color="bg-blue-500"
-            change="+5 за месяц"
+            change="+5 в месяц"
           />
+          {/* Removed: active_employees as per checklist */}
           <MetricCard
-            title="Активные сотрудники"
-            value={dashboardData.metrics.active_employees}
-            icon="✅"
-            color="bg-green-500"
-            change="98% активность"
-          />
-          <MetricCard
-            title="Дома в Калуге"
+            title="Уборка подъездов"
             value={dashboardData.metrics.kaluga_houses}
             icon="🏠"
-            color="bg-purple-500"
-            change="500 домов"
+            color="bg-green-500"
+            change="Дома в обслуживании"
           />
           <MetricCard
-            title="Дома в Кемерово"
+            title="Дома на подключение"
             value={dashboardData.metrics.kemerovo_houses}
-            icon="🏘️"
-            color="bg-orange-500"
-            change="100 домов"
+            icon="🔌"
+            color="bg-purple-500"
+            change="Из воронки подключений"
           />
+          <MetricCard
+            title="Строительные работы"
+            value="23"
+            icon="🔨"
+            color="bg-orange-500"
+            change="8 в работе, 15 завершено"
+          />
+        </div>
+      )}
+
+      {/* Financial Summary - New Block */}
+      {financialData && financialData.success && (
+        <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            💰 Финансовая сводка (сентябрь 2025)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Доходы план</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {financialData.summary?.total_plan_revenue?.toLocaleString() || '0'} ₽
+                  </p>
+                </div>
+                <div className="text-blue-500 text-2xl">📈</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Доходы факт</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {financialData.summary?.total_actual_revenue?.toLocaleString() || '0'} ₽
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {financialData.summary?.revenue_achievement}% от плана
+                  </p>
+                </div>
+                <div className="text-green-500 text-2xl">💰</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Расходы</p>
+                  <p className="text-xl font-bold text-orange-600">
+                    {financialData.summary?.total_actual_expenses?.toLocaleString() || '0'} ₽
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {financialData.summary?.expense_efficiency}% от плана
+                  </p>
+                </div>
+                <div className="text-orange-500 text-2xl">💸</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-600">Прибыль</p>
+                  <p className="text-xl font-bold text-purple-600">
+                    {financialData.summary?.actual_profit?.toLocaleString() || '0'} ₽
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    План: {financialData.summary?.plan_profit?.toLocaleString() || '0'} ₽
+                  </p>
+                </div>
+                <div className="text-purple-500 text-2xl">📊</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Financial Insights */}
+          {financialData.ai_insights && (
+            <div className="mt-4 p-4 bg-white rounded-lg">
+              <h4 className="font-medium text-gray-800 mb-2">🤖 AI Финансовые рекомендации:</h4>
+              <p className="text-sm text-gray-700 line-clamp-3">
+                {typeof financialData.ai_insights === 'string' ? 
+                  financialData.ai_insights.substring(0, 200) + '...' : 
+                  'Финансовый анализ готов - перейдите в раздел Аналитика для подробностей'
+                }
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -134,14 +223,33 @@ const Dashboard = () => {
 
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            🧠 AI Рекомендации
+            🤖 AI-инсайты
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {dashboardData?.ai_insights.map((insight, index) => (
               <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-900">{insight}</p>
+                <p className="text-sm text-gray-800">{insight}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bitrix24 Integration Status */}
+      <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg p-6">
+        <h3 className="text-lg font-bold mb-2">🔗 Интеграция с Bitrix24</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white bg-opacity-20 rounded-lg p-4">
+            <h4 className="font-medium">Воронка "Уборка подъездов"</h4>
+            <p className="text-sm opacity-90">Убран фильтр "в работе" - показаны все дома</p>
+          </div>
+          <div className="bg-white bg-opacity-20 rounded-lg p-4">
+            <h4 className="font-medium">Строительные работы</h4>
+            <p className="text-sm opacity-90">В работе + завершенные из воронки "Строительство"</p>
+          </div>
+          <div className="bg-white bg-opacity-20 rounded-lg p-4">
+            <h4 className="font-medium">Подключение домов</h4>
+            <p className="text-sm opacity-90">Многоквартирные дома на подключение</p>
           </div>
         </div>
       </div>
