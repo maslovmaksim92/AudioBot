@@ -129,6 +129,28 @@ class VasDomAPITester:
         
         # Note: We don't test POST /telegram/webhook as it requires valid Telegram data
 
+    def test_ai_endpoints(self):
+        """Test AI functionality endpoints"""
+        print("\n" + "="*60)
+        print("🤖 TESTING AI ENDPOINTS")
+        print("="*60)
+        
+        # Test AI generation
+        success, ai_data = self.test_endpoint("AI Response Generation", "GET", "/test-ai")
+        if success:
+            print(f"   AI Status: {ai_data.get('status', 'unknown')}")
+            print(f"   Model: {ai_data.get('model', 'unknown')}")
+            print(f"   Provider: {ai_data.get('provider', 'unknown')}")
+            response = ai_data.get('ai_response', '')
+            print(f"   Response Length: {len(response)} chars")
+            print(f"   Response Preview: {response[:100]}...")
+            
+            # Check if response is in Russian and mentions VasDom
+            if 'ВасДом' in response or 'уборк' in response.lower():
+                print("   ✅ Response contains VasDom context")
+            else:
+                print("   ⚠️ Response may not contain VasDom context")
+
     def test_bitrix24_endpoints(self):
         """Test Bitrix24 CRM endpoints"""
         print("\n" + "="*60)
