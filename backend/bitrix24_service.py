@@ -20,22 +20,24 @@ class Bitrix24Service:
         self.client_id = os.getenv("BITRIX24_CLIENT_ID")
         self.client_secret = os.getenv("BITRIX24_CLIENT_SECRET")
         
-        # Формируем webhook URL на основе данных приложения
-        if self.client_id:
+        # ПРИОРИТЕТ: используем прямой WEBHOOK_URL если есть
+        self.webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
+        
+        if self.webhook_url:
+            logger.info(f"✅ Using direct Bitrix24 webhook: {self.webhook_url}")
+        elif self.client_id:
+            # Fallback на формирование URL из CLIENT_ID
             self.webhook_url = f"{self.portal_url}/rest/1/{self.client_id}/"
-            logger.info(f"Using Bitrix24 app integration: {self.client_id}")
+            logger.info(f"⚠️ Using Bitrix24 app integration: {self.client_id}")
         else:
-            # Fallback на старый webhook URL
-            self.webhook_url = os.getenv("BITRIX24_WEBHOOK_URL")
-            if not self.webhook_url:
-                raise ValueError("BITRIX24_CLIENT_ID or BITRIX24_WEBHOOK_URL must be provided")
+            raise ValueError("BITRIX24_WEBHOOK_URL or BITRIX24_CLIENT_ID must be provided")
         
         # Ensure webhook URL ends with /
         if not self.webhook_url.endswith('/'):
             self.webhook_url += '/'
         
         self.session = None
-        logger.info(f"Bitrix24 service initialized with URL: {self.webhook_url}")
+        logger.info(f"🔗 Bitrix24 service initialized with URL: {self.webhook_url}")
         
     async def _get_session(self):
         """Get or create aiohttp session"""
