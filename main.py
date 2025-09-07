@@ -1,6 +1,4 @@
-<file>
-      <absolute_file_name>/app/main.py</absolute_file_name>
-      <content">#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 # This is the main entry point for Render deployment
 # It imports and runs the FastAPI app from the backend
@@ -21,5 +19,3 @@ if __name__ == "__main__":
     
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, log_level="info")
-</content>
-    </file>
