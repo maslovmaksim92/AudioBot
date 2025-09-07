@@ -49,10 +49,13 @@ class Bitrix24Service:
             logger.error(f"Bitrix24 request error: {str(e)}")
             return {"error": str(e)}
     
-    async def get_deals(self, limit: int = 50):
-        """Получение сделок"""
+    async def get_deals_detailed(self, limit: int = 50):
+        """Получение сделок с полной информацией"""
         params = {
-            "SELECT": ["ID", "TITLE", "STAGE_ID", "OPPORTUNITY", "CONTACT_ID", "DATE_CREATE"],
+            "SELECT": [
+                "ID", "TITLE", "STAGE_ID", "OPPORTUNITY", "CONTACT_ID", "DATE_CREATE", "ASSIGNED_BY_ID",
+                "UF_CRM_*"  # Все пользовательские поля
+            ],
             "start": 0,
             "limit": limit
         }
