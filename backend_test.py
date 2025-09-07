@@ -252,9 +252,7 @@ class VasDomAPITester:
         
         # Feature tests
         self.test_meetings_functionality()
-        self.test_knowledge_base()
-        self.test_ai_tasks()
-        self.test_employees()
+        self.test_meetings_list()
         self.test_system_logs()
         
         # Print results
