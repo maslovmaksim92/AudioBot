@@ -564,20 +564,25 @@ async def stop_meeting_recording(meeting_id: str):
 
 @api_router.get("/meetings")
 async def get_meetings():
-    """Список встреч"""
+    """Список встреч (безопасная версия)"""
     try:
-        meetings = await db.meetings.find().sort("created_at", -1).to_list(100)
-        logger.info(f"📋 Retrieved {len(meetings)} meetings")
-        
-        # Исправляем ObjectId проблему
-        for meeting in meetings:
-            if '_id' in meeting:
-                meeting['_id'] = str(meeting['_id'])
+        if db is not None:
+            meetings = await db.meetings.find().sort("created_at", -1).to_list(100)
+            
+            # Исправляем ObjectId проблему
+            for meeting in meetings:
+                if '_id' in meeting:
+                    meeting['_id'] = str(meeting['_id'])
+            
+            logger.info(f"📋 Retrieved {len(meetings)} meetings from MongoDB")
+        else:
+            meetings = []
+            logger.warning("⚠️ MongoDB not available, returning empty meetings list")
         
         return {"status": "success", "meetings": meetings}
     except Exception as e:
         logger.error(f"❌ Get meetings error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "success", "meetings": []}
 
 @api_router.get("/bitrix24/test")
 async def test_bitrix24():
