@@ -503,8 +503,14 @@ async def get_system_logs(limit: int = 100, level: Optional[str] = None, compone
             sort=[("timestamp", -1)]
         ).limit(limit).to_list(length=None)
         
+        # Конвертируем ObjectId в строки для JSON сериализации
+        for log in logs:
+            if "_id" in log:
+                log["_id"] = str(log["_id"])
+        
         return {"status": "success", "logs": logs, "count": len(logs)}
     except Exception as e:
+        logger.error(f"Get logs error: {str(e)}")
         return {"status": "error", "error": str(e)}
 
 async def log_system_event(level: str, message: str, component: str, data: Dict = None):
