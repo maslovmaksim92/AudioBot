@@ -45,21 +45,34 @@ async def init_mongodb():
             # MongoDB Atlas с API ключами
             logger.info("🔗 Connecting to MongoDB Atlas with API keys...")
             
-            # Правильный connection string для Atlas
-            atlas_url = f"mongodb+srv://{mongo_public_key}:{mongo_private_key}@cluster0.lhqxfbi.mongodb.net/ClusterD?retryWrites=true&w=majority"
+            # Правильный connection string для Atlas - попробуем несколько вариантов
+            atlas_urls = [
+                f"mongodb+srv://{mongo_public_key}:{mongo_private_key}@cluster0.lhqxfbi.mongodb.net/ClusterD?retryWrites=true&w=majority",
+                f"mongodb://{mongo_public_key}:{mongo_private_key}@cluster0-shard-00-00.lhqxfbi.mongodb.net:27017,cluster0-shard-00-01.lhqxfbi.mongodb.net:27017,cluster0-shard-00-02.lhqxfbi.mongodb.net:27017/ClusterD?ssl=true&replicaSet=atlas-123abc-shard-0&authSource=admin&retryWrites=true&w=majority"
+            ]
             
-            client = AsyncIOMotorClient(
-                atlas_url,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=10000,
-                socketTimeoutMS=10000
-            )
-            
-            # Тест подключения
-            await client.admin.command('ping')
-            
-            db = client[os.environ.get('DB_NAME', 'ClusterD')]
-            logger.info(f"✅ MongoDB Atlas connected successfully: {os.environ.get('DB_NAME', 'ClusterD')}")
+            for i, url in enumerate(atlas_urls):
+                try:
+                    logger.info(f"🔗 Attempting MongoDB Atlas connection method {i+1}...")
+                    
+                    client = AsyncIOMotorClient(
+                        url,
+                        serverSelectionTimeoutMS=5000,
+                        connectTimeoutMS=10000,
+                        socketTimeoutMS=10000
+                    )
+                    
+                    # Тест подключения
+                    await client.admin.command('ping')
+                    db = client[os.environ.get('DB_NAME', 'ClusterD')]
+                    
+                    logger.info(f"✅ MongoDB Atlas connected successfully (method {i+1}): {os.environ.get('DB_NAME', 'ClusterD')}")
+                    break
+                    
+                except Exception as method_error:
+                    logger.warning(f"⚠️ Connection method {i+1} failed: {method_error}")
+                    if i == len(atlas_urls) - 1:
+                        raise Exception("All Atlas connection methods failed")
             
         elif 'localhost' in mongo_url:
             # Локальная MongoDB
