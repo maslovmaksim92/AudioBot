@@ -226,7 +226,7 @@ class SystemLog(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "VasDom AudioBot API", "version": "2.0.0", "status": "🚀 Интеграции активны"}
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
@@ -239,6 +239,391 @@ async def create_status_check(input: StatusCheckCreate):
 async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
+
+# ============= DASHBOARD & EMPLOYEES =============
+
+@api_router.get("/dashboard")
+async def get_dashboard():
+    """Дашборд с основной статистикой"""
+    try:
+        total_employees = await db.employees.count_documents({"active": True})
+        total_meetings = await db.meetings.count_documents({})
+        total_messages = await db.chat_messages.count_documents({})
+        
+        # Последние логи
+        recent_logs = await db.system_logs.find(
+            {"level": {"$in": ["WARNING", "ERROR"]}}, 
+            sort=[("timestamp", -1)]
+        ).limit(5).to_list(length=None)
+        
+        return {
+            "total_employees": total_employees,
+            "total_meetings": total_meetings,
+            "total_messages": total_messages,
+            "active_projects": 0,
+            "completed_tasks_today": 0,
+            "revenue_month": 0.0,
+            "system_health": "good",
+            "ai_suggestions": [],
+            "recent_alerts": len(recent_logs)
+        }
+    except Exception as e:
+        await log_system_event("ERROR", "Dashboard error", "backend", {"error": str(e)})
+        return {"error": str(e)}
+
+@api_router.get("/employees")
+async def get_employees(department: Optional[str] = None):
+    """Получение списка сотрудников"""
+    try:
+        filter_dict = {"active": True}
+        if department:
+            filter_dict["department"] = department
+            
+        employees = await db.employees.find(filter_dict).to_list(1000)
+        return [Employee(**emp) for emp in employees]
+    except Exception as e:
+        await log_system_event("ERROR", "Get employees error", "backend", {"error": str(e)})
+        return {"error": str(e)}
+
+@api_router.post("/employees")
+async def create_employee(employee: EmployeeCreate):
+    """Создание нового сотрудника"""
+    try:
+        employee_dict = employee.dict()
+        employee_obj = Employee(**employee_dict)
+        await db.employees.insert_one(employee_obj.dict())
+        
+        await log_system_event("INFO", f"Создан сотрудник: {employee_obj.full_name}", "backend")
+        return employee_obj
+    except Exception as e:
+        await log_system_event("ERROR", "Create employee error", "backend", {"error": str(e)})
+        return {"error": str(e)}
+
+# ============= BITRIX24 INTEGRATION =============
+
+@api_router.get("/bitrix24/test")
+async def test_bitrix24():
+    """Тест подключения к Bitrix24"""
+    try:
+        result = await bitrix_service._make_request("app.info")
+        if "error" in result:
+            await log_system_event("ERROR", "Bitrix24 connection failed", "bitrix24", result)
+            return {"status": "error", "message": result["error"]}
+        
+        await log_system_event("INFO", "Bitrix24 connection successful", "bitrix24")
+        return {"status": "success", "bitrix_info": result.get("result", {})}
+    except Exception as e:
+        await log_system_event("ERROR", "Bitrix24 test error", "bitrix24", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/bitrix24/deals")
+async def get_bitrix24_deals():
+    """Получение сделок из Bitrix24"""
+    try:
+        deals = await bitrix_service.get_deals()
+        await log_system_event("INFO", f"Получено {len(deals)} сделок из Bitrix24", "bitrix24")
+        return {"status": "success", "deals": deals, "count": len(deals)}
+    except Exception as e:
+        await log_system_event("ERROR", "Bitrix24 deals error", "bitrix24", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/bitrix24/create-task")
+async def create_bitrix24_task(task_data: Dict[str, Any]):
+    """Создание задачи в Bitrix24"""
+    try:
+        result = await bitrix_service.create_task(task_data)
+        
+        if result.get("result"):
+            task_id = result["result"]
+            await log_system_event("INFO", f"Создана задача в Bitrix24: {task_id}", "bitrix24", {"task_id": task_id})
+            return {"status": "success", "task_id": task_id}
+        else:
+            await log_system_event("ERROR", "Не удалось создать задачу в Bitrix24", "bitrix24", result)
+            return {"status": "error", "error": result}
+    except Exception as e:
+        await log_system_event("ERROR", "Bitrix24 create task error", "bitrix24", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+# ============= CHAT & LIVE COMMUNICATION =============
+
+@api_router.post("/chat/send")
+async def send_chat_message(message_data: Dict[str, Any]):
+    """Отправка сообщения в чате (живой разговор)"""
+    try:
+        # Получаем AI ответ
+        ai_response = await get_ai_response(
+            message_data["content"], 
+            f"Пользователь: {message_data.get('sender_id', 'Unknown')}"
+        )
+        
+        # Сохраняем сообщение и ответ
+        chat_message = ChatMessage(
+            sender_id=message_data["sender_id"],
+            content=message_data["content"],
+            ai_response=ai_response,
+            chat_type="dashboard"
+        )
+        
+        await db.chat_messages.insert_one(chat_message.dict())
+        await log_system_event("INFO", "Обработано сообщение в чате", "ai", {"user": message_data["sender_id"]})
+        
+        return {
+            "status": "success",
+            "message": chat_message.dict(),
+            "ai_response": ai_response
+        }
+    except Exception as e:
+        await log_system_event("ERROR", "Chat message error", "ai", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/chat/history")
+async def get_chat_history(limit: int = 50, chat_type: str = "dashboard"):
+    """История сообщений чата"""
+    try:
+        messages = await db.chat_messages.find(
+            {"chat_type": chat_type},
+            sort=[("timestamp", -1)]
+        ).limit(limit).to_list(length=None)
+        
+        return {"status": "success", "messages": messages[::-1]}  # Reverse для хронологии
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+# ============= MEETINGS & PLANNING =============
+
+@api_router.post("/meetings")
+async def create_meeting(meeting_data: Dict[str, Any]):
+    """Создание планерки"""
+    try:
+        meeting = Meeting(**meeting_data)
+        await db.meetings.insert_one(meeting.dict())
+        
+        await log_system_event("INFO", f"Создана планерка: {meeting.title}", "backend")
+        return {"status": "success", "meeting": meeting.dict()}
+    except Exception as e:
+        await log_system_event("ERROR", "Create meeting error", "backend", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/meetings")
+async def get_meetings(limit: int = 20):
+    """Получение списка планерок"""
+    try:
+        meetings = await db.meetings.find(
+            {}, sort=[("start_time", -1)]
+        ).limit(limit).to_list(length=None)
+        
+        return {"status": "success", "meetings": meetings}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/meetings/{meeting_id}/analyze")
+async def analyze_meeting(meeting_id: str):
+    """AI анализ планерки и создание задач"""
+    try:
+        meeting = await db.meetings.find_one({"id": meeting_id})
+        if not meeting:
+            return {"status": "error", "error": "Meeting not found"}
+        
+        # AI анализ записи планерки
+        if meeting.get("recording_text"):
+            analysis_prompt = f"""
+            Проанализируй запись планерки и выдели:
+            1. Ключевые решения
+            2. Поставленные задачи
+            3. Ответственных
+            4. Дедлайны
+            
+            Запись планерки:
+            {meeting['recording_text']}
+            
+            Верни результат в формате JSON:
+            {
+                "summary": "Краткое резюме",
+                "decisions": ["решение1", "решение2"],
+                "tasks": [
+                    {"title": "Задача", "responsible": "ФИО", "deadline": "дата", "description": "описание"}
+                ]
+            }
+            """
+            
+            ai_response = await get_ai_response(analysis_prompt, "Анализ планерки")
+            
+            # Сохраняем анализ
+            analysis_update = {
+                "ai_summary": ai_response,
+                "analyzed_at": datetime.utcnow()
+            }
+            await db.meetings.update_one({"id": meeting_id}, {"$set": analysis_update})
+            
+            # Пытаемся создать задачи в Bitrix24
+            tasks_created = []
+            try:
+                # Парсим AI ответ для извлечения задач
+                if "tasks" in ai_response.lower():
+                    # Создаем задачи в Bitrix24
+                    task_result = await bitrix_service.create_task({
+                        "title": f"Задачи с планерки: {meeting['title']}",
+                        "description": ai_response,
+                        "responsible_id": "1"  # ID администратора
+                    })
+                    
+                    if task_result.get("result"):
+                        tasks_created.append(task_result["result"])
+                        await log_system_event("INFO", f"Создана задача в Bitrix24: {task_result['result']}", "bitrix24")
+                        
+            except Exception as task_error:
+                await log_system_event("WARNING", f"Не удалось создать задачи в Bitrix24: {str(task_error)}", "bitrix24")
+            
+            return {
+                "status": "success",
+                "analysis": ai_response,
+                "bitrix_tasks": tasks_created
+            }
+        else:
+            return {"status": "error", "error": "No recording text to analyze"}
+            
+    except Exception as e:
+        await log_system_event("ERROR", "Meeting analysis error", "ai", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
+
+# ============= SYSTEM LOGS =============
+
+@api_router.get("/logs")
+async def get_system_logs(limit: int = 100, level: Optional[str] = None, component: Optional[str] = None):
+    """Получение системных логов"""
+    try:
+        filter_dict = {}
+        if level:
+            filter_dict["level"] = level
+        if component:
+            filter_dict["component"] = component
+            
+        logs = await db.system_logs.find(
+            filter_dict, 
+            sort=[("timestamp", -1)]
+        ).limit(limit).to_list(length=None)
+        
+        return {"status": "success", "logs": logs, "count": len(logs)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+async def log_system_event(level: str, message: str, component: str, data: Dict = None):
+    """Функция логирования системных событий"""
+    try:
+        log_entry = SystemLog(
+            level=level,
+            message=message,
+            component=component,
+            data=data or {}
+        )
+        await db.system_logs.insert_one(log_entry.dict())
+        
+        # Также логируем в Python logger
+        if level == "ERROR":
+            logger.error(f"[{component}] {message}")
+        elif level == "WARNING":
+            logger.warning(f"[{component}] {message}")
+        else:
+            logger.info(f"[{component}] {message}")
+            
+    except Exception as e:
+        logger.error(f"Failed to log system event: {str(e)}")
+
+# ============= TELEGRAM BOT ENDPOINTS =============
+
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """Webhook для Telegram бота"""
+    try:
+        data = await request.json()
+        await log_system_event("INFO", "Получен webhook от Telegram", "telegram", {"update_id": data.get("update_id")})
+        
+        if "message" in data:
+            message = data["message"]
+            chat_id = str(message["chat"]["id"])
+            text = message.get("text", "")
+            user_id = str(message["from"]["id"])
+            username = message["from"].get("username", "Unknown")
+            
+            # Сохраняем сообщение
+            chat_msg = ChatMessage(
+                sender_id=user_id,
+                content=text,
+                chat_type="telegram"
+            )
+            await db.chat_messages.insert_one(chat_msg.dict())
+            
+            # Обрабатываем команды
+            if text.startswith("/start"):
+                # Проверяем есть ли пользователь в системе
+                employee = await db.employees.find_one({"telegram_id": user_id})
+                
+                if employee:
+                    welcome_text = f"👋 Привет, {employee['full_name']}!\n\n🤖 AudioBot готов к работе!\n\n📋 Команды:\n/tasks - мои задачи\n/help - помощь"
+                else:
+                    # Ищем по имени пользователя или регистрируем
+                    welcome_text = f"👋 Добро пожаловать в VasDom AudioBot!\n\n🔍 Вы пока не зарегистрированы в системе.\n\n📞 Обратитесь к администратору:\n• Максим: +7 920 092 4550\n• Валентина: +7 920 870 1769"
+                
+                await telegram_service.send_message(chat_id, welcome_text)
+                
+            elif text.startswith("/tasks"):
+                employee = await db.employees.find_one({"telegram_id": user_id})
+                if employee:
+                    tasks_text = f"📋 Задачи для {employee['full_name']}:\n\n🔄 Функция в разработке...\n\nСкоро вы сможете:\n• Получать задачи\n• Отмечаться на объектах\n• Отправлять отчеты"
+                else:
+                    tasks_text = "❌ Сначала зарегистрируйтесь в системе (/start)"
+                
+                await telegram_service.send_message(chat_id, tasks_text)
+                
+            elif text.startswith("/help"):
+                help_text = """🤖 <b>VasDom AudioBot - Помощь</b>
+
+📋 <b>Команды:</b>
+• /start - запуск бота
+• /tasks - мои задачи  
+• /help - эта справка
+
+🏢 <b>Возможности:</b>
+• AI-ассистент для сотрудников
+• Интеграция с Bitrix24 CRM
+• Управление задачами
+• Отчеты и аналитика
+
+📞 <b>Поддержка:</b>
+• Максим: +7 920 092 4550
+• Email: maslovmaksim92@yandex.ru"""
+
+                await telegram_service.send_message(chat_id, help_text)
+                
+            else:
+                # AI обработка обычного сообщения
+                ai_response = await get_ai_response(text, f"Telegram пользователь: {username}")
+                
+                # Сохраняем AI ответ
+                await db.chat_messages.update_one(
+                    {"id": chat_msg.id},
+                    {"$set": {"ai_response": ai_response}}
+                )
+                
+                await telegram_service.send_message(chat_id, f"🤖 {ai_response}")
+                await log_system_event("INFO", "AI ответ отправлен в Telegram", "ai", {"user": username})
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        await log_system_event("ERROR", "Telegram webhook error", "telegram", {"error": str(e)})
+        return {"status": "error", "message": str(e)}
+
+@app.get("/telegram/set-webhook")
+async def set_telegram_webhook():
+    """Установка webhook"""
+    try:
+        result = await telegram_service.set_webhook()
+        await log_system_event("INFO", "Telegram webhook установлен", "telegram", result)
+        return result
+    except Exception as e:
+        await log_system_event("ERROR", "Telegram webhook error", "telegram", {"error": str(e)})
+        return {"error": str(e)}
 
 # 🚀 ДОРАБОТКИ ДЛЯ ВАСДОМ - ДОБАВЛЯЕМ НОВЫЕ ФУНКЦИИ К СУЩЕСТВУЮЩЕМУ КОДУ
 
