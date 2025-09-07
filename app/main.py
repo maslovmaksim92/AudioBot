@@ -430,7 +430,7 @@ async def health_check():
         "database": {
             "mongodb_configured": bool(mongo_url),
             "mongodb_url": mongo_url[:50] + "..." if mongo_url and len(mongo_url) > 50 else mongo_url,
-            "mongodb_client": "connected" if db else "not_connected",
+            "mongodb_client": "connected" if db is not None else "not_connected",
             "database_name": os.environ.get("DB_NAME", "vasdom_db")
         }
     }
@@ -444,7 +444,7 @@ async def health_check():
 async def test_mongodb():
     """Тест подключения к MongoDB"""
     
-    if not db:
+    if not db or db is None:
         return {"status": "error", "message": "MongoDB не настроен"}
     
     try:
