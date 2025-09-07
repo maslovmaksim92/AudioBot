@@ -17,7 +17,16 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log('🚀 App component mounted, fetching dashboard stats...');
     fetchDashboardStats();
+    
+    // Принудительное обновление каждые 30 секунд
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing dashboard stats...');
+      fetchDashboardStats();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardStats = async () => {
