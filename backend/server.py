@@ -178,7 +178,7 @@ class BitrixIntegration:
             while True:
                 import urllib.parse
                 
-                # Запрашиваем ВСЕ сделки ВСЕХ категорий (убираем фильтр CATEGORY_ID)
+                # ТОЛЬКО воронка "Уборка подъездов" но БЕЗ фильтра "в работе"
                 params = {
                     'select[0]': 'ID',
                     'select[1]': 'TITLE', 
@@ -191,11 +191,10 @@ class BitrixIntegration:
                     'select[8]': 'CURRENCY_ID',
                     'select[9]': 'CONTACT_ID',
                     'select[10]': 'COMPANY_ID',
-                    'select[11]': 'CATEGORY_ID',  # Включаем категорию чтобы видеть все воронки
-                    'select[12]': 'ADDITIONAL_INFO',
-                    'select[13]': 'UF_*',  # ВСЕ пользовательские поля
-                    # УБИРАЕМ фильтр по категории - загружаем ВСЕ договора!
-                    # 'filter[CATEGORY_ID]': '2',  - УБРАЛ ЭТОТ ФИЛЬТР
+                    'select[11]': 'CATEGORY_ID',
+                    'select[12]': 'UF_*',  # ВСЕ пользовательские поля
+                    'filter[CATEGORY_ID]': '2',  # ТОЛЬКО воронка "Уборка подъездов"
+                    # НЕ ДОБАВЛЯЕМ фильтр по статусу - показываем ВСЕ дома из воронки
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
                 }
