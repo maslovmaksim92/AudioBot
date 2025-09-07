@@ -373,6 +373,8 @@ async def get_dashboard_detailed_stats():
     except Exception as e:
         await log_system_event("ERROR", "Dashboard stats error", "dashboard", {"error": str(e)})
         return {"status": "error", "error": str(e)}
+
+@api_router.get("/dashboard")
 async def get_dashboard():
     """Дашборд с основной статистикой"""
     try:
