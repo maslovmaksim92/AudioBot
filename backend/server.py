@@ -508,7 +508,11 @@ async def start_meeting_recording():
             status="recording"
         )
         
-        await db.meetings.insert_one(meeting.dict())
+        if db is not None:
+            await db.meetings.insert_one(meeting.dict())
+            logger.info(f"✅ Meeting saved to MongoDB: {meeting_id}")
+        else:
+            logger.warning("⚠️ Meeting not saved (MongoDB unavailable)")
         logger.info(f"✅ Meeting started: {meeting_id}")
         
         return {
