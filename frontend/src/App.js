@@ -32,14 +32,14 @@ function App() {
         }
       });
       
-      console.log('📊 Dashboard response:', response.data);
+      console.log('📊 Dashboard response received:', response.data);
       
-      if (response.data.status === 'success') {
+      if (response.data && response.data.status === 'success' && response.data.stats) {
         setDashboardStats(response.data.stats);
-        console.log('✅ Dashboard stats loaded successfully');
+        console.log('✅ Dashboard stats loaded successfully:', response.data.stats);
       } else {
-        console.error('❌ Dashboard API returned error:', response.data);
-        throw new Error('API returned error status');
+        console.error('❌ Dashboard API returned invalid data:', response.data);
+        throw new Error('API returned invalid data structure');
       }
     } catch (error) {
       console.error('❌ Error fetching dashboard stats:', error);
