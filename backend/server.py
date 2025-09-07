@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request
+from fastapi import FastAPI, APIRouter, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,8 +10,6 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
 import aiohttp
-import json
-import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -21,11 +19,13 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI(title="VasDom AudioBot - Business Management System", version="2.0.0")
-
-# Create a router with the /api prefix
+# Create the main app
+app = FastAPI(title="VasDom AudioBot", version="2.0.0")
 api_router = APIRouter(prefix="/api")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # ============= BITRIX24 INTEGRATION SERVICE =============
 
