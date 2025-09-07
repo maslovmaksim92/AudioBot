@@ -129,42 +129,47 @@ async def get_ai_response(message: str, context: str = "") -> str:
     try:
         emergent_key = os.getenv("EMERGENT_LLM_KEY")
         if not emergent_key:
-            return "AI сервис временно недоступен"
+            return "AI сервис недоступен - нет ключа"
+        
+        # Используем emergentintegrations для AI ответов
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
             
-        url = "https://emergentmethods.ai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {emergent_key}",
-            "Content-Type": "application/json"
-        }
-        
-        prompt = f"""Ты AI-ассистент компании ВасДом, специализирующийся на уборке подъездов и строительстве.
+            # Создаем AI чат
+            chat = LlmChat(
+                api_key=emergent_key,
+                session_id="vasdom_chat",
+                system_message=f"""Ты AI-ассистент компании ВасДом - лидера в сфере уборки подъездов и строительства.
 
-Контекст: {context}
+КОНТЕКСТ: {context}
 
-Сообщение пользователя: {message}
+ТВОЯ РОЛЬ:
+- Профессиональный бизнес-ассистент
+- Знаешь все о клининге и строительстве
+- Помогаешь с планированием и управлением
+- Отвечаешь кратко и по делу
 
-Отвечай профессионально, по-деловому, кратко и по существу."""
-        
-        data = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 500
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data, timeout=30) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return result["choices"][0]["message"]["content"]
-                else:
-                    return "Извините, AI сервис временно недоступен."
-                    
+КОМПАНИЯ ВАСДОМ:
+- Уборка подъездов в 400+ домах
+- Строительные работы  
+- 13+ сотрудников в команде
+- Интеграция с Bitrix24 CRM"""
+            ).with_model("openai", "gpt-4o-mini")
+            
+            # Отправляем сообщение
+            user_message = UserMessage(text=message)
+            response = await chat.send_message(user_message)
+            
+            return response
+            
+        except ImportError:
+            # Fallback если emergentintegrations недоступен
+            await log_system_event("WARNING", "emergentintegrations не найден, используется fallback", "ai")
+            return f"📋 Сообщение получено: '{message}'\n\n🤖 AI: Система в режиме разработки. Для полного функционала нужна установка emergentintegrations."
+            
     except Exception as e:
-        logger.error(f"AI response error: {str(e)}")
-        return "Произошла ошибка при обращении к AI сервису."
+        await log_system_event("ERROR", f"AI response error: {str(e)}", "ai", {"message": message})
+        return f"🤖 Извините, произошла техническая ошибка. Попробуйте позже.\n\nВаше сообщение: '{message}'"
 
 
 # Define Models
