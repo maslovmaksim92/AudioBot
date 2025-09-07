@@ -719,6 +719,93 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # App events
+# ============= НОВЫЕ ENDPOINTS ДЛЯ ДОРАБОТОК =============
+
+@api_router.get("/cleaning/houses") 
+async def get_cleaning_houses():
+    """Получение домов для уборки из Bitrix24"""
+    try:
+        deals = await bitrix_service.get_deals(limit=500)
+        houses = [{"address": deal.get("TITLE", ""), "stage": deal.get("STAGE_ID", ""), "bitrix24_deal_id": deal["ID"]} for deal in deals]
+        return {"status": "success", "houses": houses, "total": len(houses)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/ai-tasks")
+async def get_ai_tasks():
+    """Получение AI задач"""
+    try:
+        tasks = await db.ai_tasks.find({"active": True}).to_list(1000)
+        for task in tasks:
+            if "_id" in task:
+                task["_id"] = str(task["_id"])
+        return {"status": "success", "tasks": tasks}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/ai-tasks")
+async def create_ai_task(task_data: Dict[str, Any]):
+    """Создание AI задачи"""
+    try:
+        task = {
+            "id": str(uuid.uuid4()),
+            "title": task_data["title"],
+            "description": task_data["description"],
+            "schedule": task_data.get("schedule", ""),
+            "recurring": task_data.get("recurring", False),
+            "active": True,
+            "created_by": "admin",
+            "created_at": datetime.utcnow()
+        }
+        await db.ai_tasks.insert_one(task)
+        return {"status": "success", "task": task}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/training/files")
+async def get_training_files(department: Optional[str] = None):
+    """Получение файлов обучения"""
+    try:
+        filter_dict = {}
+        if department:
+            filter_dict["department"] = department
+        files = await db.training_files.find(filter_dict).to_list(1000)
+        for file in files:
+            if "_id" in file:
+                file["_id"] = str(file["_id"])
+        return {"status": "success", "files": files}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/training/upload-file")
+async def upload_training_file(file_data: Dict[str, Any]):
+    """Загрузка файла обучения"""
+    try:
+        file_obj = {
+            "id": str(uuid.uuid4()),
+            "filename": file_data["filename"],
+            "department": file_data["department"],
+            "content": file_data["content"],
+            "file_type": file_data.get("file_type", "txt"),
+            "uploaded_by": "admin",
+            "created_at": datetime.utcnow()
+        }
+        await db.training_files.insert_one(file_obj)
+        return {"status": "success", "file_id": file_obj["id"]}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+# Include the router ПЕРЕД startup event
+app.include_router(api_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.on_event("startup")
 async def startup_event():
     """Инициализация системы"""
