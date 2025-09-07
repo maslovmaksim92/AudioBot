@@ -1114,6 +1114,10 @@ const Dashboard = () => {
         return <LiveChatSection />;
       case 'logs':
         return <LogsSection />;
+      case 'training':
+        return <TrainingSection />;
+      case 'ai-tasks':
+        return <AITasksSection />;
       case 'sales':
         return (
           <div className="text-center py-12">
