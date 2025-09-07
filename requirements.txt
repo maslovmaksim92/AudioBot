@@ -9,5 +9,4 @@ requests>=2.31.0
 pandas>=2.2.0
 numpy>=1.26.0
 python-multipart>=0.0.9
-aiogram>=3.20.0
-asyncio-mqtt>=0.16.0
+emergentintegrations>=0.1.0
