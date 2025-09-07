@@ -178,7 +178,7 @@ REAL_CRM_HOUSES = [
     {"ID": "140", "TITLE": "Телевизионная 14/1", "STAGE_ID": "C2:WON", "BRIGADE": "3 бригада", "APARTMENTS": 72, "FLOORS": 6, "ENTRANCES": 2}
 ]
 
-# Функция генерации всех домов как в CRM
+bitrix = BitrixIntegration()
 def generate_all_houses(target_count=450):
     """Генерирует все 450+ домов как в реальной CRM воронке"""
     
