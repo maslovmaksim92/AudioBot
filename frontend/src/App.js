@@ -1104,8 +1104,8 @@ const Dashboard = () => {
         return <OverviewSection dashboardData={dashboardData} aiInsights={aiInsights} />;
       case 'employees':
         return <EmployeesSection employees={employees} />;
-      case 'tasks':
-        return <TasksSection tasks={tasks} />;
+      case 'ai-tasks':
+        return <AITasksSection />;
       case 'finances':
         return <FinancesSection financialReport={financialReport} />;
       case 'meetings':
