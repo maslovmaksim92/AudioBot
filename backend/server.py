@@ -53,14 +53,16 @@ app = FastAPI(
 )
 api_router = APIRouter(prefix="/api")
 
-# CORS - расширенная настройка
+# CORS - production настройка
+cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins + ["https://audiobot-qci2.onrender.com", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger.info(f"✅ CORS configured for origins: {cors_origins}")
 
 # Models
 class VoiceMessage(BaseModel):
