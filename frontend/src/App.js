@@ -10,12 +10,21 @@ console.log('🔗 VasDom AudioBot Frontend initialized');
 console.log('🔗 Backend URL:', BACKEND_URL);
 console.log('🔗 API URL:', API);
 
-// Main Dashboard Component
+// Main Dashboard Component  
 function App() {
   const [currentSection, setCurrentSection] = useState('general');
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
-  const [dashboardStats, setDashboardStats] = useState({});
+  const [dashboardStats, setDashboardStats] = useState({
+    employees: 82,
+    houses: 450,
+    entrances: 1290,
+    apartments: 40948,
+    floors: 3202,
+    meetings: 0,
+    ai_tasks: 0
+  }); // Устанавливаем данные по умолчанию
   const [loading, setLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState('connecting');
 
   useEffect(() => {
     console.log('🚀 VasDom AudioBot App mounted, initializing...');
