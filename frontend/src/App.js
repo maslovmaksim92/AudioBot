@@ -275,14 +275,53 @@ const TasksSection = ({ tasks }) => {
   );
 };
 
-// Раздел "Живой разговор" - ГОЛОСОВОЙ ИНТЕРФЕЙС (как телефонный звонок)
+// Раздел "Живой разговор" - ГОЛОСОВОЙ с транскрибацией
 const LiveChatSection = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const [callId, setCallId] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [liveTranscript, setLiveTranscript] = useState(''); // Живая транскрибация
   const [aiResponse, setAiResponse] = useState('');
-  const [callHistory, setCallHistory] = useState([]);
+  const [recognition, setRecognition] = useState(null);
+
+  useEffect(() => {
+    // Инициализация Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'ru-RU';
+      
+      recognitionInstance.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPart = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcriptPart;
+          } else {
+            interimTranscript += transcriptPart;
+          }
+        }
+        
+        setLiveTranscript(interimTranscript);
+        if (finalTranscript) {
+          setTranscript(prev => prev + finalTranscript + ' ');
+        }
+      };
+      
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setLiveTranscript('Ошибка распознавания речи');
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, []);
 
   const startVoiceCall = async () => {
     try {
@@ -294,6 +333,7 @@ const LiveChatSection = () => {
         setCallId(response.data.call_id);
         setIsCallActive(true);
         setTranscript('');
+        setLiveTranscript('');
         setAiResponse('');
       }
     } catch (error) {
@@ -303,34 +343,50 @@ const LiveChatSection = () => {
 
   const endVoiceCall = () => {
     setIsCallActive(false);
-    setIsRecording(false);
+    setIsListening(false);
     setCallId(null);
+    if (recognition) {
+      recognition.stop();
+    }
   };
 
-  const startRecording = () => {
-    setIsRecording(true);
-    // В production здесь будет WebRTC запись аудио
-    setTimeout(() => {
-      setIsRecording(false);
-      setTranscript("Это демо транскрипт голосового сообщения (функция в разработке)");
-      processVoiceMessage("Это демо транскрипт голосового сообщения");
-    }, 3000);
+  const startListening = () => {
+    if (recognition) {
+      setIsListening(true);
+      setLiveTranscript('Слушаю...');
+      recognition.start();
+    } else {
+      setLiveTranscript('Браузер не поддерживает распознавание речи');
+    }
   };
 
-  const processVoiceMessage = async (transcript) => {
+  const stopListening = async () => {
+    if (recognition) {
+      recognition.stop();
+    }
+    setIsListening(false);
+    
+    // Отправляем финальный транскрипт на обработку AI
+    if (transcript.trim()) {
+      await processVoiceMessage(transcript.trim());
+    }
+  };
+
+  const processVoiceMessage = async (transcriptText) => {
     try {
       const response = await axios.post(`${API}/voice/process-audio`, {
         call_id: callId,
-        transcript: transcript
+        transcript: transcriptText
       });
       
       if (response.data.status === 'success') {
         setAiResponse(response.data.ai_response);
         
-        // В production здесь будет воспроизведение TTS аудио
+        // TTS озвучивание ответа
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(response.data.ai_response);
           utterance.lang = 'ru-RU';
+          utterance.rate = 0.9;
           speechSynthesis.speak(utterance);
         }
       }
@@ -343,84 +399,119 @@ const LiveChatSection = () => {
     <div className="space-y-6">
       <h2 className="text-3xl font-bold text-gray-900">📞 Живой голосовой разговор с AI</h2>
       
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="text-center">
-          {!isCallActive ? (
-            <div>
-              <div className="mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Управление звонком */}
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="text-center">
+            {!isCallActive ? (
+              <div>
                 <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl text-white">📞</span>
                 </div>
                 <h3 className="text-xl font-bold mb-2">Голосовой AI ассистент</h3>
-                <p className="text-gray-600">Нажмите для начала разговора с AI как по телефону</p>
-              </div>
-              
-              <button
-                onClick={startVoiceCall}
-                className="bg-green-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-green-600 transition-colors"
-              >
-                🎤 Начать звонок
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div className="mb-6">
-                <div className={`w-32 h-32 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <span className="text-4xl text-white">{isRecording ? '🔴' : '🎤'}</span>
-                </div>
-                <h3 className="text-xl font-bold mb-2">Звонок активен</h3>
-                <p className="text-gray-600">
-                  {isRecording ? 'Запись голоса...' : 'Нажмите кнопку и говорите'}
-                </p>
-              </div>
-              
-              <div className="space-y-4 mb-6">
-                {!isRecording && (
-                  <button
-                    onClick={startRecording}
-                    className="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 mr-4"
-                  >
-                    🎤 Говорить
-                  </button>
-                )}
+                <p className="text-gray-600 mb-4">Нажмите для начала разговора с AI как по телефону</p>
                 
                 <button
-                  onClick={endVoiceCall}
-                  className="bg-red-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-600"
+                  onClick={startVoiceCall}
+                  className="bg-green-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-green-600 transition-colors"
                 >
-                  📞 Завершить звонок
+                  🎤 Начать звонок
                 </button>
               </div>
-              
-              {transcript && (
-                <div className="bg-gray-100 p-4 rounded-lg mb-4">
-                  <h4 className="font-bold text-sm mb-2">Ваша речь:</h4>
-                  <p>{transcript}</p>
+            ) : (
+              <div>
+                <div className={`w-32 h-32 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <span className="text-4xl text-white">{isListening ? '🔴' : '🎤'}</span>
                 </div>
-              )}
-              
-              {aiResponse && (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-bold text-sm mb-2">🤖 AI ответ:</h4>
-                  <p>{aiResponse}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    🔊 Аудио ответ воспроизводится автоматически
-                  </p>
+                <h3 className="text-xl font-bold mb-2">Звонок активен</h3>
+                <p className="text-gray-600 mb-6">
+                  {isListening ? 'Говорите, я слушаю и записываю...' : 'Нажмите "Говорить" для начала'}
+                </p>
+                
+                <div className="space-y-4">
+                  {!isListening ? (
+                    <button
+                      onClick={startListening}
+                      className="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 mr-4"
+                    >
+                      🎤 Говорить
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopListening}
+                      className="bg-red-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-600 mr-4"
+                    >
+                      ⏹️ Остановить
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={endVoiceCall}
+                    className="bg-gray-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-600"
+                  >
+                    📞 Завершить звонок
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Окно транскрибации */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-bold mb-4">📝 Транскрибация разговора</h3>
+          
+          {/* Живая транскрибация (что говорим сейчас) */}
+          <div className="mb-4">
+            <h4 className="font-semibold text-sm text-blue-700 mb-2">🎤 Сейчас слышу:</h4>
+            <div className="bg-blue-50 p-3 rounded min-h-[60px] border-2 border-blue-200">
+              <p className="text-blue-800">
+                {liveTranscript || (isListening ? 'Слушаю...' : 'Нажмите "Говорить" чтобы начать')}
+              </p>
+            </div>
+          </div>
+          
+          {/* Финальная транскрибация */}
+          <div className="mb-4">
+            <h4 className="font-semibold text-sm text-gray-700 mb-2">📄 Полная запись:</h4>
+            <div className="bg-gray-50 p-3 rounded min-h-[120px] max-h-40 overflow-y-auto border">
+              <p className="text-gray-800 whitespace-pre-wrap">
+                {transcript || 'Транскрипт появится здесь...'}
+              </p>
+            </div>
+          </div>
+          
+          {/* AI ответ */}
+          {aiResponse && (
+            <div>
+              <h4 className="font-semibold text-sm text-green-700 mb-2">🤖 AI ответ:</h4>
+              <div className="bg-green-50 p-3 rounded border-2 border-green-200">
+                <p className="text-green-800">{aiResponse}</p>
+                <p className="text-xs text-green-600 mt-2">
+                  🔊 Ответ воспроизводится голосом автоматически
+                </p>
+              </div>
             </div>
           )}
         </div>
       </div>
       
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-bold text-sm mb-2">💡 Функция в разработке:</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• WebRTC для записи голоса в браузере</li>
-          <li>• Speech-to-Text транскрибация в реальном времени</li>
-          <li>• Text-to-Speech озвучивание ответов AI</li>
-          <li>• Сохранение истории голосовых звонков</li>
-        </ul>
+      <div className="bg-yellow-50 p-4 rounded-lg">
+        <h4 className="font-bold text-yellow-800 mb-2">💡 Техническая информация:</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-yellow-700">
+          <div>
+            <strong>🎤 Распознавание речи:</strong> Web Speech API (Chrome/Edge)
+          </div>
+          <div>
+            <strong>🔊 Синтез речи:</strong> Browser TTS Engine
+          </div>
+          <div>
+            <strong>🤖 AI движок:</strong> GPT-4o-mini через Emergent
+          </div>
+          <div>
+            <strong>🌐 Поддержка:</strong> Современные браузеры
+          </div>
+        </div>
       </div>
     </div>
   );
