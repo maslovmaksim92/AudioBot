@@ -444,7 +444,7 @@ async def health_check():
 async def test_mongodb():
     """Тест подключения к MongoDB"""
     
-    if not db:
+    if not db or db is None:
         return {"status": "error", "message": "MongoDB не настроен"}
     
     try:
