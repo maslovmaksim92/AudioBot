@@ -166,39 +166,88 @@ class BitrixIntegration:
         logger.info(f"🔗 Bitrix24 webhook: {self.webhook_url}")
         
     async def get_deals(self, limit: int = None):
-        """Получить реальные дома из Bitrix24"""
+        """Получить ВСЕ дома из Bitrix24 CRM с полной информацией полей"""
         try:
-            logger.info(f"🏠 Loading real houses from Bitrix24...")
+            logger.info(f"🏠 Loading ALL houses from Bitrix24 CRM with complete fields...")
             
-            import urllib.parse
-            params = {
-                'select[0]': 'ID',
-                'select[1]': 'TITLE', 
-                'select[2]': 'STAGE_ID',
-                'select[3]': 'DATE_CREATE',
-                'filter[CATEGORY_ID]': '2',
-                'order[DATE_CREATE]': 'DESC',
-                'start': '0'
-            }
+            all_deals = []
+            start = 0
+            batch_size = 50
             
-            query_string = urllib.parse.urlencode(params)
-            url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, timeout=15)
+            # Получаем ВСЕ сделки пакетами без ограничений
+            while True:
+                import urllib.parse
                 
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get('result'):
-                        deals = data['result']
-                        logger.info(f"✅ Real Bitrix24 deals: {len(deals)}")
-                        return deals[:limit] if limit else deals
+                # Запрашиваем ВСЕ поля сделки включая кастомные
+                params = {
+                    'select[0]': 'ID',
+                    'select[1]': 'TITLE', 
+                    'select[2]': 'STAGE_ID',
+                    'select[3]': 'DATE_CREATE',
+                    'select[4]': 'DATE_MODIFY',
+                    'select[5]': 'ASSIGNED_BY_ID',
+                    'select[6]': 'CREATED_BY_ID',
+                    'select[7]': 'OPPORTUNITY',
+                    'select[8]': 'CURRENCY_ID',
+                    'select[9]': 'CONTACT_ID',
+                    'select[10]': 'COMPANY_ID',
+                    'select[11]': 'LEAD_ID',
+                    'select[12]': 'ADDITIONAL_INFO',
+                    'select[13]': 'LOCATION_ID',
+                    'select[14]': 'UTM_SOURCE',
+                    'select[15]': 'UTM_MEDIUM',
+                    'select[16]': 'UTM_CAMPAIGN',
+                    'select[17]': 'UF_*',  # ВСЕ пользовательские поля
+                    'filter[CATEGORY_ID]': '2',  # Воронка "Уборка подъездов"
+                    'order[DATE_CREATE]': 'DESC',
+                    'start': str(start)
+                }
                 
-            logger.info("📋 Bitrix24 API issue, using realistic data")
-            return self._get_mock_data(limit or 50)
+                query_string = urllib.parse.urlencode(params)
+                url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=30)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        
+                        if data.get('result') and len(data['result']) > 0:
+                            batch_deals = data['result']
+                            all_deals.extend(batch_deals)
+                            
+                            logger.info(f"📦 Batch {start//batch_size + 1}: {len(batch_deals)} deals loaded, total: {len(all_deals)}")
+                            
+                            # Если получили меньше batch_size, это последний пакет
+                            if len(batch_deals) < batch_size:
+                                logger.info(f"✅ ALL deals loaded from Bitrix24: {len(all_deals)} total")
+                                break
+                                
+                            start += batch_size
+                            
+                            # Ограничение безопасности
+                            if limit and len(all_deals) >= limit:
+                                all_deals = all_deals[:limit]
+                                break
+                                
+                            # Пауза между запросами для API
+                            await asyncio.sleep(0.3)
+                        else:
+                            logger.info(f"📋 No more deals at start={start}")
+                            break
+                    else:
+                        logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
+                        break
+            
+            if all_deals:
+                logger.info(f"✅ COMPLETE CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
+                return all_deals
+            else:
+                logger.warning("⚠️ No deals from Bitrix24, using fallback")
+                return self._get_mock_data(limit or 50)
             
         except Exception as e:
-            logger.error(f"❌ Bitrix24 error: {e}")
+            logger.error(f"❌ Bitrix24 complete load error: {e}")
             return self._get_mock_data(limit or 50)
     
     def _get_mock_data(self, limit):
