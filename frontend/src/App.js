@@ -405,11 +405,12 @@ const LiveChatSection = () => {
   );
 };
 
-// Раздел "Планерка"
+// Раздел "Планерка" - ДИКТОФОН с транскрибацией и анализом
 const MeetingsSection = () => {
   const [meetings, setMeetings] = useState([]);
-  const [newMeetingText, setNewMeetingText] = useState('');
-  const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [currentRecording, setCurrentRecording] = useState(null);
+  const [recordingText, setRecordingText] = useState('');
 
   const loadMeetings = async () => {
     try {
@@ -422,27 +423,38 @@ const MeetingsSection = () => {
     }
   };
 
-  const createMeeting = async () => {
-    if (!newMeetingText.trim() || creatingMeeting) return;
-    
-    setCreatingMeeting(true);
+  const startRecording = async () => {
     try {
-      const response = await axios.post(`${API}/meetings`, {
+      const response = await axios.post(`${API}/meetings/start-recording`, {
         title: `Планерка ${new Date().toLocaleDateString()}`,
-        description: 'Запись планерки',
-        participants: ['admin'],
-        start_time: new Date().toISOString(),
-        recording_text: newMeetingText
+        participants: ['admin']
       });
       
       if (response.data.status === 'success') {
-        await loadMeetings();
-        setNewMeetingText('');
+        setCurrentRecording(response.data.meeting_id);
+        setIsRecording(true);
+        setRecordingText('');
       }
     } catch (error) {
-      console.error('Error creating meeting:', error);
-    } finally {
-      setCreatingMeeting(false);
+      console.error('Error starting recording:', error);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!currentRecording) return;
+    
+    try {
+      // Сохраняем введенный текст как транскрипт
+      await axios.post(`${API}/meetings/${currentRecording}/add-transcript`, {
+        text: recordingText
+      });
+      
+      setIsRecording(false);
+      setCurrentRecording(null);
+      setRecordingText('');
+      await loadMeetings();
+    } catch (error) {
+      console.error('Error stopping recording:', error);
     }
   };
 
@@ -451,7 +463,7 @@ const MeetingsSection = () => {
       const response = await axios.post(`${API}/meetings/${meetingId}/analyze`);
       if (response.data.status === 'success') {
         await loadMeetings();
-        alert(`AI анализ завершен! ${response.data.bitrix_tasks?.length || 0} задач создано в Bitrix24.`);
+        alert(`🤖 AI анализ завершен!\n\n${response.data.bitrix_tasks?.length || 0} задач создано в Bitrix24.`);
       }
     } catch (error) {
       console.error('Error analyzing meeting:', error);
@@ -464,51 +476,83 @@ const MeetingsSection = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">📅 Планерка - Запись и анализ</h2>
+      <h2 className="text-3xl font-bold text-gray-900">🎤 Планерка - Диктофон онлайн</h2>
       
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-bold mb-4">Создать запись планерки</h3>
-        <div className="space-y-4">
-          <textarea
-            value={newMeetingText}
-            onChange={(e) => setNewMeetingText(e.target.value)}
-            placeholder="Введите текст записи планерки для AI анализа..."
-            className="w-full h-32 border border-gray-300 rounded-lg p-4"
-            disabled={creatingMeeting}
-          />
-          <button
-            onClick={createMeeting}
-            disabled={!newMeetingText.trim() || creatingMeeting}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-          >
-            {creatingMeeting ? 'Создание...' : 'Создать планерку'}
-          </button>
+        <div className="text-center">
+          {!isRecording ? (
+            <div>
+              <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl text-white">🎤</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Диктофон планерки</h3>
+              <p className="text-gray-600 mb-4">Запись → Транскрибация → AI анализ → Задачи в Bitrix24</p>
+              
+              <button
+                onClick={startRecording}
+                className="bg-red-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-red-600"
+              >
+                🔴 Начать запись
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-3xl text-white">🔴</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-red-600">⏺️ Идет запись...</h3>
+              
+              <div className="my-6">
+                <textarea
+                  value={recordingText}
+                  onChange={(e) => setRecordingText(e.target.value)}
+                  placeholder="Введите текст планерки или включите автоматическую транскрибацию..."
+                  className="w-full h-40 border border-gray-300 rounded-lg p-4 mb-4"
+                />
+                <p className="text-sm text-gray-500 mb-4">
+                  💡 В production версии: автоматическая транскрибация речи в реальном времени
+                </p>
+              </div>
+              
+              <button
+                onClick={stopRecording}
+                disabled={!recordingText.trim()}
+                className="bg-gray-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-700 disabled:bg-gray-400"
+              >
+                ⏹️ Остановить запись
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="space-y-4">
+        <h3 className="text-xl font-bold">📋 История планерок</h3>
+        
         {meetings.map(meeting => (
           <div key={meeting.id} className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">{meeting.title}</h3>
+              <h4 className="text-lg font-semibold">{meeting.title}</h4>
               <span className="text-sm text-gray-500">
                 {new Date(meeting.start_time).toLocaleString()}
               </span>
             </div>
             
-            <p className="text-gray-600 mb-3">{meeting.description}</p>
-            
             {meeting.recording_text && (
-              <div className="mb-3">
-                <h4 className="font-semibold text-sm text-gray-700 mb-2">Запись:</h4>
-                <p className="text-sm bg-gray-50 p-3 rounded">{meeting.recording_text}</p>
+              <div className="mb-4">
+                <h5 className="font-semibold text-sm text-gray-700 mb-2">📝 Транскрипт:</h5>
+                <div className="bg-gray-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                  {meeting.recording_text}
+                </div>
               </div>
             )}
             
             {meeting.ai_summary && (
-              <div className="mb-3">
-                <h4 className="font-semibold text-sm text-blue-700 mb-2">🤖 AI Анализ:</h4>
-                <div className="text-sm bg-blue-50 p-3 rounded">{meeting.ai_summary}</div>
+              <div className="mb-4">
+                <h5 className="font-semibold text-sm text-blue-700 mb-2">🤖 AI Анализ и задачи:</h5>
+                <div className="bg-blue-50 p-3 rounded text-sm">
+                  {meeting.ai_summary}
+                </div>
               </div>
             )}
             
@@ -516,9 +560,9 @@ const MeetingsSection = () => {
               {!meeting.ai_summary && meeting.recording_text && (
                 <button
                   onClick={() => analyzeMeeting(meeting.id)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                  🤖 Анализировать с AI
+                  🤖 Анализировать и создать задачи
                 </button>
               )}
               
@@ -530,6 +574,12 @@ const MeetingsSection = () => {
             </div>
           </div>
         ))}
+        
+        {meetings.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Пока нет записанных планерок. Начните первую запись!
+          </div>
+        )}
       </div>
     </div>
   );
