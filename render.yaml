@@ -11,14 +11,10 @@ services:
       cd frontend && yarn install && yarn build
     startCommand: uvicorn app.main:app --host=0.0.0.0 --port=$PORT
     envVars:
-      - key: MONGO_URL
-        value: mongodb+srv://cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority
-      - key: MONGO_PUBLIC_KEY
-        value: xksxfhnd
-      - key: MONGO_PRIVATE_KEY
-        value: b2279aff-fb58-4d58-bd14-7c1dd3fb9238
-      - key: DB_NAME  
-        value: ClusterD
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vasdom-audiobot-db
+          property: connectionString
       - key: BITRIX24_WEBHOOK_URL
         value: https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/
       - key: EMERGENT_LLM_KEY
@@ -33,3 +29,8 @@ services:
         value: sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd
       - key: CORS_ORIGINS
         value: "*"
+
+databases:
+  - name: vasdom-audiobot-db
+    databaseName: vasdom_audiobot
+    user: vasdom_user
