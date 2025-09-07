@@ -702,6 +702,291 @@ const LogsSection = () => {
     </div>
   );
 };
+
+// Раздел "Обучение" - База знаний по отделам
+const TrainingSection = () => {
+  const [trainingFiles, setTrainingFiles] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [uploadFile, setUploadFile] = useState({ filename: '', department: 'Администрация', content: '' });
+
+  const departments = ['Администрация', 'Строительный отдел', 'Бухгалтерия', 'УФИЦ', 'Клининг', 'Маркетинг'];
+
+  const loadTrainingFiles = async () => {
+    try {
+      let url = `${API}/training/files`;
+      if (selectedDepartment !== 'all') {
+        url += `?department=${selectedDepartment}`;
+      }
+      
+      const response = await axios.get(url);
+      if (response.data.status === 'success') {
+        setTrainingFiles(response.data.files || []);
+      }
+    } catch (error) {
+      console.error('Error loading training files:', error);
+    }
+  };
+
+  const uploadTrainingFile = async () => {
+    if (!uploadFile.filename || !uploadFile.content) return;
+    
+    try {
+      const response = await axios.post(`${API}/training/upload-file`, {
+        filename: uploadFile.filename,
+        department: uploadFile.department,
+        content: uploadFile.content,
+        file_type: 'txt',
+        uploaded_by: 'admin'
+      });
+      
+      if (response.data.status === 'success') {
+        setUploadFile({ filename: '', department: 'Администрация', content: '' });
+        await loadTrainingFiles();
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadTrainingFiles();
+  }, [selectedDepartment]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-gray-900">📚 Обучение - База знаний</h2>
+        <select 
+          value={selectedDepartment}
+          onChange={(e) => setSelectedDepartment(e.target.value)}
+          className="border border-gray-300 rounded-lg px-4 py-2"
+        >
+          <option value="all">Все отделы</option>
+          {departments.map(dept => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-xl font-bold mb-4">Загрузить файл в базу знаний</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <input
+            type="text"
+            value={uploadFile.filename}
+            onChange={(e) => setUploadFile({...uploadFile, filename: e.target.value})}
+            placeholder="Название файла"
+            className="border border-gray-300 rounded-lg px-4 py-2"
+          />
+          <select
+            value={uploadFile.department}
+            onChange={(e) => setUploadFile({...uploadFile, department: e.target.value})}
+            className="border border-gray-300 rounded-lg px-4 py-2"
+          >
+            {departments.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+        </div>
+        
+        <textarea
+          value={uploadFile.content}
+          onChange={(e) => setUploadFile({...uploadFile, content: e.target.value})}
+          placeholder="Содержимое файла (инструкции, процедуры, знания для AI)..."
+          className="w-full h-32 border border-gray-300 rounded-lg p-4 mb-4"
+        />
+        
+        <button
+          onClick={uploadTrainingFile}
+          disabled={!uploadFile.filename || !uploadFile.content}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          📚 Загрузить в базу знаний
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {trainingFiles.map(file => (
+          <div key={file.id} className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold">{file.filename}</h4>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                {file.department}
+              </span>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-3">
+              {file.content.length > 100 ? file.content.substring(0, 100) + '...' : file.content}
+            </p>
+            
+            <div className="text-xs text-gray-500">
+              Загружено: {new Date(file.created_at).toLocaleDateString()}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {trainingFiles.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          Нет файлов в выбранном отделе. Загрузите первый файл!
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Раздел "Задачи для AI" - Постановка задач AI системе
+const AITasksSection = () => {
+  const [aiTasks, setAiTasks] = useState([]);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    schedule: '',
+    recurring: false
+  });
+
+  const loadAITasks = async () => {
+    try {
+      const response = await axios.get(`${API}/ai-tasks`);
+      if (response.data.status === 'success') {
+        setAiTasks(response.data.tasks || []);
+      }
+    } catch (error) {
+      console.error('Error loading AI tasks:', error);
+    }
+  };
+
+  const createAITask = async () => {
+    if (!newTask.title || !newTask.description) return;
+    
+    try {
+      const response = await axios.post(`${API}/ai-tasks`, {
+        title: newTask.title,
+        description: newTask.description,
+        schedule: newTask.schedule,
+        recurring: newTask.recurring,
+        created_by: 'admin'
+      });
+      
+      if (response.data.status === 'success') {
+        setNewTask({ title: '', description: '', schedule: '', recurring: false });
+        await loadAITasks();
+      }
+    } catch (error) {
+      console.error('Error creating AI task:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadAITasks();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-gray-900">🤖 Задачи для AI</h2>
+      
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-xl font-bold mb-4">Поставить задачу AI системе</h3>
+        
+        <div className="space-y-4">
+          <input
+            type="text"
+            value={newTask.title}
+            onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+            placeholder="Название задачи для AI"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          />
+          
+          <textarea
+            value={newTask.description}
+            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+            placeholder="Подробное описание что должен делать AI..."
+            className="w-full h-24 border border-gray-300 rounded-lg px-4 py-2"
+          />
+          
+          <div className="flex items-center gap-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={newTask.recurring}
+                onChange={(e) => setNewTask({...newTask, recurring: e.target.checked})}
+                className="mr-2"
+              />
+              Повторяющаяся задача
+            </label>
+            
+            {newTask.recurring && (
+              <select
+                value={newTask.schedule}
+                onChange={(e) => setNewTask({...newTask, schedule: e.target.value})}
+                className="border border-gray-300 rounded-lg px-3 py-2"
+              >
+                <option value="">Выберите расписание</option>
+                <option value="ежедневно в 9:00">Ежедневно в 9:00</option>
+                <option value="еженедельно по понедельникам">Еженедельно по понедельникам</option>
+                <option value="ежемесячно 1 числа">Ежемесячно 1 числа</option>
+                <option value="каждые 3 часа">Каждые 3 часа</option>
+              </select>
+            )}
+          </div>
+          
+          <button
+            onClick={createAITask}
+            disabled={!newTask.title || !newTask.description}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+          >
+            🤖 Поставить задачу AI
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold">📋 Активные AI задачи</h3>
+        
+        {aiTasks.map(task => (
+          <div key={task.id} className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-lg font-semibold">{task.title}</h4>
+              <div className="flex items-center gap-2">
+                {task.recurring && (
+                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                    🔄 Повторяющаяся
+                  </span>
+                )}
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  task.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {task.active ? '✅ Активна' : '⏸️ Остановлена'}
+                </span>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 mb-3">{task.description}</p>
+            
+            {task.schedule && (
+              <p className="text-sm text-blue-600 mb-2">
+                📅 Расписание: {task.schedule}
+              </p>
+            )}
+            
+            {task.next_run && (
+              <p className="text-sm text-gray-500">
+                ⏰ Следующий запуск: {new Date(task.next_run).toLocaleString()}
+              </p>
+            )}
+          </div>
+        ))}
+        
+        {aiTasks.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Нет активных AI задач. Создайте первую задачу!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const FinancesSection = ({ financialReport }) => (
   <div className="space-y-6">
     <h2 className="text-3xl font-bold text-gray-900">Финансовая отчетность</h2>
