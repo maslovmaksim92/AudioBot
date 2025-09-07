@@ -302,17 +302,21 @@ class SimpleAI:
             else:
                 response = f"Понял ваш запрос про '{text}'. Это касается управления клининговой компанией VasDom. У нас 450 домов, 6 бригад, 82 сотрудника. Уточните, что именно интересует?"
             
-            # Сохраняем взаимодействие
-            try:
-                await db.voice_logs.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "user_message": text,
-                    "ai_response": response,
-                    "context": context,
-                    "timestamp": datetime.utcnow()
-                })
-            except:
-                pass  # Не критично если не сохранится
+            # Сохраняем взаимодействие (безопасно)
+            if db is not None:
+                try:
+                    await db.voice_logs.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "user_message": text,
+                        "ai_response": response,
+                        "context": context,
+                        "timestamp": datetime.utcnow()
+                    })
+                    logger.info("✅ Voice interaction saved to MongoDB")
+                except Exception as db_error:
+                    logger.warning(f"⚠️ Failed to save to MongoDB: {db_error}")
+            else:
+                logger.info("📝 Voice interaction not saved (MongoDB unavailable)")
             
             logger.info(f"✅ AI response: '{response[:50]}...'")
             return response
