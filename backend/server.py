@@ -531,7 +531,10 @@ async def stop_meeting_recording(meeting_id: str):
     try:
         logger.info(f"⏹️ Stopping meeting: {meeting_id}")
         
-        meeting = await db.meetings.find_one({"id": meeting_id})
+        if db is not None:
+            meeting = await db.meetings.find_one({"id": meeting_id})
+        else:
+            meeting = None
         if meeting:
             # Создаем простое резюме
             summary = f"Планерка завершена в {datetime.now().strftime('%H:%M')}. Основные вопросы обсуждены."
