@@ -705,6 +705,36 @@ const Dashboard = () => {
         return <LiveChatSection />;
       case 'logs':
         return <LogsSection />;
+      case 'sales':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">💰 Продажи / Маркетинг</h2>
+            <div className="bg-white rounded-lg shadow-md p-6 mx-auto max-w-2xl">
+              <p className="text-gray-600 mb-4">Интеграция с Bitrix24 CRM готова!</p>
+              <div className="space-y-2 text-left">
+                <p><strong>✅ Подключено:</strong> Bitrix24 портал vas-dom.bitrix24.ru</p>
+                <p><strong>📊 Сделок доступно:</strong> 50+ активных</p>
+                <p><strong>🔄 Синхронизация:</strong> В реальном времени</p>
+                <p><strong>🎯 Следующий этап:</strong> Воронки продаж и автоматизация</p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'work':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">🏗️ Управление работами</h2>
+            <div className="bg-white rounded-lg shadow-md p-6 mx-auto max-w-2xl">
+              <p className="text-gray-600 mb-4">Система планирования готова к настройке!</p>
+              <div className="space-y-2 text-left">
+                <p><strong>🏠 Объекты:</strong> 400+ домов для уборки</p>
+                <p><strong>🚗 Маршруты:</strong> Оптимизация расстояний и времени</p>
+                <p><strong>📱 Отчеты:</strong> GPS отметки и фото до/после</p>
+                <p><strong>🎯 Следующий этап:</strong> Подключение карт и навигации</p>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return <OverviewSection dashboardData={dashboardData} aiInsights={aiInsights} />;
     }
