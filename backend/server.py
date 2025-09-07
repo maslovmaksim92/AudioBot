@@ -94,12 +94,12 @@ class BitrixIntegration:
                 'select': ['*', 'UF_*']
             }
             if limit:
-                params['order'] = {"DATE_CREATE": "DESC"}
+                params['filter'] = {'CATEGORY_ID': '2'}  # Уборка подъездов
                 
             async with aiohttp.ClientSession() as session:
-                async with session.get(
+                async with session.post(
                     f"{self.webhook_url}crm.deal.list",
-                    params=params
+                    json=params
                 ) as response:
                     data = await response.json()
                     if data.get('result'):
