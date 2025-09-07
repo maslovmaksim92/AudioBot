@@ -23,20 +23,38 @@ function App() {
   const fetchDashboardStats = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/dashboard`);
+      console.log('📊 Fetching dashboard stats from:', `${API}/dashboard`);
+      const response = await axios.get(`${API}/dashboard`, {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('📊 Dashboard response:', response.data);
+      
       if (response.data.status === 'success') {
         setDashboardStats(response.data.stats);
-        console.log('📊 Dashboard data source:', response.data.data_source);
+        console.log('✅ Dashboard stats loaded successfully');
+      } else {
+        console.error('❌ Dashboard API returned error:', response.data);
+        throw new Error('API returned error status');
       }
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.error('❌ Error fetching dashboard stats:', error);
+      console.error('📊 API URL that failed:', `${API}/dashboard`);
+      
+      // Показываем пользователю ошибку
+      alert(`Ошибка подключения к API: ${error.message}\nURL: ${API}/dashboard`);
+      
       // Mock data if API fails
       setDashboardStats({
         employees: 82,
-        houses: 50,
-        entrances: 0,
-        apartments: 0,
-        floors: 0,
+        houses: 450,
+        entrances: 1123,
+        apartments: 43308,
+        floors: 3372,
         meetings: 3,
         ai_tasks: 5
       });
