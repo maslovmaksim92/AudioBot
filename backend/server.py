@@ -390,6 +390,11 @@ async def get_chat_history(limit: int = 50, chat_type: str = "dashboard"):
             sort=[("timestamp", -1)]
         ).limit(limit).to_list(length=None)
         
+        # Convert ObjectId to string for JSON serialization
+        for message in messages:
+            if "_id" in message:
+                message["_id"] = str(message["_id"])
+        
         return {"status": "success", "messages": messages[::-1]}  # Reverse для хронологии
     except Exception as e:
         return {"status": "error", "error": str(e)}
