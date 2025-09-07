@@ -193,7 +193,7 @@ function GeneralDashboard({ stats, onRefresh, loading }) {
 
       <div className="mt-8 bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">🔥 Статус системы</h2>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 flex-wrap">
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
             <span>Bitrix24 API подключен</span>
@@ -210,6 +210,19 @@ function GeneralDashboard({ stats, onRefresh, loading }) {
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
             <span>Самообучение включено</span>
           </div>
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+            <span>MongoDB Atlas подключен</span>
+          </div>
+        </div>
+        
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            🔗 <strong>Backend API:</strong> {BACKEND_URL}
+          </p>
+          <p className="text-sm text-blue-600 mt-1">
+            📊 Последнее обновление: {new Date().toLocaleString('ru-RU')}
+          </p>
         </div>
       </div>
     </div>
