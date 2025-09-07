@@ -37,6 +37,34 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Новые модели для диктофона планерок
+class Meeting(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    date: datetime = Field(default_factory=datetime.utcnow)
+    transcript: Optional[str] = None
+    summary: Optional[str] = None
+    participants: List[str] = []
+    status: str = "recording"  # recording, completed, processing
+
+class MeetingCreate(BaseModel):
+    title: str
+    participants: List[str] = []
+
+# Новые модели для живого разговора
+class VoiceSession(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str = "default_user"
+    start_time: datetime = Field(default_factory=datetime.utcnow)
+    status: str = "active"  # active, ended
+    messages: List[dict] = []
+
+class VoiceMessage(BaseModel):
+    session_id: str
+    user_message: str
+    ai_response: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
