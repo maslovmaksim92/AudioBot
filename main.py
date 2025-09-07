@@ -471,9 +471,9 @@ async def set_telegram_webhook():
             "logs": application_logs[-10:]
         }
 
-# AI Service Integration - НОВАЯ ФУНКЦИОНАЛЬНОСТЬ
+# AI Service Integration - ОБНОВЛЕНО БЕЗ emergentintegrations
 async def generate_ai_response(user_message: str, user_context: dict = None) -> str:
-    """Генерация AI ответа для VasDom с использованием Emergent LLM"""
+    """Генерация AI ответа для VasDom с использованием прямых HTTP запросов"""
     
     print(f"🤖 ========== AI GENERATION START ==========")
     print(f"🤖 User message: {user_message}")
@@ -484,9 +484,6 @@ async def generate_ai_response(user_message: str, user_context: dict = None) -> 
         if not ai_key:
             print("🤖 ❌ EMERGENT_LLM_KEY не настроен")
             return "🤖 AI сервис временно недоступен. Обратитесь к менеджеру: Максим Маслов"
-        
-        # Import AI integration
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         # Создаем системное сообщение для ВасДом
         system_message = """Ты - AI-помощник компании ВасДом, которая занимается:
@@ -509,31 +506,94 @@ async def generate_ai_response(user_message: str, user_context: dict = None) -> 
 
 Если нужна помощь менеджера, направляй к Максиму Маслову."""
         
-        # Создаем AI чат
-        chat = LlmChat(
-            api_key=ai_key,
-            session_id=f"vasdom_user_{hash(user_message)}",
-            system_message=system_message
-        ).with_model("openai", "gpt-4o-mini")
-        
-        # Создаем сообщение пользователя
-        message = UserMessage(text=user_message)
-        
-        print(f"🤖 Отправляем запрос в AI...")
-        add_log("INFO", "🤖 AI запрос отправлен", {
-            "user_message": user_message[:100],
-            "model": "gpt-4o-mini"
-        })
-        
-        # Получаем ответ от AI
-        ai_response = await chat.send_message(message)
-        
-        if ai_response and hasattr(ai_response, 'text'):
-            response_text = ai_response.text
-        elif isinstance(ai_response, str):
-            response_text = ai_response
-        else:
-            response_text = str(ai_response)
+        # Если доступна emergentintegrations, используем её
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            
+            # Создаем AI чат
+            chat = LlmChat(
+                api_key=ai_key,
+                session_id=f"vasdom_user_{hash(user_message)}",
+                system_message=system_message
+            ).with_model("openai", "gpt-4o-mini")
+            
+            # Создаем сообщение пользователя
+            message = UserMessage(text=user_message)
+            
+            print(f"🤖 Используем Emergent LLM интеграцию...")
+            add_log("INFO", "🤖 AI запрос через Emergent LLM", {
+                "user_message": user_message[:100],
+                "model": "gpt-4o-mini"
+            })
+            
+            # Получаем ответ от AI
+            ai_response = await chat.send_message(message)
+            
+            if ai_response and hasattr(ai_response, 'text'):
+                response_text = ai_response.text
+            elif isinstance(ai_response, str):
+                response_text = ai_response
+            else:
+                response_text = str(ai_response)
+                
+        except ImportError:
+            # Fallback: используем OpenAI API напрямую через HTTP
+            print("🤖 emergentintegrations не найден, используем HTTP запрос...")
+            
+            import httpx
+            
+            # Создаем HTTP запрос к OpenAI API
+            headers = {
+                "Authorization": f"Bearer {ai_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": user_message}
+                ],
+                "max_tokens": 1000,
+                "temperature": 0.7
+            }
+            
+            add_log("INFO", "🤖 AI запрос через HTTP API", {
+                "user_message": user_message[:100],
+                "model": "gpt-4o-mini",
+                "method": "HTTP"
+            })
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Пробуем разные endpoints
+                endpoints_to_try = [
+                    "https://api.openai.com/v1/chat/completions",
+                    "https://api.emergent.sh/v1/chat/completions"  # Emergent endpoint
+                ]
+                
+                response_text = None
+                for endpoint in endpoints_to_try:
+                    try:
+                        print(f"🤖 Пробуем endpoint: {endpoint}")
+                        response = await client.post(endpoint, headers=headers, json=payload)
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            if "choices" in result and len(result["choices"]) > 0:
+                                response_text = result["choices"][0]["message"]["content"]
+                                print(f"🤖 ✅ Успех с endpoint: {endpoint}")
+                                break
+                        else:
+                            print(f"🤖 ❌ Ошибка {response.status_code} с endpoint: {endpoint}")
+                            
+                    except Exception as e:
+                        print(f"🤖 ❌ Исключение с endpoint {endpoint}: {e}")
+                        continue
+                
+                # Если все endpoints не работают, возвращаем fallback
+                if not response_text:
+                    print("🤖 ❌ Все AI endpoints недоступны")
+                    return generate_fallback_response(user_message, user_context)
         
         print(f"🤖 AI ответ получен: {len(response_text)} символов")
         add_log("SUCCESS", "✅ AI ответ получен", {
@@ -543,17 +603,87 @@ async def generate_ai_response(user_message: str, user_context: dict = None) -> 
         
         return response_text
         
-    except ImportError as e:
-        error_msg = "❌ AI библиотека не установлена"
-        print(f"🤖 {error_msg}: {e}")
-        add_log("ERROR", error_msg, {"import_error": str(e)})
-        return "🤖 AI сервис недоступен. Обратитесь к менеджеру: Максим Маслов"
-        
     except Exception as e:
         error_msg = f"❌ AI ошибка: {str(e)}"
         print(f"🤖 {error_msg}")
         add_log("ERROR", error_msg, {"ai_error": str(e)})
-        return "🤖 Произошла ошибка при обработке запроса. Попробуйте еще раз или обратитесь к менеджеру: Максим Маслов"
+        return generate_fallback_response(user_message, user_context)
+
+def generate_fallback_response(user_message: str, user_context: dict = None) -> str:
+    """Генерация fallback ответа когда AI недоступен"""
+    
+    # Простая логика на основе ключевых слов
+    message_lower = user_message.lower()
+    user_name = user_context.get("user_name", "дорогой клиент") if user_context else "дорогой клиент"
+    
+    if any(word in message_lower for word in ["привет", "здравствуйте", "добрый", "start"]):
+        return f"""Добро пожаловать, {user_name}! 🏠
+
+Я помощник компании ВасДом. Мы занимаемся:
+✅ Уборкой подъездов в Калуге и области
+✅ Клининговыми услугами 
+✅ Управлением недвижимостью
+✅ Работой с ЖКХ
+
+У нас 500+ домов под управлением и 100+ профессиональных сотрудников.
+
+Чем могу помочь? Или свяжу вас с менеджером Максимом Масловым! 📞"""
+
+    elif any(word in message_lower for word in ["уборк", "чист", "клининг"]):
+        return f"""🧹 Отличный выбор, {user_name}!
+
+ВасДом предлагает профессиональную уборку подъездов:
+
+🔹 Регулярная уборка (ежедневно, еженедельно)
+🔹 Генеральная уборка подъездов
+🔹 Мытье лестниц, перил, почтовых ящиков
+🔹 Уборка придомовой территории
+🔹 Работаем в Калуге и области
+
+Хотите узнать стоимость? Свяжу вас с менеджером Максимом Масловым! 📱"""
+
+    elif any(word in message_lower for word in ["цена", "стоимость", "сколько", "тариф"]):
+        return f"""💰 Стоимость услуг ВасДом, {user_name}:
+
+📋 УБОРКА ПОДЪЕЗДОВ:
+• Разовая уборка: от 2000₽
+• Регулярное обслуживание: от 1500₽/месяц
+• Генеральная уборка: от 3000₽
+
+📋 УПРАВЛЕНИЕ НЕДВИЖИМОСТЬЮ:
+• Консультации: от 1000₽
+• Полное сопровождение: от 5000₽/месяц
+
+💡 Точную стоимость рассчитает менеджер Максим Маслов по телефону!"""
+
+    elif any(word in message_lower for word in ["контакт", "телефон", "связаться", "менеджер"]):
+        return f"""📞 Контакты ВасДом, {user_name}:
+
+👨‍💼 МЕНЕДЖЕР: Максим Маслов
+📱 Телефон: уточняется
+📧 Email: info@vas-dom.ru
+🏢 Адрес: г. Калуга
+
+⏰ РЕЖИМ РАБОТЫ:
+Пн-Пт: 9:00 - 18:00
+Сб: 10:00 - 16:00  
+Вс: выходной
+
+Максим свяжется с вами в ближайшее время! ✅"""
+
+    else:
+        return f"""Спасибо за обращение, {user_name}! 🤖
+
+Компания ВасДом работает в Калуге и области уже много лет. Мы специализируемся на:
+
+🏠 Уборке подъездов и придомовых территорий
+🏠 Клининговых услугах для жилых домов  
+🏠 Управлении и обслуживании недвижимости
+🏠 Решении вопросов ЖКХ
+
+У нас 500+ домов под управлением!
+
+По всем вопросам обращайтесь к менеджеру Максиму Маслову. Он поможет с любыми задачами! 📞"""
 
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
