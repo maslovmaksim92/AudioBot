@@ -213,22 +213,22 @@ class BitrixIntegration:
                             batch_deals = data['result']
                             all_deals.extend(batch_deals)
                             
-                            logger.info(f"📦 Batch {start//batch_size + 1}: {len(batch_deals)} deals loaded, total: {len(all_deals)}")
+                            logger.info(f"📦 Загружено пакет {start//batch_size + 1}: {len(batch_deals)} сделок, всего: {len(all_deals)}")
                             
                             # Если получили меньше batch_size, это последний пакет
                             if len(batch_deals) < batch_size:
-                                logger.info(f"✅ ALL deals loaded from Bitrix24: {len(all_deals)} total")
+                                logger.info(f"✅ ВСЕ сделки загружены из Bitrix24: {len(all_deals)} всего (ВСЕ договора)")
                                 break
                                 
                             start += batch_size
                             
-                            # Ограничение безопасности
-                            if limit and len(all_deals) >= limit:
-                                all_deals = all_deals[:limit]
+                            # Безопасность - останавливаемся на 1000 сделок максимум
+                            if len(all_deals) >= 1000:
+                                logger.info(f"🛑 Остановились на {len(all_deals)} сделок для безопасности")
                                 break
                                 
-                            # Пауза между запросами для API
-                            await asyncio.sleep(0.3)
+                            # Пауза между запросами 
+                            await asyncio.sleep(0.2)
                         else:
                             logger.info(f"📋 No more deals at start={start}")
                             break
