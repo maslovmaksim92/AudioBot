@@ -105,8 +105,8 @@ class VasDomAPITester:
         print("📊 TESTING DASHBOARD ENDPOINTS")
         print("="*60)
         
-        # Test dashboard data
-        success, dashboard_data = self.test_endpoint("Dashboard Data", "GET", "/dashboard")
+        # Test dashboard data with /api prefix
+        success, dashboard_data = self.test_endpoint("Dashboard Data", "GET", "/api/dashboard")
         if success:
             system = dashboard_data.get('system', {})
             print(f"   System Status: {system.get('status', 'unknown')}")
@@ -115,8 +115,8 @@ class VasDomAPITester:
             services = dashboard_data.get('services', {})
             print(f"   Services Count: {len(services)}")
 
-        # Test logs endpoint
-        self.test_endpoint("System Logs", "GET", "/logs?lines=10")
+        # Test logs endpoint with /api prefix
+        self.test_endpoint("System Logs", "GET", "/api/logs?lines=10")
 
     def test_telegram_endpoints(self):
         """Test Telegram bot endpoints"""
