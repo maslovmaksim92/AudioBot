@@ -1113,6 +1113,16 @@ const Dashboard = () => {
       case 'live-chat':
         return <LiveChatSection />;
       case 'logs':
+        return <LogsSection />;
+      case 'training':
+        return <TrainingSection />;
+      case 'work':
+        return <WorkSection />;
+      default:
+        return <OverviewSection dashboardData={dashboardData} aiInsights={aiInsights} />;
+    }
+  };
+
 // Раздел "Работы" с вкладкой Клининг
 const WorkSection = () => {
   const [activeTab, setActiveTab] = useState('cleaning');
