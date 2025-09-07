@@ -76,8 +76,8 @@ class VasDomAPITester:
         print("🚀 TESTING BASIC ENDPOINTS")
         print("="*60)
         
-        # Test root endpoint
-        success, data = self.test_endpoint("Service Info", "GET", "/")
+        # Test root endpoint with /api prefix
+        success, data = self.test_endpoint("Service Info", "GET", "/api/")
         if success:
             print(f"   Service: {data.get('service', 'Unknown')}")
             print(f"   Version: {data.get('version', 'Unknown')}")
@@ -87,11 +87,11 @@ class VasDomAPITester:
                   f"Bitrix24={features.get('bitrix24_integration', False)}, "
                   f"AI={features.get('ai_service', False)}")
 
-        # Test basic health check
-        self.test_endpoint("Basic Health Check", "GET", "/health")
+        # Test basic health check with /api prefix
+        self.test_endpoint("Basic Health Check", "GET", "/api/health")
 
-        # Test detailed health check
-        success, health_data = self.test_endpoint("Detailed Health Check", "GET", "/healthz")
+        # Test detailed health check with /api prefix
+        success, health_data = self.test_endpoint("Detailed Health Check", "GET", "/api/healthz")
         if success:
             services = health_data.get('services', {})
             print(f"   Service Status Summary:")
