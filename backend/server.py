@@ -170,26 +170,31 @@ async def root():
 async def get_dashboard_stats():
     """Получить статистику для дашборда"""
     try:
-        # Получение данных из Bitrix24
-        houses = await bitrix.get_deals(limit=None)
+        # Получение данных домов
+        houses_response = await get_cleaning_houses(limit=450)
+        houses = houses_response.get('houses', []) if houses_response.get('status') == 'success' else []
         
-        # Подсчет сотрудников (мокаем пока)
+        # Подсчет статистики
+        total_houses = len(houses)
+        total_entrances = sum(house.get('entrances', 0) for house in houses)
+        total_apartments = sum(house.get('apartments', 0) for house in houses)
+        total_floors = sum(house.get('floors', 0) for house in houses)
+        
+        # Подсчет сотрудников (82 как указано в требованиях)
         employees_count = 82
         
-        # Подсчет встреч
+        # Подсчет встреч и задач (пока моки)
         meetings = await db.meetings.find().to_list(100)
-        
-        # Подсчет задач AI
         ai_tasks = await db.ai_tasks.find().to_list(100)
         
         return {
             "status": "success",
             "stats": {
                 "employees": employees_count,
-                "houses": len(houses),
-                "entrances": sum(1 for house in houses if house.get('UF_CRM_1234567890123')), # Примерное поле
-                "apartments": sum(int(house.get('UF_CRM_APARTMENTS', 0) or 0) for house in houses),
-                "floors": sum(int(house.get('UF_CRM_FLOORS', 0) or 0) for house in houses),
+                "houses": total_houses,
+                "entrances": total_entrances,
+                "apartments": total_apartments,
+                "floors": total_floors,
                 "meetings": len(meetings),
                 "ai_tasks": len(ai_tasks)
             }
