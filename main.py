@@ -426,7 +426,13 @@ async def health_check():
         "environment_values": {k: v[:20] + "..." if v and len(v) > 20 else v for k, v in env_vars.items()},
         "statistics": system_status,
         "logs_available": len(application_logs),
-        "ai_mode": "smart_responses_enabled"
+        "ai_mode": "smart_responses_enabled",
+        "database": {
+            "mongodb_configured": bool(mongo_url),
+            "mongodb_url": mongo_url[:50] + "..." if mongo_url and len(mongo_url) > 50 else mongo_url,
+            "mongodb_client": "connected" if db else "not_connected",
+            "database_name": os.environ.get("DB_NAME", "vasdom_db")
+        }
     }
     
     print(f"💊 Health check complete: {health_status['status']}")
