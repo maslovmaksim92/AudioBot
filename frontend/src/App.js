@@ -32,10 +32,13 @@ function App() {
 
   const fetchDashboardStats = async () => {
     setLoading(true);
-    console.log('📊 Fetching dashboard stats...');
+    console.log('📊 Starting dashboard data fetch...');
     
     try {
-      const response = await axios.get(`${API}/dashboard`, {
+      const apiUrl = `${API}/dashboard`;
+      console.log('🔗 Making request to:', apiUrl);
+      
+      const response = await axios.get(apiUrl, {
         timeout: 15000,
         headers: {
           'Accept': 'application/json',
@@ -43,27 +46,35 @@ function App() {
         }
       });
       
-      console.log('📊 API Response received:', response.data);
+      console.log('📊 Raw API response:', response);
+      console.log('📊 API response data:', response.data);
+      console.log('📊 API status code:', response.status);
       
-      if (response.data && response.data.status === 'success') {
+      if (response.status === 200 && response.data && response.data.status === 'success') {
         const stats = response.data.stats;
-        setDashboardStats(stats);
-        console.log('✅ Dashboard stats updated:', stats);
+        console.log('📊 Extracted stats:', stats);
+        
+        if (stats && typeof stats === 'object') {
+          setDashboardStats(stats);
+          console.log('✅ Dashboard stats SET in state:', stats);
+        } else {
+          console.error('❌ Invalid stats object:', stats);
+          throw new Error('Invalid stats object received');
+        }
       } else {
-        console.error('❌ Invalid API response:', response.data);
+        console.error('❌ API returned error or invalid status');
+        console.error('Response status:', response.status);
+        console.error('Response data:', response.data);
+        throw new Error('API error or invalid response');
       }
       
     } catch (error) {
-      console.error('❌ Dashboard API error:', error.message);
-      console.error('🔗 Failed URL:', `${API}/dashboard`);
+      console.error('❌ FETCH ERROR:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ API URL that failed:', `${API}/dashboard`);
       
-      // Показываем alert только при первой ошибке
-      if (Object.keys(dashboardStats).length === 0) {
-        console.warn('⚠️ Using fallback data due to API error');
-      }
-      
-      // Фоллбэк данные
-      setDashboardStats({
+      // ПРИНУДИТЕЛЬНАЯ установка данных
+      const fallbackStats = {
         employees: 82,
         houses: 450,
         entrances: 1123,
@@ -71,9 +82,18 @@ function App() {
         floors: 3372,
         meetings: 0,
         ai_tasks: 0
-      });
+      };
+      
+      console.log('🔄 Setting fallback stats:', fallbackStats);
+      setDashboardStats(fallbackStats);
+      
+      // Показываем ошибку пользователю только если это первая загрузка
+      if (Object.keys(dashboardStats).length === 0) {
+        alert(`⚠️ Проблема подключения к API:\n${error.message}\n\nИспользуются тестовые данные`);
+      }
     } finally {
       setLoading(false);
+      console.log('📊 Fetch dashboard completed');
     }
   };
 
