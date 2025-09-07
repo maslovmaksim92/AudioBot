@@ -10,12 +10,13 @@ const API = `${BACKEND_URL}/api`;
 const Navigation = ({ activeSection, setActiveSection }) => {
   const sections = [
     { id: 'overview', name: 'Общее', icon: '🏠' },
-    { id: 'meetings', name: 'Планерка', icon: '📅' },
-    { id: 'live-chat', name: 'Живой разговор', icon: '💬' },
-    { id: 'tasks', name: 'Задачи', icon: '📋' },
+    { id: 'meetings', name: 'Планерка', icon: '🎤' },
+    { id: 'live-chat', name: 'Живой разговор', icon: '📞' },
+    { id: 'ai-tasks', name: 'Задачи для AI', icon: '🤖' },
     { id: 'sales', name: 'Продажи / Маркетинг', icon: '💰' },
     { id: 'employees', name: 'Сотрудники + HR', icon: '👥' },
     { id: 'work', name: 'Работы', icon: '🏗️' },
+    { id: 'training', name: 'Обучение', icon: '📚' },
     { id: 'finances', name: 'Финансы', icon: '💹' },
     { id: 'logs', name: 'Логи', icon: '📊' }
   ];
