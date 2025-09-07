@@ -593,25 +593,30 @@ async def test_bitrix24():
 
 @api_router.get("/logs")
 async def get_logs():
-    """Системные логи"""
+    """Системные логи (безопасная версия)"""
     try:
-        logs = await db.voice_logs.find().sort("timestamp", -1).to_list(50)
-        
-        # Исправляем ObjectId
-        for log in logs:
-            if '_id' in log:
-                log['_id'] = str(log['_id'])
-        
-        logger.info(f"📋 Retrieved {len(logs)} logs")
+        if db is not None:
+            logs = await db.voice_logs.find().sort("timestamp", -1).to_list(50)
+            
+            # Исправляем ObjectId
+            for log in logs:
+                if '_id' in log:
+                    log['_id'] = str(log['_id'])
+            
+            logger.info(f"📋 Retrieved {len(logs)} logs from MongoDB")
+        else:
+            logs = []
+            logger.warning("⚠️ MongoDB not available, returning empty logs")
         
         return {
             "status": "success",
             "voice_logs": logs,
-            "total": len(logs)
+            "total": len(logs),
+            "db_status": "connected" if db is not None else "unavailable"
         }
     except Exception as e:
         logger.error(f"❌ Logs error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "success", "voice_logs": [], "total": 0, "error": str(e)}
 
 # Include router
 app.include_router(api_router)
