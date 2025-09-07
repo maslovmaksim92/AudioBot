@@ -1043,6 +1043,7 @@ const Dashboard = () => {
   const [aiInsights, setAiInsights] = useState(null);
   const [financialReport, setFinancialReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [menuCollapsed, setMenuCollapsed] = useState(false);  // Для скрытия меню
 
   useEffect(() => {
     loadData();
@@ -1055,25 +1056,21 @@ const Dashboard = () => {
       setLoading(true);
       
       // Загружаем основные данные
-      const [dashboardRes, employeesRes, tasksRes, logsRes] = await Promise.all([
+      const [dashboardRes, employeesRes] = await Promise.all([
         axios.get(`${API}/dashboard`).catch(() => ({ data: null })),
-        axios.get(`${API}/employees`).catch(() => ({ data: [] })),
-        axios.get(`${API}/tasks`).catch(() => ({ data: [] })),
-        axios.get(`${API}/logs?limit=10`).catch(() => ({ data: null }))
+        axios.get(`${API}/employees`).catch(() => ({ data: [] }))
       ]);
 
       setDashboardData(dashboardRes.data);
       setEmployees(employeesRes.data);
-      setTasks(tasksRes.data);
       
-      // AI insights пока заглушка
+      // AI insights и financial report заглушки
       setAiInsights({
         active_suggestions: 0,
         implemented_improvements: 0,
         ai_status: 'Активно'
       });
       
-      // Financial report пока заглушка  
       setFinancialReport({
         totals: { revenue: 0, expense: 0, investment: 0 },
         profit: 0,
