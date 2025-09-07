@@ -535,7 +535,7 @@ async def stop_meeting_recording(meeting_id: str):
             meeting = await db.meetings.find_one({"id": meeting_id})
         else:
             meeting = None
-        if meeting:
+        if meeting and db is not None:
             # Создаем простое резюме
             summary = f"Планерка завершена в {datetime.now().strftime('%H:%M')}. Основные вопросы обсуждены."
             
