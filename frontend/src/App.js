@@ -264,7 +264,7 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${BACKEND_URL}/dashboard`);
+      const response = await axios.get(`${BACKEND_URL}/api/dashboard`);
       setDashboardData(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Ошибка загрузки данных');
