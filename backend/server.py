@@ -384,7 +384,7 @@ async def test_bitrix24():
 async def get_bitrix24_deals():
     """Получение сделок из Bitrix24"""
     try:
-        deals = await bitrix_service.get_deals()
+        deals = await bitrix_service.get_deals_detailed()
         await log_system_event("INFO", f"Получено {len(deals)} сделок из Bitrix24", "bitrix24")
         return {"status": "success", "deals": deals, "count": len(deals)}
     except Exception as e:
