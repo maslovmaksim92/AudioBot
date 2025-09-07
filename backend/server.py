@@ -124,45 +124,50 @@ telegram_service = TelegramService()
 
 # ============= AI CHAT SERVICE =============
 
-async def get_ai_response(message: str, context: str = "") -> str:
-    """AI ответ через OpenAI API (fallback без emergentintegrations)"""
+async def get_ai_response(message: str, context: str = "", department: str = "") -> str:
     try:
+        # Сначала получаем релевантные знания из базы
+        knowledge_context = ""
+        if department:
+            try:
+                training_files = await db.training_files.find({"department": department}).to_list(10)
+                if training_files:
+                    knowledge_context = f"\n\nБАЗА ЗНАНИЙ ОТДЕЛА {department}:\n"
+                    for file in training_files[:3]:  # Берем топ 3 файла
+                        knowledge_context += f"- {file['filename']}: {file['content'][:200]}...\n"
+            except:
+                pass
+        
         openai_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("EMERGENT_LLM_KEY")
         if not openai_key:
-            return "AI сервис недоступен - нет API ключа"
+            return f"🤖 Сообщение получено: '{message}'. AI сервис настраивается..."
         
-        # Используем прямой вызов OpenAI API
         url = "https://api.openai.com/v1/chat/completions"
         if openai_key.startswith("sk-or-"):
             url = "https://openrouter.ai/api/v1/chat/completions"
         elif openai_key.startswith("sk-emergent-"):
             url = "https://emergentmethods.ai/v1/chat/completions"
         
-        headers = {
-            "Authorization": f"Bearer {openai_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
         
-        data = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {
-                    "role": "system", 
-                    "content": f"""Ты AI-ассистент компании ВасДом - лидера в сфере уборки подъездов и строительства.
+        system_message = f"""Ты AI-ассистент компании ВасДом - лидера в уборке подъездов и строительстве в Калуге.
 
 КОНТЕКСТ: {context}
 
 КОМПАНИЯ ВАСДОМ:
 - Уборка подъездов в 400+ домах Калуги
 - Строительные работы
-- 13+ сотрудников в команде
-- Интеграция с Bitrix24 CRM
+- 13+ сотрудников в команде  
+- Bitrix24 CRM интеграция
 
-ТВОЯ РОЛЬ:
-- Профессиональный бизнес-ассистент
-- Помогаешь с планированием и управлением
-- Отвечаешь кратко и по делу на русском языке"""
-                },
+{knowledge_context}
+
+Используй информацию из базы знаний для точных ответов. Отвечай профессионально, кратко и по делу на русском языке."""
+        
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": message}
             ],
             "temperature": 0.7,
@@ -175,13 +180,10 @@ async def get_ai_response(message: str, context: str = "") -> str:
                     result = await response.json()
                     return result["choices"][0]["message"]["content"]
                 else:
-                    error_text = await response.text()
-                    await log_system_event("WARNING", f"AI API error {response.status}", "ai", {"error": error_text})
-                    return f"🤖 AI временно недоступен. Ваше сообщение получено: '{message}'"
+                    return f"🤖 AI временно недоступен. Ваше сообщение: '{message}'"
                     
     except Exception as e:
-        await log_system_event("ERROR", f"AI response error: {str(e)}", "ai", {"message": message})
-        return f"🤖 Сообщение обработано: '{message}'\n\nAI ответ будет доступен после настройки интеграции."
+        return f"🤖 Сообщение обработано: '{message}'. AI ответ будет доступен позже."
 
 
 # Define Models
