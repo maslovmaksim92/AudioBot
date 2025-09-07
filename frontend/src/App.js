@@ -27,14 +27,28 @@ function App() {
   const [apiStatus, setApiStatus] = useState('connecting');
 
   useEffect(() => {
-    console.log('🚀 VasDom AudioBot App mounted, initializing...');
-    fetchDashboardStats();
+    console.log('🚀 VasDom AudioBot App mounted with PostgreSQL...');
     
-    // Автообновление каждые 60 секунд
+    // Принудительно загружаем данные при каждом монтировании
+    const loadData = async () => {
+      await fetchDashboardStats();
+      
+      // Повторяем через 5 секунд если данные не загрузились
+      setTimeout(async () => {
+        if (dashboardStats.houses === 0) {
+          console.log('🔄 Retry loading dashboard data...');
+          await fetchDashboardStats();
+        }
+      }, 5000);
+    };
+    
+    loadData();
+    
+    // Автообновление каждые 2 минуты
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing dashboard...');
+      console.log('🔄 Auto-refresh dashboard...');
       fetchDashboardStats();
-    }, 60000);
+    }, 120000);
     
     return () => clearInterval(interval);
   }, []);
