@@ -700,40 +700,11 @@ const Dashboard = () => {
       case 'finances':
         return <FinancesSection financialReport={financialReport} />;
       case 'meetings':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">📅 Планерка</h2>
-            <p className="text-gray-600">Функция записи и анализа планерок в разработке...</p>
-          </div>
-        );
+        return <MeetingsSection />;
       case 'live-chat':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">💬 Живой разговор</h2>
-            <p className="text-gray-600">AI-ассистент для живого общения в разработке...</p>
-          </div>
-        );
-      case 'sales':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">💰 Продажи / Маркетинг</h2>
-            <p className="text-gray-600">Интеграция с CRM и аналитика продаж в разработке...</p>
-          </div>
-        );
-      case 'work':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">🏗️ Управление работами</h2>
-            <p className="text-gray-600">Система планирования маршрутов и управления проектами в разработке...</p>
-          </div>
-        );
+        return <LiveChatSection />;
       case 'logs':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">📊 Системные логи</h2>
-            <p className="text-gray-600">Мониторинг активности и логирование в разработке...</p>
-          </div>
-        );
+        return <LogsSection />;
       default:
         return <OverviewSection dashboardData={dashboardData} aiInsights={aiInsights} />;
     }
