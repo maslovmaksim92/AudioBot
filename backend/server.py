@@ -178,7 +178,7 @@ class BitrixIntegration:
             while True:
                 import urllib.parse
                 
-                # Запрашиваем ВСЕ поля сделки включая кастомные
+                # Запрашиваем ВСЕ сделки ВСЕХ категорий (убираем фильтр CATEGORY_ID)
                 params = {
                     'select[0]': 'ID',
                     'select[1]': 'TITLE', 
@@ -191,14 +191,11 @@ class BitrixIntegration:
                     'select[8]': 'CURRENCY_ID',
                     'select[9]': 'CONTACT_ID',
                     'select[10]': 'COMPANY_ID',
-                    'select[11]': 'LEAD_ID',
+                    'select[11]': 'CATEGORY_ID',  # Включаем категорию чтобы видеть все воронки
                     'select[12]': 'ADDITIONAL_INFO',
-                    'select[13]': 'LOCATION_ID',
-                    'select[14]': 'UTM_SOURCE',
-                    'select[15]': 'UTM_MEDIUM',
-                    'select[16]': 'UTM_CAMPAIGN',
-                    'select[17]': 'UF_*',  # ВСЕ пользовательские поля
-                    'filter[CATEGORY_ID]': '2',  # Воронка "Уборка подъездов"
+                    'select[13]': 'UF_*',  # ВСЕ пользовательские поля
+                    # УБИРАЕМ фильтр по категории - загружаем ВСЕ договора!
+                    # 'filter[CATEGORY_ID]': '2',  - УБРАЛ ЭТОТ ФИЛЬТР
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
                 }
