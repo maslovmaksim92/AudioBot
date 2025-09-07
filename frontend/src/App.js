@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import MeetingRecorder from "./components/Meetings/MeetingRecorder";
+import VoiceChat from "./components/Voice/VoiceChat";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
