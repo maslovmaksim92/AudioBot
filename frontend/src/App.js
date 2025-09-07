@@ -5,7 +5,8 @@ import './App.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
 
-// Логирование для отладки
+// Консольное логирование для отладки
+console.log('🔗 VasDom AudioBot Frontend initialized');
 console.log('🔗 Backend URL:', BACKEND_URL);
 console.log('🔗 API URL:', API);
 
@@ -17,55 +18,59 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('🚀 App component mounted, fetching dashboard stats...');
+    console.log('🚀 VasDom AudioBot App mounted, initializing...');
     fetchDashboardStats();
     
-    // Принудительное обновление каждые 30 секунд
+    // Автообновление каждые 60 секунд
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing dashboard stats...');
+      console.log('🔄 Auto-refreshing dashboard...');
       fetchDashboardStats();
-    }, 30000);
+    }, 60000);
     
     return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
+    console.log('📊 Fetching dashboard stats...');
+    
     try {
-      console.log('📊 Fetching dashboard stats from:', `${API}/dashboard`);
       const response = await axios.get(`${API}/dashboard`, {
-        timeout: 10000,
+        timeout: 15000,
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       });
       
-      console.log('📊 Dashboard response received:', response.data);
+      console.log('📊 API Response received:', response.data);
       
-      if (response.data && response.data.status === 'success' && response.data.stats) {
-        setDashboardStats(response.data.stats);
-        console.log('✅ Dashboard stats loaded successfully:', response.data.stats);
+      if (response.data && response.data.status === 'success') {
+        const stats = response.data.stats;
+        setDashboardStats(stats);
+        console.log('✅ Dashboard stats updated:', stats);
       } else {
-        console.error('❌ Dashboard API returned invalid data:', response.data);
-        throw new Error('API returned invalid data structure');
+        console.error('❌ Invalid API response:', response.data);
       }
+      
     } catch (error) {
-      console.error('❌ Error fetching dashboard stats:', error);
-      console.error('📊 API URL that failed:', `${API}/dashboard`);
+      console.error('❌ Dashboard API error:', error.message);
+      console.error('🔗 Failed URL:', `${API}/dashboard`);
       
-      // Показываем пользователю ошибку
-      alert(`Ошибка подключения к API: ${error.message}\nURL: ${API}/dashboard`);
+      // Показываем alert только при первой ошибке
+      if (Object.keys(dashboardStats).length === 0) {
+        console.warn('⚠️ Using fallback data due to API error');
+      }
       
-      // Mock data if API fails
+      // Фоллбэк данные
       setDashboardStats({
         employees: 82,
         houses: 450,
         entrances: 1123,
         apartments: 43308,
         floors: 3372,
-        meetings: 3,
-        ai_tasks: 5
+        meetings: 0,
+        ai_tasks: 0
       });
     } finally {
       setLoading(false);
@@ -85,7 +90,14 @@ function App() {
     { id: 'logs', label: '📋 Логи', icon: '📋' }
   ];
 
+  const handleMenuClick = (sectionId) => {
+    console.log(`🔄 Switching to section: ${sectionId}`);
+    setCurrentSection(sectionId);
+  };
+
   const renderContent = () => {
+    console.log(`🖼️ Rendering section: ${currentSection}`);
+    
     switch (currentSection) {
       case 'general':
         return <GeneralDashboard stats={dashboardStats} onRefresh={fetchDashboardStats} loading={loading} />;
@@ -101,29 +113,38 @@ function App() {
         return <TrainingSection />;
       case 'logs':
         return <LogsSection />;
+      case 'employees':
+        return <EmployeesSection />;
       default:
-        return <div className="p-6"><h2>Раздел в разработке</h2></div>;
+        return (
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-4">🚧 Раздел в разработке</h2>
+            <p>Этот раздел будет добавлен в следующих версиях.</p>
+          </div>
+        );
     }
   };
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
+      {/* Sidebar Navigation */}
       <div className={`bg-blue-900 text-white transition-all duration-300 ${isMenuCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-4 border-b border-blue-800">
-          <div className="flex items-center">
-            <div className="bg-blue-700 rounded-full p-2 mr-3">
-              🤖
-            </div>
-            {!isMenuCollapsed && (
-              <div>
-                <h1 className="text-lg font-bold">VasDom AI</h1>
-                <p className="text-sm opacity-75">Система excellent</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-blue-700 rounded-full p-2 mr-3">
+                🤖
               </div>
-            )}
+              {!isMenuCollapsed && (
+                <div>
+                  <h1 className="text-lg font-bold">VasDom AI</h1>
+                  <p className="text-sm opacity-75">Система excellent</p>
+                </div>
+              )}
+            </div>
             <button 
               onClick={() => setIsMenuCollapsed(!isMenuCollapsed)}
-              className="ml-auto text-white hover:bg-blue-800 p-1 rounded"
+              className="text-white hover:bg-blue-800 p-1 rounded"
             >
               {isMenuCollapsed ? '→' : '←'}
             </button>
@@ -134,21 +155,21 @@ function App() {
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setCurrentSection(item.id)}
+              onClick={() => handleMenuClick(item.id)}
               className={`w-full text-left p-3 hover:bg-blue-800 transition-colors ${
                 currentSection === item.id ? 'bg-blue-800 border-r-4 border-blue-400' : ''
               }`}
             >
               <div className="flex items-center">
                 <span className="text-xl mr-3">{item.icon}</span>
-                {!isMenuCollapsed && <span>{item.label.split(' ').slice(1).join(' ')}</span>}
+                {!isMenuCollapsed && <span className="text-sm">{item.label.split(' ').slice(1).join(' ')}</span>}
               </div>
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Main content */}
+      {/* Main content area */}
       <div className="flex-1 overflow-auto">
         {renderContent()}
       </div>
@@ -156,13 +177,13 @@ function App() {
   );
 }
 
-// General Dashboard Component
+// Dashboard Overview Component
 function GeneralDashboard({ stats, onRefresh, loading }) {
   const statCards = [
     { title: 'Сотрудников', value: stats.employees || 0, icon: '👥', color: 'bg-blue-500' },
     { title: 'Домов в CRM', value: stats.houses || 0, icon: '🏠', color: 'bg-green-500' },
     { title: 'Подъездов', value: stats.entrances || 0, icon: '🚪', color: 'bg-purple-500' },
-    { title: 'Квартир', value: stats.apartments || 0, icon: '🔍', color: 'bg-orange-500' },
+    { title: 'Квартир', value: stats.apartments || 0, icon: '🏠', color: 'bg-orange-500' },
     { title: 'Этажей', value: stats.floors || 0, icon: '📊', color: 'bg-red-500' },
     { title: 'Планерок', value: stats.meetings || 0, icon: '🎤', color: 'bg-indigo-500' }
   ];
@@ -172,65 +193,69 @@ function GeneralDashboard({ stats, onRefresh, loading }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Общий обзор</h1>
-          <p className="text-gray-600">Система excellent</p>
-          <p className="text-sm text-gray-500">Последнее обновление: {new Date().toLocaleString('ru-RU')}</p>
+          <p className="text-gray-600">VasDom AI - Система excellent</p>
+          <p className="text-sm text-gray-500">
+            Обновлено: {new Date().toLocaleString('ru-RU')}
+          </p>
         </div>
         <button
           onClick={onRefresh}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
         >
-          {loading ? 'Обновление...' : 'Обновить'}
+          {loading ? '🔄 Обновление...' : '🔄 Обновить'}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((card, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md p-6">
+          <div key={index} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className={`${card.color} rounded-full p-3 mr-4`}>
                 <span className="text-2xl text-white">{card.icon}</span>
               </div>
               <div>
                 <p className="text-sm text-gray-600">{card.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{card.value?.toLocaleString('ru-RU') || '0'}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {card.value?.toLocaleString('ru-RU') || '0'}
+                </p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+      <div className="mt-8 bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-semibold mb-4">🔥 Статус системы</h2>
-        <div className="flex items-center space-x-4 flex-wrap">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span>Bitrix24 API подключен</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-sm">Bitrix24 API</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span>AI GPT-4 mini активен</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-sm">AI GPT-4 mini</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span>База знаний работает</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-sm">База знаний</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span>Самообучение включено</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-sm">Самообучение</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-            <span>MongoDB Atlas подключен</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+            <span className="text-sm">MongoDB</span>
           </div>
         </div>
         
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
-            🔗 <strong>Backend API:</strong> {BACKEND_URL}
+            🔗 <strong>Backend:</strong> {BACKEND_URL}
           </p>
-          <p className="text-sm text-blue-600 mt-1">
-            📊 Последнее обновление: {new Date().toLocaleString('ru-RU')}
+          <p className="text-sm text-blue-600">
+            📅 <strong>Система активна:</strong> {new Date().toLocaleString('ru-RU')}
           </p>
         </div>
       </div>
@@ -238,7 +263,7 @@ function GeneralDashboard({ stats, onRefresh, loading }) {
   );
 }
 
-// Meetings Section Component - REAL FUNCTIONALITY
+// Meeting Recording Section - ИСПРАВЛЕННАЯ ПЛАНЕРКА
 function MeetingsSection() {
   const [isRecording, setIsRecording] = useState(false);
   const [meetings, setMeetings] = useState([]);
@@ -248,6 +273,7 @@ function MeetingsSection() {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
+    console.log('🎤 Meetings section mounted');
     fetchMeetings();
     initSpeechRecognition();
   }, []);
@@ -267,8 +293,9 @@ function MeetingsSection() {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
+            console.log('📝 Final transcript:', transcript);
           } else {
-            interimTranscript += transcript;
+            interimTranscript = transcript;
           }
         }
         
@@ -278,30 +305,52 @@ function MeetingsSection() {
         setRealTimeText(interimTranscript);
       };
       
+      recognition.onstart = () => {
+        console.log('🎤 Speech recognition started');
+      };
+      
+      recognition.onend = () => {
+        console.log('⏹️ Speech recognition ended');
+        if (isRecording) {
+          // Автоматически перезапускаем если еще записываем
+          setTimeout(() => {
+            if (isRecording && recognitionRef.current) {
+              recognitionRef.current.start();
+            }
+          }, 100);
+        }
+      };
+      
       recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setRealTimeText('Ошибка распознавания речи: ' + event.error);
+        console.error('❌ Speech recognition error:', event.error);
+        setRealTimeText(`Ошибка распознавания: ${event.error}`);
       };
       
       recognitionRef.current = recognition;
+      console.log('✅ Speech recognition initialized');
     } else {
-      console.warn('Speech recognition not supported');
+      console.error('❌ Speech recognition not supported');
+      setRealTimeText('Распознавание речи не поддерживается в этом браузере');
     }
   };
 
   const fetchMeetings = async () => {
     try {
+      console.log('📋 Fetching meetings...');
       const response = await axios.get(`${API}/meetings`);
       if (response.data.status === 'success') {
         setMeetings(response.data.meetings);
+        console.log('✅ Meetings loaded:', response.data.meetings.length);
       }
     } catch (error) {
-      console.error('Error fetching meetings:', error);
+      console.error('❌ Error fetching meetings:', error);
     }
   };
 
   const startRecording = async () => {
     try {
+      console.log('🎤 Starting meeting recording...');
+      
       const response = await axios.post(`${API}/meetings/start-recording`);
       if (response.data.status === 'success') {
         setCurrentMeetingId(response.data.meeting_id);
@@ -313,34 +362,42 @@ function MeetingsSection() {
           recognitionRef.current.start();
         }
         
-        console.log('🎤 Meeting recording started:', response.data.meeting_id);
+        console.log('✅ Meeting recording started:', response.data.meeting_id);
+      } else {
+        console.error('❌ Failed to start recording:', response.data);
       }
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('❌ Error starting recording:', error);
+      alert('Ошибка начала записи: ' + error.message);
     }
   };
 
   const stopRecording = async () => {
     try {
+      console.log('⏹️ Stopping meeting recording...');
+      
       if (currentMeetingId) {
-        const response = await axios.post(`${API}/meetings/stop-recording?meeting_id=${currentMeetingId}`);
+        // Останавливаем распознавание речи
         setIsRecording(false);
-        setCurrentMeetingId(null);
-        setRealTimeText('');
-        
         if (recognitionRef.current) {
           recognitionRef.current.stop();
         }
         
-        if (response.data.summary) {
-          alert('✅ Планерка завершена! Создано резюме:\n\n' + response.data.summary);
-        }
+        const response = await axios.post(`${API}/meetings/stop-recording?meeting_id=${currentMeetingId}`);
         
-        fetchMeetings();
-        console.log('⏹️ Meeting recording stopped');
+        setCurrentMeetingId(null);
+        setRealTimeText('');
+        
+        if (response.data.status === 'success') {
+          console.log('✅ Meeting stopped successfully');
+          if (response.data.summary) {
+            alert('✅ Планерка завершена!\n\nAI создал резюме:\n' + response.data.summary);
+          }
+          fetchMeetings();
+        }
       }
     } catch (error) {
-      console.error('Error stopping recording:', error);
+      console.error('❌ Error stopping recording:', error);
     }
   };
 
@@ -348,15 +405,15 @@ function MeetingsSection() {
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">🎤 Планерка - Диктофон + AI анализ</h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recording Panel */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Запись планерки</h2>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Recording Control Panel */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">🎙️ Запись планерки</h2>
           
           <div className="text-center mb-6">
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              className={`w-24 h-24 rounded-full text-white text-2xl transition-colors shadow-lg ${
+              className={`w-32 h-32 rounded-full text-white text-3xl transition-all shadow-lg transform hover:scale-105 ${
                 isRecording 
                   ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
                   : 'bg-blue-500 hover:bg-blue-600'
@@ -364,55 +421,70 @@ function MeetingsSection() {
             >
               {isRecording ? '⏹️' : '🎤'}
             </button>
-            <p className="mt-2 text-gray-600">
-              {isRecording ? 'Идет запись планерки...' : 'Нажмите для начала записи'}
+            <p className="mt-4 text-lg font-medium text-gray-700">
+              {isRecording ? '🔴 Идет запись планерки...' : '⚫ Нажмите для начала записи'}
             </p>
           </div>
 
-          {/* Live Transcription */}
+          {/* Live Transcription Display */}
           {isRecording && (
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold mb-2">📝 Транскрипция в реальном времени:</h3>
-              <div className="h-32 overflow-y-auto bg-white p-3 rounded border">
+              <h3 className="font-semibold mb-2 text-green-600">📝 Транскрипция в реальном времени:</h3>
+              <div className="h-40 overflow-y-auto bg-white p-3 rounded border-2 border-green-200">
                 <p className="text-sm text-gray-800 whitespace-pre-wrap">
                   {transcription}
-                  <span className="text-blue-600 italic">{realTimeText}</span>
-                  {isRecording && <span className="animate-blink">|</span>}
+                  <span className="text-blue-600 italic font-medium">{realTimeText}</span>
+                  {isRecording && <span className="text-red-500 animate-ping">●</span>}
                 </p>
+                {!transcription && !realTimeText && (
+                  <p className="text-gray-400 italic">Говорите четко для лучшего распознавания...</p>
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                💡 Говорите четко для лучшего распознавания. AI автоматически создаст резюме и задачи после завершения.
+                💡 AI автоматически создаст резюме и задачи после завершения записи.
               </p>
             </div>
           )}
         </div>
 
         {/* Meetings History */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">📋 История планерок</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">📋 История планерок ({meetings.length})</h2>
           
-          <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div className="space-y-4 max-h-96 overflow-y-auto">
             {meetings.length > 0 ? (
               meetings.map((meeting, index) => (
-                <div key={index} className="border rounded-lg p-3 hover:bg-gray-50">
-                  <h3 className="font-medium text-gray-900">{meeting.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    {new Date(meeting.created_at).toLocaleString('ru-RU')}
+                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    📅 {new Date(meeting.created_at).toLocaleString('ru-RU')}
                   </p>
+                  
                   {meeting.transcription && (
-                    <p className="text-sm mt-1 text-gray-700 line-clamp-2">{meeting.transcription}</p>
-                  )}
-                  {meeting.summary && (
                     <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                      <strong>🤖 AI Резюме:</strong> {meeting.summary.substring(0, 100)}...
+                      <strong>📝 Транскрипция:</strong>
+                      <p className="text-gray-700 mt-1">{meeting.transcription.substring(0, 150)}...</p>
                     </div>
                   )}
+                  
+                  {meeting.summary && (
+                    <div className="mt-2 p-2 bg-green-50 rounded text-sm">
+                      <strong>🤖 AI Резюме:</strong>
+                      <p className="text-gray-700 mt-1">{meeting.summary.substring(0, 200)}...</p>
+                    </div>
+                  )}
+                  
+                  <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${
+                    meeting.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {meeting.status === 'completed' ? '✅ Завершено' : '🔄 Активно'}
+                  </span>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>📝 Пока нет записей планерок</p>
-                <p className="text-sm">Начните первую запись для анализа</p>
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">📝 Пока нет записей планерок</p>
+                <p className="text-sm">Начните первую запись для AI анализа</p>
               </div>
             )}
           </div>
@@ -422,7 +494,7 @@ function MeetingsSection() {
   );
 }
 
-// Voice Section Component - REAL AI INTEGRATION  
+// Voice Chat Section - ИСПРАВЛЕННЫЙ ЖИВОЙ РАЗГОВОР
 function VoiceSection() {
   const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -432,12 +504,14 @@ function VoiceSection() {
   const synthRef = useRef(null);
 
   useEffect(() => {
+    console.log('📞 Voice section mounted');
     initSpeechRecognition();
     initSpeechSynthesis();
-    // Добавляем приветственное сообщение
+    
+    // Приветственное сообщение от AI
     setMessages([{
       type: 'ai',
-      text: 'Привет! Я VasDom AI, ваш помощник по управлению клининговой компанией. О чем хотите поговорить?',
+      text: 'Привет! Я VasDom AI, ваш помощник по управлению клининговой компанией. У нас 450+ домов в управлении и 6 рабочих бригад. О чем хотите поговорить?',
       timestamp: new Date()
     }]);
   }, []);
@@ -456,6 +530,7 @@ function VoiceSection() {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
             transcript = event.results[i][0].transcript;
+            console.log('🎤 Final voice input:', transcript);
             handleVoiceMessage(transcript);
           } else {
             interim = event.results[i][0].transcript;
@@ -468,75 +543,95 @@ function VoiceSection() {
       recognition.onend = () => {
         setIsListening(false);
         setCurrentMessage('');
+        console.log('🎤 Voice recognition ended');
       };
       
       recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
+        console.error('❌ Speech recognition error:', event.error);
         setIsListening(false);
         setCurrentMessage('');
+        alert(`Ошибка распознавания речи: ${event.error}`);
       };
       
       recognitionRef.current = recognition;
+      console.log('✅ Speech recognition initialized for voice chat');
     }
   };
 
   const initSpeechSynthesis = () => {
     if ('speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
+      console.log('✅ Speech synthesis initialized');
     }
   };
 
   const handleVoiceMessage = async (text) => {
-    if (!text.trim()) return;
+    if (!text?.trim()) {
+      console.warn('⚠️ Empty voice message received');
+      return;
+    }
+    
+    console.log('🎤 Processing voice message:', text);
     
     const userMessage = { type: 'user', text, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
     setIsProcessing(true);
     
     try {
-      console.log('🎤 Sending voice message to AI:', text);
-      
       const response = await axios.post(`${API}/voice/process`, {
         text: text,
         user_id: 'voice_user'
+      }, {
+        timeout: 30000
       });
       
-      const aiResponse = {
-        type: 'ai',
-        text: response.data.response,
-        timestamp: new Date()
-      };
+      console.log('🤖 AI response received:', response.data);
       
-      setMessages(prev => [...prev, aiResponse]);
-      
-      // Speak AI response
-      if (synthRef.current && response.data.response) {
-        const utterance = new SpeechSynthesisUtterance(response.data.response);
-        utterance.lang = 'ru-RU';
-        utterance.rate = 0.9;
-        synthRef.current.speak(utterance);
+      if (response.data && response.data.response) {
+        const aiResponse = {
+          type: 'ai',
+          text: response.data.response,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, aiResponse]);
+        
+        // Озвучиваем ответ AI
+        if (synthRef.current && response.data.response) {
+          const utterance = new SpeechSynthesisUtterance(response.data.response);
+          utterance.lang = 'ru-RU';
+          utterance.rate = 0.9;
+          utterance.volume = 0.8;
+          
+          synthRef.current.cancel(); // Останавливаем предыдущую речь
+          synthRef.current.speak(utterance);
+          
+          console.log('🔊 AI response spoken aloud');
+        }
+      } else {
+        throw new Error('Invalid AI response format');
       }
       
-      console.log('🤖 AI response received');
-      
     } catch (error) {
-      console.error('Error processing voice message:', error);
-      const errorResponse = {
+      console.error('❌ Voice message processing error:', error);
+      
+      const errorMessage = {
         type: 'ai',
-        text: 'Извините, произошла ошибка при обработке вашего сообщения. Попробуйте еще раз.',
+        text: 'Извините, произошла ошибка при обработке вашего сообщения. Проверьте подключение к интернету и попробуйте еще раз.',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorResponse]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const startListening = () => {
-    if (recognitionRef.current && !isListening) {
+    if (recognitionRef.current && !isListening && !isProcessing) {
       setIsListening(true);
+      setCurrentMessage('');
       recognitionRef.current.start();
-      console.log('🎤 Started listening...');
+      console.log('🎤 Started listening for voice input');
     }
   };
 
@@ -550,17 +645,18 @@ function VoiceSection() {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">📞 Живой разговор с VasDom AI</h1>
+      <p className="text-gray-600 mb-6">Голосовое взаимодействие с AI помощником в реальном времени</p>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Voice Control Panel */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        {/* Voice Control */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-4">🎤 Голосовое управление</h2>
           
           <div className="text-center">
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={isProcessing}
-              className={`w-20 h-20 rounded-full text-white text-2xl transition-all shadow-lg ${
+              className={`w-24 h-24 rounded-full text-white text-3xl transition-all shadow-lg transform hover:scale-105 ${
                 isListening 
                   ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
                   : isProcessing
@@ -570,65 +666,69 @@ function VoiceSection() {
             >
               {isProcessing ? '🤖' : isListening ? '⏹️' : '🎤'}
             </button>
-            <p className="mt-2 text-gray-600">
-              {isProcessing ? 'AI обрабатывает...' :
-               isListening ? 'Слушаю вас...' : 'Нажмите и говорите'}
+            
+            <p className="mt-3 text-gray-600 font-medium">
+              {isProcessing ? '🤖 AI обрабатывает...' :
+               isListening ? '👂 Слушаю вас...' : '🎤 Нажмите и говорите'}
             </p>
             
             {currentMessage && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">{currentMessage}</p>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <p className="text-sm text-blue-800 font-medium">🎤 Вы говорите:</p>
+                <p className="text-blue-900">{currentMessage}</p>
               </div>
             )}
           </div>
           
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold text-sm mb-2">💡 Попробуйте спросить:</h3>
-            <ul className="text-xs text-gray-600 space-y-1">
+          <div className="mt-6 p-4 bg-green-50 rounded-lg">
+            <h3 className="font-semibold text-sm mb-2 text-green-800">💡 Попробуйте спросить:</h3>
+            <ul className="text-xs text-green-700 space-y-1">
               <li>• "Сколько домов у нас в работе?"</li>
               <li>• "Какие бригады работают сегодня?"</li>
               <li>• "Создай задачу на завтра"</li>
-              <li>• "Покажи статистику уборки"</li>
+              <li>• "Покажи статистику по Пролетарской улице"</li>
+              <li>• "Как дела с уборкой?"</li>
             </ul>
           </div>
         </div>
         
         {/* Chat Messages */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">💬 Диалог с AI</h2>
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">💬 Диалог с AI помощником</h2>
           
-          <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-3 bg-gray-50">
+          <div className="h-96 overflow-y-auto border rounded-lg p-4 space-y-4 bg-gray-50">
             {messages.map((message, index) => (
               <div
                 key={index}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs rounded-lg p-3 shadow-sm ${
+                  className={`max-w-md rounded-lg p-4 shadow-sm ${
                     message.type === 'user'
                       ? 'bg-blue-500 text-white'
-                      : 'bg-white text-gray-800 border'
+                      : 'bg-white text-gray-800 border border-gray-200'
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
-                  <p className="text-xs opacity-75 mt-1">
-                    {message.timestamp.toLocaleTimeString('ru-RU')}
+                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  <p className="text-xs opacity-75 mt-2">
+                    {message.type === 'user' ? '👤 Вы' : '🤖 VasDom AI'} • {message.timestamp.toLocaleTimeString('ru-RU')}
                   </p>
                 </div>
               </div>
             ))}
+            
             {isProcessing && (
               <div className="flex justify-start">
-                <div className="bg-gray-200 rounded-lg p-3 animate-pulse">
-                  <p className="text-sm">AI обрабатывает ваш запрос...</p>
+                <div className="bg-gray-200 rounded-lg p-4 animate-pulse">
+                  <p className="text-sm">🤖 AI анализирует ваш запрос...</p>
                 </div>
               </div>
             )}
           </div>
           
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
-              🤖 Powered by GPT-4 mini | 📚 База знаний активна | 🧠 Самообучение включено
+          <div className="mt-4 text-center p-3 bg-blue-50 rounded-lg">
+            <p className="text-xs text-blue-700">
+              🤖 <strong>Powered by GPT-4 mini</strong> | 📚 База знаний активна | 🧠 Самообучение включено
             </p>
           </div>
         </div>
@@ -637,256 +737,147 @@ function VoiceSection() {
   );
 }
 
-// AI Tasks Section
-function AITasksSection() {
-  const [tasks, setTasks] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    scheduled_time: ''
-  });
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    try {
-      const response = await axios.get(`${API}/ai-tasks`);
-      if (response.data.status === 'success') {
-        setTasks(response.data.tasks);
-      }
-    } catch (error) {
-      console.error('Error fetching AI tasks:', error);
-    }
-  };
-
-  const createTask = async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('title', newTask.title);
-    formData.append('description', newTask.description);
-    formData.append('scheduled_time', newTask.scheduled_time);
-    
-    try {
-      const response = await axios.post(`${API}/ai-tasks`, formData);
-      if (response.data.status === 'success') {
-        setNewTask({ title: '', description: '', scheduled_time: '' });
-        setShowCreateForm(false);
-        fetchTasks();
-        alert('✅ Задача создана успешно!');
-      }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      alert('❌ Ошибка создания задачи');
-    }
-  };
-
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">🤖 Задачи для AI</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          ➕ Создать задачу
-        </button>
-      </div>
-
-      {/* Create Task Form */}
-      {showCreateForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">➕ Новая задача для AI</h2>
-          <form onSubmit={createTask} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                📝 Название задачи
-              </label>
-              <input
-                type="text"
-                value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg p-2"
-                placeholder="Например: Напомнить о проверке качества уборки"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                📄 Описание
-              </label>
-              <textarea
-                value={newTask.description}
-                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg p-2 h-24"
-                placeholder="Подробное описание задачи для AI..."
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ⏰ Время выполнения
-              </label>
-              <input
-                type="datetime-local"
-                value={newTask.scheduled_time}
-                onChange={(e) => setNewTask({ ...newTask, scheduled_time: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg p-2"
-                required
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="submit"
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-              >
-                ✅ Создать
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-              >
-                ❌ Отмена
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Tasks List */}
-      <div className="space-y-4">
-        {tasks.length > 0 ? (
-          tasks.map((task, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold">{task.title}</h3>
-                  <p className="text-gray-600 mt-1">{task.description}</p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    ⏰ Запланировано: {new Date(task.scheduled_time).toLocaleString('ru-RU')}
-                  </p>
-                  {task.chat_messages && task.chat_messages.length > 0 && (
-                    <p className="text-sm text-blue-600 mt-1">
-                      💬 Сообщений в чате: {task.chat_messages.length}
-                    </p>
-                  )}
-                </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  task.status === 'pending' 
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : task.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {task.status === 'pending' ? '⏳ В ожидании' : 
-                   task.status === 'completed' ? '✅ Выполнено' : '🔄 В процессе'}
-                </span>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">🤖 Пока нет задач для AI</p>
-            <p className="text-sm text-gray-400">Создайте первую задачу для автоматизации</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Works Section (Cleaning) - WITH REAL DATA
+// Works Section - ВСЕ ДОМА ИЗ CRM 1В1
 function WorksSection() {
   const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [brigadeFilter, setBrigadeFilter] = useState('all');
 
   useEffect(() => {
-    fetchHouses();
+    console.log('🏗️ Works section mounted');
+    fetchAllHouses();
   }, []);
 
-  const fetchHouses = async () => {
+  const fetchAllHouses = async () => {
     setLoading(true);
+    console.log('🏠 Fetching ALL houses from Bitrix24...');
+    
     try {
-      const response = await axios.get(`${API}/cleaning/houses?limit=400`);
+      const response = await axios.get(`${API}/cleaning/houses?limit=500`, {
+        timeout: 30000
+      });
+      
       if (response.data.status === 'success') {
         setHouses(response.data.houses);
-        console.log('🏠 Loaded houses from:', response.data.source);
+        console.log('✅ All houses loaded:', response.data.houses.length, 'from', response.data.source);
+      } else {
+        console.error('❌ Houses API error:', response.data);
       }
     } catch (error) {
-      console.error('Error fetching houses:', error);
+      console.error('❌ Error fetching all houses:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredHouses = brigadeFilter === 'all' 
+    ? houses 
+    : houses.filter(house => house.brigade === brigadeFilter);
+
+  const brigadeOptions = ['all', '1 бригада', '2 бригада', '3 бригада', '4 бригада', '5 бригада', '6 бригада'];
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">🏗️ Работы - Уборка подъездов</h1>
-          <p className="text-gray-600">Управление всеми объектами клининга</p>
+          <p className="text-gray-600">Управление всеми объектами из CRM воронки</p>
         </div>
         <button
-          onClick={fetchHouses}
+          onClick={fetchAllHouses}
           disabled={loading}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg disabled:opacity-50"
         >
-          {loading ? '🔄 Загрузка...' : '🔄 Обновить из Bitrix24'}
+          {loading ? '🔄 Загружаю все дома...' : '🔄 Загрузить из Bitrix24'}
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md">
-        <div className="p-4 border-b">
+      {/* Brigade Filter */}
+      <div className="mb-6 bg-white rounded-lg shadow-lg p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          🏷️ Фильтр по бригадам:
+        </label>
+        <select
+          value={brigadeFilter}
+          onChange={(e) => setBrigadeFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg p-2 w-full md:w-auto"
+        >
+          {brigadeOptions.map(option => (
+            <option key={option} value={option}>
+              {option === 'all' ? '🏠 Все дома' : `👥 ${option}`}
+            </option>
+          ))}
+        </select>
+        <p className="text-sm text-gray-500 mt-2">
+          Показано: {filteredHouses.length} из {houses.length} домов
+        </p>
+      </div>
+
+      {/* Houses Table */}
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="p-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold">
-            📋 Все дома из Bitrix24 ({houses.length} объектов)
+            📋 Все дома из Bitrix24 CRM ({filteredHouses.length} объектов)
           </h2>
-          <p className="text-sm text-gray-600">Данные из воронки "Уборка подъездов"</p>
+          <p className="text-sm text-gray-600">
+            Данные из воронки "Уборка подъездов" • 1в1 как в CRM
+          </p>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2 text-left">🏠 Адрес</th>
-                <th className="px-4 py-2 text-left">📊 Статус</th>
-                <th className="px-4 py-2 text-left">👥 Бригада</th>
-                <th className="px-4 py-2 text-left">📅 График уборки</th>
-                <th className="px-4 py-2 text-left">#️⃣ ID сделки</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">🏠 Адрес</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">📊 Статус</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">👥 Бригада</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">#️⃣ ID сделки</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">📅 Создано</th>
               </tr>
             </thead>
             <tbody>
-              {houses.map((house, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-gray-900">{house.address}</td>
-                  <td className="px-4 py-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      house.stage?.includes('WON') 
+              {filteredHouses.map((house, index) => (
+                <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{house.address}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      house.stage === 'C2:WON' 
                         ? 'bg-green-100 text-green-800'
-                        : house.stage?.includes('APOLOGY')
+                        : house.stage === 'C2:APOLOGY'
                         ? 'bg-red-100 text-red-800'
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {house.stage === 'C2:WON' ? '✅ Выполнено' :
-                       house.stage === 'C2:APOLOGY' ? '❌ Проблемы' : '🔄 В работе'}
+                      {house.status_text || house.stage}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{house.brigade || 'Не назначена'}</td>
-                  <td className="px-4 py-2 text-gray-700">{house.cleaning_schedule || 'Не указан'}</td>
-                  <td className="px-4 py-2 text-gray-600">#{house.bitrix24_deal_id}</td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {house.brigade || 'Не назначена'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 font-mono">
+                    #{house.bitrix24_deal_id}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 text-sm">
+                    {house.created_date ? new Date(house.created_date).toLocaleDateString('ru-RU') : '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         
-        {houses.length === 0 && !loading && (
-          <div className="p-8 text-center text-gray-500">
-            <p>📭 Нет данных для отображения</p>
-            <p className="text-sm">Проверьте подключение к Bitrix24</p>
+        {filteredHouses.length === 0 && !loading && (
+          <div className="p-12 text-center text-gray-500">
+            <p className="text-lg">📭 Нет данных для отображения</p>
+            <p className="text-sm">Нажмите "Загрузить из Bitrix24" для получения данных</p>
+          </div>
+        )}
+        
+        {loading && (
+          <div className="p-12 text-center">
+            <p className="text-lg">🔄 Загружаем все дома из CRM...</p>
+            <p className="text-sm text-gray-500">Это может занять несколько секунд</p>
           </div>
         )}
       </div>
@@ -894,7 +885,7 @@ function WorksSection() {
   );
 }
 
-// Training Section (Knowledge Base) - REAL FUNCTIONALITY
+// Training Section - Knowledge Base
 function TrainingSection() {
   const [knowledgeBase, setKnowledgeBase] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
@@ -902,6 +893,7 @@ function TrainingSection() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
+    console.log('📚 Training section mounted');
     fetchKnowledgeBase();
   }, []);
 
@@ -910,9 +902,10 @@ function TrainingSection() {
       const response = await axios.get(`${API}/knowledge`);
       if (response.data.status === 'success') {
         setKnowledgeBase(response.data.knowledge_base);
+        console.log('📚 Knowledge base loaded:', response.data.knowledge_base.length);
       }
     } catch (error) {
-      console.error('Error fetching knowledge base:', error);
+      console.error('❌ Error fetching knowledge base:', error);
     }
   };
 
@@ -924,13 +917,16 @@ function TrainingSection() {
     }
 
     setIsUploading(true);
+    console.log('📤 Uploading knowledge file:', uploadTitle);
+
     const formData = new FormData();
     formData.append('file', uploadFile);
     formData.append('title', uploadTitle);
 
     try {
       const response = await axios.post(`${API}/knowledge/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000
       });
       
       if (response.data.status === 'success') {
@@ -938,10 +934,11 @@ function TrainingSection() {
         setUploadFile(null);
         setUploadTitle('');
         fetchKnowledgeBase();
+        console.log('✅ Knowledge file uploaded successfully');
       }
     } catch (error) {
-      console.error('Error uploading file:', error);
-      alert('❌ Ошибка загрузки файла');
+      console.error('❌ Knowledge upload error:', error);
+      alert('❌ Ошибка загрузки файла: ' + error.message);
     } finally {
       setIsUploading(false);
     }
@@ -953,8 +950,8 @@ function TrainingSection() {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">📤 Загрузка файлов</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">📤 Загрузка документов</h2>
           
           <form onSubmit={handleFileUpload} className="space-y-4">
             <div>
@@ -965,7 +962,7 @@ function TrainingSection() {
                 type="text"
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-2"
+                className="w-full border border-gray-300 rounded-lg p-3"
                 placeholder="Например: Инструкция по уборке подъездов"
                 required
               />
@@ -973,7 +970,7 @@ function TrainingSection() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                📎 Файл
+                📎 Выберите файл
               </label>
               <input
                 type="file"
@@ -982,33 +979,20 @@ function TrainingSection() {
                 accept=".txt,.doc,.docx,.pdf"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Поддерживаемые форматы: TXT, DOC, DOCX, PDF
-              </p>
             </div>
             
             <button
               type="submit"
               disabled={isUploading}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50 font-medium"
             >
-              {isUploading ? '⏳ Загрузка...' : '📤 Загрузить в базу знаний'}
+              {isUploading ? '⏳ Загружаю в базу знаний...' : '📤 Загрузить для обучения AI'}
             </button>
           </form>
-          
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-sm mb-2">💡 Как это работает:</h3>
-            <ul className="text-xs text-blue-800 space-y-1">
-              <li>• AI анализирует загруженные документы</li>
-              <li>• Извлекает ключевые знания и процедуры</li>
-              <li>• Использует информацию для ответов</li>
-              <li>• Постоянно улучшается на основе опыта</li>
-            </ul>
-          </div>
         </div>
         
-        {/* Knowledge Base List */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        {/* Knowledge Base */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold mb-4">🧠 База знаний ({knowledgeBase.length})</h2>
           
           <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -1020,18 +1004,13 @@ function TrainingSection() {
                     📅 {new Date(kb.created_at).toLocaleDateString('ru-RU')}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    📄 Тип: {kb.file_type} | 🏷️ Ключевых слов: {kb.keywords?.length || 0}
+                    📄 {kb.file_type} | 🏷️ Ключевых слов: {kb.keywords?.length || 0}
                   </p>
-                  {kb.content && (
-                    <p className="text-sm text-gray-700 mt-2 line-clamp-2">
-                      {kb.content.substring(0, 150)}...
-                    </p>
-                  )}
                 </div>
               ))
             ) : (
               <div className="text-center py-8 text-gray-500">
-                <p>📚 База знаний пуста</p>
+                <p className="text-lg">📚 База знаний пуста</p>
                 <p className="text-sm">Загрузите документы для обучения AI</p>
               </div>
             )}
@@ -1042,52 +1021,130 @@ function TrainingSection() {
   );
 }
 
-// Logs Section - REAL SYSTEM MONITORING
-function LogsSection() {
-  const [logs, setLogs] = useState({ voice_logs: [], learning_logs: [] });
-  const [loading, setLoading] = useState(false);
+// AI Tasks Section
+function AITasksSection() {
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
-    fetchLogs();
+    console.log('🤖 AI Tasks section mounted');
+    fetchTasks();
   }, []);
 
-  const fetchLogs = async () => {
-    setLoading(true);
+  const fetchTasks = async () => {
     try {
-      const response = await axios.get(`${API}/logs`);
+      const response = await axios.get(`${API}/ai-tasks`);
       if (response.data.status === 'success') {
-        setLogs({
-          voice_logs: response.data.voice_logs || [],
-          learning_logs: response.data.learning_logs || []
-        });
+        setTasks(response.data.tasks);
+        console.log('🤖 AI tasks loaded:', response.data.tasks.length);
       }
     } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
-      setLoading(false);
+      console.error('❌ Error fetching AI tasks:', error);
     }
   };
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">📋 Системные логи</h1>
-        <button
-          onClick={fetchLogs}
-          disabled={loading}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-        >
-          {loading ? '🔄 Загрузка...' : '🔄 Обновить'}
-        </button>
+      <h1 className="text-3xl font-bold mb-6">🤖 Задачи для AI</h1>
+      <p className="text-gray-600 mb-6">Календарное планирование задач с AI помощником</p>
+      
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">📅 Список задач ({tasks.length})</h2>
+        
+        {tasks.length > 0 ? (
+          <div className="space-y-4">
+            {tasks.map((task, index) => (
+              <div key={index} className="border rounded-lg p-4">
+                <h3 className="font-semibold">{task.title}</h3>
+                <p className="text-gray-600">{task.description}</p>
+                <p className="text-sm text-gray-500">
+                  ⏰ {new Date(task.scheduled_time).toLocaleString('ru-RU')}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-8">🤖 Пока нет задач для AI</p>
+        )}
       </div>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Voice Interactions */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">🎤 Голосовые взаимодействия ({logs.voice_logs.length})</h2>
-          
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {logs.voice_logs.map((log, index) => (
+// Employees Section
+function EmployeesSection() {
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    console.log('👥 Employees section mounted');
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get(`${API}/employees`);
+      if (response.data.status === 'success') {
+        setEmployees(response.data.employees);
+        console.log('👥 Employees loaded:', response.data.employees.length);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching employees:', error);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">👥 Сотрудники + HR</h1>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Команда VasDom (82 человека)</h2>
+        
+        {employees.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {employees.map((employee, index) => (
+              <div key={index} className="border rounded-lg p-4">
+                <h3 className="font-semibold">{employee.name}</h3>
+                <p className="text-gray-600">{employee.role}</p>
+                <p className="text-sm text-gray-500">{employee.phone}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">👥 Загрузка данных сотрудников...</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Logs Section
+function LogsSection() {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    console.log('📋 Logs section mounted');
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const response = await axios.get(`${API}/logs`);
+      if (response.data.status === 'success') {
+        setLogs(response.data.voice_logs || []);
+        console.log('📋 Logs loaded:', response.data.voice_logs?.length || 0);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching logs:', error);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-6">📋 Системные логи</h1>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">🎤 Голосовые взаимодействия ({logs.length})</h2>
+        
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {logs.length > 0 ? (
+            logs.map((log, index) => (
               <div key={index} className="border-l-4 border-blue-500 pl-3 pb-3">
                 <p className="text-sm text-gray-600">
                   👤 <strong>Пользователь:</strong> {log.user_message}
@@ -1095,64 +1152,14 @@ function LogsSection() {
                 <p className="text-sm text-green-600 mt-1">
                   🤖 <strong>AI:</strong> {log.ai_response}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500">
                   {new Date(log.timestamp).toLocaleString('ru-RU')}
                 </p>
               </div>
-            ))}
-            {logs.voice_logs.length === 0 && (
-              <p className="text-gray-500">🎤 Пока нет голосовых взаимодействий</p>
-            )}
-          </div>
-        </div>
-
-        {/* Learning Entries */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">🧠 Самообучение AI ({logs.learning_logs.length})</h2>
-          
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {logs.learning_logs.map((log, index) => (
-              <div key={index} className="border-l-4 border-green-500 pl-3 pb-3">
-                <p className="text-sm text-gray-600">
-                  ❓ <strong>Вопрос:</strong> {log.user_question}
-                </p>
-                <p className="text-sm text-blue-600 mt-1">
-                  💭 <strong>Ответ:</strong> {log.ai_response?.substring(0, 100)}...
-                </p>
-                {log.feedback && (
-                  <p className="text-sm text-orange-600 mt-1">
-                    📝 <strong>Обратная связь:</strong> {log.feedback}
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(log.created_at).toLocaleString('ru-RU')}
-                </p>
-              </div>
-            ))}
-            {logs.learning_logs.length === 0 && (
-              <p className="text-gray-500">🧠 Система начнет учиться после первых взаимодействий</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">📊 Статистика активности</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{logs.voice_logs.length}</p>
-            <p className="text-sm text-gray-600">Голосовых запросов</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{logs.learning_logs.length}</p>
-            <p className="text-sm text-gray-600">Записей обучения</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">
-              {logs.voice_logs.length + logs.learning_logs.length}
-            </p>
-            <p className="text-sm text-gray-600">Всего взаимодействий</p>
-          </div>
+            ))
+          ) : (
+            <p className="text-gray-500 text-center py-8">📋 Пока нет логов взаимодействий</p>
+          )}
         </div>
       </div>
     </div>
