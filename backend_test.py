@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+"""
+VasDom AudioBot Backend API Testing Suite
+Tests all critical API endpoints for the cleaning company management system
+"""
+
+import requests
+import json
+import sys
+import time
+from datetime import datetime
+from io import BytesIO
+
+class VasDomAPITester:
+    def __init__(self, base_url="http://localhost:8001"):
+        self.base_url = base_url
+        self.api_url = f"{base_url}/api"
+        self.tests_run = 0
+        self.tests_passed = 0
+        self.failed_tests = []
+
+    def log_test(self, name, success, details=""):
+        """Log test results"""
+        self.tests_run += 1
+        if success:
+            self.tests_passed += 1
+            print(f"✅ {name} - PASSED")
+        else:
+            self.failed_tests.append({"name": name, "details": details})
+            print(f"❌ {name} - FAILED: {details}")
+
+    def test_api_root(self):
+        """Test API root endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                expected_keys = ["message", "version", "status", "features"]
+                has_keys = all(key in data for key in expected_keys)
+                success = has_keys and "VasDom AudioBot API" in data.get("message", "")
+                
+            self.log_test("API Root", success, 
+                         f"Status: {response.status_code}, Response: {response.text[:100]}")
+            return success
+        except Exception as e:
+            self.log_test("API Root", False, str(e))
+            return False
+
+    def test_dashboard_stats(self):
+        """Test dashboard statistics endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/dashboard", timeout=15)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "stats" in data and
+                          isinstance(data["stats"], dict))
+                
+                if success:
+                    stats = data["stats"]
+                    required_stats = ["employees", "houses", "entrances", "apartments", "floors"]
+                    success = all(stat in stats for stat in required_stats)
+                    print(f"   📊 Houses: {stats.get('houses', 0)}, Employees: {stats.get('employees', 0)}")
+                    print(f"   📊 Data source: {data.get('data_source', 'Unknown')}")
+                
+            self.log_test("Dashboard Stats", success, 
+                         f"Status: {response.status_code}, Data: {response.text[:200]}")
+            return success
+        except Exception as e:
+            self.log_test("Dashboard Stats", False, str(e))
+            return False
+
+    def test_bitrix24_connection(self):
+        """Test Bitrix24 integration"""
+        try:
+            response = requests.get(f"{self.api_url}/bitrix24/test", timeout=15)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = data.get("status") == "success"
+                print(f"   🔗 Bitrix24 connection: {data.get('bitrix_info', {})}")
+                
+            self.log_test("Bitrix24 Connection", success, 
+                         f"Status: {response.status_code}, Response: {response.text[:150]}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Connection", False, str(e))
+            return False
+
+    def test_cleaning_houses(self):
+        """Test cleaning houses data from Bitrix24"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/houses?limit=50", timeout=20)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list))
+                
+                if success:
+                    houses_count = len(data["houses"])
+                    print(f"   🏠 Loaded {houses_count} houses from {data.get('source', 'Unknown')}")
+                    if houses_count > 0:
+                        sample_house = data["houses"][0]
+                        print(f"   🏠 Sample: {sample_house.get('address', 'No address')}")
+                
+            self.log_test("Cleaning Houses", success, 
+                         f"Status: {response.status_code}, Houses: {len(data.get('houses', []))}")
+            return success
+        except Exception as e:
+            self.log_test("Cleaning Houses", False, str(e))
+            return False
+
+    def test_voice_ai_processing(self):
+        """Test AI voice processing with real GPT-4 mini"""
+        try:
+            test_message = {
+                "text": "Сколько домов у нас в работе?",
+                "user_id": "test_user"
+            }
+            
+            response = requests.post(f"{self.api_url}/voice/process", 
+                                   json=test_message, timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = ("response" in data and 
+                          len(data["response"]) > 10 and
+                          "timestamp" in data)
+                
+                if success:
+                    ai_response = data["response"]
+                    print(f"   🤖 AI Response: {ai_response[:100]}...")
+                    # Check if response seems relevant to cleaning business
+                    relevant_keywords = ["дом", "уборк", "бригад", "клининг", "подъезд"]
+                    has_relevant_content = any(keyword in ai_response.lower() for keyword in relevant_keywords)
+                    if has_relevant_content:
+                        print("   ✅ AI response seems contextually relevant")
+                    else:
+                        print("   ⚠️ AI response may not be contextually relevant")
+                
+            self.log_test("Voice AI Processing", success, 
+                         f"Status: {response.status_code}, Response length: {len(data.get('response', ''))}")
+            return success
+        except Exception as e:
+            self.log_test("Voice AI Processing", False, str(e))
+            return False
+
+    def test_meetings_functionality(self):
+        """Test meetings recording functionality"""
+        try:
+            # Start recording
+            start_response = requests.post(f"{self.api_url}/meetings/start-recording", timeout=10)
+            success = start_response.status_code == 200
+            
+            if success:
+                start_data = start_response.json()
+                success = (start_data.get("status") == "success" and 
+                          "meeting_id" in start_data)
+                
+                if success:
+                    meeting_id = start_data["meeting_id"]
+                    print(f"   🎤 Started meeting: {meeting_id}")
+                    
+                    # Wait a moment then stop recording
+                    time.sleep(2)
+                    
+                    stop_response = requests.post(f"{self.api_url}/meetings/stop-recording?meeting_id={meeting_id}", 
+                                                timeout=15)
+                    success = stop_response.status_code == 200
+                    
+                    if success:
+                        stop_data = stop_response.json()
+                        success = stop_data.get("status") == "success"
+                        print(f"   ⏹️ Stopped meeting successfully")
+                
+            self.log_test("Meetings Functionality", success, 
+                         f"Start: {start_response.status_code}, Stop: {stop_response.status_code if 'stop_response' in locals() else 'N/A'}")
+            return success
+        except Exception as e:
+            self.log_test("Meetings Functionality", False, str(e))
+            return False
+
+    def test_knowledge_base(self):
+        """Test knowledge base functionality"""
+        try:
+            # Get knowledge base
+            response = requests.get(f"{self.api_url}/knowledge", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "knowledge_base" in data)
+                
+                if success:
+                    kb_count = len(data["knowledge_base"])
+                    print(f"   📚 Knowledge base entries: {kb_count}")
+                
+            self.log_test("Knowledge Base", success, 
+                         f"Status: {response.status_code}, Entries: {len(data.get('knowledge_base', []))}")
+            return success
+        except Exception as e:
+            self.log_test("Knowledge Base", False, str(e))
+            return False
+
+    def test_ai_tasks(self):
+        """Test AI tasks functionality"""
+        try:
+            # Get AI tasks
+            response = requests.get(f"{self.api_url}/ai-tasks", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "tasks" in data)
+                
+                if success:
+                    tasks_count = len(data["tasks"])
+                    print(f"   🤖 AI tasks: {tasks_count}")
+                
+            self.log_test("AI Tasks", success, 
+                         f"Status: {response.status_code}, Tasks: {len(data.get('tasks', []))}")
+            return success
+        except Exception as e:
+            self.log_test("AI Tasks", False, str(e))
+            return False
+
+    def test_employees(self):
+        """Test employees endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/employees", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "employees" in data)
+                
+                if success:
+                    employees_count = data.get("total", len(data["employees"]))
+                    print(f"   👥 Employees: {employees_count}")
+                
+            self.log_test("Employees", success, 
+                         f"Status: {response.status_code}, Count: {data.get('total', 0)}")
+            return success
+        except Exception as e:
+            self.log_test("Employees", False, str(e))
+            return False
+
+    def test_system_logs(self):
+        """Test system logs endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/logs", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "voice_logs" in data and
+                          "learning_logs" in data)
+                
+                if success:
+                    voice_logs = len(data["voice_logs"])
+                    learning_logs = len(data["learning_logs"])
+                    print(f"   📋 Voice logs: {voice_logs}, Learning logs: {learning_logs}")
+                
+            self.log_test("System Logs", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("System Logs", False, str(e))
+            return False
+
+    def run_all_tests(self):
+        """Run all API tests"""
+        print("🚀 Starting VasDom AudioBot API Tests")
+        print(f"🔗 Testing API at: {self.api_url}")
+        print("=" * 60)
+        
+        # Core API tests
+        self.test_api_root()
+        self.test_dashboard_stats()
+        
+        # Integration tests
+        self.test_bitrix24_connection()
+        self.test_cleaning_houses()
+        
+        # AI functionality tests
+        self.test_voice_ai_processing()
+        
+        # Feature tests
+        self.test_meetings_functionality()
+        self.test_knowledge_base()
+        self.test_ai_tasks()
+        self.test_employees()
+        self.test_system_logs()
+        
+        # Print results
+        print("=" * 60)
+        print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
+        
+        if self.failed_tests:
+            print("\n❌ Failed Tests:")
+            for test in self.failed_tests:
+                print(f"   • {test['name']}: {test['details']}")
+        
+        success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
+        print(f"✅ Success Rate: {success_rate:.1f}%")
+        
+        return self.tests_passed == self.tests_run
+
+def main():
+    """Main test execution"""
+    tester = VasDomAPITester()
+    
+    try:
+        all_passed = tester.run_all_tests()
+        return 0 if all_passed else 1
+    except KeyboardInterrupt:
+        print("\n⏹️ Tests interrupted by user")
+        return 1
+    except Exception as e:
+        print(f"\n💥 Unexpected error: {e}")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
