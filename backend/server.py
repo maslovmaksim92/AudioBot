@@ -376,13 +376,22 @@ async def get_dashboard_detailed_stats():
 
 @api_router.get("/dashboard")
 async def get_dashboard():
-    """Дашборд с основной статистикой"""
     try:
         total_employees = await db.employees.count_documents({"active": True})
         total_meetings = await db.meetings.count_documents({})
         total_messages = await db.chat_messages.count_documents({})
+        total_ai_tasks = await db.ai_tasks.count_documents({"active": True})
+        total_training_files = await db.training_files.count_documents({})
         
-        # Последние логи
+        # Получаем статистику из CRM
+        crm_stats = {"houses": 0, "entrances": 0, "apartments": 0, "floors": 0}
+        try:
+            stats_response = await get_dashboard_detailed_stats()
+            if stats_response.get("status") == "success":
+                crm_stats = stats_response.get("totals", crm_stats)
+        except:
+            pass
+        
         recent_logs = await db.system_logs.find(
             {"level": {"$in": ["WARNING", "ERROR"]}}, 
             sort=[("timestamp", -1)]
@@ -392,11 +401,10 @@ async def get_dashboard():
             "total_employees": total_employees,
             "total_meetings": total_meetings,
             "total_messages": total_messages,
-            "active_projects": 0,
-            "completed_tasks_today": 0,
-            "revenue_month": 0.0,
-            "system_health": "good",
-            "ai_suggestions": [],
+            "total_ai_tasks": total_ai_tasks,
+            "total_training_files": total_training_files,
+            "crm_stats": crm_stats,  # Статистика из CRM
+            "system_health": "excellent",
             "recent_alerts": len(recent_logs)
         }
     except Exception as e:
