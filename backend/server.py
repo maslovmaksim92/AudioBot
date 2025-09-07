@@ -625,67 +625,7 @@ async def set_telegram_webhook():
         await log_system_event("ERROR", "Telegram webhook error", "telegram", {"error": str(e)})
         return {"error": str(e)}
 
-# 🚀 ДОРАБОТКИ ДЛЯ ВАСДОМ - ДОБАВЛЯЕМ НОВЫЕ ФУНКЦИИ К СУЩЕСТВУЮЩЕМУ КОДУ
-
-# Новые модели для управления сотрудниками
-class Employee(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    full_name: str
-    phone: str
-    role: str
-    department: str
-    telegram_id: Optional[str] = None
-    active: bool = True
-    performance_score: float = 0.0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-class EmployeeCreate(BaseModel):
-    full_name: str
-    phone: str
-    role: str
-    department: str
-
-# Новые endpoints для дашборда
-@api_router.get("/dashboard")
-async def get_dashboard():
-    """Дашборд с основной статистикой"""
-    try:
-        total_employees = await db.employees.count_documents({"active": True})
-        return {
-            "total_employees": total_employees,
-            "active_projects": 0,  # Пока заглушка
-            "completed_tasks_today": 0,  # Пока заглушка 
-            "revenue_month": 0.0,  # Пока заглушка
-            "system_health": "good",
-            "ai_suggestions": []
-        }
-    except Exception as e:
-        logger.error(f"Dashboard error: {str(e)}")
-        return {"error": str(e)}
-
-@api_router.get("/employees")
-async def get_employees():
-    """Получение списка сотрудников"""
-    try:
-        employees = await db.employees.find({"active": True}).to_list(1000)
-        return [Employee(**emp) for emp in employees]
-    except Exception as e:
-        logger.error(f"Employees error: {str(e)}")
-        return {"error": str(e)}
-
-@api_router.post("/employees")
-async def create_employee(employee: EmployeeCreate):
-    """Создание нового сотрудника"""
-    try:
-        employee_dict = employee.dict()
-        employee_obj = Employee(**employee_dict)
-        await db.employees.insert_one(employee_obj.dict())
-        return employee_obj
-    except Exception as e:
-        logger.error(f"Create employee error: {str(e)}")
-        return {"error": str(e)}
-
-# Include the router in the main app - ПЕРЕНЕСЕНО В КОНЕЦ
+# Include API router and configure app
 app.include_router(api_router)
 
 app.add_middleware(
@@ -703,26 +643,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
-
-# Инициализация базовых сотрудников при запуске
+# App events
 @app.on_event("startup")
 async def startup_event():
     """Инициализация системы"""
+    await log_system_event("INFO", "Система запускается", "backend")
     logger.info("🚀 Starting VasDom AudioBot System...")
+    
+    # Устанавливаем Telegram webhook
+    try:
+        webhook_result = await telegram_service.set_webhook()
+        if webhook_result.get("ok"):
+            await log_system_event("INFO", "Telegram webhook настроен успешно", "telegram")
+        else:
+            await log_system_event("WARNING", "Проблема с Telegram webhook", "telegram", webhook_result)
+    except Exception as e:
+        await log_system_event("ERROR", "Ошибка настройки Telegram webhook", "telegram", {"error": str(e)})
     
     # Инициализируем базовых сотрудников из задания
     try:
         base_employees = [
-            # Руководство
+            # Руководство  
             {"full_name": "Маслов Максим Валерьевич", "phone": "89200924550", "role": "director", "department": "Администрация"},
             {"full_name": "Маслова Валентина Михайловна", "phone": "89208701769", "role": "general_director", "department": "Администрация"},
             {"full_name": "Филиппов Сергей Сергеевич", "phone": "89056400212", "role": "construction_head", "department": "Строительный отдел"},
             {"full_name": "Черкасов Ярослав Артурович", "phone": "89208855883", "role": "construction_manager", "department": "Строительный отдел"},
             
-            # Остальные сотрудники
+            # Остальные отделы
             {"full_name": "Колосов Дмитрий Сергеевич", "phone": "89105489113", "role": "accountant", "department": "Бухгалтерия"},
             {"full_name": "Маслова Арина Алексеевна", "phone": "89533150101", "role": "construction_manager", "department": "Строительный отдел"},
             {"full_name": "Илья Николаевич", "phone": "", "role": "foreman", "department": "Строительный отдел"},
@@ -741,11 +688,27 @@ async def startup_event():
             if not existing:
                 employee_obj = Employee(**emp_data)
                 await db.employees.insert_one(employee_obj.dict())
-                logger.info(f"✅ Created employee: {emp_data['full_name']}")
+                await log_system_event("INFO", f"Создан сотрудник: {emp_data['full_name']}", "backend")
         
-        logger.info("👥 Base employees initialized")
+        await log_system_event("INFO", "Базовые сотрудники инициализированы", "backend")
         
     except Exception as e:
-        logger.error(f"Error initializing employees: {str(e)}")
+        await log_system_event("ERROR", "Ошибка инициализации сотрудников", "backend", {"error": str(e)})
     
+    # Тестируем Bitrix24 подключение
+    try:
+        bitrix_test = await bitrix_service._make_request("app.info")
+        if "error" not in bitrix_test:
+            await log_system_event("INFO", "Bitrix24 подключение успешно", "bitrix24")
+        else:
+            await log_system_event("WARNING", "Проблема с Bitrix24 подключением", "bitrix24", bitrix_test)
+    except Exception as e:
+        await log_system_event("ERROR", "Ошибка подключения к Bitrix24", "bitrix24", {"error": str(e)})
+    
+    await log_system_event("INFO", "Система запущена успешно", "backend")
     logger.info("✅ System startup completed!")
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await log_system_event("INFO", "Система завершает работу", "backend")
+    client.close()
