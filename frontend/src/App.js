@@ -15,14 +15,14 @@ function App() {
   const [currentSection, setCurrentSection] = useState('general');
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
   const [dashboardStats, setDashboardStats] = useState({
-    employees: 82,
-    houses: 450,
-    entrances: 1290,
-    apartments: 40948,
-    floors: 3202,
+    employees: 0,
+    houses: 0,
+    entrances: 0,
+    apartments: 0,
+    floors: 0,
     meetings: 0,
     ai_tasks: 0
-  }); // Устанавливаем данные по умолчанию
+  }); // Сбрасываем данные по умолчанию
   const [loading, setLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState('connecting');
 
