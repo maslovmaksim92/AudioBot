@@ -135,8 +135,8 @@ class VasDomAPITester:
         print("🤖 TESTING AI ENDPOINTS")
         print("="*60)
         
-        # Test AI generation
-        success, ai_data = self.test_endpoint("AI Response Generation", "GET", "/test-ai")
+        # Test AI generation with /api prefix
+        success, ai_data = self.test_endpoint("AI Response Generation", "GET", "/api/test-ai")
         if success:
             print(f"   AI Status: {ai_data.get('status', 'unknown')}")
             print(f"   Model: {ai_data.get('model', 'unknown')}")
