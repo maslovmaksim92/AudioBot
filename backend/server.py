@@ -306,7 +306,73 @@ async def get_status_checks():
 
 # ============= DASHBOARD & EMPLOYEES =============
 
-@api_router.get("/dashboard")
+@api_router.get("/dashboard/stats")
+async def get_dashboard_detailed_stats():
+    """Детальная статистика для главного дашборда из CRM"""
+    try:
+        # Получаем все сделки с детальной информацией
+        deals = await bitrix_service.get_deals_detailed(limit=500)
+        
+        total_houses = len(deals)
+        total_entrances = 0
+        total_apartments = 0
+        total_floors = 0
+        
+        # Парсим данные из CRM полей
+        for deal in deals:
+            # Ищем информацию о подъездах, квартирах, этажах в пользовательских полях
+            for field, value in deal.items():
+                if field.startswith("UF_CRM_") and value:
+                    try:
+                        if "подъезд" in field.lower() or "entrance" in field.lower():
+                            total_entrances += int(value) if str(value).isdigit() else 0
+                        elif "квартир" in field.lower() or "apartment" in field.lower():
+                            total_apartments += int(value) if str(value).isdigit() else 0
+                        elif "этаж" in field.lower() or "floor" in field.lower():
+                            total_floors += int(value) if str(value).isdigit() else 0
+                    except:
+                        pass
+        
+        # Группировка по бригадам и дням недели
+        houses_by_brigade = {}
+        houses_by_weekday = {}
+        
+        for deal in deals:
+            # Ищем поле бригады
+            brigade = "Бригада не назначена"
+            weekday = "День не назначен"
+            
+            for field, value in deal.items():
+                if "бригад" in field.lower() and value:
+                    brigade = str(value)
+                elif "день" in field.lower() or "weekday" in field.lower():
+                    weekday = str(value)
+            
+            if brigade not in houses_by_brigade:
+                houses_by_brigade[brigade] = []
+            houses_by_brigade[brigade].append(deal)
+            
+            if weekday not in houses_by_weekday:
+                houses_by_weekday[weekday] = []
+            houses_by_weekday[weekday].append(deal)
+        
+        await log_system_event("INFO", f"📊 Получена детальная статистика: {total_houses} домов", "dashboard")
+        
+        return {
+            "status": "success",
+            "totals": {
+                "houses": total_houses,
+                "entrances": total_entrances,
+                "apartments": total_apartments,
+                "floors": total_floors
+            },
+            "houses_by_brigade": houses_by_brigade,
+            "houses_by_weekday": houses_by_weekday,
+            "all_houses": deals
+        }
+    except Exception as e:
+        await log_system_event("ERROR", "Dashboard stats error", "dashboard", {"error": str(e)})
+        return {"status": "error", "error": str(e)}
 async def get_dashboard():
     """Дашборд с основной статистикой"""
     try:
