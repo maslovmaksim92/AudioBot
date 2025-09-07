@@ -641,6 +641,8 @@ app.include_router(api_router)
 
 @app.on_event("startup")
 async def startup():
+    logger.info("🚀 VasDom AudioBot API starting...")
+    await init_mongodb()
     logger.info("🚀 VasDom AudioBot API started successfully")
 
 @app.on_event("shutdown") 
