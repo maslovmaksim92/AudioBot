@@ -240,6 +240,48 @@ class SystemLog(BaseModel):
     data: Optional[Dict[str, Any]] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
+# Новые модели для дополнительных функций
+class VoiceCall(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    caller_id: str
+    duration: int = 0  # секунды
+    transcript: Optional[str] = None
+    ai_response_text: Optional[str] = None
+    status: str = "active"  # active, ended, failed
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class AITask(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    schedule: str  # cron-style или описание "каждый день в 9:00"
+    recurring: bool = True
+    next_run: Optional[datetime] = None
+    last_run: Optional[datetime] = None
+    active: bool = True
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TrainingFile(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    filename: str
+    department: str
+    content: str
+    file_type: str  # "pdf", "doc", "txt"
+    uploaded_by: str
+    processed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class CleaningHouse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    address: str
+    stage: str
+    contact_info: Optional[str] = None
+    bitrix24_deal_id: str
+    last_cleaning: Optional[datetime] = None
+    next_cleaning: Optional[datetime] = None
+    notes: List[str] = []
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
