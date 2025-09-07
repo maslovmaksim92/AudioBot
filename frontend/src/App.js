@@ -254,90 +254,152 @@ const TasksSection = ({ tasks }) => {
   );
 };
 
-// Раздел "Живой разговор" 
+// Раздел "Живой разговор" - ГОЛОСОВОЙ ИНТЕРФЕЙС (как телефонный звонок)
 const LiveChatSection = () => {
-  const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [callId, setCallId] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [callHistory, setCallHistory] = useState([]);
 
-  const loadChatHistory = async () => {
+  const startVoiceCall = async () => {
     try {
-      const response = await axios.get(`${API}/chat/history`);
-      if (response.data.status === 'success') {
-        setMessages(response.data.messages || []);
-      }
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || loading) return;
-    
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API}/chat/send`, {
-        sender_id: 'dashboard_user',
-        content: inputMessage
+      const response = await axios.post(`${API}/voice/start-call`, {
+        caller_id: 'dashboard_user'
       });
       
       if (response.data.status === 'success') {
-        await loadChatHistory();
-        setInputMessage('');
+        setCallId(response.data.call_id);
+        setIsCallActive(true);
+        setTranscript('');
+        setAiResponse('');
       }
     } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error starting call:', error);
     }
   };
 
-  useEffect(() => {
-    loadChatHistory();
-  }, []);
+  const endVoiceCall = () => {
+    setIsCallActive(false);
+    setIsRecording(false);
+    setCallId(null);
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    // В production здесь будет WebRTC запись аудио
+    setTimeout(() => {
+      setIsRecording(false);
+      setTranscript("Это демо транскрипт голосового сообщения (функция в разработке)");
+      processVoiceMessage("Это демо транскрипт голосового сообщения");
+    }, 3000);
+  };
+
+  const processVoiceMessage = async (transcript) => {
+    try {
+      const response = await axios.post(`${API}/voice/process-audio`, {
+        call_id: callId,
+        transcript: transcript
+      });
+      
+      if (response.data.status === 'success') {
+        setAiResponse(response.data.ai_response);
+        
+        // В production здесь будет воспроизведение TTS аудио
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(response.data.ai_response);
+          utterance.lang = 'ru-RU';
+          speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing voice:', error);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-gray-900">💬 Живой разговор с AI</h2>
+      <h2 className="text-3xl font-bold text-gray-900">📞 Живой голосовой разговор с AI</h2>
       
-      <div className="bg-white rounded-lg shadow-md p-6" style={{height: '500px'}}>
-        <div className="h-96 overflow-y-auto mb-4 space-y-3">
-          {messages.map((msg, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex justify-end">
-                <div className="bg-blue-500 text-white p-3 rounded-lg max-w-xs">
-                  {msg.content}
+      <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="text-center">
+          {!isCallActive ? (
+            <div>
+              <div className="mb-6">
+                <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl text-white">📞</span>
                 </div>
+                <h3 className="text-xl font-bold mb-2">Голосовой AI ассистент</h3>
+                <p className="text-gray-600">Нажмите для начала разговора с AI как по телефону</p>
               </div>
-              {msg.ai_response && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-800 p-3 rounded-lg max-w-lg">
-                    <strong>🤖 AI:</strong> {msg.ai_response}
-                  </div>
+              
+              <button
+                onClick={startVoiceCall}
+                className="bg-green-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-green-600 transition-colors"
+              >
+                🎤 Начать звонок
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="mb-6">
+                <div className={`w-32 h-32 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <span className="text-4xl text-white">{isRecording ? '🔴' : '🎤'}</span>
+                </div>
+                <h3 className="text-xl font-bold mb-2">Звонок активен</h3>
+                <p className="text-gray-600">
+                  {isRecording ? 'Запись голоса...' : 'Нажмите кнопку и говорите'}
+                </p>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                {!isRecording && (
+                  <button
+                    onClick={startRecording}
+                    className="bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 mr-4"
+                  >
+                    🎤 Говорить
+                  </button>
+                )}
+                
+                <button
+                  onClick={endVoiceCall}
+                  className="bg-red-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-red-600"
+                >
+                  📞 Завершить звонок
+                </button>
+              </div>
+              
+              {transcript && (
+                <div className="bg-gray-100 p-4 rounded-lg mb-4">
+                  <h4 className="font-bold text-sm mb-2">Ваша речь:</h4>
+                  <p>{transcript}</p>
+                </div>
+              )}
+              
+              {aiResponse && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-bold text-sm mb-2">🤖 AI ответ:</h4>
+                  <p>{aiResponse}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    🔊 Аудио ответ воспроизводится автоматически
+                  </p>
                 </div>
               )}
             </div>
-          ))}
+          )}
         </div>
-        
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Напишите сообщение AI ассистенту..."
-            className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
-            disabled={loading}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={loading || !inputMessage.trim()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-          >
-            {loading ? 'Отправка...' : 'Отправить'}
-          </button>
-        </div>
+      </div>
+      
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="font-bold text-sm mb-2">💡 Функция в разработке:</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• WebRTC для записи голоса в браузере</li>
+          <li>• Speech-to-Text транскрибация в реальном времени</li>
+          <li>• Text-to-Speech озвучивание ответов AI</li>
+          <li>• Сохранение истории голосовых звонков</li>
+        </ul>
       </div>
     </div>
   );
