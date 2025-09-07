@@ -358,7 +358,7 @@ const Home = () => {
   useEffect(() => {
     const testApi = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/health`);
+        const response = await axios.get(`${BACKEND_URL}/api/health`);
         setApiStatus('✅ API подключено успешно');
         console.log('API Response:', response.data);
       } catch (e) {
