@@ -28,21 +28,35 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# MongoDB connection - упрощенная версия без SSL ошибок
+# MongoDB connection с API ключами
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+mongo_public_key = os.environ.get('MONGO_PUBLIC_KEY')
+mongo_private_key = os.environ.get('MONGO_PRIVATE_KEY')
+
 db = None
 client = None
 
-# Простое подключение без сложных SSL настроек
 try:
-    if 'localhost' in mongo_url:
+    if 'cluster0.lhqxfbi.mongodb.net' in mongo_url and mongo_public_key and mongo_private_key:
+        # MongoDB Atlas с API ключами
+        logger.info("🔗 Connecting to MongoDB Atlas with API keys...")
+        
+        # Создаем connection string с API ключами
+        atlas_url = f"mongodb+srv://{mongo_public_key}:{mongo_private_key}@cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority"
+        
+        client = AsyncIOMotorClient(atlas_url, tls=True, tlsAllowInvalidCertificates=True)
+        db = client[os.environ.get('DB_NAME', 'ClusterD')]
+        logger.info(f"✅ MongoDB Atlas connected with API keys: {os.environ.get('DB_NAME', 'ClusterD')}")
+        
+    elif 'localhost' in mongo_url:
         # Локальная MongoDB
         client = AsyncIOMotorClient(mongo_url)
         db = client[os.environ.get('DB_NAME', 'audiobot')]
         logger.info(f"✅ Local MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
+        
     else:
-        # Пропускаем Atlas пока не настроен API Key
-        logger.info("⚠️ Atlas connection skipped - using in-memory storage")
+        # Fallback режим
+        logger.info("⚠️ MongoDB not configured - using in-memory mode")
         client = None
         db = None
         
