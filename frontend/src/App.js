@@ -1113,7 +1113,160 @@ const Dashboard = () => {
       case 'live-chat':
         return <LiveChatSection />;
       case 'logs':
-        return <LogsSection />;
+// Раздел "Работы" с вкладкой Клининг
+const WorkSection = () => {
+  const [activeTab, setActiveTab] = useState('cleaning');
+  const [cleaningHouses, setCleaningHouses] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadCleaningHouses = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/cleaning/houses`);
+      if (response.data.status === 'success') {
+        setCleaningHouses(response.data.houses || []);
+      }
+    } catch (error) {
+      console.error('Error loading cleaning houses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'cleaning') {
+      loadCleaningHouses();
+    }
+  }, [activeTab]);
+
+  const renderCleaningTab = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold">🏠 Все дома для уборки (без фильтра "в работе")</h3>
+        <button
+          onClick={loadCleaningHouses}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+        >
+          {loading ? 'Синхронизация...' : '🔄 Синхронизировать с Bitrix24'}
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {cleaningHouses.map((house, index) => (
+            <div key={house.id || index} className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-gray-900 text-sm">
+                  {house.address || `Объект ${house.bitrix24_deal_id}`}
+                </h4>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  house.stage === 'WON' ? 'bg-green-100 text-green-800' :
+                  house.stage === 'EXECUTING' ? 'bg-blue-100 text-blue-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {house.stage}
+                </span>
+              </div>
+              
+              <div className="space-y-1 text-xs text-gray-600">
+                <p><strong>ID в CRM:</strong> {house.bitrix24_deal_id}</p>
+                {house.contact_info && (
+                  <p><strong>Контакт:</strong> {house.contact_info}</p>
+                )}
+                {house.last_cleaning && (
+                  <p><strong>Последняя уборка:</strong> {new Date(house.last_cleaning).toLocaleDateString()}</p>
+                )}
+              </div>
+              
+              <div className="mt-3">
+                <button
+                  className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                  onClick={() => {
+                    // В будущем - планирование уборки
+                    alert(`Планирование уборки для: ${house.address}`);
+                  }}
+                >
+                  📅 Запланировать уборку
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {cleaningHouses.length === 0 && !loading && (
+          <div className="text-center py-8 text-gray-500">
+            Нет домов для отображения. Нажмите "Синхронизировать с Bitrix24"
+          </div>
+        )}
+      </div>
+      
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h4 className="font-bold text-blue-800 mb-2">📊 Статистика по клинингу:</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="font-semibold">Всего домов:</span> {cleaningHouses.length}
+          </div>
+          <div>
+            <span className="font-semibold">Завершенные:</span> {cleaningHouses.filter(h => h.stage === 'WON').length}
+          </div>
+          <div>
+            <span className="font-semibold">В работе:</span> {cleaningHouses.filter(h => h.stage === 'EXECUTING').length}
+          </div>
+          <div>
+            <span className="font-semibold">Новые:</span> {cleaningHouses.filter(h => h.stage === 'NEW').length}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-gray-900">🏗️ Управление работами</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setActiveTab('cleaning')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'cleaning' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            🧹 Клининг
+          </button>
+          <button
+            onClick={() => setActiveTab('construction')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              activeTab === 'construction' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            🏗️ Стройка
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'cleaning' && renderCleaningTab()}
+      
+      {activeTab === 'construction' && (
+        <div className="text-center py-12">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">🏗️ Строительные работы</h3>
+          <div className="bg-white rounded-lg shadow-md p-6 mx-auto max-w-2xl">
+            <p className="text-gray-600 mb-4">Модуль управления строительными проектами</p>
+            <div className="space-y-2 text-left">
+              <p><strong>🎯 Планируется:</strong> Интеграция с проектами Bitrix24</p>
+              <p><strong>📊 Функции:</strong> Планирование, контроль, отчетность</p>
+              <p><strong>👷 Команды:</strong> Управление бригадами и ресурсами</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
       case 'training':
         return <TrainingSection />;
       case 'ai-tasks':
