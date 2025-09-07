@@ -32,16 +32,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# PostgreSQL connection
+# PostgreSQL connection with asyncpg
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/vasdom_audiobot')
 
-# For Render, PostgreSQL URL format is different
+# Convert postgres:// to postgresql+asyncpg:// for async support
 if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://', 1)
+elif DATABASE_URL.startswith('postgresql://'):
+    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)
 
-logger.info(f"🐘 Database URL: {DATABASE_URL[:50]}...")
+logger.info(f"🐘 PostgreSQL URL configured: {DATABASE_URL[:50]}...")
 
-# Database setup
+# Database setup with asyncpg
 database = Database(DATABASE_URL)
 Base = declarative_base()
 
