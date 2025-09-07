@@ -816,20 +816,82 @@ async def get_ai_tasks():
 
 @api_router.post("/ai-tasks")
 async def create_ai_task(task_data: Dict[str, Any]):
-    """Создание AI задачи"""
+    """Создание AI задачи с календарем и временем"""
     try:
+        # Парсим дату и время если есть
+        scheduled_date = task_data.get("scheduled_date")
+        scheduled_time = task_data.get("scheduled_time")
+        next_run = None
+        
+        if scheduled_date and scheduled_time:
+            try:
+                date_str = f"{scheduled_date} {scheduled_time}"
+                next_run = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+            except:
+                next_run = datetime.utcnow() + timedelta(hours=1)  # Fallback
+        
         task = {
             "id": str(uuid.uuid4()),
             "title": task_data["title"],
             "description": task_data["description"],
             "schedule": task_data.get("schedule", ""),
+            "scheduled_date": scheduled_date,
+            "scheduled_time": scheduled_time,
             "recurring": task_data.get("recurring", False),
+            "next_run": next_run,
             "active": True,
             "created_by": "admin",
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "chat_messages": []  # Чат для согласования задачи
         }
         await db.ai_tasks.insert_one(task)
+        await log_system_event("INFO", f"🤖 AI задача создана: {task['title']}", "ai_tasks")
         return {"status": "success", "task": task}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/ai-tasks/{task_id}/chat")
+async def add_chat_to_ai_task(task_id: str, message_data: Dict[str, Any]):
+    """Добавить сообщение в чат AI задачи для согласования"""
+    try:
+        message = message_data["message"]
+        
+        # Получаем AI ответ с контекстом задачи
+        task = await db.ai_tasks.find_one({"id": task_id})
+        if task:
+            context = f"Обсуждение задачи: {task['title']} - {task['description']}"
+            ai_response = await get_ai_response(message, context, "Управление задачами")
+        else:
+            ai_response = "Задача не найдена"
+        
+        chat_entry = {
+            "timestamp": datetime.utcnow(),
+            "user_message": message,
+            "ai_response": ai_response
+        }
+        
+        # Добавляем в чат задачи
+        await db.ai_tasks.update_one(
+            {"id": task_id},
+            {"$push": {"chat_messages": chat_entry}}
+        )
+        
+        await log_system_event("INFO", f"💬 Сообщение добавлено в чат задачи: {task_id}", "ai_tasks")
+        
+        return {"status": "success", "message": chat_entry}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.get("/ai-tasks/{task_id}/chat")
+async def get_ai_task_chat(task_id: str):
+    """Получить чат AI задачи"""
+    try:
+        task = await db.ai_tasks.find_one({"id": task_id})
+        if task:
+            chat_messages = task.get("chat_messages", [])
+            return {"status": "success", "chat": chat_messages}
+        else:
+            return {"status": "error", "error": "Task not found"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
