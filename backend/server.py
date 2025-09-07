@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -125,11 +126,17 @@ class Meeting(BaseModel):
 
 # FastAPI app
 app = FastAPI(
-    title="VasDom AudioBot API", 
+    title="VasDom AudioBot API",
     version="3.0.0",
     description="🤖 AI-система управления клининговой компанией (PostgreSQL)"
 )
 api_router = APIRouter(prefix="/api")
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """Redirect root path to dashboard"""
+    return RedirectResponse(url="/api/dashboard")
 
 # CORS
 cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
