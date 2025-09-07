@@ -216,11 +216,16 @@ class BitrixIntegration:
     async def test_connection(self):
         """Тест подключения к Bitrix24"""
         try:
+            # Используем правильный метод app.info вместо app.info
             async with httpx.AsyncClient() as client:
                 response = await client.get(f"{self.webhook_url}app.info", timeout=10)
-                result = response.json()
-                logger.info(f"🔗 Bitrix24 connection test result: {result}")
-                return result
+                if response.status_code == 200:
+                    result = response.json()
+                    logger.info(f"✅ Bitrix24 connected: {result}")
+                    return result
+                else:
+                    logger.error(f"❌ Bitrix24 connection failed: {response.status_code}")
+                    return {"error": f"HTTP {response.status_code}"}
         except Exception as e:
             logger.error(f"❌ Bitrix24 connection error: {e}")
             return {"error": str(e)}
