@@ -202,11 +202,11 @@ class AIService:
             # Формируем контекст с базой знаний
             knowledge_context = "\n".join([kb.get('content', '')[:500] for kb in relevant_knowledge[:3]])
             
-            system_prompt = f"""Ты VasDom AI - умный помощник для управления клининговой компанией VasDom в Калуге.
+            system_message = f"""Ты VasDom AI - умный помощник для управления клининговой компанией VasDom в Калуге.
             
 ТВОИ ВОЗМОЖНОСТИ:
 - Управление 450+ домами и подъездами
-- Координация 6 бригад уборщиков
+- Координация 6 бригад уборщиков  
 - Анализ данных из Bitrix24 CRM
 - Планирование расписания уборки
 - Контроль качества работ
@@ -222,17 +222,18 @@ class AIService:
 
 КОНТЕКСТ: {context}"""
             
-            # Реальный вызов GPT-4 mini через Emergent LLM
-            response = await emergentintegrations.chat_completion(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": text}
-                ],
-                api_key=self.llm_key
-            )
+            # Создаем чат с Emergent LLM
+            chat = LlmChat(
+                api_key=self.llm_key,
+                session_id=f"voice_{context}_{hashlib.md5(text.encode()).hexdigest()[:8]}",
+                system_message=system_message
+            ).with_model("openai", "gpt-4o-mini")
             
-            ai_response = response.choices[0].message.content
+            # Отправляем сообщение
+            user_message = UserMessage(text=text)
+            response = await chat.send_message(user_message)
+            
+            ai_response = str(response) if response else "Извините, не получен ответ от AI"
             
             # Сохраняем для самообучения
             await self._save_learning_entry(text, ai_response, context)
