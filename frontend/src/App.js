@@ -253,7 +253,342 @@ const TasksSection = ({ tasks }) => {
   );
 };
 
-// Раздел "Финансы"
+// Раздел "Живой разговор" 
+const LiveChatSection = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadChatHistory = async () => {
+    try {
+      const response = await axios.get(`${API}/chat/history`);
+      if (response.data.status === 'success') {
+        setMessages(response.data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || loading) return;
+    
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/chat/send`, {
+        sender_id: 'dashboard_user',
+        content: inputMessage
+      });
+      
+      if (response.data.status === 'success') {
+        await loadChatHistory();
+        setInputMessage('');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-gray-900">💬 Живой разговор с AI</h2>
+      
+      <div className="bg-white rounded-lg shadow-md p-6" style={{height: '500px'}}>
+        <div className="h-96 overflow-y-auto mb-4 space-y-3">
+          {messages.map((msg, index) => (
+            <div key={index} className="space-y-2">
+              <div className="flex justify-end">
+                <div className="bg-blue-500 text-white p-3 rounded-lg max-w-xs">
+                  {msg.content}
+                </div>
+              </div>
+              {msg.ai_response && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 text-gray-800 p-3 rounded-lg max-w-lg">
+                    <strong>🤖 AI:</strong> {msg.ai_response}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Напишите сообщение AI ассистенту..."
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+            disabled={loading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={loading || !inputMessage.trim()}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {loading ? 'Отправка...' : 'Отправить'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Раздел "Планерка"
+const MeetingsSection = () => {
+  const [meetings, setMeetings] = useState([]);
+  const [newMeetingText, setNewMeetingText] = useState('');
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
+
+  const loadMeetings = async () => {
+    try {
+      const response = await axios.get(`${API}/meetings`);
+      if (response.data.status === 'success') {
+        setMeetings(response.data.meetings || []);
+      }
+    } catch (error) {
+      console.error('Error loading meetings:', error);
+    }
+  };
+
+  const createMeeting = async () => {
+    if (!newMeetingText.trim() || creatingMeeting) return;
+    
+    setCreatingMeeting(true);
+    try {
+      const response = await axios.post(`${API}/meetings`, {
+        title: `Планерка ${new Date().toLocaleDateString()}`,
+        description: 'Запись планерки',
+        participants: ['admin'],
+        start_time: new Date().toISOString(),
+        recording_text: newMeetingText
+      });
+      
+      if (response.data.status === 'success') {
+        await loadMeetings();
+        setNewMeetingText('');
+      }
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+    } finally {
+      setCreatingMeeting(false);
+    }
+  };
+
+  const analyzeMeeting = async (meetingId) => {
+    try {
+      const response = await axios.post(`${API}/meetings/${meetingId}/analyze`);
+      if (response.data.status === 'success') {
+        await loadMeetings();
+        alert(`AI анализ завершен! ${response.data.bitrix_tasks?.length || 0} задач создано в Bitrix24.`);
+      }
+    } catch (error) {
+      console.error('Error analyzing meeting:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadMeetings();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-gray-900">📅 Планерка - Запись и анализ</h2>
+      
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-xl font-bold mb-4">Создать запись планерки</h3>
+        <div className="space-y-4">
+          <textarea
+            value={newMeetingText}
+            onChange={(e) => setNewMeetingText(e.target.value)}
+            placeholder="Введите текст записи планерки для AI анализа..."
+            className="w-full h-32 border border-gray-300 rounded-lg p-4"
+            disabled={creatingMeeting}
+          />
+          <button
+            onClick={createMeeting}
+            disabled={!newMeetingText.trim() || creatingMeeting}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+          >
+            {creatingMeeting ? 'Создание...' : 'Создать планерку'}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {meetings.map(meeting => (
+          <div key={meeting.id} className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">{meeting.title}</h3>
+              <span className="text-sm text-gray-500">
+                {new Date(meeting.start_time).toLocaleString()}
+              </span>
+            </div>
+            
+            <p className="text-gray-600 mb-3">{meeting.description}</p>
+            
+            {meeting.recording_text && (
+              <div className="mb-3">
+                <h4 className="font-semibold text-sm text-gray-700 mb-2">Запись:</h4>
+                <p className="text-sm bg-gray-50 p-3 rounded">{meeting.recording_text}</p>
+              </div>
+            )}
+            
+            {meeting.ai_summary && (
+              <div className="mb-3">
+                <h4 className="font-semibold text-sm text-blue-700 mb-2">🤖 AI Анализ:</h4>
+                <div className="text-sm bg-blue-50 p-3 rounded">{meeting.ai_summary}</div>
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              {!meeting.ai_summary && meeting.recording_text && (
+                <button
+                  onClick={() => analyzeMeeting(meeting.id)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+                >
+                  🤖 Анализировать с AI
+                </button>
+              )}
+              
+              {meeting.bitrix_tasks_created?.length > 0 && (
+                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                  ✅ {meeting.bitrix_tasks_created.length} задач в Bitrix24
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Раздел "Логи"
+const LogsSection = () => {
+  const [logs, setLogs] = useState([]);
+  const [filterLevel, setFilterLevel] = useState('all');
+  const [filterComponent, setFilterComponent] = useState('all');
+
+  const loadLogs = async () => {
+    try {
+      let url = `${API}/logs?limit=50`;
+      if (filterLevel !== 'all') url += `&level=${filterLevel}`;
+      if (filterComponent !== 'all') url += `&component=${filterComponent}`;
+      
+      const response = await axios.get(url);
+      if (response.data.status === 'success') {
+        setLogs(response.data.logs || []);
+      }
+    } catch (error) {
+      console.error('Error loading logs:', error);
+      setLogs([]);
+    }
+  };
+
+  useEffect(() => {
+    loadLogs();
+    const interval = setInterval(loadLogs, 10000); // Обновляем каждые 10 секунд
+    return () => clearInterval(interval);
+  }, [filterLevel, filterComponent]);
+
+  const getLevelColor = (level) => {
+    switch (level) {
+      case 'ERROR': return 'bg-red-100 text-red-800';
+      case 'WARNING': return 'bg-yellow-100 text-yellow-800';
+      case 'INFO': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getComponentIcon = (component) => {
+    switch (component) {
+      case 'telegram': return '📱';
+      case 'bitrix24': return '🏢';
+      case 'ai': return '🤖';
+      case 'backend': return '⚙️';
+      default: return '📊';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold text-gray-900">📊 Системные логи</h2>
+        <div className="flex gap-4">
+          <select 
+            value={filterLevel}
+            onChange={(e) => setFilterLevel(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2"
+          >
+            <option value="all">Все уровни</option>
+            <option value="ERROR">Ошибки</option>
+            <option value="WARNING">Предупреждения</option>
+            <option value="INFO">Информация</option>
+          </select>
+          
+          <select 
+            value={filterComponent}
+            onChange={(e) => setFilterComponent(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2"
+          >
+            <option value="all">Все компоненты</option>
+            <option value="backend">Backend</option>
+            <option value="telegram">Telegram</option>
+            <option value="bitrix24">Bitrix24</option>
+            <option value="ai">AI Система</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md">
+        <div className="p-6">
+          <div className="space-y-3">
+            {logs.map((log, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 flex items-start gap-3">
+                <span className="text-xl">{getComponentIcon(log.component)}</span>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(log.level)}`}>
+                      {log.level}
+                    </span>
+                    <span className="text-sm text-gray-500">{log.component}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(log.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  <p className="text-gray-800">{log.message}</p>
+                  
+                  {log.data && Object.keys(log.data).length > 0 && (
+                    <pre className="text-xs bg-gray-50 p-2 rounded mt-2 overflow-x-auto">
+                      {JSON.stringify(log.data, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {logs.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                Логи не найдены по выбранным фильтрам
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const FinancesSection = ({ financialReport }) => (
   <div className="space-y-6">
     <h2 className="text-3xl font-bold text-gray-900">Финансовая отчетность</h2>
