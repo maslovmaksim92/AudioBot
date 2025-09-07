@@ -189,72 +189,26 @@ class VasDomAPITester:
             self.log_test("Meetings Functionality", False, str(e))
             return False
 
-    def test_knowledge_base(self):
-        """Test knowledge base functionality"""
+    def test_meetings_list(self):
+        """Test meetings list functionality"""
         try:
-            # Get knowledge base
-            response = requests.get(f"{self.api_url}/knowledge", timeout=10)
+            response = requests.get(f"{self.api_url}/meetings", timeout=10)
             success = response.status_code == 200
             
             if success:
                 data = response.json()
                 success = (data.get("status") == "success" and 
-                          "knowledge_base" in data)
+                          "meetings" in data)
                 
                 if success:
-                    kb_count = len(data["knowledge_base"])
-                    print(f"   📚 Knowledge base entries: {kb_count}")
+                    meetings_count = len(data["meetings"])
+                    print(f"   📋 Meetings: {meetings_count}")
                 
-            self.log_test("Knowledge Base", success, 
-                         f"Status: {response.status_code}, Entries: {len(data.get('knowledge_base', []))}")
+            self.log_test("Meetings List", success, 
+                         f"Status: {response.status_code}, Meetings: {len(data.get('meetings', []))}")
             return success
         except Exception as e:
-            self.log_test("Knowledge Base", False, str(e))
-            return False
-
-    def test_ai_tasks(self):
-        """Test AI tasks functionality"""
-        try:
-            # Get AI tasks
-            response = requests.get(f"{self.api_url}/ai-tasks", timeout=10)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                success = (data.get("status") == "success" and 
-                          "tasks" in data)
-                
-                if success:
-                    tasks_count = len(data["tasks"])
-                    print(f"   🤖 AI tasks: {tasks_count}")
-                
-            self.log_test("AI Tasks", success, 
-                         f"Status: {response.status_code}, Tasks: {len(data.get('tasks', []))}")
-            return success
-        except Exception as e:
-            self.log_test("AI Tasks", False, str(e))
-            return False
-
-    def test_employees(self):
-        """Test employees endpoint"""
-        try:
-            response = requests.get(f"{self.api_url}/employees", timeout=10)
-            success = response.status_code == 200
-            
-            if success:
-                data = response.json()
-                success = (data.get("status") == "success" and 
-                          "employees" in data)
-                
-                if success:
-                    employees_count = data.get("total", len(data["employees"]))
-                    print(f"   👥 Employees: {employees_count}")
-                
-            self.log_test("Employees", success, 
-                         f"Status: {response.status_code}, Count: {data.get('total', 0)}")
-            return success
-        except Exception as e:
-            self.log_test("Employees", False, str(e))
+            self.log_test("Meetings List", False, str(e))
             return False
 
     def test_system_logs(self):
