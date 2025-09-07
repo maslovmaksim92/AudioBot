@@ -32,11 +32,13 @@ logger = logging.getLogger(__name__)
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 try:
     if 'mongodb+srv' in mongo_url:
-        # MongoDB Atlas connection
+        # Production MongoDB Atlas
         client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
+        logger.info("🔗 Connecting to MongoDB Atlas for production...")
     else:
-        # Local MongoDB connection
+        # Local MongoDB
         client = AsyncIOMotorClient(mongo_url)
+        logger.info("🔗 Connecting to local MongoDB...")
     
     db = client[os.environ.get('DB_NAME', 'audiobot')]
     logger.info(f"✅ MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
