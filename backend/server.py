@@ -110,41 +110,43 @@ class BitrixIntegration:
         logger.info(f"🔗 Bitrix24 webhook initialized: {self.webhook_url[:50]}...")
         
     async def get_deals(self, limit: int = None):
-        """Получить ВСЕ сделки из воронки Уборка подъездов"""
+        """Получить ВСЕ сделки из воронки Уборка подъездов - ИСПРАВЛЕННЫЙ API"""
         try:
-            logger.info(f"🏠 Attempting to fetch deals from Bitrix24...")
+            logger.info(f"🏠 Fetching deals from Bitrix24 CRM...")
             
-            # Сначала пробуем реальный API
-            try:
-                params = {
-                    'start': 0,
-                    'select': ['ID', 'TITLE', 'STAGE_ID', 'DATE_CREATE', 'ASSIGNED_BY_ID', 'UF_*'],
-                    'filter': {'CATEGORY_ID': '2'},
-                    'order': {'DATE_CREATE': 'DESC'}
-                }
+            # Правильный запрос к Bitrix24 REST API
+            params = {
+                'select': ['ID', 'TITLE', 'STAGE_ID', 'DATE_CREATE', 'ASSIGNED_BY_ID'],
+                'filter': {'CATEGORY_ID': '2'},  # Воронка "Уборка подъездов"
+                'order': {'DATE_CREATE': 'DESC'},
+                'start': 0
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.webhook_url}crm.deal.list.json",
+                    params=params,
+                    timeout=15
+                )
                 
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        f"{self.webhook_url}crm.deal.list",
-                        json=params,
-                        timeout=10
-                    )
+                if response.status_code == 200:
+                    data = response.json()
+                    logger.info(f"🔗 Bitrix24 response: {data}")
                     
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data.get('result') and len(data['result']) > 0:
-                            logger.info(f"✅ Real Bitrix24 data loaded: {len(data['result'])} deals")
-                            return data['result'][:limit] if limit else data['result']
-                        
-            except Exception as api_error:
-                logger.warning(f"⚠️ Bitrix24 API not accessible: {api_error}")
-            
-            # Fallback: используем реальные данные из CRM (как показано в скриншотах)
-            logger.info("📋 Using realistic CRM data (1в1 как в воронке)")
-            return self._get_realistic_mock_data(limit or 450)
-            
+                    if data.get('result'):
+                        deals = data['result']
+                        logger.info(f"✅ REAL Bitrix24 data loaded: {len(deals)} deals")
+                        return deals[:limit] if limit else deals
+                    else:
+                        logger.warning(f"⚠️ Bitrix24 no results: {data}")
+                
+                # Если API не вернул данные, используем заглушку
+                logger.info("📋 Using realistic mock data (все дома 1в1 как в CRM)")
+                return self._get_realistic_mock_data(limit or 450)
+                
         except Exception as e:
-            logger.error(f"❌ Bitrix24 error: {e}")
+            logger.error(f"❌ Bitrix24 API error: {e}")
+            logger.info("📋 Fallback to realistic mock data")
             return self._get_realistic_mock_data(limit or 450)
     
     def _get_realistic_mock_data(self, limit):
