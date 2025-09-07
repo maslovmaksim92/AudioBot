@@ -268,6 +268,37 @@ async def test_ai_generation():
         logger.error(f"❌ AI test error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# API Routes (for frontend compatibility)
+@app.get("/api/health")
+async def api_health_check():
+    """API health check endpoint"""
+    return await health_check()
+
+@app.get("/api/healthz")
+async def api_detailed_health_check():
+    """API detailed health check endpoint"""
+    return await detailed_health_check()
+
+@app.get("/api/dashboard")
+async def api_get_dashboard():
+    """API dashboard endpoint"""
+    return await get_dashboard()
+
+@app.get("/api/logs")
+async def api_get_logs(lines: int = 100):
+    """API logs endpoint"""
+    return await get_logs(lines)
+
+@app.get("/api/test-ai")
+async def api_test_ai_generation():
+    """API AI test endpoint"""
+    return await test_ai_generation()
+
+@app.get("/api/")
+async def api_root():
+    """API root endpoint"""
+    return await root()
+
 # Error handlers
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
