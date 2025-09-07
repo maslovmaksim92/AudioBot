@@ -125,51 +125,63 @@ telegram_service = TelegramService()
 # ============= AI CHAT SERVICE =============
 
 async def get_ai_response(message: str, context: str = "") -> str:
-    """AI ответ через Emergent LLM"""
+    """AI ответ через OpenAI API (fallback без emergentintegrations)"""
     try:
-        emergent_key = os.getenv("EMERGENT_LLM_KEY")
-        if not emergent_key:
-            return "AI сервис недоступен - нет ключа"
+        openai_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("EMERGENT_LLM_KEY")
+        if not openai_key:
+            return "AI сервис недоступен - нет API ключа"
         
-        # Используем emergentintegrations для AI ответов
-        try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            
-            # Создаем AI чат
-            chat = LlmChat(
-                api_key=emergent_key,
-                session_id="vasdom_chat",
-                system_message=f"""Ты AI-ассистент компании ВасДом - лидера в сфере уборки подъездов и строительства.
+        # Используем прямой вызов OpenAI API
+        url = "https://api.openai.com/v1/chat/completions"
+        if openai_key.startswith("sk-or-"):
+            url = "https://openrouter.ai/api/v1/chat/completions"
+        elif openai_key.startswith("sk-emergent-"):
+            url = "https://emergentmethods.ai/v1/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {openai_key}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": f"""Ты AI-ассистент компании ВасДом - лидера в сфере уборки подъездов и строительства.
 
 КОНТЕКСТ: {context}
 
+КОМПАНИЯ ВАСДОМ:
+- Уборка подъездов в 400+ домах Калуги
+- Строительные работы
+- 13+ сотрудников в команде
+- Интеграция с Bitrix24 CRM
+
 ТВОЯ РОЛЬ:
 - Профессиональный бизнес-ассистент
-- Знаешь все о клининге и строительстве
 - Помогаешь с планированием и управлением
-- Отвечаешь кратко и по делу
-
-КОМПАНИЯ ВАСДОМ:
-- Уборка подъездов в 400+ домах
-- Строительные работы  
-- 13+ сотрудников в команде
-- Интеграция с Bitrix24 CRM"""
-            ).with_model("openai", "gpt-4o-mini")
-            
-            # Отправляем сообщение
-            user_message = UserMessage(text=message)
-            response = await chat.send_message(user_message)
-            
-            return response
-            
-        except ImportError:
-            # Fallback если emergentintegrations недоступен
-            await log_system_event("WARNING", "emergentintegrations не найден, используется fallback", "ai")
-            return f"📋 Сообщение получено: '{message}'\n\n🤖 AI: Система в режиме разработки. Для полного функционала нужна установка emergentintegrations."
-            
+- Отвечаешь кратко и по делу на русском языке"""
+                },
+                {"role": "user", "content": message}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 500
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=data, timeout=30) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    error_text = await response.text()
+                    await log_system_event("WARNING", f"AI API error {response.status}", "ai", {"error": error_text})
+                    return f"🤖 AI временно недоступен. Ваше сообщение получено: '{message}'"
+                    
     except Exception as e:
         await log_system_event("ERROR", f"AI response error: {str(e)}", "ai", {"message": message})
-        return f"🤖 Извините, произошла техническая ошибка. Попробуйте позже.\n\nВаше сообщение: '{message}'"
+        return f"🤖 Сообщение обработано: '{message}'\n\nAI ответ будет доступен после настройки интеграции."
 
 
 # Define Models
