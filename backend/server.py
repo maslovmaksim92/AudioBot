@@ -422,6 +422,11 @@ async def get_meetings(limit: int = 20):
             {}, sort=[("start_time", -1)]
         ).limit(limit).to_list(length=None)
         
+        # Convert ObjectId to string for JSON serialization
+        for meeting in meetings:
+            if "_id" in meeting:
+                meeting["_id"] = str(meeting["_id"])
+        
         return {"status": "success", "meetings": meetings}
     except Exception as e:
         return {"status": "error", "error": str(e)}
