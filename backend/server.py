@@ -27,10 +27,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# MongoDB connection
+# MongoDB connection with SSL for Atlas
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 try:
-    client = AsyncIOMotorClient(mongo_url)
+    if 'mongodb+srv' in mongo_url:
+        # MongoDB Atlas connection
+        client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
+    else:
+        # Local MongoDB connection
+        client = AsyncIOMotorClient(mongo_url)
+    
     db = client[os.environ.get('DB_NAME', 'audiobot')]
     logger.info(f"✅ MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
 except Exception as e:
