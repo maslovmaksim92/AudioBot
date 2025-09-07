@@ -730,7 +730,7 @@ logger = logging.getLogger(__name__)
 async def get_cleaning_houses():
     """Получение домов для уборки из Bitrix24"""
     try:
-        deals = await bitrix_service.get_deals(limit=500)
+        deals = await bitrix_service.get_deals_detailed(limit=500)
         houses = [{"address": deal.get("TITLE", ""), "stage": deal.get("STAGE_ID", ""), "bitrix24_deal_id": deal["ID"]} for deal in deals]
         return {"status": "success", "houses": houses, "total": len(houses)}
     except Exception as e:
