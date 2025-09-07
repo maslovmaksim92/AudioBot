@@ -164,7 +164,7 @@ const SystemLogs = () => {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BACKEND_URL}/logs?lines=50`);
+      const response = await axios.get(`${BACKEND_URL}/api/logs?lines=50`);
       setLogs(response.data.logs || []);
     } catch (error) {
       console.error('Error fetching logs:', error);
