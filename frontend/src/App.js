@@ -657,19 +657,30 @@ const Dashboard = () => {
       setLoading(true);
       
       // Загружаем основные данные
-      const [dashboardRes, employeesRes, tasksRes, aiRes, financesRes] = await Promise.all([
+      const [dashboardRes, employeesRes, tasksRes, logsRes] = await Promise.all([
         axios.get(`${API}/dashboard`).catch(() => ({ data: null })),
         axios.get(`${API}/employees`).catch(() => ({ data: [] })),
         axios.get(`${API}/tasks`).catch(() => ({ data: [] })),
-        axios.get(`${API}/ai/insights`).catch(() => ({ data: null })),
-        axios.get(`${API}/finances/report`).catch(() => ({ data: null }))
+        axios.get(`${API}/logs?limit=10`).catch(() => ({ data: null }))
       ]);
 
       setDashboardData(dashboardRes.data);
       setEmployees(employeesRes.data);
       setTasks(tasksRes.data);
-      setAiInsights(aiRes.data);
-      setFinancialReport(financesRes.data);
+      
+      // AI insights пока заглушка
+      setAiInsights({
+        active_suggestions: 0,
+        implemented_improvements: 0,
+        ai_status: 'Активно'
+      });
+      
+      // Financial report пока заглушка  
+      setFinancialReport({
+        totals: { revenue: 0, expense: 0, investment: 0 },
+        profit: 0,
+        breakdown: {}
+      });
       
     } catch (error) {
       console.error('Error loading data:', error);
