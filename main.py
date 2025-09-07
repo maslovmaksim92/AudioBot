@@ -13,6 +13,21 @@ load_dotenv("/app/backend/.env")
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 print(f"🔌 MongoDB URL: {mongo_url[:50]}..." if mongo_url else "❌ MONGO_URL не настроен")
 
+# MongoDB Connection (опциональное)
+try:
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_client = AsyncIOMotorClient(mongo_url)
+    db = mongo_client[os.environ.get("DB_NAME", "vasdom_db")]
+    print("✅ MongoDB client инициализирован")
+except ImportError:
+    mongo_client = None
+    db = None
+    print("⚠️ MongoDB client не доступен (motor не установлен)")
+except Exception as e:
+    mongo_client = None
+    db = None
+    print(f"❌ Ошибка подключения к MongoDB: {e}")
+
 # Настройка логирования для Render Dashboard
 logger.remove() # Убираем стандартный логгер
 logger.add(sys.stdout, format="🚀 {time:HH:mm:ss} | {level} | {message}", level="INFO")
