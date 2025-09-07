@@ -9,6 +9,7 @@ import uuid
 import logging
 import asyncio
 import json
+import httpx
 from pathlib import Path
 from dotenv import load_dotenv
 
