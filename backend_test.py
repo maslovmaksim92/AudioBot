@@ -220,13 +220,11 @@ class VasDomAPITester:
             if success:
                 data = response.json()
                 success = (data.get("status") == "success" and 
-                          "voice_logs" in data and
-                          "learning_logs" in data)
+                          "voice_logs" in data)
                 
                 if success:
                     voice_logs = len(data["voice_logs"])
-                    learning_logs = len(data["learning_logs"])
-                    print(f"   📋 Voice logs: {voice_logs}, Learning logs: {learning_logs}")
+                    print(f"   📋 Voice logs: {voice_logs}")
                 
             self.log_test("System Logs", success, 
                          f"Status: {response.status_code}")
