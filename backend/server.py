@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,10 +6,12 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
-
+import aiohttp
+import json
+import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,10 +22,149 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="VasDom AudioBot - Business Management System", version="2.0.0")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
+
+# ============= BITRIX24 INTEGRATION SERVICE =============
+
+class Bitrix24Service:
+    def __init__(self):
+        self.webhook_url = os.getenv("BITRIX24_WEBHOOK_URL", "").rstrip('/')
+        
+    async def _make_request(self, method: str, params: Dict = None):
+        """Запрос к Bitrix24 API"""
+        try:
+            url = f"{self.webhook_url}/{method}"
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=params or {}, timeout=30) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Bitrix24 error {response.status}: {error_text}")
+                        return {"error": f"HTTP {response.status}"}
+        except Exception as e:
+            logger.error(f"Bitrix24 request error: {str(e)}")
+            return {"error": str(e)}
+    
+    async def get_deals(self, limit: int = 50):
+        """Получение сделок"""
+        params = {
+            "SELECT": ["ID", "TITLE", "STAGE_ID", "OPPORTUNITY", "CONTACT_ID", "DATE_CREATE"],
+            "start": 0,
+            "limit": limit
+        }
+        result = await self._make_request("crm.deal.list", params)
+        return result.get("result", [])
+    
+    async def create_task(self, task_data: Dict):
+        """Создание задачи в Bitrix24"""
+        params = {
+            "fields": {
+                "TITLE": task_data.get("title", ""),
+                "DESCRIPTION": task_data.get("description", ""),
+                "RESPONSIBLE_ID": task_data.get("responsible_id", "1"),
+                "DEADLINE": task_data.get("deadline", ""),
+            }
+        }
+        return await self._make_request("tasks.task.add", params)
+    
+    async def get_users(self):
+        """Получение пользователей"""
+        result = await self._make_request("user.get")
+        return result.get("result", [])
+
+# Initialize services
+bitrix_service = Bitrix24Service()
+
+# ============= TELEGRAM BOT SERVICE =============
+
+class TelegramService:
+    def __init__(self):
+        self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.api_url = f"https://api.telegram.org/bot{self.bot_token}"
+        
+    async def send_message(self, chat_id: str, text: str, reply_markup: Dict = None):
+        """Отправка сообщения в Telegram"""
+        try:
+            url = f"{self.api_url}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML"
+            }
+            if reply_markup:
+                payload["reply_markup"] = reply_markup
+                
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload, timeout=30) as response:
+                    result = await response.json()
+                    return result.get("ok", False)
+        except Exception as e:
+            logger.error(f"Telegram send error: {str(e)}")
+            return False
+    
+    async def set_webhook(self):
+        """Установка webhook"""
+        try:
+            webhook_url = os.getenv("TELEGRAM_WEBHOOK_URL")
+            url = f"{self.api_url}/setWebhook"
+            payload = {"url": webhook_url}
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload) as response:
+                    result = await response.json()
+                    return result
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+telegram_service = TelegramService()
+
+# ============= AI CHAT SERVICE =============
+
+async def get_ai_response(message: str, context: str = "") -> str:
+    """AI ответ через Emergent LLM"""
+    try:
+        emergent_key = os.getenv("EMERGENT_LLM_KEY")
+        if not emergent_key:
+            return "AI сервис временно недоступен"
+            
+        url = "https://emergentmethods.ai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {emergent_key}",
+            "Content-Type": "application/json"
+        }
+        
+        prompt = f"""Ты AI-ассистент компании ВасДом, специализирующийся на уборке подъездов и строительстве.
+
+Контекст: {context}
+
+Сообщение пользователя: {message}
+
+Отвечай профессионально, по-деловому, кратко и по существу."""
+        
+        data = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "system", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 500
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=data, timeout=30) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result["choices"][0]["message"]["content"]
+                else:
+                    return "Извините, AI сервис временно недоступен."
+                    
+    except Exception as e:
+        logger.error(f"AI response error: {str(e)}")
+        return "Произошла ошибка при обращении к AI сервису."
 
 
 # Define Models
