@@ -6,8 +6,8 @@ import "./App.css";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Компонент навигации
-const Navigation = ({ activeSection, setActiveSection }) => {
+// Компонент навигации с возможностью скрытия
+const Navigation = ({ activeSection, setActiveSection, collapsed, setCollapsed }) => {
   const sections = [
     { id: 'overview', name: 'Общее', icon: '🏠' },
     { id: 'meetings', name: 'Планерка', icon: '🎤' },
@@ -22,9 +22,22 @@ const Navigation = ({ activeSection, setActiveSection }) => {
   ];
 
   return (
-    <nav className="bg-gray-900 text-white h-screen w-64 fixed left-0 top-0 overflow-y-auto">
+    <nav className={`bg-gray-900 text-white h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300 ${
+      collapsed ? 'w-16' : 'w-64'
+    }`}>
       <div className="p-4">
-        <h1 className="text-xl font-bold mb-6">🤖 VasDom AI</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className={`font-bold transition-all duration-300 ${collapsed ? 'text-sm' : 'text-xl'}`}>
+            {collapsed ? '🤖' : '🤖 VasDom AI'}
+          </h1>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-white hover:bg-gray-700 p-2 rounded"
+          >
+            {collapsed ? '→' : '←'}
+          </button>
+        </div>
+        
         <div className="space-y-2">
           {sections.map(section => (
             <button
@@ -35,9 +48,10 @@ const Navigation = ({ activeSection, setActiveSection }) => {
                   ? 'bg-blue-600 text-white' 
                   : 'hover:bg-gray-700 text-gray-300'
               }`}
+              title={collapsed ? section.name : ''}
             >
               <span className="text-lg">{section.icon}</span>
-              <span className="text-sm">{section.name}</span>
+              {!collapsed && <span className="text-sm">{section.name}</span>}
             </button>
           ))}
         </div>
