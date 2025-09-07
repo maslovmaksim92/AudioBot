@@ -12,7 +12,11 @@ services:
     startCommand: uvicorn app.main:app --host=0.0.0.0 --port=$PORT
     envVars:
       - key: MONGO_URL
-        value: mongodb+srv://vashdomkaluga_db_user:Vasdom40a@cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority&appName=ClusterD
+        value: mongodb+srv://cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority
+      - key: MONGO_PUBLIC_KEY
+        value: xksxfhnd
+      - key: MONGO_PRIVATE_KEY
+        value: b2279aff-fb58-4d58-bd14-7c1dd3fb9238
       - key: DB_NAME  
         value: ClusterD
       - key: BITRIX24_WEBHOOK_URL
