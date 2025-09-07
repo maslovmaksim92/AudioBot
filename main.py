@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 # Load environment variables from backend/.env
 load_dotenv("/app/backend/.env")
 
+# Получаем MongoDB URL из переменных окружения (приоритет Render > local .env)
+mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+print(f"🔌 MongoDB URL: {mongo_url[:50]}..." if mongo_url else "❌ MONGO_URL не настроен")
+
 # Настройка логирования для Render Dashboard
 logger.remove() # Убираем стандартный логгер
 logger.add(sys.stdout, format="🚀 {time:HH:mm:ss} | {level} | {message}", level="INFO")
