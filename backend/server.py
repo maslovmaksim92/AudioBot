@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# MongoDB connection с API ключами
+# MongoDB Atlas connection с API ключами
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 mongo_public_key = os.environ.get('MONGO_PUBLIC_KEY')
 mongo_private_key = os.environ.get('MONGO_PRIVATE_KEY')
@@ -36,35 +36,47 @@ mongo_private_key = os.environ.get('MONGO_PRIVATE_KEY')
 db = None
 client = None
 
-try:
-    if 'cluster0.lhqxfbi.mongodb.net' in mongo_url and mongo_public_key and mongo_private_key:
-        # MongoDB Atlas с API ключами
-        logger.info("🔗 Connecting to MongoDB Atlas with API keys...")
-        
-        # Создаем connection string с API ключами
-        atlas_url = f"mongodb+srv://{mongo_public_key}:{mongo_private_key}@cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority"
-        
-        client = AsyncIOMotorClient(atlas_url, tls=True, tlsAllowInvalidCertificates=True)
-        db = client[os.environ.get('DB_NAME', 'ClusterD')]
-        logger.info(f"✅ MongoDB Atlas connected with API keys: {os.environ.get('DB_NAME', 'ClusterD')}")
-        
-    elif 'localhost' in mongo_url:
-        # Локальная MongoDB
-        client = AsyncIOMotorClient(mongo_url)
-        db = client[os.environ.get('DB_NAME', 'audiobot')]
-        logger.info(f"✅ Local MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
-        
-    else:
-        # Fallback режим
-        logger.info("⚠️ MongoDB not configured - using in-memory mode")
+async def init_mongodb():
+    """Initialize MongoDB connection"""
+    global db, client
+    
+    try:
+        if mongo_public_key and mongo_private_key:
+            # MongoDB Atlas с API ключами
+            logger.info("🔗 Connecting to MongoDB Atlas with API keys...")
+            
+            # Правильный connection string для Atlas
+            atlas_url = f"mongodb+srv://{mongo_public_key}:{mongo_private_key}@cluster0.lhqxfbi.mongodb.net/ClusterD?retryWrites=true&w=majority"
+            
+            client = AsyncIOMotorClient(
+                atlas_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000
+            )
+            
+            # Тест подключения
+            await client.admin.command('ping')
+            
+            db = client[os.environ.get('DB_NAME', 'ClusterD')]
+            logger.info(f"✅ MongoDB Atlas connected successfully: {os.environ.get('DB_NAME', 'ClusterD')}")
+            
+        elif 'localhost' in mongo_url:
+            # Локальная MongoDB
+            client = AsyncIOMotorClient(mongo_url)
+            db = client[os.environ.get('DB_NAME', 'audiobot')]
+            logger.info(f"✅ Local MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
+            
+        else:
+            logger.info("⚠️ No MongoDB credentials - using in-memory mode")
+            client = None
+            db = None
+            
+    except Exception as e:
+        logger.error(f"❌ MongoDB connection failed: {e}")
+        logger.info("📝 Falling back to in-memory mode")
         client = None
         db = None
-        
-except Exception as e:
-    logger.warning(f"⚠️ MongoDB connection issue: {e}")
-    logger.info("📝 App will work without database (in-memory mode)")
-    client = None
-    db = None
 
 # FastAPI app
 app = FastAPI(
