@@ -13,6 +13,21 @@ load_dotenv("/app/backend/.env")
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 print(f"🔌 MongoDB URL: {mongo_url[:50]}..." if mongo_url else "❌ MONGO_URL не настроен")
 
+# MongoDB Connection (опциональное)
+try:
+    from motor.motor_asyncio import AsyncIOMotorClient
+    mongo_client = AsyncIOMotorClient(mongo_url)
+    db = mongo_client[os.environ.get("DB_NAME", "vasdom_db")]
+    print("✅ MongoDB client инициализирован")
+except ImportError:
+    mongo_client = None
+    db = None
+    print("⚠️ MongoDB client не доступен (motor не установлен)")
+except Exception as e:
+    mongo_client = None
+    db = None
+    print(f"❌ Ошибка подключения к MongoDB: {e}")
+
 # Настройка логирования для Render Dashboard
 logger.remove() # Убираем стандартный логгер
 logger.add(sys.stdout, format="🚀 {time:HH:mm:ss} | {level} | {message}", level="INFO")
@@ -411,13 +426,56 @@ async def health_check():
         "environment_values": {k: v[:20] + "..." if v and len(v) > 20 else v for k, v in env_vars.items()},
         "statistics": system_status,
         "logs_available": len(application_logs),
-        "ai_mode": "smart_responses_enabled"
+        "ai_mode": "smart_responses_enabled",
+        "database": {
+            "mongodb_configured": bool(mongo_url),
+            "mongodb_url": mongo_url[:50] + "..." if mongo_url and len(mongo_url) > 50 else mongo_url,
+            "mongodb_client": "connected" if db else "not_connected",
+            "database_name": os.environ.get("DB_NAME", "vasdom_db")
+        }
     }
     
     print(f"💊 Health check complete: {health_status['status']}")
     add_log("INFO", "💊 Health check выполнен", health_status)
     
     return health_status
+
+@app.get("/api/mongodb/test")
+async def test_mongodb():
+    """Тест подключения к MongoDB"""
+    
+    if not db:
+        return {"status": "error", "message": "MongoDB не настроен"}
+    
+    try:
+        # Простая проверка подключения
+        server_info = await mongo_client.server_info()
+        
+        # Тестовая запись
+        test_doc = {
+            "test_message": "VasDom AI Assistant connection test",
+            "timestamp": datetime.utcnow(),
+            "version": "4.0.0"
+        }
+        
+        # Вставляем тестовый документ
+        result = await db.connection_tests.insert_one(test_doc)
+        
+        return {
+            "status": "success",
+            "message": "✅ MongoDB подключение работает!",
+            "database": os.environ.get("DB_NAME", "vasdom_db"),
+            "mongo_version": server_info.get("version"),
+            "test_document_id": str(result.inserted_id),
+            "connection_url": mongo_url[:50] + "..." if len(mongo_url) > 50 else mongo_url
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"❌ Ошибка MongoDB: {str(e)}",
+            "mongo_url_configured": bool(mongo_url)
+        }
 
 @app.get("/test-ai")
 async def test_ai_service():
