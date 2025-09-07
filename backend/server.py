@@ -61,7 +61,7 @@ class Employee(BaseModel):
     phone: str
     role: str
     department: str
-    telegram_id: str = None
+    telegram_id: Optional[str] = None
     active: bool = True
     performance_score: float = 0.0
     created_at: datetime = Field(default_factory=datetime.utcnow)
