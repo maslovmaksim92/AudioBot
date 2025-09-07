@@ -79,9 +79,16 @@ const OverviewSection = ({ dashboardData, aiInsights }) => (
     
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard title="Сотрудников" value={dashboardData?.total_employees || 0} icon="👥" color="bg-blue-500" />
-      <StatCard title="Планерок" value={dashboardData?.total_meetings || 0} icon="📅" color="bg-green-500" />
-      <StatCard title="Сообщений" value={dashboardData?.total_messages || 0} icon="💬" color="bg-purple-500" />
-      <StatCard title="Предупреждений" value={dashboardData?.recent_alerts || 0} icon="⚠️" color="bg-orange-500" />
+      <StatCard title="Домов в CRM" value={dashboardData?.crm_stats?.houses || 0} icon="🏠" color="bg-green-500" />
+      <StatCard title="Подъездов" value={dashboardData?.crm_stats?.entrances || 0} icon="🚪" color="bg-purple-500" />
+      <StatCard title="Квартир" value={dashboardData?.crm_stats?.apartments || 0} icon="🔑" color="bg-orange-500" />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+      <StatCard title="Этажей" value={dashboardData?.crm_stats?.floors || 0} icon="🏢" color="bg-red-500" />
+      <StatCard title="Планерок" value={dashboardData?.total_meetings || 0} icon="🎤" color="bg-indigo-500" />
+      <StatCard title="AI Задач" value={dashboardData?.total_ai_tasks || 0} icon="🤖" color="bg-pink-500" />
+      <StatCard title="Файлов знаний" value={dashboardData?.total_training_files || 0} icon="📚" color="bg-teal-500" />
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
