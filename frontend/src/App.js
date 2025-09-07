@@ -2,8 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
+
+// Логирование для отладки
+console.log('🔗 Backend URL:', BACKEND_URL);
+console.log('🔗 API URL:', API);
 
 // Main Dashboard Component
 function App() {
