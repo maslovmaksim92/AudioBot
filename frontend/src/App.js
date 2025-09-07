@@ -78,9 +78,9 @@ const OverviewSection = ({ dashboardData, aiInsights }) => (
     
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard title="Сотрудников" value={dashboardData?.total_employees || 0} icon="👥" color="bg-blue-500" />
-      <StatCard title="Активных проектов" value={dashboardData?.active_projects || 0} icon="🏢" color="bg-green-500" />
-      <StatCard title="Выполнено задач" value={dashboardData?.completed_tasks_today || 0} icon="✅" color="bg-purple-500" />
-      <StatCard title="Выручка месяца" value={`${(dashboardData?.revenue_month || 0).toLocaleString()} ₽`} icon="💰" color="bg-orange-500" />
+      <StatCard title="Планерок" value={dashboardData?.total_meetings || 0} icon="📅" color="bg-green-500" />
+      <StatCard title="Сообщений" value={dashboardData?.total_messages || 0} icon="💬" color="bg-purple-500" />
+      <StatCard title="Предупреждений" value={dashboardData?.recent_alerts || 0} icon="⚠️" color="bg-orange-500" />
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
