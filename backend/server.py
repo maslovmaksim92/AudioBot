@@ -176,6 +176,53 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Новые модели для полной функциональности
+class Employee(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    full_name: str
+    phone: str
+    role: str
+    department: str
+    telegram_id: Optional[str] = None
+    bitrix24_id: Optional[str] = None
+    active: bool = True
+    performance_score: float = 0.0
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class EmployeeCreate(BaseModel):
+    full_name: str
+    phone: str
+    role: str
+    department: str
+
+class ChatMessage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str
+    content: str
+    ai_response: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    chat_type: str = "dashboard"  # "dashboard", "telegram", "meeting"
+
+class Meeting(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    participants: List[str] = []
+    start_time: datetime
+    recording_text: Optional[str] = None
+    ai_summary: Optional[str] = None
+    action_items: List[str] = []
+    bitrix_tasks_created: List[str] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class SystemLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    level: str  # INFO, WARNING, ERROR
+    message: str
+    component: str  # backend, telegram, bitrix24, ai
+    data: Optional[Dict[str, Any]] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
