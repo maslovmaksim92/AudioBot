@@ -21,14 +21,21 @@ from databases import Database
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Setup detailed logging
+# Setup cloud-friendly logging
+log_handlers = [logging.StreamHandler()]
+
+# Добавляем файловое логирование только если возможно
+try:
+    log_file_path = os.environ.get('LOG_FILE', '/tmp/vasdom_audiobot.log')
+    log_handlers.append(logging.FileHandler(log_file_path, encoding='utf-8'))
+except Exception as log_error:
+    # На Render может не быть прав на запись в /var/log, используем только stdout
+    pass
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('/var/log/vasdom_audiobot.log', encoding='utf-8')
-    ]
+    handlers=log_handlers
 )
 logger = logging.getLogger(__name__)
 
