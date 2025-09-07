@@ -4,6 +4,7 @@ services:
     env: python
     buildCommand: |
       # Install Python dependencies
+      pip install --upgrade pip
       pip install -r requirements.txt
       
       # Install Node.js dependencies and build frontend
@@ -11,11 +12,11 @@ services:
     startCommand: uvicorn main:app --host=0.0.0.0 --port=$PORT
     envVars:
       - key: MONGO_URL
-        value: mongodb+srv://vashdomkaluga_db_user:Vasdom40a@clusterd.lhqxfbi.mongodb.net/?retryWrites=true&w=majority&appName=ClusterD
+        value: mongodb+srv://vashdomkaluga_db_user:Vasdom40a@cluster0.lhqxfbi.mongodb.net/?retryWrites=true&w=majority&appName=ClusterD
       - key: DB_NAME  
         value: ClusterD
       - key: BITRIX24_WEBHOOK_URL
-        value: https://vas-dom.bitrix24.ru/rest/1/bi0kv4y8ym8quxpa/
+        value: https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/
       - key: EMERGENT_LLM_KEY
         value: sk-emergent-0A408AfAeF26aCd5aB
       - key: BOT_TOKEN
@@ -26,3 +27,5 @@ services:
         value: https://audiobot-qci2.onrender.com/telegram/webhook
       - key: OPENROUTER_API_KEY
         value: sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd
+      - key: CORS_ORIGINS
+        value: "*"
