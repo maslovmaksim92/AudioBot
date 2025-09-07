@@ -28,40 +28,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# MongoDB connection - исправленная версия для production
+# MongoDB connection - упрощенная версия без SSL ошибок
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 db = None
 client = None
 
+# Простое подключение без сложных SSL настроек
 try:
-    if 'mongodb+srv' in mongo_url:
-        # Production MongoDB Atlas - попытка подключения с разными настройками SSL
-        logger.info("🔗 Attempting MongoDB Atlas connection...")
-        try:
-            # Попытка 1: с TLS
-            client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
-            db = client[os.environ.get('DB_NAME', 'audiobot')]
-            logger.info("✅ MongoDB Atlas connected with TLS")
-        except Exception as e:
-            logger.warning(f"⚠️ TLS connection failed: {e}")
-            try:
-                # Попытка 2: без TLS
-                client = AsyncIOMotorClient(mongo_url)
-                db = client[os.environ.get('DB_NAME', 'audiobot')]
-                logger.info("✅ MongoDB Atlas connected without TLS")
-            except Exception as e2:
-                logger.error(f"❌ MongoDB Atlas connection failed: {e2}")
-                # Fallback на локальную базу
-                client = None
-                db = None
-    else:
-        # Local MongoDB
+    if 'localhost' in mongo_url:
+        # Локальная MongoDB
         client = AsyncIOMotorClient(mongo_url)
         db = client[os.environ.get('DB_NAME', 'audiobot')]
-        logger.info("✅ Local MongoDB connected")
+        logger.info(f"✅ Local MongoDB connected: {os.environ.get('DB_NAME', 'audiobot')}")
+    else:
+        # Пропускаем Atlas пока не настроен API Key
+        logger.info("⚠️ Atlas connection skipped - using in-memory storage")
+        client = None
+        db = None
         
 except Exception as e:
-    logger.error(f"❌ MongoDB connection error: {e}")
+    logger.warning(f"⚠️ MongoDB connection issue: {e}")
+    logger.info("📝 App will work without database (in-memory mode)")
     client = None
     db = None
 
