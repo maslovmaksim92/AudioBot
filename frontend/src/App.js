@@ -1158,8 +1158,15 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Navigation activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+      <Navigation 
+        activeSection={activeSection} 
+        setActiveSection={setActiveSection}
+        collapsed={menuCollapsed}
+        setCollapsed={setMenuCollapsed}
+      />
+      <main className={`flex-1 p-8 overflow-y-auto transition-all duration-300 ${
+        menuCollapsed ? 'ml-16' : 'ml-64'
+      }`}>
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <div>
