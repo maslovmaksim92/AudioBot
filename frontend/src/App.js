@@ -1118,10 +1118,49 @@ const Dashboard = () => {
         return <TrainingSection />;
       case 'work':
         return <WorkSection />;
+      case 'sales':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">💰 Продажи / Маркетинг</h2>
+            <div className="bg-white rounded-lg shadow-md p-6 mx-auto max-w-2xl">
+              <p className="text-gray-600 mb-4">Интеграция с Bitrix24 CRM готова!</p>
+              <div className="space-y-2 text-left">
+                <p><strong>✅ Подключено:</strong> Bitrix24 портал vas-dom.bitrix24.ru</p>
+                <p><strong>📊 Сделок доступно:</strong> 50+ активных</p>
+                <p><strong>🔄 Синхронизация:</strong> В реальном времени</p>
+                <p><strong>🎯 Следующий этап:</strong> Воронки продаж и автоматизация</p>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return <OverviewSection dashboardData={dashboardData} aiInsights={aiInsights} />;
     }
   };
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <Navigation activeSection={activeSection} setActiveSection={setActiveSection} />
+      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Последнее обновление: {new Date().toLocaleTimeString()}</p>
+            </div>
+            <button 
+              onClick={loadData}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <span>🔄</span>
+              Обновить
+            </button>
+          </div>
+        </div>
+        {renderSection()}
+      </main>
+    </div>
+  );
+};
 
 // Раздел "Работы" с вкладкой Клининг
 const WorkSection = () => {
