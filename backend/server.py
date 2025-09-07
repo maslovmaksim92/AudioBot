@@ -114,7 +114,7 @@ async def root():
     """Service information endpoint"""
     return {
         "service": "VasDom AI Assistant",
-        "version": "1.0.0",
+        "version": "4.0.0",
         "status": "running",
         "environment": config.APP_ENV,
         "features": {
