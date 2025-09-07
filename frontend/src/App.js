@@ -856,13 +856,18 @@ const TrainingSection = () => {
   );
 };
 
-// Раздел "Задачи для AI" - Постановка задач AI системе
+// Раздел "Задачи для AI" - с календарем, временем и чатом
 const AITasksSection = () => {
   const [aiTasks, setAiTasks] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskChat, setTaskChat] = useState([]);
+  const [chatMessage, setChatMessage] = useState('');
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
     schedule: '',
+    scheduled_date: '',
+    scheduled_time: '',
     recurring: false
   });
 
@@ -885,17 +890,52 @@ const AITasksSection = () => {
         title: newTask.title,
         description: newTask.description,
         schedule: newTask.schedule,
+        scheduled_date: newTask.scheduled_date,
+        scheduled_time: newTask.scheduled_time,
         recurring: newTask.recurring,
         created_by: 'admin'
       });
       
       if (response.data.status === 'success') {
-        setNewTask({ title: '', description: '', schedule: '', recurring: false });
+        setNewTask({ title: '', description: '', schedule: '', scheduled_date: '', scheduled_time: '', recurring: false });
         await loadAITasks();
       }
     } catch (error) {
       console.error('Error creating AI task:', error);
     }
+  };
+
+  const loadTaskChat = async (taskId) => {
+    try {
+      const response = await axios.get(`${API}/ai-tasks/${taskId}/chat`);
+      if (response.data.status === 'success') {
+        setTaskChat(response.data.chat || []);
+      }
+    } catch (error) {
+      console.error('Error loading task chat:', error);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!chatMessage.trim() || !selectedTask) return;
+    
+    try {
+      const response = await axios.post(`${API}/ai-tasks/${selectedTask.id}/chat`, {
+        message: chatMessage
+      });
+      
+      if (response.data.status === 'success') {
+        setChatMessage('');
+        await loadTaskChat(selectedTask.id);
+      }
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+    }
+  };
+
+  const selectTask = (task) => {
+    setSelectedTask(task);
+    loadTaskChat(task.id);
   };
 
   useEffect(() => {
@@ -909,100 +949,176 @@ const AITasksSection = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-xl font-bold mb-4">Поставить задачу AI системе</h3>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <input
             type="text"
             value={newTask.title}
             onChange={(e) => setNewTask({...newTask, title: e.target.value})}
             placeholder="Название задачи для AI"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+            className="border border-gray-300 rounded-lg px-4 py-2"
           />
           
-          <textarea
-            value={newTask.description}
-            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-            placeholder="Подробное описание что должен делать AI..."
-            className="w-full h-24 border border-gray-300 rounded-lg px-4 py-2"
-          />
-          
-          <div className="flex items-center gap-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={newTask.recurring}
-                onChange={(e) => setNewTask({...newTask, recurring: e.target.checked})}
-                className="mr-2"
-              />
-              Повторяющаяся задача
-            </label>
-            
-            {newTask.recurring && (
-              <select
-                value={newTask.schedule}
-                onChange={(e) => setNewTask({...newTask, schedule: e.target.value})}
-                className="border border-gray-300 rounded-lg px-3 py-2"
-              >
-                <option value="">Выберите расписание</option>
-                <option value="ежедневно в 9:00">Ежедневно в 9:00</option>
-                <option value="еженедельно по понедельникам">Еженедельно по понедельникам</option>
-                <option value="ежемесячно 1 числа">Ежемесячно 1 числа</option>
-                <option value="каждые 3 часа">Каждые 3 часа</option>
-              </select>
-            )}
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={newTask.scheduled_date}
+              onChange={(e) => setNewTask({...newTask, scheduled_date: e.target.value})}
+              className="border border-gray-300 rounded-lg px-4 py-2"
+            />
+            <input
+              type="time"
+              value={newTask.scheduled_time}
+              onChange={(e) => setNewTask({...newTask, scheduled_time: e.target.value})}
+              className="border border-gray-300 rounded-lg px-4 py-2"
+            />
           </div>
-          
-          <button
-            onClick={createAITask}
-            disabled={!newTask.title || !newTask.description}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
-          >
-            🤖 Поставить задачу AI
-          </button>
         </div>
+        
+        <textarea
+          value={newTask.description}
+          onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+          placeholder="Подробное описание что должен делать AI..."
+          className="w-full h-24 border border-gray-300 rounded-lg px-4 py-2 mb-4"
+        />
+        
+        <div className="flex items-center gap-4 mb-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={newTask.recurring}
+              onChange={(e) => setNewTask({...newTask, recurring: e.target.checked})}
+              className="mr-2"
+            />
+            Повторяющаяся задача
+          </label>
+          
+          {newTask.recurring && (
+            <select
+              value={newTask.schedule}
+              onChange={(e) => setNewTask({...newTask, schedule: e.target.value})}
+              className="border border-gray-300 rounded-lg px-3 py-2"
+            >
+              <option value="">Выберите расписание</option>
+              <option value="ежедневно в 9:00">Ежедневно в 9:00</option>
+              <option value="еженедельно по понедельникам">Еженедельно по понедельникам</option>
+              <option value="ежемесячно 1 числа">Ежемесячно 1 числа</option>
+              <option value="каждые 3 часа">Каждые 3 часа</option>
+            </select>
+          )}
+        </div>
+        
+        <button
+          onClick={createAITask}
+          disabled={!newTask.title || !newTask.description}
+          className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+        >
+          🤖 Поставить задачу AI
+        </button>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold">📋 Активные AI задачи</h3>
-        
-        {aiTasks.map(task => (
-          <div key={task.id} className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-lg font-semibold">{task.title}</h4>
-              <div className="flex items-center gap-2">
-                {task.recurring && (
-                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
-                    🔄 Повторяющаяся
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Список задач */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold">📋 Активные AI задачи</h3>
+          
+          {aiTasks.map(task => (
+            <div 
+              key={task.id} 
+              className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all ${
+                selectedTask?.id === task.id ? 'ring-2 ring-blue-500' : ''
+              }`}
+              onClick={() => selectTask(task)}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-lg font-semibold">{task.title}</h4>
+                <div className="flex items-center gap-2">
+                  {task.recurring && (
+                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                      🔄 Повторяющаяся
+                    </span>
+                  )}
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                    ✅ Активна
                   </span>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 mb-3">{task.description}</p>
+              
+              {(task.scheduled_date || task.scheduled_time) && (
+                <p className="text-sm text-blue-600 mb-2">
+                  📅 Запланировано: {task.scheduled_date} {task.scheduled_time}
+                </p>
+              )}
+              
+              {task.schedule && (
+                <p className="text-sm text-purple-600">
+                  🔄 Расписание: {task.schedule}
+                </p>
+              )}
+            </div>
+          ))}
+          
+          {aiTasks.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Нет активных AI задач. Создайте первую задачу!
+            </div>
+          )}
+        </div>
+
+        {/* Чат для согласования выбранной задачи */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {selectedTask ? (
+            <div>
+              <h3 className="text-xl font-bold mb-4">💬 Чат согласования</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Задача: <strong>{selectedTask.title}</strong>
+              </p>
+              
+              <div className="h-64 overflow-y-auto mb-4 border border-gray-200 rounded p-3">
+                {taskChat.map((chat, index) => (
+                  <div key={index} className="space-y-2 mb-4">
+                    <div className="bg-blue-100 p-2 rounded text-sm">
+                      <strong>👤 Вы:</strong> {chat.user_message}
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded text-sm">
+                      <strong>🤖 AI:</strong> {chat.ai_response}
+                    </div>
+                  </div>
+                ))}
+                
+                {taskChat.length === 0 && (
+                  <p className="text-gray-500 text-center">
+                    Нет сообщений. Начните обсуждение задачи с AI!
+                  </p>
                 )}
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  task.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {task.active ? '✅ Активна' : '⏸️ Остановлена'}
-                </span>
+              </div>
+              
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                  placeholder="Согласуйте детали задачи с AI..."
+                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2"
+                />
+                <button
+                  onClick={sendChatMessage}
+                  disabled={!chatMessage.trim()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                >
+                  Отправить
+                </button>
               </div>
             </div>
-            
-            <p className="text-gray-600 mb-3">{task.description}</p>
-            
-            {task.schedule && (
-              <p className="text-sm text-blue-600 mb-2">
-                📅 Расписание: {task.schedule}
-              </p>
-            )}
-            
-            {task.next_run && (
-              <p className="text-sm text-gray-500">
-                ⏰ Следующий запуск: {new Date(task.next_run).toLocaleString()}
-              </p>
-            )}
-          </div>
-        ))}
-        
-        {aiTasks.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            Нет активных AI задач. Создайте первую задачу!
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <h3 className="text-xl font-bold mb-4">💬 Чат согласования</h3>
+              <p>Выберите задачу слева для начала обсуждения с AI</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
