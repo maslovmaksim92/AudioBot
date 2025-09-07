@@ -368,12 +368,19 @@ async def get_dashboard_stats():
             total_apartments += apartments
             total_floors += floors
         
-        # MongoDB данные  
-        try:
-            meetings_count = await db.meetings.count_documents({})
-            ai_tasks_count = await db.ai_tasks.count_documents({})
-        except:
-            meetings_count, ai_tasks_count = 0, 0
+        # MongoDB данные (безопасная проверка)
+        meetings_count = 0
+        ai_tasks_count = 0
+        
+        if db is not None:
+            try:
+                meetings_count = await db.meetings.count_documents({})
+                ai_tasks_count = await db.ai_tasks.count_documents({})
+                logger.info("✅ MongoDB queries successful")
+            except Exception as mongo_error:
+                logger.warning(f"⚠️ MongoDB query failed: {mongo_error}")
+        else:
+            logger.warning("⚠️ MongoDB not available, using defaults")
         
         stats = {
             "employees": 82,
