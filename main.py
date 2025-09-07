@@ -434,6 +434,43 @@ async def health_check():
     
     return health_status
 
+@app.get("/api/mongodb/test")
+async def test_mongodb():
+    """Тест подключения к MongoDB"""
+    
+    if not db:
+        return {"status": "error", "message": "MongoDB не настроен"}
+    
+    try:
+        # Простая проверка подключения
+        server_info = await mongo_client.server_info()
+        
+        # Тестовая запись
+        test_doc = {
+            "test_message": "VasDom AI Assistant connection test",
+            "timestamp": datetime.utcnow(),
+            "version": "4.0.0"
+        }
+        
+        # Вставляем тестовый документ
+        result = await db.connection_tests.insert_one(test_doc)
+        
+        return {
+            "status": "success",
+            "message": "✅ MongoDB подключение работает!",
+            "database": os.environ.get("DB_NAME", "vasdom_db"),
+            "mongo_version": server_info.get("version"),
+            "test_document_id": str(result.inserted_id),
+            "connection_url": mongo_url[:50] + "..." if len(mongo_url) > 50 else mongo_url
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"❌ Ошибка MongoDB: {str(e)}",
+            "mongo_url_configured": bool(mongo_url)
+        }
+
 @app.get("/test-ai")
 async def test_ai_service():
     """Тестирование AI сервиса"""
