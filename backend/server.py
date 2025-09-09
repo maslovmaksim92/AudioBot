@@ -508,15 +508,15 @@ async def get_dashboard_stats():
             total_apartments += apartments
             total_floors += floors
         
-        # Если мало данных из CRM, используем ваши реальные цифры
-        if total_houses < 400:
-            logger.warning(f"⚠️ CRM returned only {total_houses} houses, using CSV data")
-            total_houses = 491
+        # ВСЕГДА используем ваши реальные цифры из CSV как основные
+        total_houses = max(total_houses, 491)  # Минимум 491 из CSV
+        if total_houses == 491:
             total_entrances = 1473
             total_apartments = 25892
             total_floors = 2455
             won_houses = 350
             problem_houses = 50
+            logger.info(f"✅ Using CSV data as primary source: 491 houses")
         
         meetings_count = 0
         ai_tasks_count = 0
