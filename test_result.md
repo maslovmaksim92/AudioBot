@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Протестировать исправленную интеграцию VasDom AudioBot: 1. CRM Bitrix24 - проверить /api/dashboard возвращает ТОЛЬКО данные из CRM (не CSV fallback), 2. Telegram webhook - проверить /telegram/webhook теперь отправляет ответы, 3. Telegram status - проверить /api/telegram/status показывает статус подключения, 4. Dashboard data - убедиться что статистика синхронизирована с CRM. ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ: Dashboard показывает 348 домов из CRM (не из CSV), Telegram webhook обрабатывает сообщения и отвечает, Статистика рассчитывается на основе ТОЛЬКО CRM данных, Нет fallback к CSV данным"
+user_problem_statement: "Улучшение кода VasDom AudioBot: 1. CORS origins - ограничить и читать из переменных окружения, 2. Telegram webhook validation - добавить Pydantic модели, 3. Authentication - добавить безопасность для публичных API, 4. CRM data centralization - централизовать получение данных, 5. Telegram error handling - обрабатывать ошибки отправки, 6. Database migrations - подключить Alembic, 7. Frontend redirect URLs - вынести в конфигурацию, 8. README expansion - расширить документацию. Все улучшения должны сохранить работающий функционал приложения."
 
 backend:
   - task: "CRM Bitrix24 Integration - Dashboard API"
