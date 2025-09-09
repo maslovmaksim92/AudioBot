@@ -307,17 +307,6 @@ const Works = () => {
 };
 
 export default Works;
-      case 'C2:EXECUTING': return 'bg-green-100 text-green-800';
-      case 'C2:FINAL_INVOICE': return 'bg-orange-100 text-orange-800';
-      case 'C2:WON': return 'bg-green-200 text-green-900';
-      case 'C2:APOLOGY': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (stage) => {
-    const statusMap = {
-      'C2:NEW': 'Новый',
       'C2:PREPARATION': 'Подготовка',
       'C2:CLIENT': 'С клиентом',
       'C2:EXECUTING': 'Выполняется',
