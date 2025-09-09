@@ -175,7 +175,11 @@ class BitrixService:
         return deal
     
     async def _get_user_info(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Получить информацию о пользователе по ID"""
+        """Получить информацию о пользователе по ID с кэшированием"""
+        # Проверяем кэш
+        if user_id in self._users_cache:
+            return self._users_cache[user_id]
+            
         try:
             params = {
                 'ID': str(user_id)
@@ -192,16 +196,24 @@ class BitrixService:
                     
                     if result and isinstance(result, list) and len(result) > 0:
                         user_data = result[0]
+                        # Кэшируем результат
+                        self._users_cache[user_id] = user_data
                         logger.info(f"✅ User info loaded: {user_data.get('NAME', '')} {user_data.get('LAST_NAME', '')}")
                         return user_data
                 
         except Exception as e:
             logger.warning(f"⚠️ Failed to get user info for ID {user_id}: {e}")
         
+        # Кэшируем пустой результат чтобы не повторять запрос
+        self._users_cache[user_id] = None
         return None
     
     async def _get_company_info(self, company_id: str) -> Optional[Dict[str, Any]]:
-        """Получить информацию о компании по ID"""
+        """Получить информацию о компании по ID с кэшированием"""
+        # Проверяем кэш
+        if company_id in self._companies_cache:
+            return self._companies_cache[company_id]
+            
         try:
             params = {
                 'id': str(company_id)
@@ -217,12 +229,16 @@ class BitrixService:
                     result = data.get('result')
                     
                     if result:
+                        # Кэшируем результат
+                        self._companies_cache[company_id] = result
                         logger.info(f"✅ Company info loaded: {result.get('TITLE', '')}")
                         return result
                 
         except Exception as e:
             logger.warning(f"⚠️ Failed to get company info for ID {company_id}: {e}")
         
+        # Кэшируем пустой результат чтобы не повторять запрос
+        self._companies_cache[company_id] = None
         return None
     
     def _enrich_house_data(self, deal: Dict[str, Any]) -> Dict[str, Any]:
