@@ -884,7 +884,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bitrix24 Tasks Integration - TESTING COMPLETE"
+    - "НОВАЯ ВКЛАДКА ЗАДАЧИ - Frontend Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
