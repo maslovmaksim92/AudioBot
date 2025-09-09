@@ -32,6 +32,8 @@ services:
         value: sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd
       - key: CORS_ORIGINS
         value: "*"
+      - key: PIP_EXTRA_INDEX_URL
+        value: https://d33sy5i8bnduwe.cloudfront.net/simple/
 
 databases:
   - name: vasdom-audiobot-db
