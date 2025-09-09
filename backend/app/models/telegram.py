@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
 import logging
 
@@ -25,13 +25,14 @@ class TelegramMessage(BaseModel):
     text: Optional[str] = None
     
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True  # Pydantic v2 equivalent of allow_population_by_field_name
 
 class TelegramUpdate(BaseModel):
     update_id: int
     message: Optional[TelegramMessage] = None
     
-    @validator('message')
+    @field_validator('message')
+    @classmethod
     def validate_message(cls, v):
         if v is None:
             logger.warning("⚠️ Telegram update without message received")
