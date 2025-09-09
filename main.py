@@ -32,7 +32,7 @@ except ImportError as e:
                 "status": "emergency_mode",
                 "message": "Приложение запущено в аварийном режиме",
                 "error": str(fallback_error)
-        }
+            }
 
 if __name__ == "__main__":
     import uvicorn
