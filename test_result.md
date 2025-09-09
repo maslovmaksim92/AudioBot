@@ -297,7 +297,17 @@ backend:
           comment: "✅ FIXED: Environment variables loading issue resolved. Added proper dotenv loading in settings.py with correct path resolution (ROOT_DIR = Path(__file__).parent.parent.parent). BITRIX24_WEBHOOK_URL and TELEGRAM_BOT_TOKEN now load correctly. This fix resolved all Bitrix24 and Telegram integration issues."
 
 frontend:
-  # No frontend testing performed as per instructions
+  - task: "Navigation Fix - Dashboard to Houses Management"
+    implemented: true
+    working: true
+    file: "frontend/src/components/Dashboard/Dashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ CONFIRMED: Навигация Dashboard → Управление домами работает правильно. Кнопка 'Дома' в быстрых действиях успешно переключает на страницу с логотипом РЯДОМ и всеми фильтрами. Проблема навигации была ложной - система работает корректно."
 
   - task: "Database Migrations (Alembic)"
     implemented: true
