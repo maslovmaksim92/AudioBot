@@ -442,11 +442,8 @@ frontend:
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"
-          comment: "✅ AppContext создан с useReducer, все actions реализованы, auto-refresh настроен"
-        - working: true
           agent: "testing"
-          comment: "✅ CONFIRMED: React Context State Management fully working. AppContext with useReducer manages currentSection, isMenuCollapsed, dashboardStats, loading, apiStatus, notifications. Actions work correctly: setCurrentSection, toggleMenu, fetchDashboardStats, addNotification, removeNotification. Auto-refresh every 2 minutes functional. State changes properly reflected across components."
+          comment: "✅ AppContext с useReducer работает, auto-refresh активен, все actions функциональны, состояние обновляется корректно"
 
   - task: "Modular Component Architecture"
     implemented: true
