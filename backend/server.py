@@ -1060,9 +1060,12 @@ async def get_meetings():
 async def get_self_learning_status():
     """Статус системы самообучения"""
     try:
+        emergent_status = "available" if EMERGENT_AVAILABLE else "fallback"
+        emergent_key_present = bool(os.environ.get('EMERGENT_LLM_KEY'))
+        
         if database.is_connected:
             # Проверяем количество AI взаимодействий
-            query = "SELECT COUNT(*) as count FROM voice_logs WHERE context LIKE 'GPT4mini_%'"
+            query = "SELECT COUNT(*) as count FROM voice_logs WHERE context LIKE 'AI_%'"
             logs_result = await database.fetch_one(query)
             ai_interactions = logs_result['count'] if logs_result else 0
             
@@ -1073,11 +1076,17 @@ async def get_self_learning_status():
             
             return {
                 "status": "active",
+                "emergent_llm": {
+                    "package_available": EMERGENT_AVAILABLE,
+                    "key_present": emergent_key_present,
+                    "mode": "GPT-4 mini" if EMERGENT_AVAILABLE and emergent_key_present else "Advanced Fallback"
+                },
                 "ai_interactions": ai_interactions,
                 "learning_tasks": learning_tasks,
                 "next_analysis": f"Каждые 10 взаимодействий (осталось: {10 - (ai_interactions % 10)})",
                 "database": "connected",
                 "instructions": {
+                    "install_emergent": "pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/",
                     "test": "POST /api/voice/process with {'text': 'test message', 'user_id': 'test'}",
                     "check_logs": "GET /api/logs",
                     "verify": "Отправьте несколько сообщений и проверьте логи"
@@ -1086,6 +1095,11 @@ async def get_self_learning_status():
         else:
             return {
                 "status": "database_error",
+                "emergent_llm": {
+                    "package_available": EMERGENT_AVAILABLE,
+                    "key_present": emergent_key_present,
+                    "mode": "Fallback AI (no database)"
+                },
                 "message": "База данных недоступна, самообучение отключено",
                 "fallback": "AI работает без сохранения логов"
             }
@@ -1094,6 +1108,11 @@ async def get_self_learning_status():
         return {
             "status": "error",
             "message": str(e),
+            "emergent_llm": {
+                "package_available": EMERGENT_AVAILABLE,
+                "key_present": bool(os.environ.get('EMERGENT_LLM_KEY')),
+                "mode": "error"
+            },
             "instructions": "Проверьте подключение к базе данных"
         }
 
