@@ -85,8 +85,6 @@ class BitrixService:
                 'select[30]': 'UF_CRM_1741593387667', # Тип уборки 1 Декабрь
                 'select[31]': 'UF_CRM_1741593408621', # Дата уборки 2 Декабрь
                 'select[32]': 'UF_CRM_1741593452062', # Тип уборки 2 Декабрь
-                'select[27]': 'UF_CRM_1741593408621', # Дата уборки 2 Декабрь
-                'select[28]': 'UF_CRM_1741593452062', # Тип уборки 2 Декабрь
                 'filter[CATEGORY_ID]': category_id,
                 'order[DATE_CREATE]': 'DESC',
                 'start': str(start)
