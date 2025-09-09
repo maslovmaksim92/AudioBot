@@ -191,28 +191,28 @@ const AIChat = () => {
   };
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;AI Чат&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;Голосовое и текстовое общение с VasDom AI&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button variant="secondary" onClick={clearChat}&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">AI Чат</h1>
+          <p className="text-gray-600">Голосовое и текстовое общение с VasDom AI</p>
+        </div>
+        <Button variant="secondary" onClick={clearChat}>
           🗑️ Очистить чат
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
-      &lt;div className="grid grid-cols-1 lg:grid-cols-3 gap-6"&gt;
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chat Messages */}
-        &lt;div className="lg:col-span-2"&gt;
-          &lt;Card className="h-96 flex flex-col"&gt;
-            &lt;div className="flex-1 overflow-y-auto p-4 space-y-4"&gt;
+        <div className="lg:col-span-2">
+          <Card className="h-96 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message, index) => (
-                &lt;div
+                <div
                   key={index}
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                &gt;
-                  &lt;div
+                >
+                  <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                       message.type === 'user'
                         ? 'bg-blue-600 text-white'
@@ -220,109 +220,109 @@ const AIChat = () => {
                         ? 'bg-red-100 text-red-800 border border-red-200'
                         : 'bg-gray-100 text-gray-800'
                     }`}
-                  &gt;
-                    &lt;p className="text-sm"&gt;{message.text}&lt;/p&gt;
-                    &lt;p className="text-xs opacity-70 mt-1"&gt;
+                  >
+                    <p className="text-sm">{message.text}</p>
+                    <p className="text-xs opacity-70 mt-1">
                       {message.timestamp.toLocaleTimeString('ru-RU')}
-                    &lt;/p&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
+                    </p>
+                  </div>
+                </div>
               ))}
               
               {isProcessing && (
-                &lt;div className="flex justify-start"&gt;
-                  &lt;div className="bg-gray-100 rounded-lg p-4"&gt;
-                    &lt;LoadingSpinner size="sm" text="AI думает..." /&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 rounded-lg p-4">
+                    <LoadingSpinner size="sm" text="AI думает..." />
+                  </div>
+                </div>
               )}
               
               {currentMessage && (
-                &lt;div className="flex justify-end"&gt;
-                  &lt;div className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg max-w-xs lg:max-w-md"&gt;
-                    &lt;p className="text-sm"&gt;{currentMessage}&lt;/p&gt;
-                    &lt;p className="text-xs opacity-70"&gt;Говорите...&lt;/p&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
+                <div className="flex justify-end">
+                  <div className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg max-w-xs lg:max-w-md">
+                    <p className="text-sm">{currentMessage}</p>
+                    <p className="text-xs opacity-70">Говорите...</p>
+                  </div>
+                </div>
               )}
               
-              &lt;div ref={messagesEndRef} /&gt;
-            &lt;/div&gt;
+              <div ref={messagesEndRef} />
+            </div>
 
             {/* Text Input */}
-            &lt;div className="border-t p-4"&gt;
-              &lt;form onSubmit={handleTextSubmit} className="flex space-x-2"&gt;
-                &lt;input
+            <div className="border-t p-4">
+              <form onSubmit={handleTextSubmit} className="flex space-x-2">
+                <input
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
                   placeholder="Введите сообщение..."
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isProcessing}
-                /&gt;
-                &lt;Button type="submit" disabled={!textInput.trim() || isProcessing}&gt;
+                />
+                <Button type="submit" disabled={!textInput.trim() || isProcessing}>
                   📤 Отправить
-                &lt;/Button&gt;
-              &lt;/form&gt;
-            &lt;/div&gt;
-          &lt;/Card&gt;
-        &lt;/div&gt;
+                </Button>
+              </form>
+            </div>
+          </Card>
+        </div>
 
         {/* Voice Controls */}
-        &lt;div className="space-y-4"&gt;
-          &lt;Card title="🎤 Голосовое управление"&gt;
-            &lt;div className="space-y-4"&gt;
-              &lt;div className="text-center"&gt;
-                &lt;Button
+        <div className="space-y-4">
+          <Card title="🎤 Голосовое управление">
+            <div className="space-y-4">
+              <div className="text-center">
+                <Button
                   onClick={isListening ? stopListening : startListening}
                   variant={isListening ? 'danger' : 'primary'}
                   size="lg"
                   className="w-full"
                   disabled={isProcessing}
-                &gt;
+                >
                   {isListening ? '⏹️ Остановить' : '🎤 Начать говорить'}
-                &lt;/Button&gt;
-              &lt;/div&gt;
+                </Button>
+              </div>
               
               {!('webkitSpeechRecognition' in window) && (
-                &lt;p className="text-sm text-red-600 text-center"&gt;
+                <p className="text-sm text-red-600 text-center">
                   Голосовое распознавание не поддерживается в этом браузере
-                &lt;/p&gt;
+                </p>
               )}
               
               {isListening && (
-                &lt;div className="text-center"&gt;
-                  &lt;div className="inline-block w-4 h-4 bg-red-500 rounded-full animate-pulse"&gt;&lt;/div&gt;
-                  &lt;p className="text-sm text-gray-600 mt-2"&gt;Слушаю...&lt;/p&gt;
-                &lt;/div&gt;
+                <div className="text-center">
+                  <div className="inline-block w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                  <p className="text-sm text-gray-600 mt-2">Слушаю...</p>
+                </div>
               )}
-            &lt;/div&gt;
-          &lt;/Card&gt;
+            </div>
+          </Card>
 
-          &lt;Card title="💡 Подсказки"&gt;
-            &lt;div className="space-y-2 text-sm text-gray-600"&gt;
-              &lt;p&gt;• "Сколько у нас домов?"&lt;/p&gt;
-              &lt;p&gt;• "Покажи статистику по бригадам"&lt;/p&gt;
-              &lt;p&gt;• "Какие дома требуют внимания?"&lt;/p&gt;
-              &lt;p&gt;• "Как дела с планерками?"&lt;/p&gt;
-            &lt;/div&gt;
-          &lt;/Card&gt;
+          <Card title="💡 Подсказки">
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>• "Сколько у нас домов?"</p>
+              <p>• "Покажи статистику по бригадам"</p>
+              <p>• "Какие дома требуют внимания?"</p>
+              <p>• "Как дела с планерками?"</p>
+            </div>
+          </Card>
 
-          &lt;Card title="📊 Статистика чата"&gt;
-            &lt;div className="space-y-2 text-sm"&gt;
-              &lt;div className="flex justify-between"&gt;
-                &lt;span&gt;Сообщений:&lt;/span&gt;
-                &lt;span className="font-semibold"&gt;{messages.length}&lt;/span&gt;
-              &lt;/div&gt;
-              &lt;div className="flex justify-between"&gt;
-                &lt;span&gt;Статус AI:&lt;/span&gt;
-                &lt;span className="text-green-600"&gt;✅ Активен&lt;/span&gt;
-              &lt;/div&gt;
-            &lt;/div&gt;
-          &lt;/Card&gt;
-        &lt;/div&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
+          <Card title="📊 Статистика чата">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Сообщений:</span>
+                <span className="font-semibold">{messages.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Статус AI:</span>
+                <span className="text-green-600">✅ Активен</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 };
 
