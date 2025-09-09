@@ -6,8 +6,8 @@ This imports from app.py to ensure compatibility
 
 import os
 
-# Simple import from app.py
-from app import app
+# Simple import from vasdom_app.py
+from vasdom_app import app
 
 print("✅ main.py: App imported successfully")
 
