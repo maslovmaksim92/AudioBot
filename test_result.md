@@ -101,3 +101,113 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Протестировать обновленный VasDom AudioBot API: 1. Dashboard API - проверить /api/dashboard возвращает 491 дом (реальные данные из CSV), 2. GPT-4 mini AI - протестировать /api/voice/process с новым Emergent LLM, 3. Bitrix24 интеграция - проверить /api/cleaning/houses загружает все дома из CRM, 4. Самообучение - убедиться что AI логи сохраняются в PostgreSQL, 5. Все остальные эндпоинты - meetings, logs работают корректно"
+
+backend:
+  - task: "Dashboard API - 491 houses display"
+    implemented: true
+    working: false
+    file: "backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL ISSUE: Dashboard shows 348 houses instead of expected 491. Bitrix24 CRM only contains 348 deals in 'Уборка подъездов' funnel. The CSV data with 491 houses has not been properly imported into Bitrix24. Backend logs show: '✅ ВСЕ дома из воронки Уборка подъездов загружены: 348'. This indicates the CRM data source only has 348 records, not 491."
+
+  - task: "GPT-4 mini AI Processing"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ GPT-4 mini AI is working correctly through Emergent LLM. AI responds with proper VasDom context, mentions 491 houses correctly in responses, and shows intelligent contextual understanding. Backend logs confirm: 'LiteLLM completion() model= gpt-4o-mini; provider = openai' and '✅ GPT-4 mini response received'. The AI system is functioning as expected."
+
+  - task: "Bitrix24 CRM Integration"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Bitrix24 integration is working correctly. Successfully loads real CRM data with proper fields (bitrix24_deal_id, stage, brigade assignments, addresses). API returns 348 houses with complete CRM metadata including custom fields, contact IDs, and deal stages. The integration is functional but limited by actual CRM data availability (348 vs expected 491)."
+
+  - task: "Self-Learning System (PostgreSQL)"
+    implemented: true
+    working: false
+    file: "backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL ISSUE: Self-learning system not working due to PostgreSQL database connection failure. Database connection error: '[Errno 111] Connect call failed ('127.0.0.1', 5432), [Errno 99] Cannot assign requested address'. AI interactions are processed successfully but logs are not saved to PostgreSQL for self-learning. The database service appears to be unavailable or misconfigured."
+
+  - task: "Meetings API Functionality"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Meetings functionality working correctly. Successfully starts and stops meeting recordings, generates meeting IDs, and handles meeting lifecycle. API endpoints /api/meetings/start-recording and /api/meetings/stop-recording respond properly with 200 status codes."
+
+  - task: "System Logs API"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ System logs API endpoint working correctly. Returns proper JSON response with voice_logs array (currently empty due to database connection issues, but API structure is correct). Endpoint /api/logs responds with 200 status code and expected data format."
+
+  - task: "API Root Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ API root endpoint working correctly. Returns proper API information including version 3.0.0, status, and feature list. Responds with correct JSON structure and 200 status code."
+
+frontend:
+  # No frontend testing performed as per instructions
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Dashboard API - 491 houses display"
+    - "Self-Learning System (PostgreSQL)"
+  stuck_tasks:
+    - "Dashboard API - 491 houses display"
+    - "Self-Learning System (PostgreSQL)"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Completed comprehensive backend API testing. Found 2 critical issues: 1) Dashboard shows 348 houses instead of 491 due to incomplete CRM data import, 2) Self-learning system not working due to PostgreSQL connection failure. GPT-4 mini AI and Bitrix24 integration are working correctly. Meetings and logs APIs functional but limited by database issues."
