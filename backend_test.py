@@ -319,9 +319,15 @@ class VasDomAudioBotTester:
             return 1
 
 def main():
-    """Main test execution"""
-    print("VasDom AudioBot Backend API Tester")
-    print("Testing self-learning module implementation")
+    """Main test execution for VasDom AudioBot v3.0"""
+    print("🧠 VasDom AudioBot v3.0 Backend API Tester")
+    print("🚀 Testing MAXIMUM SELF-LEARNING AI SYSTEM")
+    print("📋 Testing all revolutionary self-learning features:")
+    print("   • Continuous learning on every dialog")
+    print("   • Smart data filtering with ratings")
+    print("   • Real-time learning statistics")
+    print("   • Quality data export for fine-tuning")
+    print("   • Similar conversation search")
     
     # Use the public URL from the review request
     tester = VasDomAudioBotTester("https://audiobot-qci2.onrender.com")
