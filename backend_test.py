@@ -521,21 +521,24 @@ class VasDomAPITester:
         print("\n📋 Review Requirements Status:")
         
         # Check main endpoints
-        main_endpoints_passed = all(not any(endpoint in test["name"] for endpoint in ["API Root", "Dashboard Stats", "Health Check"]) 
-                                  for test in self.failed_tests)
+        main_endpoints_tests = [test for test in self.failed_tests if any(endpoint in test["name"] for endpoint in ["API Root", "Dashboard Stats", "Health Check"])]
+        main_endpoints_passed = len(main_endpoints_tests) == 0
         
         # Check dashboard HTML
-        dashboard_html_passed = all(not any("Dashboard HTML" in test["name"]) for test in self.failed_tests)
+        dashboard_html_tests = [test for test in self.failed_tests if "Dashboard HTML" in test["name"]]
+        dashboard_html_passed = len(dashboard_html_tests) == 0
         
         # Check telegram endpoints
-        telegram_passed = all(not any("Telegram" in test["name"]) for test in self.failed_tests)
+        telegram_tests = [test for test in self.failed_tests if "Telegram" in test["name"]]
+        telegram_passed = len(telegram_tests) == 0
         
         # Check AI system
-        ai_passed = all(not any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning Status"]) 
-                       for test in self.failed_tests)
+        ai_tests = [test for test in self.failed_tests if any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning Status"])]
+        ai_passed = len(ai_tests) == 0
         
         # Check Bitrix24
-        bitrix_passed = all(not any("Bitrix24" in test["name"]) for test in self.failed_tests)
+        bitrix_tests = [test for test in self.failed_tests if "Bitrix24" in test["name"]]
+        bitrix_passed = len(bitrix_tests) == 0
         
         print(f"   1. Главные endpoints (/api/, /dashboard, /health): {'✅' if main_endpoints_passed else '❌'}")
         print(f"   2. Dashboard HTML (/dashboard, /dashbord): {'✅' if dashboard_html_passed else '❌'}")
@@ -545,7 +548,7 @@ class VasDomAPITester:
         
         # Check specific issues mentioned in review
         print("\n🔍 Проблемы для проверки:")
-        no_404_errors = all(test["details"] and "404" not in test["details"] for test in self.failed_tests)
+        no_404_errors = not any("404" in test["details"] for test in self.failed_tests if test["details"])
         print(f"   - Исправлены ли все 404 Not Found ошибки? {'✅' if no_404_errors else '❌'}")
         print(f"   - Работает ли dashboard на /dashboard? {'✅' if dashboard_html_passed else '❌'}")
         print(f"   - Telegram webhook /api/telegram/webhook отвечает? {'✅' if telegram_passed else '❌'}")
