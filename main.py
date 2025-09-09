@@ -12,26 +12,42 @@ sys.path.insert(0, str(backend_path))
 
 # Import the FastAPI app with fallback
 try:
-    from server import app
-    print("✅ VasDom AudioBot imported successfully from backend/server.py")
+    from app.main import app
+    print("✅ VasDom AudioBot imported successfully from modular backend/app/main.py")
 except ImportError as e:
-    print(f"❌ Import error: {e}")
-    # Fallback - create a simple app
-    from fastapi import FastAPI
-    from fastapi.responses import JSONResponse
-    
-    app = FastAPI(title="VasDom AudioBot - Fallback")
-    
-    # Store the error message for use in the route
-    import_error = str(e)
-    
-    @app.get("/")
-    async def root():
-        return {
-            "message": "VasDom AudioBot - Import Error",
-            "error": import_error,
-            "status": "fallback_mode"
-        }
+    print(f"❌ Modular import error: {e}")
+    # Store first error for later use
+    first_error = str(e)
+    # Fallback to old server structure if exists
+    try:
+        from server import app
+        print("✅ VasDom AudioBot imported from fallback backend/server.py")
+    except ImportError as e2:
+        print(f"❌ Fallback import error: {e2}")
+        # Store second error for later use
+        second_error = str(e2)
+        # Create emergency fallback app
+        from fastapi import FastAPI
+        from fastapi.responses import JSONResponse
+        
+        app = FastAPI(title="VasDom AudioBot - Emergency Fallback")
+        
+        @app.get("/")
+        async def emergency_root():
+            return JSONResponse({
+                "message": "VasDom AudioBot - Import Error Fallback",
+                "error": f"Import errors: {first_error} | {second_error}",
+                "status": "emergency_mode",
+                "instructions": "Check backend structure and imports"
+            })
+        
+        @app.get("/api/")
+        async def emergency_api():
+            return JSONResponse({
+                "message": "VasDom AudioBot API - Emergency Mode",
+                "error": "Backend import failed",
+                "status": "fallback"
+            })
 
 if __name__ == "__main__":
     import uvicorn
