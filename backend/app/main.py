@@ -50,6 +50,7 @@ app.include_router(voice.router)
 app.include_router(telegram.router)
 app.include_router(meetings.router)
 app.include_router(cleaning.router)
+app.include_router(tasks.router)
 app.include_router(logs.router)
 
 logger.info("✅ All routers included")
