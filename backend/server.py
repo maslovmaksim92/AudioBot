@@ -1292,23 +1292,49 @@ async def test_self_learning():
 
 # Telegram webhook routes
 @api_router.post("/telegram/webhook")
-async def telegram_webhook(update: dict):
-    """Telegram webhook endpoint"""
+async def telegram_webhook(update: TelegramUpdate, authorization: str = Depends(require_auth)):
+    """Telegram webhook endpoint с валидацией данных (УЛУЧШЕНИЕ 2, 3)"""
     try:
-        logger.info(f"📱 Telegram webhook received: {update}")
+        logger.info(f"📱 Telegram webhook received: {update.dict()}")
         
-        # Здесь будет обработка Telegram сообщений
-        # Пока возвращаем заглушку
-        return {
-            "status": "received",
-            "message": "Telegram webhook processed",
-            "update_id": update.get("update_id"),
-            "chat_id": update.get("message", {}).get("chat", {}).get("id") if "message" in update else None
-        }
+        # УЛУЧШЕНИЕ 2: Валидация обязательных полей
+        if not update.validate_required_fields():
+            logger.warning("❌ Telegram webhook: missing required fields (message, text, chat_id)")
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required fields: message, text, or chat_id"
+            )
         
+        # УЛУЧШЕНИЕ 5: Обработка ошибок отправки в Telegram с деталями
+        try:
+            # Здесь должна быть логика отправки ответа в Telegram
+            # Пока что возвращаем успешный ответ
+            success = True  # Placeholder - здесь будет реальная отправка
+            
+            if success:
+                return {
+                    "status": "success",
+                    "message": "Telegram webhook processed successfully"
+                }
+            else:
+                return {
+                    "status": "failed",
+                    "message": "Failed to send response to Telegram",
+                    "details": "Message delivery error"
+                }
+        except Exception as send_error:
+            logger.error(f"❌ Telegram message send error: {send_error}")
+            return {
+                "status": "failed", 
+                "message": "Failed to process webhook",
+                "details": str(send_error)
+            }
+            
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"❌ Telegram webhook error: {e}")
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=f"Webhook processing error: {str(e)}")
 
 @api_router.get("/telegram/status")
 async def telegram_status():
