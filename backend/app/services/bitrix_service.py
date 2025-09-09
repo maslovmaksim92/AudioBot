@@ -235,31 +235,8 @@ class BitrixService:
         logger.info("🧹 Cache cleared")
         
     async def get_deals(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Получить ВСЕ дома из Bitrix24 CRM"""
-        try:
-            logger.info(f"🏠 Loading houses from Bitrix24 CRM...")
-            
-            all_deals = []
-            
-            # Загружаем только из категории 34 (где находятся все дома для уборки)
-            categories = ['34']
-            
-            for category_id in categories:
-                logger.info(f"📦 Loading from category {category_id}...")
-                category_deals = await self._load_deals_from_category(category_id)
-                all_deals.extend(category_deals)
-                logger.info(f"📦 Category {category_id}: {len(category_deals)} deals loaded")
-            
-            if all_deals:
-                logger.info(f"✅ Total CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
-                return all_deals
-            else:
-                logger.warning("⚠️ No deals from Bitrix24, using fallback")
-                return self._get_mock_data(limit or 50)
-            
-        except Exception as e:
-            logger.error(f"❌ Bitrix24 load error: {e}")
-            return self._get_mock_data(limit or 50)
+        """Главный метод загрузки домов - использует оптимизированную версию"""
+        return await self.get_deals_optimized(limit=limit)
     
     async def _load_deals_from_category(self, category_id: str) -> List[Dict[str, Any]]:
         """Загрузить сделки из конкретной категории"""
