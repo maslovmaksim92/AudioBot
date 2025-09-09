@@ -33,16 +33,16 @@ async def get_cleaning_houses(
             status_text, status_color = bitrix.get_status_info(stage_id)
             
             # Извлекаем расширенные данные из Bitrix24
-            apartments_count = _parse_int(deal.get('UF_CRM_1726148184'))
-            floors_count = _parse_int(deal.get('UF_CRM_1726148203'))
-            entrances_count = _parse_int(deal.get('UF_CRM_1726148223'))
-            tariff = deal.get('UF_CRM_1726148242', '')
+            apartments_count = _parse_int(deal.get('UF_CRM_APARTMENTS'))
+            floors_count = _parse_int(deal.get('UF_CRM_FLOORS'))
+            entrances_count = _parse_int(deal.get('UF_CRM_ENTRANCES'))
+            tariff = deal.get('UF_CRM_TARIFF', '')
             
             # Парсим график уборки
-            cleaning_date_1_str = deal.get('UF_CRM_1726148261', '')
-            cleaning_type_1 = deal.get('UF_CRM_1726148280', '')
-            cleaning_date_2_str = deal.get('UF_CRM_1726148299', '')
-            cleaning_type_2 = deal.get('UF_CRM_1726148318', '')
+            cleaning_date_1_str = deal.get('UF_CRM_CLEANING_DATE_1', '')
+            cleaning_type_1 = deal.get('UF_CRM_CLEANING_TYPE_1', '')
+            cleaning_date_2_str = deal.get('UF_CRM_CLEANING_DATE_2', '')
+            cleaning_type_2 = deal.get('UF_CRM_CLEANING_TYPE_2', '')
             
             # Преобразуем даты в список
             cleaning_date_1 = _parse_dates(cleaning_date_1_str)
