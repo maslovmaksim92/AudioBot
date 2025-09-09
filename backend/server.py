@@ -92,39 +92,42 @@ FRONTEND_DASHBOARD_URL = os.environ.get(
 # Security settings (УЛУЧШЕНИЕ 3)
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'vasdom-secret-key-change-in-production')
 REQUIRE_AUTH_FOR_PUBLIC_API = os.environ.get('REQUIRE_AUTH_FOR_PUBLIC_API', 'false').lower() == 'true'
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///:memory:')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Скрываем чувствительные данные в логах (как требует CodeGPT)
-safe_db_url = DATABASE_URL.replace(DATABASE_URL[DATABASE_URL.find('://')+3:DATABASE_URL.find('@')+1], '://***:***@') if '@' in DATABASE_URL else DATABASE_URL[:30] + '...'
-logger.info(f"🗄️ Database URL: {safe_db_url}")
+Base = declarative_base()
+database = None
+engine = None
 
-# ТОЛЬКО PostgreSQL - без SQLite зависимостей
-if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://', 1)
+if DATABASE_URL:
+    # Скрываем чувствительные данные в логах
+    safe_db_url = DATABASE_URL.replace(DATABASE_URL[DATABASE_URL.find('://')+3:DATABASE_URL.find('@')+1], '://***:***@') if '@' in DATABASE_URL else DATABASE_URL[:30] + '...'
+    logger.info(f"🗄️ Database URL: {safe_db_url}")
+    
+    # PostgreSQL setup ТОЛЬКО если есть DATABASE_URL
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://', 1)
+    elif DATABASE_URL.startswith('postgresql://') and not DATABASE_URL.startswith('postgresql+asyncpg://'):
+        DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    
     try:
         database = Database(DATABASE_URL)
         logger.info("🐘 PostgreSQL async driver initialized")
+        
+        # Async engine ТОЛЬКО для PostgreSQL
+        engine = create_async_engine(
+            DATABASE_URL,
+            echo=False,
+            future=True,
+            pool_pre_ping=True
+        )
     except Exception as e:
         logger.error(f"❌ PostgreSQL init error: {e}")
-        # Простой fallback без SQLite
         database = None
+        engine = None
         logger.warning("⚠️ Database unavailable - API will work without DB")
-elif DATABASE_URL.startswith('postgresql://'):
-    if not DATABASE_URL.startswith('postgresql+asyncpg://'):
-        DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)
-    try:
-        database = Database(DATABASE_URL)
-        logger.info("🐘 PostgreSQL async driver initialized")  
-    except Exception as e:
-        logger.error(f"❌ PostgreSQL init error: {e}")
-        database = None
 else:
-    # БЕЗ SQLite - просто None
-    database = None
-    logger.info("📁 No database - working in API-only mode")
-
-logger.info(f"🗄️ Database status: {'connected' if database else 'disabled'}")
-Base = declarative_base()
+    logger.info("📁 No DATABASE_URL - working in API-only mode")
+    logger.info("🗄️ Database status: disabled")
 
 # SQLAlchemy Models
 class VoiceLogDB(Base):
