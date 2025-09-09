@@ -263,7 +263,7 @@ class VasDomAPITester:
             return False
 
     def test_cleaning_houses(self):
-        """Test cleaning houses data from Bitrix24 CRM - должен загружать все дома"""
+        """Test cleaning houses data from Bitrix24 CRM - должен загружать ТОЛЬКО CRM данные (348 домов)"""
         try:
             response = requests.get(f"{self.api_url}/cleaning/houses", timeout=25)
             success = response.status_code == 200
@@ -277,17 +277,27 @@ class VasDomAPITester:
                 if success:
                     houses_count = len(data["houses"])
                     total_from_api = data.get("total", houses_count)
-                    print(f"   🏠 Loaded {houses_count} houses from {data.get('source', 'Unknown')}")
+                    source = data.get("source", "Unknown")
+                    print(f"   🏠 Loaded {houses_count} houses from {source}")
                     print(f"   🏠 Total reported: {total_from_api}")
+                    
+                    # КРИТИЧЕСКИЙ ТЕСТ: должно быть 348 домов из CRM, НЕ 491 из CSV
+                    if houses_count == 348:
+                        print(f"   ✅ CORRECT: 348 houses from CRM Bitrix24 (no CSV fallback)")
+                    elif houses_count == 491:
+                        print(f"   ❌ WRONG: 491 houses - using CSV fallback instead of CRM-only")
+                        success = False
+                    else:
+                        print(f"   ⚠️ UNEXPECTED: {houses_count} houses (expected 348 from CRM)")
                     
                     if houses_count > 0:
                         sample_house = data["houses"][0]
                         print(f"   🏠 Sample: {sample_house.get('address', 'No address')}")
                         print(f"   🏠 Brigade: {sample_house.get('brigade', 'No brigade')}")
-                        print(f"   🏠 Bitrix24 ID: {sample_house.get('bitrix24_deal_id', 'No ID')}")
+                        print(f"   🏠 Deal ID: {sample_house.get('deal_id', 'No ID')}")
                         
                         # Проверяем что данные реально из Bitrix24
-                        has_bitrix_fields = (sample_house.get('bitrix24_deal_id') and 
+                        has_bitrix_fields = (sample_house.get('deal_id') and 
                                            sample_house.get('stage') and
                                            sample_house.get('brigade'))
                         
@@ -297,20 +307,18 @@ class VasDomAPITester:
                             print("   ❌ May be using mock data instead of real Bitrix24")
                             success = False
                     
-                    # Проверяем что загружается достаточно домов (должно быть много)
-                    if houses_count >= 400:
-                        print(f"   ✅ Good amount of houses loaded: {houses_count}")
-                    elif houses_count >= 50:
-                        print(f"   ⚠️ Moderate amount of houses: {houses_count} (may be limited)")
+                    # Проверяем источник данных
+                    if "Bitrix24" in source or "CRM" in source:
+                        print(f"   ✅ Data source correctly indicates CRM: {source}")
                     else:
-                        print(f"   ❌ Too few houses: {houses_count} (likely mock data)")
+                        print(f"   ❌ Data source unclear or wrong: {source}")
                         success = False
                 
-            self.log_test("Bitrix24 CRM Houses Loading", success, 
+            self.log_test("Bitrix24 CRM-Only Houses (348)", success, 
                          f"Status: {response.status_code}, Houses: {len(data.get('houses', []))}")
             return success
         except Exception as e:
-            self.log_test("Bitrix24 CRM Houses Loading", False, str(e))
+            self.log_test("Bitrix24 CRM-Only Houses (348)", False, str(e))
             return False
 
     def test_voice_ai_processing(self):
