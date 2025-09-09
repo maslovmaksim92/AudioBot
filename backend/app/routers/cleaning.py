@@ -244,6 +244,78 @@ async def get_cleaning_stats():
         logger.error(f"❌ Cleaning stats error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/bitrix24/fields")
+async def get_bitrix24_fields():
+    """Исследование полей сделок в Bitrix24"""
+    try:
+        logger.info("🔍 Investigating Bitrix24 deal fields...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Загружаем несколько сделок со всеми полями
+        params = {
+            'filter[CATEGORY_ID]': '34',
+            'start': '0'
+        }
+        
+        import urllib.parse
+        query_string = urllib.parse.urlencode(params)
+        url = f"{bitrix.webhook_url}crm.deal.list.json?{query_string}"
+        
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                deals = data.get('result', [])
+                
+                if deals:
+                    # Берем первую сделку и показываем все её поля
+                    first_deal = deals[0]
+                    
+                    # Фильтруем только пользовательские поля (UF_CRM_)
+                    custom_fields = {
+                        key: value for key, value in first_deal.items() 
+                        if key.startswith('UF_CRM_') and value
+                    }
+                    
+                    logger.info(f"✅ Found {len(custom_fields)} custom fields")
+                    return {
+                        "status": "success",
+                        "deal_id": first_deal.get('ID'),
+                        "title": first_deal.get('TITLE'),
+                        "all_fields_count": len(first_deal.keys()),
+                        "custom_fields": custom_fields,
+                        "sample_standard_fields": {
+                            "ID": first_deal.get('ID'),
+                            "TITLE": first_deal.get('TITLE'),
+                            "STAGE_ID": first_deal.get('STAGE_ID'),
+                            "OPPORTUNITY": first_deal.get('OPPORTUNITY')
+                        },
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": "No deals found in category 34",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Bitrix24 API error: {response.status_code}",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                
+    except Exception as e:
+        logger.error(f"❌ Fields investigation error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @router.get("/bitrix24/categories")
 async def get_bitrix24_categories():
     """Исследование всех категорий сделок в Bitrix24"""
