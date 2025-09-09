@@ -519,7 +519,7 @@ class AdvancedAI:
     async def _save_to_db(self, question: str, response: str, context: str):
         """Сохранение в PostgreSQL для самообучения"""
         try:
-            if database.is_connected:
+            if database:
                 query = """
                 INSERT INTO voice_logs (id, user_message, ai_response, user_id, context, timestamp)
                 VALUES (:id, :user_message, :ai_response, :user_id, :context, :timestamp)
