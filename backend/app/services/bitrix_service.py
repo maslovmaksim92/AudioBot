@@ -131,3 +131,112 @@ class BitrixService:
             return "🧾 Выставлен счет", "info"
         else:
             return "🔄 В работе", "processing"
+
+    async def create_task(
+        self, 
+        title: str, 
+        description: str, 
+        responsible_id: int = 1,
+        group_id: Optional[int] = None,
+        deadline: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Создать задачу в Bitrix24"""
+        try:
+            logger.info(f"📝 Creating task in Bitrix24: {title}")
+            
+            params = {
+                'fields[TITLE]': title,
+                'fields[DESCRIPTION]': description,
+                'fields[RESPONSIBLE_ID]': str(responsible_id),
+                'fields[CREATED_BY]': str(responsible_id),
+            }
+            
+            if group_id:
+                params['fields[GROUP_ID]'] = str(group_id)
+            
+            if deadline:
+                params['fields[DEADLINE]'] = deadline
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}tasks.task.add.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get('result'):
+                        task_id = data['result']['task']['id']
+                        logger.info(f"✅ Task created successfully: ID {task_id}")
+                        
+                        return {
+                            "status": "success",
+                            "task_id": task_id,
+                            "title": title,
+                            "description": description
+                        }
+                    else:
+                        logger.error(f"❌ Task creation failed: {data}")
+                        return {"status": "error", "message": "Failed to create task"}
+                else:
+                    logger.error(f"❌ Bitrix24 API error: {response.status_code}")
+                    return {"status": "error", "message": f"API error: {response.status_code}"}
+                    
+        except Exception as e:
+            logger.error(f"❌ Create task error: {e}")
+            return {"status": "error", "message": str(e)}
+
+    async def get_users(self) -> List[Dict[str, Any]]:
+        """Получить список пользователей Bitrix24"""
+        try:
+            url = f"{self.webhook_url}user.get.json"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get('result'):
+                        users = data['result']
+                        logger.info(f"✅ Retrieved {len(users)} users from Bitrix24")
+                        return users
+                    else:
+                        logger.warning("⚠️ No users found in Bitrix24")
+                        return []
+                else:
+                    logger.error(f"❌ Failed to get users: {response.status_code}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Get users error: {e}")
+            return []
+
+    async def add_comment_to_deal(self, deal_id: str, comment: str) -> bool:
+        """Добавить комментарий к сделке"""
+        try:
+            logger.info(f"💬 Adding comment to deal {deal_id}")
+            
+            params = {
+                'id': deal_id,
+                'fields[COMMENTS]': comment
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}crm.deal.update.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    logger.info(f"✅ Comment added to deal {deal_id}")
+                    return True
+                else:
+                    logger.error(f"❌ Failed to add comment: {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"❌ Add comment error: {e}")
+            return False
