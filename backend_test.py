@@ -323,29 +323,39 @@ class VasDomAPITester:
             return False
 
     def run_all_tests(self):
-        """Run all API tests"""
-        print("🚀 Starting VasDom AudioBot API Tests")
+        """Run all API tests according to review requirements"""
+        print("🚀 Starting VasDom AudioBot API Tests - Review Requirements")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("=" * 60)
+        print("📋 Review Requirements:")
+        print("   1. Dashboard API - должен возвращать 491 дом (реальные данные из CSV)")
+        print("   2. GPT-4 mini AI - тестировать /api/voice/process с новым Emergent LLM")
+        print("   3. Bitrix24 интеграция - проверить /api/cleaning/houses загружает все дома из CRM")
+        print("   4. Самообучение - убедиться что AI логи сохраняются в PostgreSQL")
+        print("   5. Все остальные эндпоинты - meetings, logs работают корректно")
+        print("=" * 80)
         
         # Core API tests
         self.test_api_root()
+        
+        # 1. Dashboard API - 491 houses check
         self.test_dashboard_stats()
         
-        # Integration tests
+        # 3. Bitrix24 integration tests
         self.test_bitrix24_connection()
         self.test_cleaning_houses()
         
-        # AI functionality tests
+        # 2. GPT-4 mini AI functionality tests
         self.test_voice_ai_processing()
         
-        # Feature tests
+        # 4. Self-learning system test
+        self.test_self_learning_system()
+        
+        # 5. Other endpoints tests
         self.test_meetings_functionality()
         self.test_meetings_list()
-        self.test_system_logs()
         
         # Print results
-        print("=" * 60)
+        print("=" * 80)
         print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
         
         if self.failed_tests:
@@ -355,6 +365,18 @@ class VasDomAPITester:
         
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"✅ Success Rate: {success_rate:.1f}%")
+        
+        # Review requirements summary
+        print("\n📋 Review Requirements Status:")
+        dashboard_passed = any("Dashboard Stats" in test["name"] for test in self.failed_tests) == False
+        ai_passed = any("GPT-4 Mini" in test["name"] for test in self.failed_tests) == False
+        bitrix_passed = any("Bitrix24" in test["name"] for test in self.failed_tests) == False
+        learning_passed = any("Self-Learning" in test["name"] for test in self.failed_tests) == False
+        
+        print(f"   1. Dashboard (491 houses): {'✅' if dashboard_passed else '❌'}")
+        print(f"   2. GPT-4 mini AI: {'✅' if ai_passed else '❌'}")
+        print(f"   3. Bitrix24 CRM: {'✅' if bitrix_passed else '❌'}")
+        print(f"   4. Self-learning: {'✅' if learning_passed else '❌'}")
         
         return self.tests_passed == self.tests_run
 
