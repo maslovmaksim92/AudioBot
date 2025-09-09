@@ -28,7 +28,7 @@ class BitrixService:
                     'select[3]': 'DATE_CREATE',
                     'select[4]': 'OPPORTUNITY',
                     'select[5]': 'CATEGORY_ID',
-                    'filter[CATEGORY_ID]': '2',  # Воронка "Уборка подъездов"
+                    'filter[CATEGORY_ID]': '80',  # Пробуем загрузить из категории 80
                     # Убираем фильтр по статусу - загружаем ВСЕ сделки из воронки
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
