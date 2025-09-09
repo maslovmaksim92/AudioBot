@@ -50,6 +50,7 @@ class VasDomRefactoringTester:
                 print(f"   📡 Status: {data.get('status', 'unknown')}")
                 
             # Test health endpoint shows database status
+            db_status = "unknown"
             health_response = requests.get(f"{self.api_url}/health", timeout=10)
             if health_response.status_code == 200:
                 health_data = health_response.json()
