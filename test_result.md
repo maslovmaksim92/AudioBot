@@ -454,11 +454,8 @@ frontend:
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"
-          comment: "✅ App.js разделен на 8 компонентов: Dashboard, AIChat, Meetings, Works, Employees, AITasks, Training, Logs"
-        - working: true
           agent: "testing"
-          comment: "✅ CONFIRMED: Modular Component Architecture fully working. All 8 components load correctly: Dashboard (default), AIChat (voice/text chat), Meetings (recording), Works (houses management), Employees (brigades), AITasks (lazy loaded), Training (lazy loaded), Logs (lazy loaded). Component switching works seamlessly. Lazy loading functional for AITasks, Training, Logs components."
+          comment: "✅ Все 8 компонентов (Dashboard, AIChat, Meetings, Works, Employees, AITasks, Training, Logs) загружаются и рендерятся без ошибок"
 
   - task: "UI Component Library"
     implemented: true
