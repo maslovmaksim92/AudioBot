@@ -291,6 +291,29 @@ def _get_management_company(address: str) -> str:
     else:
         return 'ООО "РЯДОМ - Управление"'
 
+def _get_brigade_by_responsible_name(responsible_name: str) -> str:
+    """Определение бригады по имени ответственного"""
+    if not responsible_name:
+        return "Бригада не определена"
+    
+    name_lower = responsible_name.lower()
+    
+    # Маппинг имен ответственных на бригады
+    if any(name in name_lower for name in ['александр', 'саша', 'alex']):
+        return "1 бригада - Центральный район"
+    elif any(name in name_lower for name in ['дмитрий', 'дима', 'dmitry']):
+        return "2 бригада - Никитинский район"
+    elif any(name in name_lower for name in ['сергей', 'серж', 'sergey']):
+        return "3 бригада - Жилетово"
+    elif any(name in name_lower for name in ['андрей', 'andrew']):
+        return "4 бригада - Северный район"
+    elif any(name in name_lower for name in ['михаил', 'миша', 'michael']):
+        return "5 бригада - Пригород"
+    elif any(name in name_lower for name in ['владимир', 'вова', 'vladimir']):
+        return "6 бригада - Окраины"
+    else:
+        return "Бригада не определена"
+
 def _has_schedule_for_month(house: House, month: str) -> bool:
     """Проверка наличия графика для указанного месяца"""
     month_lower = month.lower()
