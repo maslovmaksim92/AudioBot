@@ -878,13 +878,13 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "2.5"
-  test_sequence: 11
-  run_ui: true
+  version: "3.0"
+  test_sequence: 12
+  run_ui: false
 
 test_plan:
   current_focus:
-    - "Bitrix24 Management Company and Personnel Data Fix - TESTING COMPLETE"
+    - "Bitrix24 Tasks Integration - TESTING COMPLETE"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
