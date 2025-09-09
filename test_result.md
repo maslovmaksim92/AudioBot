@@ -889,6 +889,58 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+backend:
+  - task: "Bitrix24 Tasks API Integration"
+    implemented: true
+    working: true
+    file: "backend/app/routers/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Bitrix24 Tasks API fully functional. GET /api/tasks loads 50 tasks from Bitrix24 with complete data (ID, title, status, priority, responsible names). Tasks include real data: 'Тестовая задача из VasDom AudioBot', status 'Ждет выполнения', priority 'Высокий', responsible 'Максим Маслов'. Bitrix24 URLs correctly formatted: https://vas-dom.bitrix24.ru/workgroups/group/0/tasks/task/view/{task_id}/. Source confirmed as '🔥 Bitrix24 Tasks API'."
+
+  - task: "Bitrix24 Tasks Statistics"
+    implemented: true
+    working: true
+    file: "backend/app/routers/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Tasks statistics working perfectly. GET /api/tasks/stats returns comprehensive statistics: 50 total tasks, breakdown by status ('Ждет выполнения': 5, 'Завершена': 44, 'Отложена': 1), breakdown by priority ('Высокий': 6, 'Обычный': 44), overdue tasks: 46, today deadline: 0. Statistics correctly calculated from real Bitrix24 data."
+
+  - task: "Bitrix24 Tasks Users Integration"
+    implemented: true
+    working: true
+    file: "backend/app/routers/tasks.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ISSUE: GET /api/tasks/users returned 0 users due to incorrect filtering. Code was checking user.get('ACTIVE') == 'Y' but Bitrix24 API returns boolean True/False, not string 'Y'/'N'."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED: Changed filtering condition from user.get('ACTIVE') == 'Y' to user.get('ACTIVE') is True. Now returns 10 active users with complete data: ID, name (Максим Маслов, Сергей Филиппов, etc.), email, position. Users properly formatted for task assignment dropdown."
+
+  - task: "Bitrix24 Create Tasks"
+    implemented: true
+    working: true
+    file: "backend/app/routers/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Task creation working perfectly. POST /api/tasks successfully creates tasks in Bitrix24 and returns task ID (4656), title, and Bitrix24 URL. Created test task 'Тестовая задача VasDom - 2025-09-09 23:23' with high priority, deadline 2024-12-31, responsible ID 1. Integration with BitrixService.create_task_enhanced() method working correctly."
+
 agent_communication:
     - agent: "main"
       message: "🔧 ПРОБЛЕМА BITRIX24 РЕШЕНА: Проведена глубокая отладка API Bitrix24 через debug скрипт. Обнаружено что поля COMPANY_TITLE, ASSIGNED_BY_NAME/LAST_NAME/SECOND_NAME НЕ возвращаются в crm.deal.list. Реализовано правильное решение с отдельными API вызовами user.get и crm.company.get. Добавлены методы _enrich_deal_with_external_data(), _get_user_info(), _get_company_info(). Логи показывают успешную загрузку реальных УК и персонала: 'ООО РИЦ ЖРЭУ', 'УК ГУП Калуги', '1-6 бригады'. Требуется тестирование на production после деплоя."
@@ -896,6 +948,8 @@ agent_communication:
       message: "✅ BITRIX24 ИСПРАВЛЕНИЕ ПОДТВЕРЖДЕНО: Тестирование backend показало что проблема полностью решена. management_company теперь содержит реальные названия УК: 'ООО РИЦ ЖРЭУ', 'УК ГУП Калуги', 'ООО УЮТНЫЙ ДОМ', 'ООО РКЦ ЖИЛИЩЕ', 'ООО ЭРСУ 12', 'ООО ДОМОУПРАВЛЕНИЕ - МОНОЛИТ'. brigade содержит корректные названия: '1-7 бригада'. assigned_by_id заполняется. API /api/cleaning/houses и /api/cleaning/filters работают с новыми данными. Готово к frontend тестированию."
     - agent: "main"  
       message: "🎯 ЗАПУСК FRONTEND ТЕСТИРОВАНИЯ: Backend исправление Bitrix24 завершено успешно. Все поля management_company и brigade теперь заполняются реальными данными вместо null. Необходимо протестировать frontend на корректное отображение новых данных УК и бригад в интерфейсе 'Управление домами'."
+    - agent: "testing"
+      message: "🎯 НОВАЯ ФУНКЦИОНАЛЬНОСТЬ ЗАДАЧ BITRIX24 - ТЕСТИРОВАНИЕ ЗАВЕРШЕНО: Протестирована новая функциональность вкладки 'Задачи' с интеграцией Bitrix24. SUCCESS RATE: 100% (7/7 тестов прошли). ✅ НОВЫЕ API ENDPOINTS: 1) GET /api/tasks - загружает 50 задач из Bitrix24 с полными данными (название, статус, приоритет, ответственный), формирует корректные URL в Bitrix24. 2) GET /api/tasks/stats - возвращает статистику: всего задач, по статусам, по приоритетам, просрочки. 3) GET /api/tasks/users - список 10 активных пользователей для назначения (исправлена проблема с фильтрацией boolean ACTIVE). 4) POST /api/tasks - создает задачи в Bitrix24, возвращает ID и URL. ✅ ИНТЕГРАЦИЯ: Использует существующий BITRIX24_WEBHOOK_URL, кэширование пользователей работает, fallback для ошибок API реализован. ✅ РЕАЛЬНЫЕ ДАННЫЕ: Задачи из реального Bitrix24 ('Тестовая задача из VasDom AudioBot'), пользователи (Максим Маслов, Сергей Филиппов), статистика корректная. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Изменена фильтрация пользователей с user.get('ACTIVE') == 'Y' на user.get('ACTIVE') is True для корректной работы с boolean значениями из Bitrix24 API."
 
 agent_communication:
     - agent: "testing"
