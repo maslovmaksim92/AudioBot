@@ -1290,26 +1290,27 @@ class VasDomAPITester:
             return False
 
     def run_all_tests(self):
-        """Run all API tests focusing on Bitrix24 management company and personnel fix"""
-        print("🚀 Starting VasDom AudioBot API Tests - Bitrix24 Management Company Fix")
+        """Run all API tests focusing on new Bitrix24 Tasks functionality"""
+        print("🚀 Starting VasDom AudioBot API Tests - Bitrix24 Tasks Integration")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Testing Bitrix24 integration fix:")
-        print("   ПРОБЛЕМА: Поля management_company и brigade возвращали null из API /api/cleaning/houses")
-        print("   КОРЕНЬ ПРОБЛЕМЫ: Bitrix24 API crm.deal.list НЕ возвращает поля COMPANY_TITLE, ASSIGNED_BY_NAME")
-        print("   РЕШЕНИЕ: Добавлены отдельные API вызовы user.get и crm.company.get")
-        print("   КРИТИЧЕСКИЕ ТЕСТЫ:")
-        print("   1. GET /api/cleaning/houses?limit=3 - management_company НЕ null")
-        print("   2. brigade содержит корректные названия бригад")
-        print("   3. assigned_by_id заполнен")
-        print("   4. Реальные названия УК: 'ООО РИЦ ЖРЭУ', 'УК ГУП Калуги' и т.д.")
-        print("   5. GET /api/cleaning/filters - управляющие компании не пустые")
+        print("📋 Review Requirements - Testing new Bitrix24 Tasks functionality:")
+        print("   НОВАЯ ФУНКЦИОНАЛЬНОСТЬ:")
+        print("   1. GET /api/tasks - получение списка задач из Bitrix24")
+        print("   2. POST /api/tasks - создание задач в Bitrix24")
+        print("   3. GET /api/tasks/stats - статистика по задачам")
+        print("   4. GET /api/tasks/users - список пользователей для назначения")
+        print("   КЛЮЧЕВЫЕ ТЕСТЫ:")
+        print("   1. GET /api/tasks?limit=3 - проверить загрузку задач из Bitrix24")
+        print("   2. GET /api/tasks/stats - проверить статистику (всего задач, по статусам, просрочки)")
+        print("   3. GET /api/tasks/users - проверить список пользователей")
+        print("   4. POST /api/tasks - создать тестовую задачу в Bitrix24")
         print("=" * 80)
         
-        # ОСНОВНОЙ ТЕСТ - Исправление Bitrix24 integration
-        self.test_bitrix24_management_company_fix()
-        
-        # ДОПОЛНИТЕЛЬНЫЙ ТЕСТ - Фильтры УК не пустые
-        self.test_cleaning_filters_management_companies()
+        # НОВЫЕ ТЕСТЫ - Bitrix24 Tasks API
+        self.test_bitrix24_tasks_api()
+        self.test_bitrix24_tasks_stats()
+        self.test_bitrix24_tasks_users()
+        self.test_bitrix24_create_task()
         
         # Базовые тесты для проверки что система работает
         self.test_api_root()
