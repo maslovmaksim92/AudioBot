@@ -16,7 +16,8 @@ try:
     print("🧠 Режим: Непрерывное самообучение на реальных данных")
     print("🚀 Платформа: Render Cloud")
 except ImportError as e:
-    print(f"❌ Критическая ошибка импорта: {e}")
+    error_message = str(e)
+    print(f"❌ Критическая ошибка импорта: {error_message}")
     
     # Экстренное приложение
     from fastapi import FastAPI
@@ -26,7 +27,7 @@ except ImportError as e:
     async def emergency():
         return {
             "status": "emergency",
-            "error": str(e),
+            "error": error_message,
             "message": "Свяжитесь с администратором"
         }
 
