@@ -491,44 +491,327 @@ class VasDomAPITester:
             self.log_test("Self-Learning System (PostgreSQL)", False, str(e))
             return False
 
+    def test_bitrix24_house_fields(self):
+        """Тест полей Bitrix24: проверка house_address и количественных данных"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/houses", timeout=25)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list))
+                
+                if success and len(data["houses"]) > 0:
+                    houses = data["houses"]
+                    print(f"   🏠 Загружено домов: {len(houses)}")
+                    
+                    # Проверяем поле house_address (реальный адрес дома)
+                    houses_with_address = [h for h in houses if h.get('house_address')]
+                    print(f"   🏠 Домов с полем house_address: {len(houses_with_address)}")
+                    
+                    if houses_with_address:
+                        sample_address = houses_with_address[0]['house_address']
+                        print(f"   🏠 Пример адреса: {sample_address}")
+                        success = len(houses_with_address) > 0
+                    else:
+                        print(f"   ❌ Поле house_address отсутствует или пустое")
+                        success = False
+                    
+                    # Проверяем количественные данные
+                    total_apartments = sum(h.get('apartments_count', 0) or 0 for h in houses)
+                    total_entrances = sum(h.get('entrances_count', 0) or 0 for h in houses)
+                    total_floors = sum(h.get('floors_count', 0) or 0 for h in houses)
+                    
+                    print(f"   🏠 Общее количество квартир: {total_apartments}")
+                    print(f"   🏠 Общее количество подъездов: {total_entrances}")
+                    print(f"   🏠 Общее количество этажей: {total_floors}")
+                    
+                    # Проверяем что данные реалистичные (не нули)
+                    if total_apartments > 0 and total_entrances > 0 and total_floors > 0:
+                        print(f"   ✅ Количественные данные реалистичные")
+                    else:
+                        print(f"   ❌ Количественные данные содержат нули")
+                        success = False
+                    
+                    # Проверяем управляющие компании
+                    management_companies = set(h.get('management_company', '') for h in houses if h.get('management_company'))
+                    print(f"   🏠 Управляющих компаний: {len(management_companies)}")
+                    
+                    if len(management_companies) >= 25:
+                        print(f"   ✅ Достаточно УК для писем и звонков (>= 25)")
+                        print(f"   🏠 Примеры УК: {list(management_companies)[:3]}")
+                    else:
+                        print(f"   ❌ Недостаточно УК: {len(management_companies)} < 25")
+                        success = False
+                
+            self.log_test("Bitrix24 House Fields (house_address, counts, УК)", success, 
+                         f"Status: {response.status_code}, Houses: {len(data.get('houses', []))}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 House Fields (house_address, counts, УК)", False, str(e))
+            return False
+
+    def test_cleaning_filters(self):
+        """Тест фильтров: проверка /api/cleaning/filters"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/filters", timeout=15)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "brigades" in data and
+                          "cleaning_weeks" in data and
+                          "management_companies" in data and
+                          "months" in data)
+                
+                if success:
+                    brigades = data.get("brigades", [])
+                    weeks = data.get("cleaning_weeks", [])
+                    companies = data.get("management_companies", [])
+                    months = data.get("months", [])
+                    
+                    print(f"   🔍 Бригад: {len(brigades)}")
+                    print(f"   🔍 Недель уборки: {weeks}")
+                    print(f"   🔍 УК: {len(companies)}")
+                    print(f"   🔍 Месяцев: {months}")
+                    
+                    # Проверяем что есть недели 1-5
+                    expected_weeks = [1, 2, 3, 4, 5]
+                    weeks_check = all(week in weeks for week in expected_weeks)
+                    if weeks_check:
+                        print(f"   ✅ Недели 1-5 присутствуют")
+                    else:
+                        print(f"   ❌ Не все недели 1-5 найдены: {weeks}")
+                        success = False
+                    
+                    # Проверяем количество УК
+                    if len(companies) >= 25:
+                        print(f"   ✅ Много УК для писем: {len(companies)}")
+                        print(f"   🔍 Примеры: {companies[:3]}")
+                    else:
+                        print(f"   ❌ Мало УК: {len(companies)} < 25")
+                        success = False
+                    
+                    # Проверяем месяцы
+                    if len(months) > 0:
+                        print(f"   ✅ Месяцы с расписанием: {months}")
+                    else:
+                        print(f"   ❌ Нет месяцев с расписанием")
+                        success = False
+                
+            self.log_test("Cleaning Filters (УК, недели, месяцы)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Cleaning Filters (УК, недели, месяцы)", False, str(e))
+            return False
+
+    def test_cleaning_filters_query(self):
+        """Тест фильтрации: GET /api/cleaning/houses?brigade=1&cleaning_week=2&month=september"""
+        try:
+            # Тестируем фильтрацию с параметрами
+            params = {
+                'brigade': '1',
+                'cleaning_week': '2', 
+                'month': 'september'
+            }
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses", params=params, timeout=25)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          "filters" in data)
+                
+                if success:
+                    houses = data.get("houses", [])
+                    filters = data.get("filters", {})
+                    
+                    print(f"   🔍 Отфильтровано домов: {len(houses)}")
+                    print(f"   🔍 Примененные фильтры: {filters}")
+                    
+                    # Проверяем что фильтры применились
+                    if filters.get('brigade') == '1' and filters.get('cleaning_week') == 2:
+                        print(f"   ✅ Фильтры корректно применены")
+                    else:
+                        print(f"   ❌ Фильтры не применились корректно")
+                        success = False
+                    
+                    # Проверяем что есть результаты (если данные корректные)
+                    if len(houses) > 0:
+                        sample_house = houses[0]
+                        print(f"   🔍 Пример дома: {sample_house.get('address', 'Нет адреса')}")
+                        print(f"   🔍 Бригада: {sample_house.get('brigade', 'Нет бригады')}")
+                    else:
+                        print(f"   ⚠️ Нет домов после фильтрации (может быть нормально)")
+                
+            self.log_test("Cleaning Filters Query (brigade=1&week=2&month=september)", success, 
+                         f"Status: {response.status_code}, Filtered: {len(data.get('houses', []))}")
+            return success
+        except Exception as e:
+            self.log_test("Cleaning Filters Query (brigade=1&week=2&month=september)", False, str(e))
+            return False
+
+    def test_cleaning_dashboard_stats(self):
+        """Тест статистики дашборда: /api/cleaning/stats"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/stats", timeout=15)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "stats" in data)
+                
+                if success:
+                    stats = data.get("stats", {})
+                    
+                    total_houses = stats.get("total_houses", 0)
+                    total_apartments = stats.get("total_apartments", 0)
+                    total_entrances = stats.get("total_entrances", 0)
+                    total_floors = stats.get("total_floors", 0)
+                    
+                    print(f"   📊 Всего домов: {total_houses}")
+                    print(f"   📊 Всего квартир: {total_apartments}")
+                    print(f"   📊 Всего подъездов: {total_entrances}")
+                    print(f"   📊 Всего этажей: {total_floors}")
+                    
+                    # Проверяем что данные реалистичные (не нули)
+                    if all(val > 0 for val in [total_houses, total_apartments, total_entrances, total_floors]):
+                        print(f"   ✅ Статистика реалистичная (не нули)")
+                    else:
+                        print(f"   ❌ Статистика содержит нули")
+                        success = False
+                    
+                    # Проверяем распределение по бригадам
+                    brigades_dist = stats.get("brigades_distribution", {})
+                    companies_dist = stats.get("companies_distribution", {})
+                    
+                    print(f"   📊 Распределение по бригадам: {len(brigades_dist)} бригад")
+                    print(f"   📊 Распределение по УК: {len(companies_dist)} компаний")
+                    
+                    if len(brigades_dist) > 0 and len(companies_dist) > 0:
+                        print(f"   ✅ Есть распределение по бригадам и УК")
+                    else:
+                        print(f"   ❌ Нет распределения по бригадам или УК")
+                        success = False
+                
+            self.log_test("Cleaning Dashboard Stats (реалистичные данные)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Cleaning Dashboard Stats (реалистичные данные)", False, str(e))
+            return False
+
+    def test_export_fields_completeness(self):
+        """Тест экспорта: проверка что все поля есть в ответе для CSV"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/houses?limit=5", timeout=25)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          len(data["houses"]) > 0)
+                
+                if success:
+                    house = data["houses"][0]
+                    
+                    # Основные поля для экспорта
+                    required_fields = [
+                        'address', 'house_address', 'deal_id', 'brigade', 'status_text',
+                        'apartments_count', 'floors_count', 'entrances_count', 
+                        'management_company', 'cleaning_weeks', 'cleaning_days'
+                    ]
+                    
+                    # Поля расписания
+                    schedule_fields = [
+                        'september_schedule', 'october_schedule', 
+                        'november_schedule', 'december_schedule'
+                    ]
+                    
+                    missing_fields = []
+                    present_fields = []
+                    
+                    for field in required_fields:
+                        if field in house and house[field] is not None:
+                            present_fields.append(field)
+                        else:
+                            missing_fields.append(field)
+                    
+                    # Проверяем поля расписания
+                    schedule_present = []
+                    for field in schedule_fields:
+                        if field in house and house[field] is not None:
+                            schedule_present.append(field)
+                    
+                    print(f"   📋 Основных полей присутствует: {len(present_fields)}/{len(required_fields)}")
+                    print(f"   📋 Полей расписания: {len(schedule_present)}/{len(schedule_fields)}")
+                    
+                    if missing_fields:
+                        print(f"   ❌ Отсутствующие поля: {missing_fields}")
+                        success = False
+                    else:
+                        print(f"   ✅ Все основные поля для экспорта присутствуют")
+                    
+                    if len(schedule_present) > 0:
+                        print(f"   ✅ Есть поля расписания: {schedule_present}")
+                    else:
+                        print(f"   ⚠️ Нет полей расписания")
+                    
+                    # Проверяем структуру данных для CSV
+                    print(f"   📋 Пример структуры дома:")
+                    print(f"   📋 - Адрес: {house.get('address', 'Нет')}")
+                    print(f"   📋 - Реальный адрес: {house.get('house_address', 'Нет')}")
+                    print(f"   📋 - Бригада: {house.get('brigade', 'Нет')}")
+                    print(f"   📋 - УК: {house.get('management_company', 'Нет')}")
+                    print(f"   📋 - Квартиры: {house.get('apartments_count', 'Нет')}")
+                
+            self.log_test("Export Fields Completeness (все поля для CSV)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Export Fields Completeness (все поля для CSV)", False, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all API tests according to review requirements"""
-        print("🚀 Starting VasDom AudioBot API Tests - Fixed Integration Review")
+        print("🚀 Starting VasDom AudioBot API Tests - Новые API endpoints для домов")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Fixed Integration:")
-        print("   1. CRM Bitrix24 - /api/dashboard returns ONLY CRM data (348 houses, not CSV fallback)")
-        print("   2. Telegram webhook - /telegram/webhook now sends responses")
-        print("   3. Telegram status - /api/telegram/status shows connection status")
-        print("   4. Dashboard data - statistics synchronized with CRM")
-        print("   ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
-        print("   - Dashboard shows 348 houses from CRM (not from CSV)")
-        print("   - Telegram webhook processes messages and responds")
-        print("   - Statistics calculated based on ONLY CRM data")
-        print("   - No fallback to CSV data")
+        print("📋 Review Requirements - Тестирование новых API endpoints:")
+        print("   1. Тест полей Bitrix24 - house_address, количества квартир/этажей/подъездов, УК >= 25")
+        print("   2. Тест фильтров - /api/cleaning/filters и фильтрация домов")
+        print("   3. Тест статистики дашборда - /api/cleaning/stats с реалистичными данными")
+        print("   4. Тест экспорта - все поля для CSV экспорта")
+        print("   ОСОБОЕ ВНИМАНИЕ:")
+        print("   - РЕАЛЬНЫЕ управляющие компании (для писем и звонков)")
+        print("   - Поле адреса дома из Google карт")
+        print("   - Правильные количественные данные")
         print("=" * 80)
         
-        # 1. CRM Bitrix24 Integration - Main Focus
-        self.test_dashboard_stats()
-        self.test_cleaning_houses()
+        # 1. Тест полей Bitrix24 - Main Focus
+        self.test_bitrix24_house_fields()
         
-        # 2. Telegram Integration - Fixed webhook responses
-        self.test_telegram_status()
-        self.test_telegram_webhook()
+        # 2. Тест фильтров
+        self.test_cleaning_filters()
+        self.test_cleaning_filters_query()
         
-        # 3. Core API endpoints
+        # 3. Тест статистики дашборда
+        self.test_cleaning_dashboard_stats()
+        
+        # 4. Тест экспорта
+        self.test_export_fields_completeness()
+        
+        # 5. Дополнительные тесты для контекста
         self.test_api_root()
         self.test_health_endpoint()
-        
-        # 4. AI system with CRM context
-        self.test_voice_ai_processing()
-        self.test_self_learning_status()
-        
-        # 5. Additional functionality
-        self.test_dashboard_html()
-        self.test_dashboard_html_typo()
-        self.test_meetings_functionality()
-        self.test_meetings_list()
-        self.test_self_learning_system()
+        self.test_bitrix24_connection()
         
         # Print results
         print("=" * 80)
