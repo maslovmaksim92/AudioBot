@@ -1329,30 +1329,39 @@ class VasDomAPITester:
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"✅ Success Rate: {success_rate:.1f}%")
         
-        # Bitrix24 fix summary
-        print("\n📋 Bitrix24 Management Company Fix Status:")
+        # Bitrix24 Tasks functionality summary
+        print("\n📋 Bitrix24 Tasks Functionality Status:")
         
-        # Check main fix
-        main_fix_tests = [test for test in self.failed_tests if "Management Company & Brigade Fix" in test["name"]]
-        main_fix_passed = len(main_fix_tests) == 0
+        # Check tasks API tests
+        tasks_api_tests = [test for test in self.failed_tests if "Tasks API" in test["name"]]
+        tasks_api_passed = len(tasks_api_tests) == 0
         
-        # Check filters fix
-        filters_fix_tests = [test for test in self.failed_tests if "Management Companies Not Empty" in test["name"]]
-        filters_fix_passed = len(filters_fix_tests) == 0
+        tasks_stats_tests = [test for test in self.failed_tests if "Tasks Stats" in test["name"]]
+        tasks_stats_passed = len(tasks_stats_tests) == 0
         
-        print(f"   1. management_company поля НЕ null: {'✅' if main_fix_passed else '❌'}")
-        print(f"   2. brigade поля содержат корректные названия: {'✅' if main_fix_passed else '❌'}")
-        print(f"   3. assigned_by_id заполнен: {'✅' if main_fix_passed else '❌'}")
-        print(f"   4. Фильтры УК не пустые: {'✅' if filters_fix_passed else '❌'}")
+        tasks_users_tests = [test for test in self.failed_tests if "Tasks Users" in test["name"]]
+        tasks_users_passed = len(tasks_users_tests) == 0
         
-        # Overall fix status
-        overall_fix_success = main_fix_passed and filters_fix_passed
-        print(f"\n🎯 ОБЩИЙ СТАТУС ИСПРАВЛЕНИЯ: {'✅ УСПЕШНО' if overall_fix_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
+        create_task_tests = [test for test in self.failed_tests if "Create Task" in test["name"]]
+        create_task_passed = len(create_task_tests) == 0
         
-        if overall_fix_success:
-            print("   ✅ Интеграция Bitrix24 для получения данных УК и персонала работает корректно")
+        print(f"   1. GET /api/tasks - загрузка задач из Bitrix24: {'✅' if tasks_api_passed else '❌'}")
+        print(f"   2. GET /api/tasks/stats - статистика по задачам: {'✅' if tasks_stats_passed else '❌'}")
+        print(f"   3. GET /api/tasks/users - список пользователей: {'✅' if tasks_users_passed else '❌'}")
+        print(f"   4. POST /api/tasks - создание задач в Bitrix24: {'✅' if create_task_passed else '❌'}")
+        
+        # Overall tasks functionality status
+        overall_tasks_success = tasks_api_passed and tasks_stats_passed and tasks_users_passed and create_task_passed
+        print(f"\n🎯 ОБЩИЙ СТАТУС НОВОЙ ФУНКЦИОНАЛЬНОСТИ ЗАДАЧ: {'✅ УСПЕШНО' if overall_tasks_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
+        
+        if overall_tasks_success:
+            print("   ✅ Новая функциональность вкладки 'Задачи' с интеграцией Bitrix24 работает корректно")
+            print("   ✅ Задачи загружаются из Bitrix24 с полными данными")
+            print("   ✅ Статистика корректно подсчитывается")
+            print("   ✅ Создание задач работает и возвращает ID в Bitrix24")
+            print("   ✅ Интеграция с существующими BitrixService методами работает")
         else:
-            print("   ❌ Интеграция Bitrix24 требует дополнительной отладки")
+            print("   ❌ Новая функциональность задач требует дополнительной отладки")
         
         return self.tests_passed == self.tests_run
 
