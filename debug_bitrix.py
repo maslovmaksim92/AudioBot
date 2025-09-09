@@ -8,7 +8,7 @@ import httpx
 import urllib.parse
 import json
 
-WEBHOOK_URL = "https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yd/"
+WEBHOOK_URL = "https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/"
 
 async def debug_bitrix_fields():
     """Исследование доступных полей в Bitrix24"""
