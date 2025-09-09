@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Dict, Any
 
 class VasDomAudioBotTester:
-    def __init__(self, base_url="https://audiobot-qci2.onrender.com"):
+    def __init__(self, base_url="http://localhost:8001"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
