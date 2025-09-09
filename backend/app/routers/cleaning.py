@@ -10,10 +10,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["cleaning"])
 
 @router.get("/cleaning/houses", response_model=dict)
-async def get_cleaning_houses(limit: Optional[int] = None):
-    """Все дома из Bitrix24"""
+async def get_cleaning_houses(
+    limit: Optional[int] = None,
+    brigade: Optional[str] = None,
+    cleaning_day: Optional[str] = None
+):
+    """Все дома из Bitrix24 с фильтрацией по бригадам и дням уборки"""
     try:
-        logger.info(f"🏠 Loading houses from CRM...")
+        logger.info(f"🏠 Loading houses from CRM with filters: brigade={brigade}, cleaning_day={cleaning_day}")
         
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         deals = await bitrix.get_deals(limit=limit)
@@ -25,36 +29,132 @@ async def get_cleaning_houses(limit: Optional[int] = None):
             stage_id = deal.get('STAGE_ID', '')
             
             # Определяем бригаду и статус
-            brigade = bitrix.analyze_house_brigade(address)
+            brigade_info = bitrix.analyze_house_brigade(address)
             status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            # Извлекаем расширенные данные из Bitrix24
+            apartments_count = _parse_int(deal.get('UF_CRM_1726148184'))
+            floors_count = _parse_int(deal.get('UF_CRM_1726148203'))
+            entrances_count = _parse_int(deal.get('UF_CRM_1726148223'))
+            tariff = deal.get('UF_CRM_1726148242', '')
+            
+            # Парсим график уборки
+            cleaning_date_1_str = deal.get('UF_CRM_1726148261', '')
+            cleaning_type_1 = deal.get('UF_CRM_1726148280', '')
+            cleaning_date_2_str = deal.get('UF_CRM_1726148299', '')
+            cleaning_type_2 = deal.get('UF_CRM_1726148318', '')
+            
+            # Преобразуем даты в список
+            cleaning_date_1 = _parse_dates(cleaning_date_1_str)
+            cleaning_date_2 = _parse_dates(cleaning_date_2_str)
+            
+            # Определяем дни недели для фильтрации
+            cleaning_days = _extract_weekdays(cleaning_date_1 + cleaning_date_2)
+            
+            from ..models.schemas import House, CleaningSchedule
             
             house_data = House(
                 address=address,
                 deal_id=deal_id,
                 stage=stage_id,
-                brigade=brigade,
+                brigade=brigade_info,
                 status_text=status_text,
                 status_color=status_color,
                 created_date=deal.get('DATE_CREATE'),
                 opportunity=deal.get('OPPORTUNITY'),
-                last_sync=datetime.utcnow().isoformat()
+                last_sync=datetime.utcnow().isoformat(),
+                
+                # Расширенные данные
+                apartments_count=apartments_count,
+                floors_count=floors_count,
+                entrances_count=entrances_count,
+                tariff=tariff,
+                
+                # График уборки
+                september_schedule=CleaningSchedule(
+                    cleaning_date_1=cleaning_date_1,
+                    cleaning_type_1=cleaning_type_1,
+                    cleaning_date_2=cleaning_date_2,
+                    cleaning_type_2=cleaning_type_2,
+                    frequency=tariff
+                ),
+                
+                cleaning_days=cleaning_days
             )
+            
+            # Применяем фильтры
+            if brigade and brigade.lower() not in brigade_info.lower():
+                continue
+                
+            if cleaning_day and cleaning_day.lower() not in [day.lower() for day in cleaning_days]:
+                continue
             
             houses.append(house_data.dict())
         
-        logger.info(f"✅ Houses data prepared: {len(houses)} houses")
+        logger.info(f"✅ Houses data prepared: {len(houses)} houses (filtered)")
         
         return {
             "status": "success",
             "houses": houses,
             "total": len(houses),
-            "source": "🔥 Bitrix24 CRM",
+            "filters": {
+                "brigade": brigade,
+                "cleaning_day": cleaning_day
+            },
+            "source": "🔥 Bitrix24 CRM с расширенными данными",
             "sync_timestamp": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Houses error: {e}")
         return {"status": "error", "message": str(e)}
+
+def _parse_int(value) -> Optional[int]:
+    """Парсинг целого числа из строки"""
+    if not value:
+        return None
+    try:
+        return int(str(value).strip())
+    except (ValueError, TypeError):
+        return None
+
+def _parse_dates(date_str: str) -> List[str]:
+    """Парсинг дат из строки формата '04.09.2025, 18.09.2025'"""
+    if not date_str:
+        return []
+    
+    dates = []
+    for date_part in str(date_str).split(','):
+        date_part = date_part.strip()
+        if date_part and len(date_part) >= 8:  # Минимум для даты
+            dates.append(date_part)
+    return dates
+
+def _extract_weekdays(dates: List[str]) -> List[str]:
+    """Извлечение дней недели из дат"""
+    weekdays = set()
+    weekday_names = {
+        0: 'Понедельник',
+        1: 'Вторник', 
+        2: 'Среда',
+        3: 'Четверг',
+        4: 'Пятница',
+        5: 'Суббота',
+        6: 'Воскресенье'
+    }
+    
+    for date_str in dates:
+        try:
+            # Парсим дату в формате DD.MM.YYYY
+            day, month, year = date_str.split('.')
+            from datetime import date
+            date_obj = date(int(year), int(month), int(day))
+            weekday_name = weekday_names[date_obj.weekday()]
+            weekdays.add(weekday_name)
+        except (ValueError, IndexError):
+            continue
+    
+    return list(weekdays)
 
 @router.get("/cleaning/brigades")
 async def get_brigades():
