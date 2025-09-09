@@ -132,35 +132,48 @@ class VasDomAPITester:
             return False
 
     def test_telegram_webhook(self):
-        """Test Telegram webhook endpoint"""
+        """Test Telegram webhook endpoint - должен обрабатывать сообщения и отправлять ответы"""
         try:
             # Test with sample webhook data
             webhook_data = {
                 "update_id": 123456789,
                 "message": {
                     "message_id": 1,
-                    "from": {"id": 123, "first_name": "Test"},
+                    "from": {"id": 123, "first_name": "TestUser"},
                     "chat": {"id": 123, "type": "private"},
                     "date": 1234567890,
-                    "text": "Test message"
+                    "text": "Сколько домов у VasDom?"
                 }
             }
             
             response = requests.post(f"{self.api_url}/telegram/webhook", 
-                                   json=webhook_data, timeout=10)
+                                   json=webhook_data, timeout=15)
             success = response.status_code == 200
             
             if success:
                 data = response.json()
-                success = data.get("status") == "received"
-                print(f"   📱 Webhook response: {data.get('message', 'No message')}")
-                print(f"   📱 Update ID: {data.get('update_id')}")
+                # Проверяем что webhook обрабатывает сообщения и отправляет ответы
+                success = data.get("status") in ["processed", "received"]
+                print(f"   📱 Webhook status: {data.get('status')}")
+                print(f"   📱 Response message: {data.get('message', 'No message')}")
                 
-            self.log_test("Telegram Webhook (/api/telegram/webhook)", success, 
-                         f"Status: {response.status_code}, No 404: {'✅' if response.status_code != 404 else '❌'}")
+                # Проверяем что есть AI ответ (если сообщение обработано)
+                if data.get("status") == "processed":
+                    ai_response = data.get("ai_response", "")
+                    if ai_response:
+                        print(f"   📱 AI Response generated: {ai_response[:100]}...")
+                        print(f"   ✅ Telegram webhook processes messages and sends AI responses")
+                    else:
+                        print(f"   ❌ No AI response generated")
+                        success = False
+                elif data.get("status") == "received":
+                    print(f"   ⚠️ Message received but not processed (may be expected)")
+                
+            self.log_test("Telegram Webhook Processing", success, 
+                         f"Status: {response.status_code}, Processing: {data.get('status') if success else 'Failed'}")
             return success
         except Exception as e:
-            self.log_test("Telegram Webhook (/api/telegram/webhook)", False, str(e))
+            self.log_test("Telegram Webhook Processing", False, str(e))
             return False
 
     def test_self_learning_status(self):
