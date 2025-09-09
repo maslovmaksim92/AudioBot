@@ -102,19 +102,19 @@ class VasDomAudioBotTester:
             return False
 
     def test_voice_process(self):
-        """Test POST /api/voice/process - Main voice chat functionality"""
-        print("\n🔍 Testing Voice Processing (Main AI Chat)...")
+        """Test POST /api/voice/process - Main self-learning AI chat functionality"""
+        print("\n🔍 Testing Voice Processing (Self-Learning AI Chat)...")
         
-        test_message = "Как часто нужно убираться в офисе?"
+        test_message = "Как часто нужно убираться в офисе? Какие есть рекомендации?"
         test_data = {
             "message": test_message,
-            "session_id": f"test_session_{int(time.time())}"
+            "session_id": self.session_id
         }
         
-        success, data, status = self.make_request('POST', 'voice/process', test_data, timeout=45)
+        success, data, status = self.make_request('POST', 'voice/process', test_data, timeout=60)
         
         if success and status == 200:
-            required_fields = ['response', 'log_id', 'session_id', 'model_used']
+            required_fields = ['response', 'log_id', 'session_id', 'model_used', 'response_time', 'similar_found', 'learning_improved']
             has_required = all(field in data for field in required_fields)
             
             # Store log_id for feedback testing
@@ -122,14 +122,16 @@ class VasDomAudioBotTester:
                 self.test_log_id = data['log_id']
             
             response_length = len(data.get('response', ''))
-            is_meaningful_response = response_length > 10  # Basic check for meaningful response
+            is_meaningful_response = response_length > 20  # Should be a substantial response
+            similar_found = data.get('similar_found', 0)
+            learning_improved = data.get('learning_improved', False)
             
             overall_success = has_required and is_meaningful_response
-            self.log_test("Voice Processing", overall_success, 
-                         f"Response length: {response_length}, Model: {data.get('model_used')}, Log ID: {data.get('log_id')}")
+            self.log_test("Voice Processing (Self-Learning)", overall_success, 
+                         f"Response: {response_length} chars, Similar found: {similar_found}, Learning improved: {learning_improved}, Model: {data.get('model_used')}")
             return overall_success
         else:
-            self.log_test("Voice Processing", False, f"Status: {status}, Error: {data.get('error', 'Unknown')}")
+            self.log_test("Voice Processing (Self-Learning)", False, f"Status: {status}, Error: {data.get('error', 'Unknown')}")
             return False
 
     def test_voice_feedback(self):
