@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 # Import configuration
 from .config.settings import (
     APP_TITLE, APP_VERSION, APP_DESCRIPTION, 
-    CORS_ORIGINS
+    CORS_ORIGINS, FRONTEND_DASHBOARD_URL
 )
 from .config.database import init_database, close_database
 
@@ -22,27 +22,27 @@ app = FastAPI(
     description=APP_DESCRIPTION
 )
 
-# CORS middleware
+# CORS middleware с обновленной конфигурацией
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=CORS_ORIGINS,  # Теперь читается из переменных окружения
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-logger.info(f"✅ CORS configured for origins: {CORS_ORIGINS[:3]}...")
+logger.info(f"✅ CORS configured for origins: {CORS_ORIGINS}")
 
-# Dashboard Routes - REDIRECT к React приложению
+# Dashboard Routes - редирект на конфигурируемый URL
 @app.get("/", response_class=HTMLResponse)  
 async def root_redirect():
     """Redirect root to React dashboard"""
-    return RedirectResponse(url="https://smart-facility-ai.preview.emergentagent.com", status_code=302)
+    return RedirectResponse(url=FRONTEND_DASHBOARD_URL, status_code=302)
 
 @app.get("/dashbord", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_redirect():
     """Redirect to React VasDom AudioBot Dashboard"""
-    return RedirectResponse(url="https://smart-facility-ai.preview.emergentagent.com", status_code=302)
+    return RedirectResponse(url=FRONTEND_DASHBOARD_URL, status_code=302)
 
 # Include routers
 app.include_router(dashboard.router)
