@@ -156,7 +156,7 @@ async def get_available_users():
         # Форматируем пользователей для селекта
         formatted_users = []
         for user in users:
-            if user.get('ACTIVE') == 'Y':  # Только активные
+            if user.get('ACTIVE') is True:  # Только активные (boolean True, не строка 'Y')
                 formatted_users.append({
                     'id': user.get('ID'),
                     'name': f"{user.get('NAME', '')} {user.get('LAST_NAME', '')}".strip(),
