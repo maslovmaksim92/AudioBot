@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from ..config.database import database
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,10 @@ async def get_logs():
         }
     except Exception as e:
         logger.error(f"❌ Logs error: {e}")
-        return {"status": "success", "voice_logs": [], "total": 0}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve logs: {str(e)}"
+        )
 
 @router.get("/logs/ai")
 async def get_ai_logs():
@@ -54,7 +57,10 @@ async def get_ai_logs():
         }
     except Exception as e:
         logger.error(f"❌ AI logs error: {e}")
-        return {"status": "success", "ai_logs": [], "total": 0}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve AI logs: {str(e)}"
+        )
 
 @router.get("/logs/telegram")
 async def get_telegram_logs():
@@ -81,4 +87,7 @@ async def get_telegram_logs():
         }
     except Exception as e:
         logger.error(f"❌ Telegram logs error: {e}")
-        return {"status": "success", "telegram_logs": [], "total": 0}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve Telegram logs: {str(e)}"
+        )
