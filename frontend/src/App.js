@@ -265,7 +265,7 @@ function GeneralDashboard({ stats, onRefresh, loading }) {
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-            <span className="text-sm">AI GPT-4 mini</span>
+            <span className="text-sm">GPT-4 mini (Emergent)</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
