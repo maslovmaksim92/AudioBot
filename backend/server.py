@@ -201,6 +201,28 @@ async def init_database():
         logger.error(f"❌ Database initialization failed: {e}")
         return False
 
+# Security helper functions (УЛУЧШЕНИЕ 3)
+async def verify_api_key(authorization: str = None) -> bool:
+    """Verify API key from Authorization header"""
+    if not REQUIRE_AUTH_FOR_PUBLIC_API:
+        return True  # Authentication disabled
+    
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        if token == API_SECRET_KEY:
+            return True
+    
+    logger.warning("❌ Invalid API key provided")
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid API key. Provide valid Bearer token."
+    )
+
+# Security dependency
+async def require_auth(authorization: str = None) -> bool:
+    """FastAPI dependency for authentication"""
+    return await verify_api_key(authorization)
+
 # Bitrix24 Integration (unchanged - working)
 class BitrixIntegration:
     def __init__(self):
