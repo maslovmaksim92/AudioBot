@@ -739,22 +739,72 @@ async def get_self_learning_status():
         }
 
 @api_router.post("/telegram/webhook")
-@app.post("/telegram/webhook")  # Добавляем маршрут на корневой уровень тоже
+@app.post("/telegram/webhook")
 async def telegram_webhook(update: dict):
-    """Telegram webhook endpoint"""
+    """Telegram webhook endpoint с ответами"""
     try:
         logger.info(f"📱 Telegram webhook received: {update.get('update_id', 'unknown')}")
         
+        # Проверяем есть ли сообщение
+        if "message" in update:
+            message = update["message"]
+            chat_id = message.get("chat", {}).get("id")
+            text = message.get("text", "")
+            user_name = message.get("from", {}).get("first_name", "Пользователь")
+            
+            logger.info(f"💬 Message from {user_name} (chat {chat_id}): {text}")
+            
+            # Генерируем ответ через AI
+            if text:
+                ai_response = await ai.process_message(text, f"telegram_{chat_id}")
+                
+                # Отправляем ответ обратно в Telegram
+                bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+                if bot_token and chat_id:
+                    await send_telegram_message(bot_token, chat_id, ai_response)
+                    logger.info(f"✅ Response sent to Telegram chat {chat_id}")
+                
+                return {
+                    "status": "processed",
+                    "message": "Message processed and response sent",
+                    "chat_id": chat_id,
+                    "user_message": text,
+                    "ai_response": ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
+                }
+        
         return {
             "status": "received",
-            "message": "Telegram webhook processed",
-            "update_id": update.get("update_id"),
-            "chat_id": update.get("message", {}).get("chat", {}).get("id") if "message" in update else None
+            "message": "Webhook received but no message to process",
+            "update_id": update.get("update_id")
         }
         
     except Exception as e:
         logger.error(f"❌ Telegram webhook error: {e}")
         return {"status": "error", "message": str(e)}
+
+async def send_telegram_message(bot_token: str, chat_id: int, text: str):
+    """Отправка сообщения в Telegram"""
+    try:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "HTML"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Telegram message sent successfully to {chat_id}")
+                return True
+            else:
+                logger.error(f"❌ Telegram API error: {response.status_code} - {response.text}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"❌ Send Telegram message error: {e}")
+        return False
 
 @api_router.get("/telegram/status")
 async def telegram_status():
