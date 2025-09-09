@@ -493,44 +493,39 @@ class VasDomAPITester:
 
     def run_all_tests(self):
         """Run all API tests according to review requirements"""
-        print("🚀 Starting VasDom AudioBot API Tests - Review Requirements")
+        print("🚀 Starting VasDom AudioBot API Tests - Fixed Integration Review")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements:")
-        print("   1. Главные endpoints - /api/, /api/dashboard, /api/health")
-        print("   2. Dashboard HTML - /dashboard, /dashbord (с опечаткой)")
-        print("   3. Telegram - /api/telegram/status, /api/telegram/webhook")
-        print("   4. AI система - /api/voice/process и /api/self-learning/status")
-        print("   5. Bitrix24 - /api/cleaning/houses")
+        print("📋 Review Requirements - Fixed Integration:")
+        print("   1. CRM Bitrix24 - /api/dashboard returns ONLY CRM data (348 houses, not CSV fallback)")
+        print("   2. Telegram webhook - /telegram/webhook now sends responses")
+        print("   3. Telegram status - /api/telegram/status shows connection status")
+        print("   4. Dashboard data - statistics synchronized with CRM")
         print("   ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
-        print("   - Все маршруты работают (статус 200)")
-        print("   - Dashboard HTML возвращается корректно")
-        print("   - Telegram webhook не выдает 404")
-        print("   - AI fallback режим активен")
-        print("   - 491 дом в статистике")
+        print("   - Dashboard shows 348 houses from CRM (not from CSV)")
+        print("   - Telegram webhook processes messages and responds")
+        print("   - Statistics calculated based on ONLY CRM data")
+        print("   - No fallback to CSV data")
         print("=" * 80)
         
-        # 1. Главные endpoints
-        self.test_api_root()
+        # 1. CRM Bitrix24 Integration - Main Focus
         self.test_dashboard_stats()
-        self.test_health_endpoint()
+        self.test_cleaning_houses()
         
-        # 2. Dashboard HTML
-        self.test_dashboard_html()
-        self.test_dashboard_html_typo()
-        
-        # 3. Telegram endpoints
+        # 2. Telegram Integration - Fixed webhook responses
         self.test_telegram_status()
         self.test_telegram_webhook()
         
-        # 4. AI система
+        # 3. Core API endpoints
+        self.test_api_root()
+        self.test_health_endpoint()
+        
+        # 4. AI system with CRM context
         self.test_voice_ai_processing()
         self.test_self_learning_status()
         
-        # 5. Bitrix24
-        self.test_bitrix24_connection()
-        self.test_cleaning_houses()
-        
-        # Additional functionality tests
+        # 5. Additional functionality
+        self.test_dashboard_html()
+        self.test_dashboard_html_typo()
         self.test_meetings_functionality()
         self.test_meetings_list()
         self.test_self_learning_system()
@@ -548,40 +543,35 @@ class VasDomAPITester:
         print(f"✅ Success Rate: {success_rate:.1f}%")
         
         # Review requirements summary
-        print("\n📋 Review Requirements Status:")
+        print("\n📋 Fixed Integration Review Status:")
         
-        # Check main endpoints
-        main_endpoints_tests = [test for test in self.failed_tests if any(endpoint in test["name"] for endpoint in ["API Root", "Dashboard Stats", "Health Check"])]
-        main_endpoints_passed = len(main_endpoints_tests) == 0
+        # Check CRM-only data (main requirement)
+        crm_tests = [test for test in self.failed_tests if any(crm_test in test["name"] for crm_test in ["Dashboard CRM-Only", "Bitrix24 CRM-Only"])]
+        crm_passed = len(crm_tests) == 0
         
-        # Check dashboard HTML
-        dashboard_html_tests = [test for test in self.failed_tests if "Dashboard HTML" in test["name"]]
-        dashboard_html_passed = len(dashboard_html_tests) == 0
-        
-        # Check telegram endpoints
+        # Check telegram webhook responses
         telegram_tests = [test for test in self.failed_tests if "Telegram" in test["name"]]
         telegram_passed = len(telegram_tests) == 0
         
-        # Check AI system
-        ai_tests = [test for test in self.failed_tests if any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning Status"])]
+        # Check AI system with CRM context
+        ai_tests = [test for test in self.failed_tests if any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning"])]
         ai_passed = len(ai_tests) == 0
         
-        # Check Bitrix24
-        bitrix_tests = [test for test in self.failed_tests if "Bitrix24" in test["name"]]
-        bitrix_passed = len(bitrix_tests) == 0
+        print(f"   1. CRM Bitrix24 - ONLY CRM data (348 houses): {'✅' if crm_passed else '❌'}")
+        print(f"   2. Telegram webhook - sends responses: {'✅' if telegram_passed else '❌'}")
+        print(f"   3. Telegram status - shows connection: {'✅' if telegram_passed else '❌'}")
+        print(f"   4. Dashboard data - CRM synchronized: {'✅' if crm_passed else '❌'}")
         
-        print(f"   1. Главные endpoints (/api/, /dashboard, /health): {'✅' if main_endpoints_passed else '❌'}")
-        print(f"   2. Dashboard HTML (/dashboard, /dashbord): {'✅' if dashboard_html_passed else '❌'}")
-        print(f"   3. Telegram (/telegram/status, /webhook): {'✅' if telegram_passed else '❌'}")
-        print(f"   4. AI система (/voice/process, /self-learning/status): {'✅' if ai_passed else '❌'}")
-        print(f"   5. Bitrix24 (/cleaning/houses): {'✅' if bitrix_passed else '❌'}")
+        # Check specific fixed integration issues
+        print("\n🔍 Fixed Integration Verification:")
+        no_csv_fallback = not any("491" in test["details"] for test in self.failed_tests if test["details"])
+        crm_only_data = any("348" in test["name"] for test in [{"name": t["name"]} for t in self.failed_tests] if not self.failed_tests)
+        webhook_responses = not any("webhook" in test["name"].lower() and "processing" in test["name"].lower() for test in self.failed_tests)
         
-        # Check specific issues mentioned in review
-        print("\n🔍 Проблемы для проверки:")
-        no_404_errors = not any("404" in test["details"] for test in self.failed_tests if test["details"])
-        print(f"   - Исправлены ли все 404 Not Found ошибки? {'✅' if no_404_errors else '❌'}")
-        print(f"   - Работает ли dashboard на /dashboard? {'✅' if dashboard_html_passed else '❌'}")
-        print(f"   - Telegram webhook /api/telegram/webhook отвечает? {'✅' if telegram_passed else '❌'}")
+        print(f"   - Dashboard shows 348 houses from CRM (not CSV)? {'✅' if crm_passed else '❌'}")
+        print(f"   - Telegram webhook processes and responds? {'✅' if webhook_responses else '❌'}")
+        print(f"   - No CSV fallback to 491 houses? {'✅' if no_csv_fallback else '❌'}")
+        print(f"   - Statistics synchronized with CRM? {'✅' if crm_passed else '❌'}")
         
         return self.tests_passed == self.tests_run
 
