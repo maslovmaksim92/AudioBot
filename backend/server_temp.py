@@ -750,7 +750,7 @@ async def dashboard_page():
                 <a href="/api/" class="btn">🔗 API Документация</a>
                 <a href="/api/logs" class="btn">📋 Логи самообучения</a>
                 <a href="/api/self-learning/status" class="btn">🧠 Статус AI</a>
-                <a href="https://voicebot-app.preview.emergentagent.com" class="btn">🎛️ Полный Dashboard</a>
+                <a href="https://vasdom-houses.preview.emergentagent.com" class="btn">🎛️ Полный Dashboard</a>
             </div>
         </div>
     </div>
