@@ -135,7 +135,7 @@ async def health_check():
         # Проверка компонентов
         components = {
             "api": True,
-            "postgres": database.is_connected,
+            "postgres": DATABASE_AVAILABLE and database is not None and database.is_connected,
             "mongo": mongo_client is not None,
         }
         
