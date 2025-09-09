@@ -30,37 +30,37 @@ const StatCard = ({
   const cardClasses = onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : '';
 
   return (
-    &lt;Card 
+    <Card 
       className={`${cardClasses} ${className}`}
       onClick={onClick}
       padding="default"
       shadow="sm"
-    &gt;
-      &lt;div className="flex items-center justify-between"&gt;
-        &lt;div className="flex-1"&gt;
-          &lt;p className="text-sm font-medium text-gray-600"&gt;{title}&lt;/p&gt;
-          &lt;p className="text-2xl font-bold text-gray-900 mt-1"&gt;
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">
             {typeof value === 'number' ? value.toLocaleString() : value}
-          &lt;/p&gt;
+          </p>
           {subtitle && (
-            &lt;p className="text-xs text-gray-500 mt-1"&gt;{subtitle}&lt;/p&gt;
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
           )}
           {trend && trendDirection && (
-            &lt;div className={`flex items-center mt-2 text-sm ${trendColors[trendDirection]}`}&gt;
-              &lt;span&gt;{trend}&lt;/span&gt;
-              {trendDirection === 'up' && &lt;span className="ml-1"&gt;↗&lt;/span&gt;}
-              {trendDirection === 'down' && &lt;span className="ml-1"&gt;↘&lt;/span&gt;}
-              {trendDirection === 'neutral' && &lt;span className="ml-1"&gt;→&lt;/span&gt;}
-            &lt;/div&gt;
+            <div className={`flex items-center mt-2 text-sm ${trendColors[trendDirection]}`}>
+              <span>{trend}</span>
+              {trendDirection === 'up' && <span className="ml-1">↗</span>}
+              {trendDirection === 'down' && <span className="ml-1">↘</span>}
+              {trendDirection === 'neutral' && <span className="ml-1">→</span>}
+            </div>
           )}
-        &lt;/div&gt;
+        </div>
         {icon && (
-          &lt;div className={`p-3 rounded-full ${colors[color]}`}&gt;
+          <div className={`p-3 rounded-full ${colors[color]}`}>
             {icon}
-          &lt;/div&gt;
+          </div>
         )}
-      &lt;/div&gt;
-    &lt;/Card&gt;
+      </div>
+    </Card>
   );
 };
 
