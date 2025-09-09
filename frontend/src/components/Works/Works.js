@@ -52,12 +52,17 @@ const WorksEnhanced = () => {
   // API calls
   const fetchInitialData = async () => {
     setLoading(true);
-    await Promise.all([
-      fetchFilters(),
-      fetchHouses(),
-      fetchDashboardStats()
-    ]);
-    setLoading(false);
+    try {
+      await Promise.all([
+        fetchFilters(),
+        fetchHouses(),
+        fetchDashboardStats()
+      ]);
+    } catch (error) {
+      console.error('❌ Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchFilters = async () => {
