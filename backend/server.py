@@ -40,28 +40,39 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Database configuration - PostgreSQL with memory fallback
+# Database configuration - ТОЛЬКО PostgreSQL или простой fallback
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///:memory:')
 
-logger.info(f"🗄️ Database URL: {DATABASE_URL[:50]}...")
+# Скрываем чувствительные данные в логах (как требует CodeGPT)
+safe_db_url = DATABASE_URL.replace(DATABASE_URL[DATABASE_URL.find('://')+3:DATABASE_URL.find('@')+1], '://***:***@') if '@' in DATABASE_URL else DATABASE_URL[:30] + '...'
+logger.info(f"🗄️ Database URL: {safe_db_url}")
 
-# Configure database connection based on URL
+# ТОЛЬКО PostgreSQL - без SQLite зависимостей
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://', 1)
-    database = Database(DATABASE_URL)
-    logger.info("🐘 PostgreSQL async driver initialized")
+    try:
+        database = Database(DATABASE_URL)
+        logger.info("🐘 PostgreSQL async driver initialized")
+    except Exception as e:
+        logger.error(f"❌ PostgreSQL init error: {e}")
+        # Простой fallback без SQLite
+        database = None
+        logger.warning("⚠️ Database unavailable - API will work without DB")
 elif DATABASE_URL.startswith('postgresql://'):
     if not DATABASE_URL.startswith('postgresql+asyncpg://'):
         DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)
-    database = Database(DATABASE_URL)
-    logger.info("🐘 PostgreSQL async driver initialized")
+    try:
+        database = Database(DATABASE_URL)
+        logger.info("🐘 PostgreSQL async driver initialized")  
+    except Exception as e:
+        logger.error(f"❌ PostgreSQL init error: {e}")
+        database = None
 else:
-    # Simple in-memory SQLite for fallback
-    DATABASE_URL = "sqlite:///:memory:"
-    database = Database(DATABASE_URL)
-    logger.info("📁 SQLite in-memory fallback initialized")
+    # БЕЗ SQLite - просто None
+    database = None
+    logger.info("📁 No database - working in API-only mode")
 
-logger.info(f"🗄️ Final Database configured: {DATABASE_URL[:50]}...")
+logger.info(f"🗄️ Database status: {'connected' if database else 'disabled'}")
 Base = declarative_base()
 
 # SQLAlchemy Models
