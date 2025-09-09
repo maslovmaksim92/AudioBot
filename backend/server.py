@@ -703,9 +703,12 @@ async def dashboard_page():
                 <p>2. Проверьте логи самообучения на <code>/api/logs</code></p>
                 <p>3. AI автоматически анализирует частые вопросы каждые 10 взаимодействий</p>
                 
+                {'<div style="background: rgba(255,255,0,0.2); padding: 15px; border-radius: 8px; margin: 20px 0;"><h4>⚠️ Emergent LLM в fallback режиме</h4><p>Для полного GPT-4 mini добавьте в Render Environment Variables:</p><code>PIP_EXTRA_INDEX_URL=https://d33sy5i8bnduwe.cloudfront.net/simple/</code><br><code>emergentintegrations==0.1.0</code> в requirements.txt</div>' if not EMERGENT_AVAILABLE else '<div style="background: rgba(0,255,0,0.2); padding: 15px; border-radius: 8px; margin: 20px 0;"><h4>✅ Emergent LLM активен!</h4><p>GPT-4 mini работает через Emergent LLM key</p></div>'}
+                
                 <div style="margin-top: 30px;">
                     <a href="/api/" class="btn">🔗 API Документация</a>
                     <a href="/api/logs" class="btn">📋 Логи самообучения</a>
+                    <a href="/api/self-learning/status" class="btn">🧠 Статус AI</a>
                     <a href="https://smart-facility-ai.preview.emergentagent.com" class="btn">🎛️ Полный Dashboard</a>
                 </div>
             </div>
