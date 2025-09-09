@@ -1,9 +1,21 @@
+import os
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+# Добавляем путь к нашему приложению
+sys.path.append(str(Path(__file__).parent.parent))
+
+# Load environment variables
+from app.config.database import Base
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -16,14 +28,22 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# Import all models so they are registered with SQLAlchemy
+from app.models.database import VoiceLogDB, MeetingDB, AITaskDB
+
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+def get_url():
+    """Get database URL from environment variable"""
+    url = os.getenv("DATABASE_URL")
+    if url and url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
 
 
 def run_migrations_offline() -> None:
