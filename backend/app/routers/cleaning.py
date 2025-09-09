@@ -31,9 +31,21 @@ async def get_cleaning_houses(
             deal_id = deal.get('ID', '')
             stage_id = deal.get('STAGE_ID', '')
             
-            # Определяем бригаду и статус
-            brigade_info = bitrix.analyze_house_brigade(address)
+            # Получаем реальные данные УК и ответственного из Bitrix24
+            real_company_title = deal.get('COMPANY_TITLE', '')  # Реальное название УК
+            assigned_name = deal.get('ASSIGNED_BY_NAME', '')
+            assigned_second_name = deal.get('ASSIGNED_BY_SECOND_NAME', '')
+            assigned_last_name = deal.get('ASSIGNED_BY_LAST_NAME', '')
+            
+            # Формируем полное имя ответственного
+            responsible_full_name = f"{assigned_name} {assigned_second_name} {assigned_last_name}".strip()
+            
+            # Определяем бригаду по имени ответственного (вместо адреса)
+            brigade_info = _get_brigade_by_responsible_name(assigned_name) if assigned_name else bitrix.analyze_house_brigade(address)
             status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            # Используем реальное название УК или fallback по адресу
+            management_company_name = real_company_title if real_company_title else _get_management_company(address)
             
             # Извлекаем данные из Bitrix24 с правильными полями
             house_address = deal.get('UF_CRM_1669561599956', '') or address  # Адрес дома
