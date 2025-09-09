@@ -329,8 +329,8 @@ def main():
     print("   • Quality data export for fine-tuning")
     print("   • Similar conversation search")
     
-    # Use the public URL from the review request
-    tester = VasDomAudioBotTester("https://audiobot-qci2.onrender.com")
+    # Use the local backend URL since public URL is redirecting
+    tester = VasDomAudioBotTester("http://localhost:8001")
     
     try:
         return tester.run_comprehensive_test()
