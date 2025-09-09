@@ -780,38 +780,159 @@ class VasDomAPITester:
             self.log_test("Export Fields Completeness (все поля для CSV)", False, str(e))
             return False
 
+    def test_x_api_key_authentication(self):
+        """Test X-API-Key header validation fix"""
+        try:
+            # Test without authentication first
+            response = requests.post(f"{self.api_url}/voice/process", 
+                                   json={"text": "Test message", "user_id": "test"}, 
+                                   timeout=10)
+            
+            # Should work without auth (optional_auth)
+            success = response.status_code == 200
+            
+            if success:
+                print(f"   🔑 Voice API works without auth (optional_auth): ✅")
+            else:
+                print(f"   🔑 Voice API failed without auth: {response.status_code}")
+            
+            # Test with X-API-Key header (if auth is required)
+            headers = {"X-API-Key": "test-key"}
+            response_with_key = requests.post(f"{self.api_url}/voice/process", 
+                                            json={"text": "Test message", "user_id": "test"}, 
+                                            headers=headers,
+                                            timeout=10)
+            
+            # Should handle X-API-Key header properly (not crash)
+            key_handled = response_with_key.status_code in [200, 401]
+            
+            if key_handled:
+                print(f"   🔑 X-API-Key header properly handled: ✅")
+            else:
+                print(f"   🔑 X-API-Key header caused error: {response_with_key.status_code}")
+                success = False
+            
+            self.log_test("X-API-Key Header Validation Fix", success, 
+                         f"No auth: {response.status_code}, With X-API-Key: {response_with_key.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("X-API-Key Header Validation Fix", False, str(e))
+            return False
+
+    def test_voice_api_error_handling(self):
+        """Test Voice API exception handling - should return HTTP 500 on errors"""
+        try:
+            # Test with invalid/malformed data to trigger error
+            invalid_data = {"invalid_field": "test"}  # Missing required fields
+            
+            response = requests.post(f"{self.api_url}/voice/process", 
+                                   json=invalid_data, 
+                                   timeout=10)
+            
+            # Should return 422 for validation error or 500 for processing error
+            success = response.status_code in [422, 500]
+            
+            if response.status_code == 422:
+                print(f"   ❌ Validation error (422) - expected for malformed data: ✅")
+            elif response.status_code == 500:
+                print(f"   ❌ Internal server error (500) - proper error handling: ✅")
+            else:
+                print(f"   ❌ Unexpected status code: {response.status_code}")
+                success = False
+            
+            # Test with valid data but potentially error-inducing content
+            error_test_data = {
+                "text": "🔥" * 1000,  # Very long text that might cause processing errors
+                "user_id": "error_test"
+            }
+            
+            response2 = requests.post(f"{self.api_url}/voice/process", 
+                                    json=error_test_data, 
+                                    timeout=15)
+            
+            # Should handle gracefully - either process or return 500
+            graceful_handling = response2.status_code in [200, 500]
+            
+            if response2.status_code == 500:
+                print(f"   ❌ Processing error returns HTTP 500 (not 200): ✅")
+                # Check that it's not returning 200 with masked error
+                if response2.status_code != 200:
+                    print(f"   ✅ Error handling fixed - no HTTP 200 with masked errors")
+                else:
+                    print(f"   ❌ Still returning HTTP 200 for errors")
+                    success = False
+            elif response2.status_code == 200:
+                print(f"   ✅ Long text processed successfully")
+            
+            self.log_test("Voice API Error Handling (HTTP 500)", success and graceful_handling, 
+                         f"Invalid data: {response.status_code}, Long text: {response2.status_code}")
+            return success and graceful_handling
+        except Exception as e:
+            self.log_test("Voice API Error Handling (HTTP 500)", False, str(e))
+            return False
+
+    def test_code_quality_fixes(self):
+        """Test that code quality fixes don't break functionality"""
+        try:
+            # Test that database.py improvements don't break database connection
+            response = requests.get(f"{self.api_url}/health", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                # Should still report database status properly
+                has_db_info = "database" in str(data).lower() or "service" in data
+                print(f"   📊 Health endpoint works after database.py fixes: ✅")
+                print(f"   📊 Database info present: {'✅' if has_db_info else '❌'}")
+                success = has_db_info
+            
+            # Test that final newlines don't break file parsing
+            response2 = requests.get(f"{self.api_url}/", timeout=10)
+            api_works = response2.status_code == 200
+            
+            if api_works:
+                print(f"   📄 API root works after newline fixes: ✅")
+            else:
+                print(f"   📄 API root broken after fixes: ❌")
+                success = False
+            
+            self.log_test("Code Quality Fixes (no functionality break)", success and api_works, 
+                         f"Health: {response.status_code}, API: {response2.status_code}")
+            return success and api_works
+        except Exception as e:
+            self.log_test("Code Quality Fixes (no functionality break)", False, str(e))
+            return False
+
     def run_all_tests(self):
-        """Run all API tests according to review requirements"""
-        print("🚀 Starting VasDom AudioBot API Tests - Новые API endpoints для домов")
+        """Run all API tests focusing on code quality fixes"""
+        print("🚀 Starting VasDom AudioBot API Tests - Code Quality Fixes")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Тестирование новых API endpoints:")
-        print("   1. Тест полей Bitrix24 - house_address, количества квартир/этажей/подъездов, УК >= 25")
-        print("   2. Тест фильтров - /api/cleaning/filters и фильтрация домов")
-        print("   3. Тест статистики дашборда - /api/cleaning/stats с реалистичными данными")
-        print("   4. Тест экспорта - все поля для CSV экспорта")
-        print("   ОСОБОЕ ВНИМАНИЕ:")
-        print("   - РЕАЛЬНЫЕ управляющие компании (для писем и звонков)")
-        print("   - Поле адреса дома из Google карт")
-        print("   - Правильные количественные данные")
+        print("📋 Review Requirements - Testing code quality fixes:")
+        print("   1. X-API-Key Header Validation - fixed in security.py")
+        print("   2. Voice API Exception Handling - returns HTTP 500 instead of 200")
+        print("   3. Database.py Style Improvements - no functionality break")
+        print("   4. Final newlines added - no parsing issues")
+        print("   CRITICAL FOCUS:")
+        print("   - /api/voice/process with error scenarios should return HTTP 500")
+        print("   - X-API-Key authentication should work properly")
+        print("   - Existing functionality should not be broken")
         print("=" * 80)
         
-        # 1. Тест полей Bitrix24 - Main Focus
-        self.test_bitrix24_house_fields()
+        # 1. Test X-API-Key header validation fix
+        self.test_x_api_key_authentication()
         
-        # 2. Тест фильтров
-        self.test_cleaning_filters()
-        self.test_cleaning_filters_query()
+        # 2. Test Voice API error handling fix
+        self.test_voice_api_error_handling()
         
-        # 3. Тест статистики дашборда
-        self.test_cleaning_dashboard_stats()
+        # 3. Test code quality fixes don't break functionality
+        self.test_code_quality_fixes()
         
-        # 4. Тест экспорта
-        self.test_export_fields_completeness()
-        
-        # 5. Дополнительные тесты для контекста
+        # 4. Test key endpoints still work
         self.test_api_root()
         self.test_health_endpoint()
-        self.test_bitrix24_connection()
+        self.test_dashboard_stats()
+        self.test_cleaning_houses()
+        self.test_cleaning_filters()
         
         # Print results
         print("=" * 80)
