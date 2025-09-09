@@ -156,6 +156,40 @@ def _extract_weekdays(dates: List[str]) -> List[str]:
     
     return list(weekdays)
 
+@router.get("/cleaning/filters")
+async def get_cleaning_filters():
+    """Получить доступные фильтры для домов"""
+    try:
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=None)
+        
+        brigades = set()
+        cleaning_days = set()
+        
+        for deal in deals:
+            address = deal.get('TITLE', '')
+            brigade_info = bitrix.analyze_house_brigade(address)
+            brigades.add(brigade_info)
+            
+            # Извлекаем дни уборки
+            cleaning_date_1_str = deal.get('UF_CRM_1726148261', '')
+            cleaning_date_2_str = deal.get('UF_CRM_1726148299', '')
+            
+            dates = _parse_dates(cleaning_date_1_str) + _parse_dates(cleaning_date_2_str)
+            weekdays = _extract_weekdays(dates)
+            cleaning_days.update(weekdays)
+        
+        return {
+            "status": "success",
+            "brigades": sorted(list(brigades)),
+            "cleaning_days": sorted(list(cleaning_days)),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Filters error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/brigades")
 async def get_brigades():
     """Информация о бригадах"""
