@@ -706,7 +706,8 @@ async def health_check():
 @app.get("/", response_class=HTMLResponse)  
 async def root_redirect():
     """Redirect root to dashboard"""
-    return RedirectResponse(url="/dashboard", status_code=302)
+    # УЛУЧШЕНИЕ 7: Frontend redirect URLs из конфигурации
+    return RedirectResponse(url=FRONTEND_DASHBOARD_URL, status_code=302)
 
 @app.get("/dashbord", response_class=HTMLResponse)  # Опечатка как в URL пользователя
 @app.get("/dashboard", response_class=HTMLResponse)
