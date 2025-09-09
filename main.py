@@ -6,19 +6,20 @@ import sys
 import os
 
 # Добавляем backend в путь для импортов
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+sys.path.insert(0, backend_path)
 
 try:
     # Пытаемся использовать новое модульное приложение
     from app.main import app
-    print("✅ Запуск модульного приложения с самообучением")
+    print("✅ Запуск модульного приложения с самообучением v2.0")
 except ImportError as e:
     print(f"⚠️ Ошибка импорта модульного приложения: {e}")
     print("🔄 Fallback на старый server.py")
     
     # Fallback на старое приложение
     try:
-        from backend.server import app
+        from server import app
         print("✅ Запуск совместимого приложения")
     except ImportError as fallback_error:
         print(f"❌ Критическая ошибка: {fallback_error}")
