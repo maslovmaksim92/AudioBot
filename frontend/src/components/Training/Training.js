@@ -105,24 +105,24 @@ const Training = () => {
   };
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Обучение&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;База знаний и обучающие модули&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button variant="primary"&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Обучение</h1>
+          <p className="text-gray-600">База знаний и обучающие модули</p>
+        </div>
+        <Button variant="primary">
           ➕ Добавить материал
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
-      &lt;div className="grid grid-cols-1 lg:grid-cols-4 gap-6"&gt;
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Categories Sidebar */}
-        &lt;div&gt;
-          &lt;Card title="📂 Категории"&gt;
-            &lt;div className="space-y-2"&gt;
+        <div>
+          <Card title="📂 Категории">
+            <div className="space-y-2">
               {categories.map(category => (
-                &lt;button
+                <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
                   className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
@@ -130,141 +130,141 @@ const Training = () => {
                       ? 'bg-blue-100 text-blue-700'
                       : 'hover:bg-gray-100'
                   }`}
-                &gt;
-                  &lt;div className="flex justify-between items-center"&gt;
-                    &lt;span className="text-sm font-medium"&gt;{category.name}&lt;/span&gt;
-                    &lt;span className="text-xs bg-gray-200 px-2 py-1 rounded-full"&gt;
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">{category.name}</span>
+                    <span className="text-xs bg-gray-200 px-2 py-1 rounded-full">
                       {category.count}
-                    &lt;/span&gt;
-                  &lt;/div&gt;
-                &lt;/button&gt;
+                    </span>
+                  </div>
+                </button>
               ))}
-            &lt;/div&gt;
-          &lt;/Card&gt;
+            </div>
+          </Card>
 
           {/* Training Progress */}
-          &lt;Card title="📊 Прогресс обучения" className="mt-4"&gt;
-            &lt;div className="space-y-3"&gt;
+          <Card title="📊 Прогресс обучения" className="mt-4">
+            <div className="space-y-3">
               {trainingModules.map(module => (
-                &lt;div key={module.id} className="space-y-2"&gt;
-                  &lt;div className="flex justify-between items-center"&gt;
-                    &lt;span className="text-sm font-medium truncate"&gt;{module.title}&lt;/span&gt;
-                    &lt;span className="text-xs text-gray-500"&gt;{module.progress}%&lt;/span&gt;
-                  &lt;/div&gt;
-                  &lt;div className="w-full bg-gray-200 rounded-full h-2"&gt;
-                    &lt;div 
+                <div key={module.id} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium truncate">{module.title}</span>
+                    <span className="text-xs text-gray-500">{module.progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
                       className={`h-2 rounded-full ${
                         module.completed ? 'bg-green-500' : 'bg-blue-500'
                       }`}
                       style={{ width: `${module.progress}%` }}
-                    &gt;&lt;/div&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
+                    ></div>
+                  </div>
+                </div>
               ))}
-            &lt;/div&gt;
-          &lt;/Card&gt;
-        &lt;/div&gt;
+            </div>
+          </Card>
+        </div>
 
         {/* Knowledge Base Content */}
-        &lt;div className="lg:col-span-3"&gt;
+        <div className="lg:col-span-3">
           {/* Knowledge Articles */}
-          &lt;div className="space-y-4"&gt;
+          <div className="space-y-4">
             {filteredKnowledge.map(item => (
-              &lt;Card key={item.id} className="hover:shadow-lg transition-shadow"&gt;
-                &lt;div className="flex justify-between items-start mb-3"&gt;
-                  &lt;h3 className="text-lg font-semibold text-gray-900"&gt;{item.title}&lt;/h3&gt;
-                  &lt;span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}&gt;
+              <Card key={item.id} className="hover:shadow-lg transition-shadow">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
                     {getCategoryName(item.category)}
-                  &lt;/span&gt;
-                &lt;/div&gt;
+                  </span>
+                </div>
                 
-                &lt;p className="text-gray-700 mb-3"&gt;{item.description}&lt;/p&gt;
+                <p className="text-gray-700 mb-3">{item.description}</p>
                 
-                &lt;p className="text-sm text-gray-600 mb-4 line-clamp-3"&gt;{item.content}&lt;/p&gt;
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">{item.content}</p>
                 
-                &lt;div className="flex flex-wrap gap-2 mb-4"&gt;
+                <div className="flex flex-wrap gap-2 mb-4">
                   {item.keywords.map(keyword => (
-                    &lt;span 
+                    <span 
                       key={keyword}
                       className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded"
-                    &gt;
+                    >
                       #{keyword}
-                    &lt;/span&gt;
+                    </span>
                   ))}
-                &lt;/div&gt;
+                </div>
                 
-                &lt;div className="flex justify-between items-center pt-3 border-t border-gray-100"&gt;
-                  &lt;span className="text-xs text-gray-500"&gt;
+                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">
                     Создано: {new Date(item.created_at).toLocaleDateString('ru-RU')}
-                  &lt;/span&gt;
-                  &lt;div className="flex space-x-2"&gt;
-                    &lt;Button size="sm" variant="primary"&gt;👁️ Читать&lt;/Button&gt;
-                    &lt;Button size="sm" variant="secondary"&gt;✏️ Редактировать&lt;/Button&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
-              &lt;/Card&gt;
+                  </span>
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="primary">👁️ Читать</Button>
+                    <Button size="sm" variant="secondary">✏️ Редактировать</Button>
+                  </div>
+                </div>
+              </Card>
             ))}
-          &lt;/div&gt;
+          </div>
 
           {filteredKnowledge.length === 0 && (
-            &lt;Card&gt;
-              &lt;div className="text-center py-12"&gt;
-                &lt;div className="text-6xl mb-4"&gt;📚&lt;/div&gt;
-                &lt;h3 className="text-lg font-medium text-gray-900 mb-2"&gt;Нет материалов в этой категории&lt;/h3&gt;
-                &lt;p className="text-gray-600"&gt;
+            <Card>
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">📚</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Нет материалов в этой категории</h3>
+                <p className="text-gray-600">
                   Выберите другую категорию или добавьте новый материал
-                &lt;/p&gt;
-              &lt;/div&gt;
-            &lt;/Card&gt;
+                </p>
+              </div>
+            </Card>
           )}
 
           {/* Training Modules */}
-          &lt;Card title="🎓 Обучающие модули" className="mt-6"&gt;
-            &lt;div className="grid grid-cols-1 md:grid-cols-2 gap-4"&gt;
+          <Card title="🎓 Обучающие модули" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {trainingModules.map(module => (
-                &lt;div
+                <div
                   key={module.id}
                   className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-                &gt;
-                  &lt;div className="flex justify-between items-start mb-2"&gt;
-                    &lt;h4 className="font-medium text-gray-900"&gt;{module.title}&lt;/h4&gt;
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900">{module.title}</h4>
                     {module.completed ? (
-                      &lt;span className="text-green-600 text-xl"&gt;✅&lt;/span&gt;
+                      <span className="text-green-600 text-xl">✅</span>
                     ) : (
-                      &lt;span className="text-gray-400 text-xl"&gt;⏳&lt;/span&gt;
+                      <span className="text-gray-400 text-xl">⏳</span>
                     )}
-                  &lt;/div&gt;
+                  </div>
                   
-                  &lt;p className="text-sm text-gray-600 mb-3"&gt;{module.description}&lt;/p&gt;
+                  <p className="text-sm text-gray-600 mb-3">{module.description}</p>
                   
-                  &lt;div className="flex justify-between items-center text-xs text-gray-500 mb-3"&gt;
-                    &lt;span&gt;Длительность: {module.duration}&lt;/span&gt;
-                    &lt;span&gt;Прогресс: {module.progress}%&lt;/span&gt;
-                  &lt;/div&gt;
+                  <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                    <span>Длительность: {module.duration}</span>
+                    <span>Прогресс: {module.progress}%</span>
+                  </div>
                   
-                  &lt;div className="w-full bg-gray-200 rounded-full h-2 mb-3"&gt;
-                    &lt;div 
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                    <div 
                       className={`h-2 rounded-full ${
                         module.completed ? 'bg-green-500' : 'bg-blue-500'
                       }`}
                       style={{ width: `${module.progress}%` }}
-                    &gt;&lt;/div&gt;
-                  &lt;/div&gt;
+                    ></div>
+                  </div>
                   
-                  &lt;Button 
+                  <Button 
                     size="sm" 
                     variant={module.completed ? 'secondary' : 'primary'}
                     className="w-full"
-                  &gt;
+                  >
                     {module.completed ? '✅ Завершен' : module.progress > 0 ? '▶️ Продолжить' : '🚀 Начать'}
-                  &lt;/Button&gt;
-                &lt;/div&gt;
+                  </Button>
+                </div>
               ))}
-            &lt;/div&gt;
-          &lt;/Card&gt;
-        &lt;/div&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 };
 

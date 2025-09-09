@@ -99,22 +99,22 @@ const Logs = () => {
   const currentLogs = activeTab === 'system' ? logs : aiLogs;
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Системные логи&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;Мониторинг активности и отладка&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button onClick={fetchLogs} loading={loading}&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Системные логи</h1>
+          <p className="text-gray-600">Мониторинг активности и отладка</p>
+        </div>
+        <Button onClick={fetchLogs} loading={loading}>
           🔄 Обновить
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
       {/* Tabs */}
-      &lt;Card className="mb-6"&gt;
-        &lt;div className="flex space-x-1 p-1 bg-gray-100 rounded-lg"&gt;
+      <Card className="mb-6">
+        <div className="flex space-x-1 p-1 bg-gray-100 rounded-lg">
           {tabs.map(tab => (
-            &lt;button
+            <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -122,103 +122,103 @@ const Logs = () => {
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
-            &gt;
-              &lt;span className="mr-2"&gt;{tab.icon}&lt;/span&gt;
+            >
+              <span className="mr-2">{tab.icon}</span>
               {tab.name}
-            &lt;/button&gt;
+            </button>
           ))}
-        &lt;/div&gt;
-      &lt;/Card&gt;
+        </div>
+      </Card>
 
       {/* Logs Content */}
       {loading ? (
-        &lt;div className="flex justify-center py-12"&gt;
-          &lt;LoadingSpinner size="lg" text="Загрузка логов..." /&gt;
-        &lt;/div&gt;
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" text="Загрузка логов..." />
+        </div>
       ) : currentLogs.length > 0 ? (
-        &lt;div className="space-y-4"&gt;
+        <div className="space-y-4">
           {currentLogs.map((log, index) => (
-            &lt;Card key={log.id || index} className="hover:shadow-md transition-shadow"&gt;
-              &lt;div className="space-y-3"&gt;
-                &lt;div className="flex justify-between items-start"&gt;
-                  &lt;div className="flex-1"&gt;
-                    &lt;div className="flex items-center space-x-2 mb-2"&gt;
+            <Card key={log.id || index} className="hover:shadow-md transition-shadow">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
                       {log.context && (
-                        &lt;span className={`px-2 py-1 rounded-full text-xs font-medium ${getContextColor(log.context)}`}&gt;
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getContextColor(log.context)}`}>
                           {log.context}
-                        &lt;/span&gt;
+                        </span>
                       )}
                       {log.user_id && (
-                        &lt;span className="text-xs text-gray-500"&gt;
+                        <span className="text-xs text-gray-500">
                           Пользователь: {log.user_id}
-                        &lt;/span&gt;
+                        </span>
                       )}
-                    &lt;/div&gt;
+                    </div>
                     
                     {log.user_message && (
-                      &lt;div className="mb-3"&gt;
-                        &lt;div className="text-sm font-medium text-gray-700 mb-1"&gt;👤 Сообщение пользователя:&lt;/div&gt;
-                        &lt;div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-900"&gt;
+                      <div className="mb-3">
+                        <div className="text-sm font-medium text-gray-700 mb-1">👤 Сообщение пользователя:</div>
+                        <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-900">
                           {log.user_message}
-                        &lt;/div&gt;
-                      &lt;/div&gt;
+                        </div>
+                      </div>
                     )}
                     
                     {log.ai_response && (
-                      &lt;div className="mb-3"&gt;
-                        &lt;div className="text-sm font-medium text-gray-700 mb-1"&gt;🤖 Ответ AI:&lt;/div&gt;
-                        &lt;div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-900"&gt;
+                      <div className="mb-3">
+                        <div className="text-sm font-medium text-gray-700 mb-1">🤖 Ответ AI:</div>
+                        <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-900">
                           {log.ai_response}
-                        &lt;/div&gt;
-                      &lt;/div&gt;
+                        </div>
+                      </div>
                     )}
-                  &lt;/div&gt;
-                &lt;/div&gt;
+                  </div>
+                </div>
                 
-                &lt;div className="pt-3 border-t border-gray-100"&gt;
-                  &lt;div className="flex justify-between items-center text-xs text-gray-500"&gt;
-                    &lt;span&gt;ID: {log.id || index + 1}&lt;/span&gt;
-                    &lt;span&gt;{formatTimestamp(log.timestamp)}&lt;/span&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
-              &lt;/div&gt;
-            &lt;/Card&gt;
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>ID: {log.id || index + 1}</span>
+                    <span>{formatTimestamp(log.timestamp)}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
           ))}
-        &lt;/div&gt;
+        </div>
       ) : (
-        &lt;Card&gt;
-          &lt;div className="text-center py-12"&gt;
-            &lt;div className="text-6xl mb-4"&gt;📝&lt;/div&gt;
-            &lt;h3 className="text-lg font-medium text-gray-900 mb-2"&gt;Нет логов&lt;/h3&gt;
-            &lt;p className="text-gray-600"&gt;
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет логов</h3>
+            <p className="text-gray-600">
               {activeTab === 'system' ? 'Системные логи' : 'AI логи'} появятся после активности
-            &lt;/p&gt;
-          &lt;/div&gt;
-        &lt;/Card&gt;
+            </p>
+          </div>
+        </Card>
       )}
 
       {/* Log Stats */}
-      &lt;Card title="📊 Статистика логов" className="mt-6"&gt;
-        &lt;div className="grid grid-cols-2 md:grid-cols-4 gap-4"&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-blue-600"&gt;{logs.length}&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Системных логов&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-green-600"&gt;{aiLogs.length}&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;AI взаимодействий&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-purple-600"&gt;0&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Telegram логов&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-orange-600"&gt;{logs.length + aiLogs.length}&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Всего записей&lt;/div&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-      &lt;/Card&gt;
-    &lt;/div&gt;
+      <Card title="📊 Статистика логов" className="mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{logs.length}</div>
+            <div className="text-sm text-gray-600">Системных логов</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{aiLogs.length}</div>
+            <div className="text-sm text-gray-600">AI взаимодействий</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">0</div>
+            <div className="text-sm text-gray-600">Telegram логов</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">{logs.length + aiLogs.length}</div>
+            <div className="text-sm text-gray-600">Всего записей</div>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

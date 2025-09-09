@@ -112,148 +112,148 @@ const AITasks = () => {
   };
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;AI Задачи&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;Умные задачи и автоматизация&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button onClick={fetchTasks} loading={loading}&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">AI Задачи</h1>
+          <p className="text-gray-600">Умные задачи и автоматизация</p>
+        </div>
+        <Button onClick={fetchTasks} loading={loading}>
           🔄 Обновить
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
       {/* Create New Task */}
-      &lt;Card title="➕ Создать новую AI задачу" className="mb-6"&gt;
-        &lt;div className="space-y-4"&gt;
-          &lt;div&gt;
-            &lt;label className="block text-sm font-medium text-gray-700 mb-1"&gt;
+      <Card title="➕ Создать новую AI задачу" className="mb-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Название задачи
-            &lt;/label&gt;
-            &lt;input
+            </label>
+            <input
               type="text"
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Введите название..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            /&gt;
-          &lt;/div&gt;
+            />
+          </div>
           
-          &lt;div&gt;
-            &lt;label className="block text-sm font-medium text-gray-700 mb-1"&gt;
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Описание задачи
-            &lt;/label&gt;
-            &lt;textarea
+            </label>
+            <textarea
               value={newTaskDescription}
               onChange={(e) => setNewTaskDescription(e.target.value)}
               placeholder="Опишите что должен сделать AI..."
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            /&gt;
-          &lt;/div&gt;
+            />
+          </div>
           
-          &lt;Button onClick={createTask} disabled={!newTaskTitle.trim() || !newTaskDescription.trim()}&gt;
+          <Button onClick={createTask} disabled={!newTaskTitle.trim() || !newTaskDescription.trim()}>
             🧠 Создать AI задачу
-          &lt;/Button&gt;
-        &lt;/div&gt;
-      &lt;/Card&gt;
+          </Button>
+        </div>
+      </Card>
 
       {/* Tasks List */}
       {loading ? (
-        &lt;div className="flex justify-center py-12"&gt;
-          &lt;LoadingSpinner size="lg" text="Загрузка AI задач..." /&gt;
-        &lt;/div&gt;
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" text="Загрузка AI задач..." />
+        </div>
       ) : tasks.length > 0 ? (
-        &lt;div className="grid grid-cols-1 lg:grid-cols-2 gap-6"&gt;
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {tasks.map(task => (
-            &lt;Card key={task.id} className="hover:shadow-lg transition-shadow"&gt;
-              &lt;div className="space-y-4"&gt;
-                &lt;div className="flex justify-between items-start"&gt;
-                  &lt;h3 className="font-semibold text-gray-900"&gt;{task.title}&lt;/h3&gt;
-                  &lt;span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}&gt;
+            <Card key={task.id} className="hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
                     {getStatusText(task.status)}
-                  &lt;/span&gt;
-                &lt;/div&gt;
+                  </span>
+                </div>
                 
-                &lt;p className="text-gray-700 text-sm"&gt;{task.description}&lt;/p&gt;
+                <p className="text-gray-700 text-sm">{task.description}</p>
                 
-                &lt;div className="space-y-2 text-sm text-gray-600"&gt;
+                <div className="space-y-2 text-sm text-gray-600">
                   {task.scheduled_time && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Запланировано:&lt;/span&gt;
-                      &lt;span&gt;{new Date(task.scheduled_time).toLocaleString('ru-RU')}&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Запланировано:</span>
+                      <span>{new Date(task.scheduled_time).toLocaleString('ru-RU')}</span>
+                    </div>
                   )}
                   
                   {task.created_at && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Создана:&lt;/span&gt;
-                      &lt;span&gt;{new Date(task.created_at).toLocaleString('ru-RU')}&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Создана:</span>
+                      <span>{new Date(task.created_at).toLocaleString('ru-RU')}</span>
+                    </div>
                   )}
                   
                   {task.recurring && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Повторяющаяся:&lt;/span&gt;
-                      &lt;span className="text-blue-600"&gt;Да&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Повторяющаяся:</span>
+                      <span className="text-blue-600">Да</span>
+                    </div>
                   )}
-                &lt;/div&gt;
+                </div>
                 
-                &lt;div className="pt-3 border-t border-gray-100"&gt;
-                  &lt;div className="flex justify-between items-center"&gt;
-                    &lt;span className="text-xs text-gray-500"&gt;ID: {task.id}&lt;/span&gt;
-                    &lt;div className="flex space-x-2"&gt;
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">ID: {task.id}</span>
+                    <div className="flex space-x-2">
                       {task.status === 'pending' && (
-                        &lt;Button size="sm" variant="primary"&gt;▶️ Запустить&lt;/Button&gt;
+                        <Button size="sm" variant="primary">▶️ Запустить</Button>
                       )}
                       {task.status === 'in_progress' && (
-                        &lt;Button size="sm" variant="warning"&gt;⏸️ Приостановить&lt;/Button&gt;
+                        <Button size="sm" variant="warning">⏸️ Приостановить</Button>
                       )}
-                      &lt;Button size="sm" variant="ghost"&gt;👁️ Детали&lt;/Button&gt;
-                    &lt;/div&gt;
-                  &lt;/div&gt;
-                &lt;/div&gt;
-              &lt;/div&gt;
-            &lt;/Card&gt;
+                      <Button size="sm" variant="ghost">👁️ Детали</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
           ))}
-        &lt;/div&gt;
+        </div>
       ) : (
-        &lt;Card&gt;
-          &lt;div className="text-center py-12"&gt;
-            &lt;div className="text-6xl mb-4"&gt;🧠&lt;/div&gt;
-            &lt;h3 className="text-lg font-medium text-gray-900 mb-2"&gt;Нет AI задач&lt;/h3&gt;
-            &lt;p className="text-gray-600"&gt;
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🧠</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет AI задач</h3>
+            <p className="text-gray-600">
               Создайте первую умную задачу для автоматизации бизнес-процессов
-            &lt;/p&gt;
-          &lt;/div&gt;
-        &lt;/Card&gt;
+            </p>
+          </div>
+        </Card>
       )}
 
       {/* AI Features Info */}
-      &lt;Card title="🤖 Возможности AI" className="mt-6"&gt;
-        &lt;div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600"&gt;
-          &lt;div&gt;
-            &lt;h4 className="font-medium text-gray-900 mb-2"&gt;Аналитика и отчеты:&lt;/h4&gt;
-            &lt;ul className="space-y-1"&gt;
-              &lt;li&gt;• Анализ эффективности бригад&lt;/li&gt;
-              &lt;li&gt;• Прогнозирование объемов работ&lt;/li&gt;
-              &lt;li&gt;• Выявление проблемных домов&lt;/li&gt;
-              &lt;li&gt;• Оптимизация расписаний&lt;/li&gt;
-            &lt;/ul&gt;
-          &lt;/div&gt;
-          &lt;div&gt;
-            &lt;h4 className="font-medium text-gray-900 mb-2"&gt;Автоматизация:&lt;/h4&gt;
-            &lt;ul className="space-y-1"&gt;
-              &lt;li&gt;• Автоматическое планирование задач&lt;/li&gt;
-              &lt;li&gt;• Уведомления о критических ситуациях&lt;/li&gt;
-              &lt;li&gt;• Обработка обратной связи клиентов&lt;/li&gt;
-              &lt;li&gt;• Предложения по улучшению процессов&lt;/li&gt;
-            &lt;/ul&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-      &lt;/Card&gt;
-    &lt;/div&gt;
+      <Card title="🤖 Возможности AI" className="mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Аналитика и отчеты:</h4>
+            <ul className="space-y-1">
+              <li>• Анализ эффективности бригад</li>
+              <li>• Прогнозирование объемов работ</li>
+              <li>• Выявление проблемных домов</li>
+              <li>• Оптимизация расписаний</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Автоматизация:</h4>
+            <ul className="space-y-1">
+              <li>• Автоматическое планирование задач</li>
+              <li>• Уведомления о критических ситуациях</li>
+              <li>• Обработка обратной связи клиентов</li>
+              <li>• Предложения по улучшению процессов</li>
+            </ul>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

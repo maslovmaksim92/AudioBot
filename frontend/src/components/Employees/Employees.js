@@ -62,140 +62,140 @@ const Employees = () => {
   }, {});
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Сотрудники&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;Управление бригадами и сотрудниками&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button onClick={fetchEmployees} loading={loading}&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Сотрудники</h1>
+          <p className="text-gray-600">Управление бригадами и сотрудниками</p>
+        </div>
+        <Button onClick={fetchEmployees} loading={loading}>
           🔄 Обновить
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
       {/* Brigades Overview */}
-      &lt;Card title="👥 Обзор бригад" className="mb-6"&gt;
-        &lt;div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"&gt;
+      <Card title="👥 Обзор бригад" className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {brigades.map(brigade => (
-            &lt;div
+            <div
               key={brigade.id}
               className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-            &gt;
-              &lt;div className="flex justify-between items-start mb-2"&gt;
-                &lt;h3 className="font-semibold text-gray-900"&gt;{brigade.name}&lt;/h3&gt;
-                &lt;span className="text-sm text-gray-500"&gt;{brigade.houses} домов&lt;/span&gt;
-              &lt;/div&gt;
-              &lt;p className="text-sm text-gray-600"&gt;{brigade.district} район&lt;/p&gt;
-              &lt;div className="mt-2 text-xs text-gray-500"&gt;
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-semibold text-gray-900">{brigade.name}</h3>
+                <span className="text-sm text-gray-500">{brigade.houses} домов</span>
+              </div>
+              <p className="text-sm text-gray-600">{brigade.district} район</p>
+              <div className="mt-2 text-xs text-gray-500">
                 Сотрудников: {groupedEmployees[brigade.name]?.length || 0}
-              &lt;/div&gt;
-            &lt;/div&gt;
+              </div>
+            </div>
           ))}
-        &lt;/div&gt;
-      &lt;/Card&gt;
+        </div>
+      </Card>
 
       {/* Employees List */}
       {loading ? (
-        &lt;div className="flex justify-center py-12"&gt;
-          &lt;LoadingSpinner size="lg" text="Загрузка сотрудников..." /&gt;
-        &lt;/div&gt;
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" text="Загрузка сотрудников..." />
+        </div>
       ) : Object.keys(groupedEmployees).length > 0 ? (
-        &lt;div className="space-y-6"&gt;
+        <div className="space-y-6">
           {Object.entries(groupedEmployees).map(([brigade, brigadeEmployees]) => (
-            &lt;Card key={brigade} title={`${brigade} (${brigadeEmployees.length} чел.)`}&gt;
-              &lt;div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"&gt;
+            <Card key={brigade} title={`${brigade} (${brigadeEmployees.length} чел.)`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {brigadeEmployees.map(employee => (
-                  &lt;div
+                  <div
                     key={employee.id}
                     className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                  &gt;
-                    &lt;div className="flex items-start justify-between mb-2"&gt;
-                      &lt;h4 className="font-medium text-gray-900"&gt;{employee.name}&lt;/h4&gt;
-                      &lt;span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-medium text-gray-900">{employee.name}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         employee.position === 'Бригадир' 
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}&gt;
+                      }`}>
                         {employee.position}
-                      &lt;/span&gt;
-                    &lt;/div&gt;
+                      </span>
+                    </div>
                     
-                    &lt;div className="space-y-1 text-sm text-gray-600"&gt;
+                    <div className="space-y-1 text-sm text-gray-600">
                       {employee.phone && (
-                        &lt;div className="flex items-center"&gt;
-                          &lt;span className="mr-2"&gt;📞&lt;/span&gt;
-                          &lt;a href={`tel:${employee.phone}`} className="hover:text-blue-600"&gt;
+                        <div className="flex items-center">
+                          <span className="mr-2">📞</span>
+                          <a href={`tel:${employee.phone}`} className="hover:text-blue-600">
                             {employee.phone}
-                          &lt;/a&gt;
-                        &lt;/div&gt;
+                          </a>
+                        </div>
                       )}
                       
                       {employee.district && (
-                        &lt;div className="flex items-center"&gt;
-                          &lt;span className="mr-2"&gt;🏢&lt;/span&gt;
-                          &lt;span&gt;{employee.district} район&lt;/span&gt;
-                        &lt;/div&gt;
+                        <div className="flex items-center">
+                          <span className="mr-2">🏢</span>
+                          <span>{employee.district} район</span>
+                        </div>
                       )}
                       
                       {employee.email && (
-                        &lt;div className="flex items-center"&gt;
-                          &lt;span className="mr-2"&gt;📧&lt;/span&gt;
-                          &lt;a href={`mailto:${employee.email}`} className="hover:text-blue-600 truncate"&gt;
+                        <div className="flex items-center">
+                          <span className="mr-2">📧</span>
+                          <a href={`mailto:${employee.email}`} className="hover:text-blue-600 truncate">
                             {employee.email}
-                          &lt;/a&gt;
-                        &lt;/div&gt;
+                          </a>
+                        </div>
                       )}
-                    &lt;/div&gt;
+                    </div>
                     
-                    &lt;div className="mt-3 pt-3 border-t border-gray-100"&gt;
-                      &lt;div className="flex justify-between items-center"&gt;
-                        &lt;span className="text-xs text-gray-500"&gt;ID: {employee.id}&lt;/span&gt;
-                        &lt;div className="flex space-x-1"&gt;
-                          &lt;Button size="sm" variant="ghost" className="p-1"&gt;📞&lt;/Button&gt;
-                          &lt;Button size="sm" variant="ghost" className="p-1"&gt;✉️&lt;/Button&gt;
-                        &lt;/div&gt;
-                      &lt;/div&gt;
-                    &lt;/div&gt;
-                  &lt;/div&gt;
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">ID: {employee.id}</span>
+                        <div className="flex space-x-1">
+                          <Button size="sm" variant="ghost" className="p-1">📞</Button>
+                          <Button size="sm" variant="ghost" className="p-1">✉️</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              &lt;/div&gt;
-            &lt;/Card&gt;
+              </div>
+            </Card>
           ))}
-        &lt;/div&gt;
+        </div>
       ) : (
-        &lt;Card&gt;
-          &lt;div className="text-center py-12"&gt;
-            &lt;div className="text-6xl mb-4"&gt;👥&lt;/div&gt;
-            &lt;h3 className="text-lg font-medium text-gray-900 mb-2"&gt;Нет данных о сотрудниках&lt;/h3&gt;
-            &lt;p className="text-gray-600"&gt;
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">👥</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет данных о сотрудниках</h3>
+            <p className="text-gray-600">
               Данные о сотрудниках будут загружены из системы управления
-            &lt;/p&gt;
-          &lt;/div&gt;
-        &lt;/Card&gt;
+            </p>
+          </div>
+        </Card>
       )}
 
       {/* Statistics */}
-      &lt;Card title="📊 Статистика" className="mt-6"&gt;
-        &lt;div className="grid grid-cols-2 md:grid-cols-4 gap-4"&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-blue-600"&gt;82&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Всего сотрудников&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-green-600"&gt;6&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Бригад&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-purple-600"&gt;348&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Домов в работе&lt;/div&gt;
-          &lt;/div&gt;
-          &lt;div className="text-center"&gt;
-            &lt;div className="text-2xl font-bold text-orange-600"&gt;13.7&lt;/div&gt;
-            &lt;div className="text-sm text-gray-600"&gt;Сотр./бригада&lt;/div&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-      &lt;/Card&gt;
-    &lt;/div&gt;
+      <Card title="📊 Статистика" className="mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">82</div>
+            <div className="text-sm text-gray-600">Всего сотрудников</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">6</div>
+            <div className="text-sm text-gray-600">Бригад</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">348</div>
+            <div className="text-sm text-gray-600">Домов в работе</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">13.7</div>
+            <div className="text-sm text-gray-600">Сотр./бригада</div>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

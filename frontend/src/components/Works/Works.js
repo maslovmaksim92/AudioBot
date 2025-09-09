@@ -75,132 +75,132 @@ const Works = () => {
   }, {});
 
   return (
-    &lt;div className="p-6"&gt;
-      &lt;div className="flex justify-between items-center mb-6"&gt;
-        &lt;div&gt;
-          &lt;h1 className="text-3xl font-bold text-gray-900"&gt;Дома в управлении&lt;/h1&gt;
-          &lt;p className="text-gray-600"&gt;Всего домов: {houses.length} из Bitrix24 CRM&lt;/p&gt;
-        &lt;/div&gt;
-        &lt;Button onClick={fetchHouses} loading={loading}&gt;
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Дома в управлении</h1>
+          <p className="text-gray-600">Всего домов: {houses.length} из Bitrix24 CRM</p>
+        </div>
+        <Button onClick={fetchHouses} loading={loading}>
           🔄 Обновить
-        &lt;/Button&gt;
-      &lt;/div&gt;
+        </Button>
+      </div>
 
       {/* Filters and Search */}
-      &lt;Card className="mb-6"&gt;
-        &lt;div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0"&gt;
-          &lt;div className="flex flex-wrap gap-2"&gt;
-            &lt;Button
+      <Card className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+          <div className="flex flex-wrap gap-2">
+            <Button
               variant={filterStatus === 'all' ? 'primary' : 'secondary'}
               size="sm"
               onClick={() => setFilterStatus('all')}
-            &gt;
+            >
               Все ({houses.length})
-            &lt;/Button&gt;
+            </Button>
             {Object.entries(statusCounts).map(([status, count]) => (
-              &lt;Button
+              <Button
                 key={status}
                 variant={filterStatus === status ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setFilterStatus(status)}
-              &gt;
+              >
                 {getStatusText(status)} ({count})
-              &lt;/Button&gt;
+              </Button>
             ))}
-          &lt;/div&gt;
+          </div>
           
-          &lt;div className="flex items-center space-x-2"&gt;
-            &lt;input
+          <div className="flex items-center space-x-2">
+            <input
               type="text"
               placeholder="Поиск по адресу или ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            /&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
-      &lt;/Card&gt;
+            />
+          </div>
+        </div>
+      </Card>
 
       {/* Houses Grid */}
       {loading ? (
-        &lt;div className="flex justify-center py-12"&gt;
-          &lt;LoadingSpinner size="lg" text="Загрузка домов..." /&gt;
-        &lt;/div&gt;
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" text="Загрузка домов..." />
+        </div>
       ) : filteredHouses.length > 0 ? (
-        &lt;div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"&gt;
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredHouses.map((house, index) => (
-            &lt;Card key={house.deal_id || index} className="hover:shadow-lg transition-shadow"&gt;
-              &lt;div className="space-y-3"&gt;
-                &lt;div className="flex justify-between items-start"&gt;
-                  &lt;h3 className="font-semibold text-gray-900 text-sm leading-tight"&gt;
+            <Card key={house.deal_id || index} className="hover:shadow-lg transition-shadow">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-semibold text-gray-900 text-sm leading-tight">
                     {house.address || 'Адрес не указан'}
-                  &lt;/h3&gt;
-                  &lt;span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(house.stage)}`}&gt;
+                  </h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(house.stage)}`}>
                     {getStatusText(house.stage)}
-                  &lt;/span&gt;
-                &lt;/div&gt;
+                  </span>
+                </div>
                 
-                &lt;div className="space-y-2 text-sm text-gray-600"&gt;
-                  &lt;div className="flex justify-between"&gt;
-                    &lt;span&gt;ID сделки:&lt;/span&gt;
-                    &lt;span className="font-mono text-xs"&gt;{house.deal_id}&lt;/span&gt;
-                  &lt;/div&gt;
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex justify-between">
+                    <span>ID сделки:</span>
+                    <span className="font-mono text-xs">{house.deal_id}</span>
+                  </div>
                   
                   {house.brigade && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Бригада:&lt;/span&gt;
-                      &lt;span&gt;{house.brigade}&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Бригада:</span>
+                      <span>{house.brigade}</span>
+                    </div>
                   )}
                   
                   {house.opportunity && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Сумма:&lt;/span&gt;
-                      &lt;span className="font-semibold"&gt;{house.opportunity} ₽&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Сумма:</span>
+                      <span className="font-semibold">{house.opportunity} ₽</span>
+                    </div>
                   )}
                   
                   {house.created_date && (
-                    &lt;div className="flex justify-between"&gt;
-                      &lt;span&gt;Создан:&lt;/span&gt;
-                      &lt;span&gt;{new Date(house.created_date).toLocaleDateString('ru-RU')}&lt;/span&gt;
-                    &lt;/div&gt;
+                    <div className="flex justify-between">
+                      <span>Создан:</span>
+                      <span>{new Date(house.created_date).toLocaleDateString('ru-RU')}</span>
+                    </div>
                   )}
-                &lt;/div&gt;
+                </div>
                 
-                &lt;div className="pt-3 border-t border-gray-100"&gt;
-                  &lt;div className="flex justify-between items-center"&gt;
-                    &lt;span className="text-xs text-gray-500"&gt;
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
                       Обновлено: {house.last_sync ? new Date(house.last_sync).toLocaleTimeString('ru-RU') : 'Неизвестно'}
-                    &lt;/span&gt;
+                    </span>
                     {house.status_text && (
-                      &lt;span className="text-xs px-2 py-1 bg-gray-100 rounded"&gt;
+                      <span className="text-xs px-2 py-1 bg-gray-100 rounded">
                         {house.status_text}
-                      &lt;/span&gt;
+                      </span>
                     )}
-                  &lt;/div&gt;
-                &lt;/div&gt;
-              &lt;/div&gt;
-            &lt;/Card&gt;
+                  </div>
+                </div>
+              </div>
+            </Card>
           ))}
-        &lt;/div&gt;
+        </div>
       ) : (
-        &lt;Card&gt;
-          &lt;div className="text-center py-12"&gt;
-            &lt;div className="text-6xl mb-4"&gt;🏠&lt;/div&gt;
-            &lt;h3 className="text-lg font-medium text-gray-900 mb-2"&gt;
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🏠</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               {searchTerm || filterStatus !== 'all' ? 'Нет результатов' : 'Нет домов'}
-            &lt;/h3&gt;
-            &lt;p className="text-gray-600"&gt;
+            </h3>
+            <p className="text-gray-600">
               {searchTerm || filterStatus !== 'all' 
                 ? 'Попробуйте изменить фильтры или поисковый запрос'
                 : 'Дома появятся после загрузки из Bitrix24'
               }
-            &lt;/p&gt;
-          &lt;/div&gt;
-        &lt;/Card&gt;
+            </p>
+          </div>
+        </Card>
       )}
-    &lt;/div&gt;
+    </div>
   );
 };
 
