@@ -229,26 +229,49 @@ async def init_database():
         return False
 
 # Security helper functions (УЛУЧШЕНИЕ 3)
-async def verify_api_key(authorization: str = None) -> bool:
-    """Verify API key from Authorization header"""
+from fastapi import Header
+
+async def verify_api_key(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+) -> bool:
+    """Verify API key from Authorization header or X-API-Key header"""
     if not REQUIRE_AUTH_FOR_PUBLIC_API:
         return True  # Authentication disabled
     
+    # Check Bearer token
     if authorization and authorization.startswith("Bearer "):
         token = authorization.split(" ")[1]
         if token == API_SECRET_KEY:
             return True
     
+    # Check X-API-Key header
+    if x_api_key and x_api_key == API_SECRET_KEY:
+        return True
+    
     logger.warning("❌ Invalid API key provided")
     raise HTTPException(
         status_code=401,
-        detail="Invalid API key. Provide valid Bearer token."
+        detail="Invalid API key. Provide valid Bearer token or X-API-Key header."
     )
 
-# Security dependency
-async def require_auth(authorization: str = None) -> bool:
-    """FastAPI dependency for authentication"""
-    return await verify_api_key(authorization)
+# Security dependencies
+async def require_auth(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+) -> bool:
+    """FastAPI dependency for required authentication"""
+    return await verify_api_key(authorization, x_api_key)
+
+async def optional_auth(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+) -> bool:
+    """FastAPI dependency for optional authentication"""
+    try:
+        return await verify_api_key(authorization, x_api_key)
+    except HTTPException:
+        return False  # Не требуем аутентификацию, просто возвращаем False
 
 # Bitrix24 Integration (unchanged - working)
 class BitrixIntegration:
