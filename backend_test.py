@@ -188,7 +188,7 @@ class VasDomAPITester:
             return False
 
     def test_dashboard_stats(self):
-        """Test dashboard statistics endpoint - должен показывать 491 дом"""
+        """Test dashboard statistics endpoint - должен показывать ТОЛЬКО CRM данные (348 домов), НЕ CSV fallback"""
         try:
             response = requests.get(f"{self.api_url}/dashboard", timeout=15)
             success = response.status_code == 200
@@ -205,23 +205,30 @@ class VasDomAPITester:
                     success = all(stat in stats for stat in required_stats)
                     
                     houses_count = stats.get('houses', 0)
+                    data_source = data.get('data_source', 'Unknown')
                     print(f"   📊 Houses: {houses_count}, Employees: {stats.get('employees', 0)}")
-                    print(f"   📊 Data source: {data.get('data_source', 'Unknown')}")
+                    print(f"   📊 Data source: {data_source}")
                     
-                    # КРИТИЧЕСКИЙ ТЕСТ: должно быть 491 дом, не 348
-                    if houses_count == 491:
-                        print(f"   ✅ CORRECT: Shows 491 houses as expected from CSV data")
-                    elif houses_count == 348:
-                        print(f"   ❌ WRONG: Shows old 348 houses instead of updated 491")
+                    # КРИТИЧЕСКИЙ ТЕСТ: должно быть 348 домов из CRM, НЕ 491 из CSV fallback
+                    if houses_count == 348:
+                        print(f"   ✅ CORRECT: Shows 348 houses from CRM Bitrix24 (no CSV fallback)")
+                        # Проверяем что источник данных указывает на CRM
+                        if "CRM" in data_source or "Bitrix24" in data_source:
+                            print(f"   ✅ Data source correctly indicates CRM: {data_source}")
+                        else:
+                            print(f"   ⚠️ Data source unclear: {data_source}")
+                    elif houses_count == 491:
+                        print(f"   ❌ WRONG: Shows 491 houses - using CSV fallback instead of CRM-only data")
                         success = False
                     else:
-                        print(f"   ⚠️ UNEXPECTED: Shows {houses_count} houses (expected 491)")
+                        print(f"   ⚠️ UNEXPECTED: Shows {houses_count} houses (expected 348 from CRM)")
+                        success = False
                 
-            self.log_test("Dashboard Stats (491 Houses Check)", success, 
+            self.log_test("Dashboard CRM-Only Data (348 Houses)", success, 
                          f"Status: {response.status_code}, Houses: {data.get('stats', {}).get('houses', 'N/A')}")
             return success
         except Exception as e:
-            self.log_test("Dashboard Stats (491 Houses Check)", False, str(e))
+            self.log_test("Dashboard CRM-Only Data (348 Houses)", False, str(e))
             return False
 
     def test_bitrix24_connection(self):
