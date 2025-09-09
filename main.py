@@ -36,12 +36,15 @@ except ImportError as e:
                 "error": str(fallback_error)
             }
 
+# Для Render - приложение должно быть доступно как app
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.getenv("PORT", 8001))
+    print(f"🚀 Запуск на порту {port} для Render")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=int(os.getenv("PORT", 8001)),
-        reload=False,  # В production отключаем reload
+        port=port,
+        reload=False,
         log_level="info"
     )
