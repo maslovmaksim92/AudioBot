@@ -8,19 +8,19 @@ const Layout = ({ children }) => {
   const { isMenuCollapsed } = state;
 
   return (
-    &lt;div className="min-h-screen bg-gray-50"&gt;
-      &lt;Sidebar /&gt;
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar />
       
-      &lt;div className={`transition-all duration-300 ${
+      <div className={`transition-all duration-300 ${
         isMenuCollapsed ? 'ml-16' : 'ml-64'
-      }`}&gt;
-        &lt;NotificationBar /&gt;
+      }`}>
+        <NotificationBar />
         
-        &lt;main className="min-h-screen"&gt;
+        <main className="min-h-screen">
           {children}
-        &lt;/main&gt;
-      &lt;/div&gt;
-    &lt;/div&gt;
+        </main>
+      </div>
+    </div>
   );
 };
 
