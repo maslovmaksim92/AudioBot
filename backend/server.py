@@ -648,7 +648,7 @@ async def dashboard_page():
                     <h3>🤖 AI GPT-4 mini</h3>
                     <div class="status">
                         <div class="status-dot"></div>
-                        <span>Emergent LLM активен</span>
+                        <span>Emergent LLM {'✅ активен' if EMERGENT_AVAILABLE else '⚠️ fallback mode'}</span>
                     </div>
                     <div class="status">
                         <div class="status-dot"></div>
