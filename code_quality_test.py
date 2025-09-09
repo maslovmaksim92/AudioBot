@@ -36,9 +36,9 @@ class VasDomCodeQualityTester:
             # Проверяем что CORS headers присутствуют в ответах
             response = requests.options(f"{self.api_url}/", timeout=10)
             success = response.status_code in [200, 204]
+            cors_headers = response.headers.get('Access-Control-Allow-Origin', '')
             
             if success:
-                cors_headers = response.headers.get('Access-Control-Allow-Origin', '')
                 print(f"   🔒 CORS Origin header: {cors_headers}")
                 
                 # Проверяем что не используется wildcard '*'
@@ -49,6 +49,8 @@ class VasDomCodeQualityTester:
                     print("   ✅ CORS configured with specific origins (not wildcard)")
                 else:
                     print("   ⚠️ No CORS headers found")
+            else:
+                print(f"   ⚠️ OPTIONS request failed: {response.status_code}")
                     
             self.log_test("CORS Origins Configuration", success, 
                          f"Status: {response.status_code}, CORS: {cors_headers}")
