@@ -9,6 +9,7 @@ security = HTTPBearer(auto_error=False)
 
 async def verify_api_key(
     authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> bool:
     """Verify API key from Authorization header"""
@@ -21,12 +22,11 @@ async def verify_api_key(
             return True
     
     # Check X-API-Key header
-    if authorization and authorization == f"Bearer {API_SECRET_KEY}":
+    if x_api_key and x_api_key == API_SECRET_KEY:
         return True
     
-    # Check direct API key in custom header
-    api_key = Header(None, alias="X-API-Key")
-    if api_key == API_SECRET_KEY:
+    # Check Authorization header with Bearer format
+    if authorization and authorization == f"Bearer {API_SECRET_KEY}":
         return True
     
     logger.warning("❌ Invalid API key provided")
