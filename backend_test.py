@@ -293,8 +293,8 @@ def main():
     print("VasDom AudioBot Backend API Tester")
     print("Testing self-learning module implementation")
     
-    # Use the public URL from frontend/.env
-    tester = VasDomAudioBotTester("https://talk2vasdom.preview.emergentagent.com")
+    # Use the public URL from the review request
+    tester = VasDomAudioBotTester("https://audiobot-qci2.onrender.com")
     
     try:
         return tester.run_comprehensive_test()
