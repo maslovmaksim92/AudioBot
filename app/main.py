@@ -8,19 +8,25 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent / 'backend'
 sys.path.insert(0, str(backend_path))
 
-# Import the FastAPI app
+# Import the FastAPI app from modular structure
 try:
-    from server import app
-    print("✅ App imported successfully from backend/server.py")
+    from app.main import app
+    print("✅ App imported successfully from backend/app/main.py")
 except ImportError as e:
-    print(f"❌ Import error: {e}")
-    # Fallback - create a simple app
-    from fastapi import FastAPI
-    app = FastAPI()
-    
-    @app.get("/")
-    async def root():
-        return {"message": "VasDom AudioBot - Import Error Fallback"}
+    print(f"❌ Import error from modular app: {e}")
+    # Try old server.py import as fallback
+    try:
+        from server import app
+        print("✅ App imported from backup server.py")
+    except ImportError as e2:
+        print(f"❌ Backup import also failed: {e2}")
+        # Last resort fallback - create a simple app
+        from fastapi import FastAPI
+        app = FastAPI()
+        
+        @app.get("/")
+        async def root():
+            return {"message": "VasDom AudioBot - Import Error Fallback"}
 
 if __name__ == "__main__":
     import uvicorn
