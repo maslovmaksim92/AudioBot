@@ -12,7 +12,227 @@ class BitrixService:
         # Кэш для пользователей и компаний чтобы избежать повторных API запросов
         self._users_cache = {}
         self._companies_cache = {}
-        logger.info(f"🔗 Bitrix24 service initialized")
+        # Кэш для домов с обогащенными данными
+        self._enriched_deals_cache = {}
+        self._cache_timestamp = None
+        logger.info(f"🔗 Bitrix24 service initialized with caching")
+        
+    async def get_deals_optimized(self, limit: Optional[int] = None, use_cache: bool = True) -> List[Dict[str, Any]]:
+        """Оптимизированная загрузка домов с кэшированием и fallback логикой"""
+        import time
+        from datetime import datetime, timedelta
+        
+        # Проверяем кэш (время жизни 5 минут)
+        if use_cache and self._enriched_deals_cache and self._cache_timestamp:
+            cache_age = datetime.utcnow() - self._cache_timestamp
+            if cache_age < timedelta(minutes=5):
+                logger.info(f"🚀 Using cached deals: {len(self._enriched_deals_cache)} houses")
+                deals = list(self._enriched_deals_cache.values())
+                return deals[:limit] if limit else deals
+        
+        try:
+            logger.info(f"🏠 Loading houses from Bitrix24 with optimization...")
+            
+            # Загружаем базовые данные домов
+            base_deals = await self._load_base_deals_optimized(limit or 50)
+            
+            if not base_deals:
+                logger.warning("⚠️ No base deals loaded, using fallback")
+                return self._get_mock_data(limit or 50)
+            
+            # Собираем уникальные ID для batch загрузки
+            unique_user_ids = set()
+            unique_company_ids = set()
+            
+            for deal in base_deals:
+                user_id = deal.get('ASSIGNED_BY_ID')
+                company_id = deal.get('COMPANY_ID')
+                
+                if user_id and str(user_id) != '0':
+                    unique_user_ids.add(str(user_id))
+                if company_id and str(company_id) != '0':
+                    unique_company_ids.add(str(company_id))
+            
+            logger.info(f"📊 Batch loading: {len(unique_user_ids)} users, {len(unique_company_ids)} companies")
+            
+            # Batch загрузка пользователей и компаний
+            await self._batch_load_users(list(unique_user_ids))
+            await self._batch_load_companies(list(unique_company_ids))
+            
+            # Обогащаем каждую сделку
+            enriched_deals = []
+            for deal in base_deals:
+                enriched_deal = await self._enrich_deal_optimized(deal)
+                enriched_deals.append(enriched_deal)
+            
+            # Обновляем кэш
+            self._enriched_deals_cache = {deal['ID']: deal for deal in enriched_deals}
+            self._cache_timestamp = datetime.utcnow()
+            
+            logger.info(f"✅ Optimized deals loaded: {len(enriched_deals)} houses with full data")
+            return enriched_deals
+            
+        except Exception as e:
+            logger.error(f"❌ Optimized deals error: {e}")
+            return self._get_mock_data(limit or 50)
+    
+    async def _load_base_deals_optimized(self, limit: int) -> List[Dict[str, Any]]:
+        """Загрузка базовых данных домов с пагинацией"""
+        deals = []
+        start = 0
+        batch_size = 50
+        
+        while len(deals) < limit and start < 500:  # Максимум 500 домов
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'TITLE', 
+                'select[2]': 'STAGE_ID',
+                'select[3]': 'DATE_CREATE',
+                'select[4]': 'OPPORTUNITY',
+                'select[5]': 'CATEGORY_ID',
+                'select[6]': 'ASSIGNED_BY_ID',
+                'select[7]': 'COMPANY_ID',
+                # Основные данные дома
+                'select[8]': 'UF_CRM_1669561599956',  # Адрес
+                'select[9]': 'UF_CRM_1669704529022',  # Квартиры
+                'select[10]': 'UF_CRM_1669705507390', # Подъезды
+                'select[11]': 'UF_CRM_1669704631166', # Этажи
+                'select[12]': 'UF_CRM_1669706387893', # Тариф
+                'filter[CATEGORY_ID]': '34',
+                'order[DATE_CREATE]': 'DESC',
+                'start': str(start)
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=15)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    batch_deals = data.get('result', [])
+                    
+                    if not batch_deals:
+                        break
+                    
+                    # Фильтруем дома
+                    house_deals = self._filter_house_deals(batch_deals)
+                    deals.extend(house_deals)
+                    
+                    if len(batch_deals) < batch_size:
+                        break
+                        
+                    start += batch_size
+                    await asyncio.sleep(0.1)  # Пауза между запросами
+                else:
+                    logger.error(f"❌ HTTP error: {response.status_code}")
+                    break
+        
+        return deals[:limit]
+    
+    def _filter_house_deals(self, deals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Быстрая фильтрация домов"""
+        house_deals = []
+        for deal in deals:
+            title = deal.get('TITLE', '').lower()
+            
+            # Простая проверка на дом
+            if (any(word in title for word in ['ул.', 'улица', 'проспект', 'переулок', 'шоссе']) or
+                any(char.isdigit() for char in title) and len(title) > 5):
+                
+                if not any(exclude in title for exclude in ['задача', 'звонок', 'встреча', 'email', '@']):
+                    house_deals.append(deal)
+        
+        return house_deals
+    
+    async def _batch_load_users(self, user_ids: List[str]):
+        """Batch загрузка пользователей"""
+        for user_id in user_ids:
+            if user_id not in self._users_cache:
+                try:
+                    params = {'ID': user_id}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{self.webhook_url}user.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=5)
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            
+                            if result and isinstance(result, list) and len(result) > 0:
+                                self._users_cache[user_id] = result[0]
+                            else:
+                                self._users_cache[user_id] = None
+                        else:
+                            self._users_cache[user_id] = None
+                            
+                    await asyncio.sleep(0.05)  # Минимальная пауза
+                except Exception as e:
+                    logger.warning(f"⚠️ User {user_id} error: {e}")
+                    self._users_cache[user_id] = None
+    
+    async def _batch_load_companies(self, company_ids: List[str]):
+        """Batch загрузка компаний"""
+        for company_id in company_ids:
+            if company_id not in self._companies_cache:
+                try:
+                    params = {'id': company_id}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{self.webhook_url}crm.company.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=5)
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            
+                            if result:
+                                self._companies_cache[company_id] = result
+                            else:
+                                self._companies_cache[company_id] = None
+                        else:
+                            self._companies_cache[company_id] = None
+                            
+                    await asyncio.sleep(0.05)  # Минимальная пауза
+                except Exception as e:
+                    logger.warning(f"⚠️ Company {company_id} error: {e}")
+                    self._companies_cache[company_id] = None
+    
+    async def _enrich_deal_optimized(self, deal: Dict[str, Any]) -> Dict[str, Any]:
+        """Быстрое обогащение сделки с fallback логикой"""
+        
+        # Получаем данные из кэша
+        user_id = deal.get('ASSIGNED_BY_ID')
+        company_id = deal.get('COMPANY_ID')
+        
+        if user_id and str(user_id) in self._users_cache:
+            user_info = self._users_cache[str(user_id)]
+            if user_info:
+                deal['ASSIGNED_BY_NAME'] = user_info.get('NAME', '')
+                deal['ASSIGNED_BY_LAST_NAME'] = user_info.get('LAST_NAME', '')
+                deal['ASSIGNED_BY_SECOND_NAME'] = user_info.get('SECOND_NAME', '')
+        
+        if company_id and str(company_id) in self._companies_cache:
+            company_info = self._companies_cache[str(company_id)]
+            if company_info:
+                deal['COMPANY_TITLE'] = company_info.get('TITLE', '')
+        
+        # Добавляем базовые данные
+        deal = self._enrich_house_data(deal)
+        
+        return deal
+    
+    def clear_cache(self):
+        """Очистка кэша для принудительного обновления"""
+        self._users_cache.clear()
+        self._companies_cache.clear()
+        self._enriched_deals_cache.clear()
+        self._cache_timestamp = None
+        logger.info("🧹 Cache cleared")
         
     async def get_deals(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Получить ВСЕ дома из Bitrix24 CRM"""
