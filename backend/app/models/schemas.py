@@ -41,6 +41,13 @@ class DashboardStats(BaseModel):
     won_houses: Optional[int] = 0
     problem_houses: Optional[int] = 0
 
+class CleaningSchedule(BaseModel):
+    cleaning_date_1: Optional[List[str]] = None  # Даты первого типа уборки
+    cleaning_type_1: Optional[str] = None        # Тип уборки 1
+    cleaning_date_2: Optional[List[str]] = None  # Даты второго типа уборки  
+    cleaning_type_2: Optional[str] = None        # Тип уборки 2
+    frequency: Optional[str] = None              # Периодичность (например "2 // 140")
+
 class House(BaseModel):
     address: str
     deal_id: str
@@ -51,3 +58,15 @@ class House(BaseModel):
     created_date: Optional[str] = None
     opportunity: Optional[str] = None
     last_sync: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    
+    # Расширенная информация о доме
+    apartments_count: Optional[int] = None       # Количество квартир
+    floors_count: Optional[int] = None           # Количество этажей  
+    entrances_count: Optional[int] = None        # Количество подъездов
+    tariff: Optional[str] = None                 # Тариф
+    
+    # График уборки на сентябрь 2025
+    september_schedule: Optional[CleaningSchedule] = None
+    
+    # Дополнительные поля для фильтрации
+    cleaning_days: Optional[List[str]] = None    # Дни недели уборки для фильтра
