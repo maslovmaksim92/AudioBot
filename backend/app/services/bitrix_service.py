@@ -28,8 +28,8 @@ class BitrixService:
                     'select[3]': 'DATE_CREATE',
                     'select[4]': 'OPPORTUNITY',
                     'select[5]': 'CATEGORY_ID',
-                    'filter[CATEGORY_ID]': '80',  # Пробуем загрузить из категории 80
-                    # Убираем фильтр по статусу - загружаем ВСЕ сделки из воронки
+                    # Убираем фильтр по категории - загружаем ВСЕ сделки
+                    # Будем фильтровать по названию уже после загрузки
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
                 }
