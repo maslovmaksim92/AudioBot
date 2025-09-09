@@ -508,15 +508,9 @@ async def get_dashboard_stats():
             total_apartments += apartments
             total_floors += floors
         
-        # ВСЕГДА используем ваши реальные цифры из CSV как основные
-        total_houses = max(total_houses, 491)  # Минимум 491 из CSV
-        if total_houses == 491:
-            total_entrances = 1473
-            total_apartments = 25892
-            total_floors = 2455
-            won_houses = 350
-            problem_houses = 50
-            logger.info(f"✅ Using CSV data as primary source: 491 houses")
+        # ИСПОЛЬЗУЕМ ТОЛЬКО реальные данные из CRM Bitrix24 
+        # БЕЗ каких-либо fallback к CSV - только синхронизация с CRM
+        logger.info(f"✅ Using ONLY CRM data: {total_houses} houses from Bitrix24")
         
         meetings_count = 0
         ai_tasks_count = 0
@@ -530,22 +524,22 @@ async def get_dashboard_stats():
         
         stats = {
             "employees": 82,
-            "houses": total_houses,
-            "entrances": total_entrances,
-            "apartments": total_apartments,
-            "floors": total_floors,
+            "houses": total_houses,        # ТОЛЬКО из CRM Bitrix24
+            "entrances": total_entrances,  # Подсчитано из CRM
+            "apartments": total_apartments, # Подсчитано из CRM
+            "floors": total_floors,        # Подсчитано из CRM
             "meetings": meetings_count,
             "ai_tasks": ai_tasks_count,
             "won_houses": won_houses,
             "problem_houses": problem_houses
         }
         
-        logger.info(f"✅ Dashboard stats: {stats}")
+        logger.info(f"✅ CRM-ONLY Dashboard stats: {stats}")
         
         return {
             "status": "success",
             "stats": stats,
-            "data_source": "🔥 Bitrix24 CRM + CSV fallback",
+            "data_source": "🔥 ТОЛЬКО Bitrix24 CRM (без CSV fallback)",
             "crm_sync_time": datetime.utcnow().isoformat(),
             "total_crm_deals": total_houses
         }
