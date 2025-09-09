@@ -545,7 +545,7 @@ class AdvancedAI:
     async def _self_learning_analysis(self):
         """102% Самообучение - анализ логов и улучшение"""
         try:
-            if not database.is_connected:
+            if not database:
                 return
                 
             # Получаем последние 50 взаимодействий для анализа
