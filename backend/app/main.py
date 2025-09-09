@@ -9,7 +9,7 @@ import logging
 import os
 
 # Импорты для самообучения
-from app.config.database import database
+from app.config.database import database, DATABASE_AVAILABLE
 from app.config.settings import get_settings
 from app.routers import voice
 
