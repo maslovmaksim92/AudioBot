@@ -602,7 +602,7 @@ ai = AdvancedAI()
 async def health_check():
     """Health check для Render"""
     try:
-        db_status = "connected" if database.is_connected else "disconnected"
+        db_status = "connected" if database else "disabled"
         ai_status = "active" if EMERGENT_AVAILABLE else "fallback"
         
         return {
