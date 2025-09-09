@@ -34,8 +34,12 @@ Base = declarative_base()
 
 # Dependency
 async def get_database():
+    if database is None:
+        raise RuntimeError("PostgreSQL database not available")
     return database
 
 async def get_db():
+    if SessionLocal is None:
+        raise RuntimeError("PostgreSQL database not available")
     async with SessionLocal() as session:
         yield session
