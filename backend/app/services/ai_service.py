@@ -219,6 +219,10 @@ class AIService:
         Returns:
             ID созданной записи
         """
+        if not DATABASE_AVAILABLE or SessionLocal is None:
+            logger.warning("PostgreSQL недоступен - взаимодействие не сохранено")
+            return 0
+            
         try:
             async with SessionLocal() as db:
                 log_entry = VoiceLogDB(
