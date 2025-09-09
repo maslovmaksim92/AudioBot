@@ -10,11 +10,6 @@ import Meetings from './components/Meetings/Meetings';
 import Works from './components/Works/Works';
 import Employees from './components/Employees/Employees';
 
-// Lazy load less frequently used components
-const AITasks = React.lazy(() => import('./components/AITasks/AITasks'));
-const Training = React.lazy(() => import('./components/Training/Training'));
-const Logs = React.lazy(() => import('./components/Logs/Logs'));
-
 import './App.css';
 
 // Console logging for debugging
