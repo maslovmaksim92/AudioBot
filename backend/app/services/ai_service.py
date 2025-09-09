@@ -16,6 +16,7 @@ except ImportError:
     EMERGENT_AVAILABLE = False
     logging.warning("emergentintegrations не установлен")
 
+from sqlalchemy import func
 from app.config.database import SessionLocal
 from app.models.database import VoiceLogDB
 from app.models.schemas import ChatRequest, ChatResponse, SimilarResponse
