@@ -167,15 +167,19 @@ logger.info(f"✅ CORS configured for origins: {cors_origins}")
 async def init_database():
     """Initialize PostgreSQL database"""
     try:
-        await database.connect()
-        logger.info("✅ PostgreSQL connected successfully")
-        
-        # Create tables
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Database tables created")
-        
-        return True
+        if database:
+            await database.connect()
+            logger.info("✅ PostgreSQL connected successfully")
+            
+            # Create tables
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("✅ Database tables created")
+            
+            return True
+        else:
+            logger.info("⚠️ No database configured - working in API-only mode")
+            return False
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
         return False
