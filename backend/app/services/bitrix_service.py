@@ -17,79 +17,19 @@ class BitrixService:
             logger.info(f"🏠 Loading houses from Bitrix24 CRM...")
             
             all_deals = []
-            start = 0
-            batch_size = 50
             
-            while True:
-                params = {
-                    'select[0]': 'ID',
-                    'select[1]': 'TITLE', 
-                    'select[2]': 'STAGE_ID',
-                    'select[3]': 'DATE_CREATE',
-                    'select[4]': 'OPPORTUNITY',
-                    'select[5]': 'CATEGORY_ID',
-                    # Убираем фильтр по категории - загружаем ВСЕ сделки
-                    # Будем фильтровать по названию уже после загрузки
-                    'order[DATE_CREATE]': 'DESC',
-                    'start': str(start)
-                }
-                
-                query_string = urllib.parse.urlencode(params)
-                url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
-                
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(url, timeout=30)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        
-                        if data.get('result') and len(data['result']) > 0:
-                            batch_deals = data['result']
-                            all_deals.extend(batch_deals)
-                            
-                            logger.info(f"📦 Loaded batch {start//batch_size + 1}: {len(batch_deals)} houses, total: {len(all_deals)}")
-                            
-                            if len(batch_deals) < batch_size:
-                                logger.info(f"✅ All houses loaded: {len(all_deals)} from Bitrix24")
-                                break
-                                
-                            start += batch_size
-                            
-                            if len(all_deals) >= 10000:
-                                logger.info(f"🛑 Loaded {len(all_deals)} houses - limit reached (10,000)")
-                                break
-                                
-                            await asyncio.sleep(0.2)
-                        else:
-                            break
-                    else:
-                        logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
-                        break
+            # Загружаем из категорий 80 и 34 (где больше всего домов)
+            categories = ['80', '34']
+            
+            for category_id in categories:
+                logger.info(f"📦 Loading from category {category_id}...")
+                category_deals = await self._load_deals_from_category(category_id)
+                all_deals.extend(category_deals)
+                logger.info(f"📦 Category {category_id}: {len(category_deals)} deals loaded")
             
             if all_deals:
-                # Фильтруем только дома для уборки по названию
-                house_deals = []
-                for deal in all_deals:
-                    title = deal.get('TITLE', '').lower()
-                    # Исключаем задачи, лиды и другие типы записей
-                    # Включаем только записи, которые похожи на адреса домов
-                    if (any(street_name in title for street_name in [
-                        'ул.', 'улица', 'проспект', 'пр.', 'переулок', 'пер.', 
-                        'шоссе', 'площадь', 'пл.', 'бульвар', 'б-р',
-                        'пролетарская', 'московская', 'ленина', 'жукова', 'никитина',
-                        'чижевского', 'энгельса', 'баррикад', 'кондрово', 'жилетово'
-                    ]) or 
-                    # Или содержит номер дома
-                    any(char.isdigit() for char in title) and len(title) > 5):
-                        # Исключаем явно не дома
-                        if not any(exclude in title for exclude in [
-                            'задача', 'звонок', 'встреча', 'email', '@', 'тел.',
-                            'договор №', 'счет №', 'заявка №', 'лид №'
-                        ]):
-                            house_deals.append(deal)
-                
-                logger.info(f"🏠 Filtered houses: {len(house_deals)} from {len(all_deals)} total deals")
-                return house_deals
+                logger.info(f"✅ Total CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
+                return all_deals
             else:
                 logger.warning("⚠️ No deals from Bitrix24, using fallback")
                 return self._get_mock_data(limit or 50)
@@ -97,6 +37,80 @@ class BitrixService:
         except Exception as e:
             logger.error(f"❌ Bitrix24 load error: {e}")
             return self._get_mock_data(limit or 50)
+    
+    async def _load_deals_from_category(self, category_id: str) -> List[Dict[str, Any]]:
+        """Загрузить сделки из конкретной категории"""
+        deals = []
+        start = 0
+        batch_size = 50
+        
+        while True:
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'TITLE', 
+                'select[2]': 'STAGE_ID',
+                'select[3]': 'DATE_CREATE',
+                'select[4]': 'OPPORTUNITY',
+                'select[5]': 'CATEGORY_ID',
+                'filter[CATEGORY_ID]': category_id,
+                'order[DATE_CREATE]': 'DESC',
+                'start': str(start)
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get('result') and len(data['result']) > 0:
+                        batch_deals = data['result']
+                        
+                        # Фильтруем только дома для уборки по названию
+                        house_deals = []
+                        for deal in batch_deals:
+                            title = deal.get('TITLE', '').lower()
+                            # Исключаем задачи, лиды и другие типы записей
+                            # Включаем только записи, которые похожи на адреса домов
+                            if (any(street_name in title for street_name in [
+                                'ул.', 'улица', 'проспект', 'пр.', 'переулок', 'пер.', 
+                                'шоссе', 'площадь', 'пл.', 'бульвар', 'б-р',
+                                'пролетарская', 'московская', 'ленина', 'жукова', 'никитина',
+                                'чижевского', 'энгельса', 'баррикад', 'кондрово', 'жилетово'
+                            ]) or 
+                            # Или содержит номер дома
+                            any(char.isdigit() for char in title) and len(title) > 5):
+                                # Исключаем явно не дома
+                                if not any(exclude in title for exclude in [
+                                    'задача', 'звонок', 'встреча', 'email', '@', 'тел.',
+                                    'договор №', 'счет №', 'заявка №', 'лид №'
+                                ]):
+                                    house_deals.append(deal)
+                        
+                        deals.extend(house_deals)
+                        
+                        logger.info(f"📦 Loaded batch {start//batch_size + 1}: {len(batch_deals)} total, {len(house_deals)} houses")
+                        
+                        if len(batch_deals) < batch_size:
+                            break
+                            
+                        start += batch_size
+                        
+                        if len(deals) >= 5000:
+                            logger.info(f"🛑 Category {category_id}: {len(deals)} houses loaded - limit reached")
+                            break
+                            
+                        await asyncio.sleep(0.2)
+                    else:
+                        break
+                else:
+                    logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
+                    break
+        
+        return deals
     
     def _get_mock_data(self, limit: int) -> List[Dict[str, Any]]:
         """Реальные данные из CRM для fallback"""
