@@ -13,11 +13,14 @@ router = APIRouter(prefix="/api", tags=["cleaning"])
 async def get_cleaning_houses(
     limit: Optional[int] = None,
     brigade: Optional[str] = None,
-    cleaning_day: Optional[str] = None
+    cleaning_week: Optional[int] = None,
+    month: Optional[str] = None,
+    management_company: Optional[str] = None,
+    search: Optional[str] = None
 ):
-    """Все дома из Bitrix24 с фильтрацией по бригадам и дням уборки"""
+    """Все дома из Bitrix24 с расширенными фильтрами"""
     try:
-        logger.info(f"🏠 Loading houses from CRM with filters: brigade={brigade}, cleaning_day={cleaning_day}")
+        logger.info(f"🏠 Loading houses with filters: brigade={brigade}, week={cleaning_week}, month={month}, company={management_company}")
         
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         deals = await bitrix.get_deals(limit=limit)
@@ -32,26 +35,63 @@ async def get_cleaning_houses(
             brigade_info = bitrix.analyze_house_brigade(address)
             status_text, status_color = bitrix.get_status_info(stage_id)
             
-            # Извлекаем расширенные данные из Bitrix24
-            apartments_count = _parse_int(deal.get('UF_CRM_APARTMENTS'))
-            floors_count = _parse_int(deal.get('UF_CRM_FLOORS'))
-            entrances_count = _parse_int(deal.get('UF_CRM_ENTRANCES'))
-            tariff = deal.get('UF_CRM_TARIFF', '')
+            # Извлекаем данные из Bitrix24 с правильными полями
+            apartments_count = _parse_int(deal.get('UF_CRM_1669704529022'))
+            entrances_count = _parse_int(deal.get('UF_CRM_1669705507390'))
+            floors_count = _parse_int(deal.get('UF_CRM_1669704631166'))
+            tariff = deal.get('UF_CRM_1669706387893', '')
+            assigned_by_id = deal.get('ASSIGNED_BY_ID', '')
+            company_id = deal.get('COMPANY_ID', '')
             
-            # Парсим график уборки
-            cleaning_date_1_str = deal.get('UF_CRM_CLEANING_DATE_1', '')
-            cleaning_type_1 = deal.get('UF_CRM_CLEANING_TYPE_1', '')
-            cleaning_date_2_str = deal.get('UF_CRM_CLEANING_DATE_2', '')
-            cleaning_type_2 = deal.get('UF_CRM_CLEANING_TYPE_2', '')
+            # Парсим графики уборки для всех месяцев
+            september_schedule = _parse_monthly_schedule(deal, 'september', {
+                'date_1': 'UF_CRM_1741592774017',
+                'type_1': 'UF_CRM_1741592855565', 
+                'date_2': 'UF_CRM_1741592892232',
+                'type_2': 'UF_CRM_1741592945060'
+            })
             
-            # Преобразуем даты в список
-            cleaning_date_1 = _parse_dates(cleaning_date_1_str)
-            cleaning_date_2 = _parse_dates(cleaning_date_2_str)
+            october_schedule = _parse_monthly_schedule(deal, 'october', {
+                'date_1': 'UF_CRM_1741593004888',
+                'type_1': 'UF_CRM_1741593047994',
+                'date_2': 'UF_CRM_1741593067418', 
+                'type_2': 'UF_CRM_1741593115407'
+            })
             
-            # Определяем дни недели для фильтрации
-            cleaning_days = _extract_weekdays(cleaning_date_1 + cleaning_date_2)
+            november_schedule = _parse_monthly_schedule(deal, 'november', {
+                'date_1': 'UF_CRM_1741593156926',
+                'type_1': 'UF_CRM_1741593210242',
+                'date_2': 'UF_CRM_1741593231558',
+                'type_2': 'UF_CRM_1741593285121'
+            })
             
-            from ..models.schemas import House, CleaningSchedule
+            december_schedule = _parse_monthly_schedule(deal, 'december', {
+                'date_1': 'UF_CRM_1741593340713',
+                'type_1': 'UF_CRM_1741593387667',
+                'date_2': 'UF_CRM_1741593408621',
+                'type_2': 'UF_CRM_1741593452062'
+            })
+            
+            # Определяем недели и дни уборки для всех месяцев
+            all_dates = []
+            for schedule in [september_schedule, october_schedule, november_schedule, december_schedule]:
+                if schedule:
+                    all_dates.extend(schedule.get('cleaning_date_1', []))
+                    all_dates.extend(schedule.get('cleaning_date_2', []))
+            
+            cleaning_weeks = _extract_weeks(all_dates)
+            cleaning_days = _extract_weekdays(all_dates)
+            
+            # Определяем управляющую компанию (пока моковые данные)
+            management_company_name = _get_management_company(address)
+            
+            from ..models.schemas import House, MonthlySchedule
+            
+            # Создаем расписания для каждого месяца
+            september_obj = MonthlySchedule(**september_schedule) if september_schedule else None
+            october_obj = MonthlySchedule(**october_schedule) if october_schedule else None
+            november_obj = MonthlySchedule(**november_schedule) if november_schedule else None
+            december_obj = MonthlySchedule(**december_schedule) if december_schedule else None
             
             house_data = House(
                 address=address,
@@ -64,29 +104,40 @@ async def get_cleaning_houses(
                 opportunity=deal.get('OPPORTUNITY'),
                 last_sync=datetime.utcnow().isoformat(),
                 
-                # Расширенные данные
+                # Основные данные
                 apartments_count=apartments_count,
                 floors_count=floors_count,
                 entrances_count=entrances_count,
                 tariff=tariff,
+                assigned_by_id=assigned_by_id,
+                company_id=company_id,
                 
-                # График уборки
-                september_schedule=CleaningSchedule(
-                    cleaning_date_1=cleaning_date_1,
-                    cleaning_type_1=cleaning_type_1,
-                    cleaning_date_2=cleaning_date_2,
-                    cleaning_type_2=cleaning_type_2,
-                    frequency=tariff
-                ),
+                # Графики по месяцам
+                september_schedule=september_obj,
+                october_schedule=october_obj,
+                november_schedule=november_obj,
+                december_schedule=december_obj,
                 
-                cleaning_days=cleaning_days
+                # Поля для фильтрации
+                cleaning_weeks=cleaning_weeks,
+                cleaning_days=cleaning_days,
+                management_company=management_company_name
             )
             
             # Применяем фильтры
             if brigade and brigade.lower() not in brigade_info.lower():
                 continue
                 
-            if cleaning_day and cleaning_day.lower() not in [day.lower() for day in cleaning_days]:
+            if cleaning_week and cleaning_week not in cleaning_weeks:
+                continue
+                
+            if month and not _has_schedule_for_month(house_data, month):
+                continue
+                
+            if management_company and management_company.lower() not in management_company_name.lower():
+                continue
+                
+            if search and search.lower() not in address.lower() and search.lower() not in deal_id.lower():
                 continue
             
             houses.append(house_data.dict())
@@ -99,15 +150,82 @@ async def get_cleaning_houses(
             "total": len(houses),
             "filters": {
                 "brigade": brigade,
-                "cleaning_day": cleaning_day
+                "cleaning_week": cleaning_week,
+                "month": month,
+                "management_company": management_company,
+                "search": search
             },
-            "source": "🔥 Bitrix24 CRM с расширенными данными",
+            "source": "🔥 Bitrix24 CRM с полными данными",
             "sync_timestamp": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Houses error: {e}")
         return {"status": "error", "message": str(e)}
+
+def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Optional[dict]:
+    """Парсинг графика уборки для конкретного месяца"""
+    cleaning_date_1_str = deal.get(field_mapping['date_1'], '')
+    cleaning_type_1 = deal.get(field_mapping['type_1'], '')
+    cleaning_date_2_str = deal.get(field_mapping['date_2'], '')
+    cleaning_type_2 = deal.get(field_mapping['type_2'], '')
+    
+    # Проверяем, есть ли данные
+    if not any([cleaning_date_1_str, cleaning_type_1, cleaning_date_2_str, cleaning_type_2]):
+        return None
+    
+    return {
+        'cleaning_date_1': _parse_dates(cleaning_date_1_str),
+        'cleaning_type_1': cleaning_type_1,
+        'cleaning_date_2': _parse_dates(cleaning_date_2_str),  
+        'cleaning_type_2': cleaning_type_2
+    }
+
+def _extract_weeks(dates: List[str]) -> List[int]:
+    """Извлечение номеров недель из дат"""
+    weeks = set()
+    for date_str in dates:
+        try:
+            day, month, year = date_str.split('.')
+            from datetime import date
+            date_obj = date(int(year), int(month), int(day))
+            # Определяем неделю месяца (1-5)
+            week_of_month = ((date_obj.day - 1) // 7) + 1
+            weeks.add(week_of_month)
+        except (ValueError, IndexError):
+            continue
+    return sorted(list(weeks))
+
+def _get_management_company(address: str) -> str:
+    """Определение управляющей компании по адресу"""
+    address_lower = address.lower()
+    
+    # Моковые данные управляющих компаний по районам
+    if any(street in address_lower for street in ['жилетово', 'спичечная', 'аллейная']):
+        return 'ООО "НОВЫЙ ДОМ - ЖИЛЕТОВО"'
+    elif any(street in address_lower for street in ['московская', 'пролетарская']):
+        return 'ООО "Жилкомсервис"'
+    elif any(street in address_lower for street in ['ленина', 'никитина']):
+        return 'ООО "КомфортДом"'
+    elif any(street in address_lower for street in ['энгельса', 'жукова']):
+        return 'ООО "Домоуправление"'
+    else:
+        return 'ООО "Стандарт-Сервис"'
+
+def _has_schedule_for_month(house: House, month: str) -> bool:
+    """Проверка наличия графика для указанного месяца"""
+    month_lower = month.lower()
+    
+    if month_lower == 'сентябрь' and house.september_schedule:
+        return True
+    elif month_lower == 'октябрь' and house.october_schedule:
+        return True
+    elif month_lower == 'ноябрь' and house.november_schedule:
+        return True
+    elif month_lower == 'декабрь' and house.december_schedule:
+        return True
+    
+    return False
 
 def _parse_int(value) -> Optional[int]:
     """Парсинг целого числа из строки"""
