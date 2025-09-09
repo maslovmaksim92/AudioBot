@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppContext } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
