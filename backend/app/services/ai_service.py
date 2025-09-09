@@ -1,7 +1,7 @@
 import uuid
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any, Tuple
 from ..config.database import database
 from ..config.settings import EMERGENT_LLM_KEY
 
@@ -20,10 +20,49 @@ class AIService:
     def __init__(self):
         self.emergent_key = EMERGENT_LLM_KEY
         self.emergent_available = EMERGENT_AVAILABLE
+        self._crm_cache = None
+        self._crm_cache_time = None
         if self.emergent_available and self.emergent_key:
             logger.info(f"🤖 AI Service initialized with Emergent LLM (GPT-4 mini)")
         else:
             logger.info(f"🤖 AI Service initialized with fallback mode")
+    
+    async def _fetch_crm_stats(self) -> Tuple[int, int, int, int]:
+        """Централизованное получение статистики CRM с кешированием"""
+        try:
+            # Простое кеширование на 5 минут
+            now = datetime.utcnow()
+            if (self._crm_cache and self._crm_cache_time and 
+                (now - self._crm_cache_time).seconds < 300):
+                return self._crm_cache
+            
+            from ..services.bitrix_service import BitrixService
+            from ..config.settings import BITRIX24_WEBHOOK_URL
+            
+            if not BITRIX24_WEBHOOK_URL:
+                logger.warning("⚠️ BITRIX24_WEBHOOK_URL not configured")
+                return 348, 1044, 26100, 1740  # Fallback значения
+            
+            bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+            houses_data = await bitrix.get_deals(limit=None)
+            houses_count = len(houses_data)
+            
+            # Подсчитываем статистику на основе реальных данных CRM
+            total_entrances = houses_count * 3  # Среднее количество подъездов
+            total_apartments = houses_count * 75  # Среднее количество квартир
+            total_floors = houses_count * 5  # Среднее количество этажей
+            
+            # Кешируем результат
+            self._crm_cache = (houses_count, total_entrances, total_apartments, total_floors)
+            self._crm_cache_time = now
+            
+            logger.info(f"✅ CRM stats fetched: {houses_count} houses")
+            return self._crm_cache
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get CRM data for AI: {e}")
+            # Fallback к базовым значениям
+            return 348, 1044, 26100, 1740
         
     async def process_message(self, text: str, context: str = "") -> str:
         """AI с GPT-4 mini через Emergent LLM или fallback"""
@@ -38,29 +77,10 @@ class AIService:
     
     async def _emergent_ai_response(self, text: str, context: str) -> str:
         """GPT-4 mini через Emergent LLM с актуальными данными из CRM"""
-        from ..services.bitrix_service import BitrixService
-        from ..config.settings import BITRIX24_WEBHOOK_URL
-        
         session_id = f"vasdom_{context}_{datetime.utcnow().strftime('%Y%m%d')}"
         
-        # Получаем актуальные данные из CRM Bitrix24
-        try:
-            bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
-            houses_data = await bitrix.get_deals(limit=None)
-            houses_count = len(houses_data)
-            
-            # Подсчитываем статистику на основе реальных данных CRM
-            total_entrances = houses_count * 3  # Среднее количество подъездов
-            total_apartments = houses_count * 75  # Среднее количество квартир
-            total_floors = houses_count * 5  # Среднее количество этажей
-            
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to get CRM data for AI: {e}")
-            # Fallback к базовым значениям
-            houses_count = 348
-            total_entrances = 1044
-            total_apartments = 26100
-            total_floors = 1740
+        # Получаем актуальные данные из CRM через централизованный метод
+        houses_count, total_entrances, total_apartments, total_floors = await self._fetch_crm_stats()
         
         system_message = f"""Ты VasDom AI - помощник клининговой компании в Калуге.
 
@@ -95,18 +115,10 @@ class AIService:
     
     async def _advanced_fallback_response(self, text: str, context: str) -> str:
         """Продвинутый fallback AI с актуальными данными из CRM"""
-        from ..services.bitrix_service import BitrixService
-        from ..config.settings import BITRIX24_WEBHOOK_URL
-        
         text_lower = text.lower()
         
-        # Получаем актуальные данные из CRM
-        try:
-            bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
-            houses_data = await bitrix.get_deals(limit=None)
-            houses_count = len(houses_data)
-        except Exception:
-            houses_count = 348  # Fallback к известному количеству из CRM
+        # Получаем актуальные данные из CRM через централизованный метод
+        houses_count, total_entrances, total_apartments, total_floors = await self._fetch_crm_stats()
         
         if any(word in text_lower for word in ['привет', 'hello', 'здравств']):
             response = f"""Привет! 👋 Я VasDom AI - помощник клининговой компании в Калуге! 
@@ -114,7 +126,7 @@ class AIService:
 📊 **Данные из CRM Bitrix24:**
 🏠 **{houses_count} домов** из CRM Bitrix24
 👥 **82 сотрудника** в 6 бригадах  
-📍 **{houses_count * 3} подъездов**, **{houses_count * 75} квартир**
+📍 **{total_entrances} подъездов**, **{total_apartments} квартир**
 
 Чем могу помочь? 🎯"""
                 
@@ -128,9 +140,9 @@ class AIService:
 • Северный район: Жукова, Хрустальная, Гвардейская
 
 📊 **Статистика из CRM:**
-🚪 Подъездов: ~{houses_count * 3}
-🏠 Квартир: ~{houses_count * 75}  
-📏 Этажей: ~{houses_count * 5}"""
+🚪 Подъездов: ~{total_entrances}
+🏠 Квартир: ~{total_apartments}  
+📏 Этажей: ~{total_floors}"""
                 
         elif any(word in text_lower for word in ['бригад', 'сотрудник', 'команд']):
             response = """👥 **VasDom: 6 бригад, 82 сотрудника**
@@ -158,16 +170,7 @@ class AIService:
     
     async def _simple_fallback_response(self, text: str) -> str:
         """Простейший fallback с актуальными данными из CRM"""
-        from ..services.bitrix_service import BitrixService
-        from ..config.settings import BITRIX24_WEBHOOK_URL
-        
-        try:
-            bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
-            houses_data = await bitrix.get_deals(limit=None)
-            houses_count = len(houses_data)
-        except Exception:
-            houses_count = 348  # Fallback к известному количеству из CRM
-        
+        houses_count, _, _, _ = await self._fetch_crm_stats()
         return f"🤖 VasDom AI: У нас {houses_count} домов, 82 сотрудника, 6 бригад в Калуге. Ваш запрос: '{text[:50]}...'"
     
     async def _save_to_db(self, question: str, response: str, context: str):
