@@ -96,6 +96,7 @@ async def get_cleaning_houses(
             
             house_data = House(
                 address=address,
+                house_address=house_address,
                 deal_id=deal_id,
                 stage=stage_id,
                 brigade=brigade_info,
