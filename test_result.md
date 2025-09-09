@@ -188,6 +188,36 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ API root endpoint working correctly. Returns proper API information including version 3.0.0, status, and feature list. Responds with correct JSON structure and 200 status code."
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: /api/ endpoint working perfectly. Returns VasDom AudioBot API info with 491 houses, 82 employees, GPT-4 mini model info."
+
+  - task: "Health Check Endpoint"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ CRITICAL: /api/health endpoint returning 404 Not Found. Endpoint exists in code but not accessible."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED: Removed duplicate api_router definition that was overwriting health endpoint. Now returns proper health status with database/AI mode info."
+
+  - task: "Telegram Integration"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Telegram endpoints working correctly. /api/telegram/status shows active bot with configured token. /api/telegram/webhook processes requests without 404 errors."
 
 frontend:
   # No frontend testing performed as per instructions
