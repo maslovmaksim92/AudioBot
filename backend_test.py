@@ -246,43 +246,76 @@ class VasDomAudioBotTester:
             self.log_test("Similar Conversations Search", False, f"Status: {status}")
             return False
 
+    def test_additional_endpoints(self):
+        """Test additional compatibility endpoints"""
+        print("\n🔍 Testing Additional Compatibility Endpoints...")
+        
+        # Test API root
+        success1, data1, status1 = self.make_request('GET', '')
+        api_root_ok = success1 and status1 == 200 and 'message' in data1
+        
+        # Test dashboard
+        success2, data2, status2 = self.make_request('GET', 'dashboard')
+        dashboard_ok = success2 and status2 == 200 and 'company' in data2
+        
+        # Test houses
+        success3, data3, status3 = self.make_request('GET', 'cleaning/houses')
+        houses_ok = success3 and status3 == 200 and 'total' in data3
+        
+        overall_success = api_root_ok and dashboard_ok and houses_ok
+        self.log_test("Additional Compatibility Endpoints", overall_success, 
+                     f"API root: {api_root_ok}, Dashboard: {dashboard_ok}, Houses: {houses_ok}")
+        return overall_success
+
     def run_comprehensive_test(self):
-        """Run all tests in sequence"""
-        print("🚀 Starting Comprehensive VasDom AudioBot API Testing")
+        """Run all tests in sequence for VasDom AudioBot v3.0"""
+        print("🚀 Starting Comprehensive VasDom AudioBot v3.0 Testing")
+        print("🧠 Testing MAXIMUM SELF-LEARNING AI SYSTEM")
         print(f"🌐 Testing against: {self.base_url}")
-        print("=" * 60)
+        print("=" * 70)
         
         # Test sequence - order matters for some tests
         test_results = []
         
-        # Basic connectivity and info
-        test_results.append(self.test_api_root())
-        test_results.append(self.test_general_health())
-        test_results.append(self.test_voice_health())
+        # Basic connectivity and system info
+        test_results.append(self.test_root_endpoint())
+        test_results.append(self.test_health_check())
         
-        # Core functionality
-        test_results.append(self.test_voice_process())  # This sets test_log_id
-        test_results.append(self.test_voice_feedback())  # Depends on test_log_id
+        # 🧠 CORE SELF-LEARNING FUNCTIONALITY
+        print("\n" + "🧠 TESTING SELF-LEARNING AI FEATURES" + "🧠")
+        print("-" * 50)
         
-        # Self-learning features
-        test_results.append(self.test_self_learning_status())
-        test_results.append(self.test_similar_responses())  # Depends on test_log_id
-        test_results.append(self.test_embeddings_update())
+        # Main AI chat with self-learning (this sets test_log_id)
+        test_results.append(self.test_voice_process())
         
-        # Backward compatibility
-        test_results.append(self.test_backward_compatibility())
+        # Rating system for learning improvement (depends on test_log_id)
+        test_results.append(self.test_voice_feedback())
+        
+        # Live learning statistics
+        test_results.append(self.test_learning_stats())
+        
+        # Export quality data for fine-tuning
+        test_results.append(self.test_learning_export())
+        
+        # Similar conversations search (depends on test_log_id)
+        test_results.append(self.test_similar_conversations())
+        
+        # Additional compatibility endpoints
+        test_results.append(self.test_additional_endpoints())
         
         # Summary
-        print("\n" + "=" * 60)
-        print(f"📊 TEST SUMMARY")
+        print("\n" + "=" * 70)
+        print(f"📊 VASDOM AUDIOBOT v3.0 TEST SUMMARY")
         print(f"✅ Passed: {self.tests_passed}/{self.tests_run}")
         print(f"❌ Failed: {self.tests_run - self.tests_passed}/{self.tests_run}")
         
         if self.tests_passed == self.tests_run:
-            print("🎉 ALL TESTS PASSED! VasDom AudioBot is working correctly.")
+            print("🎉 ALL TESTS PASSED! VasDom AudioBot v3.0 Self-Learning AI is working correctly!")
+            print("🧠 The AI should be learning and improving with each interaction!")
             return 0
         else:
             print("⚠️  Some tests failed. Check the details above.")
+            print("🔧 The self-learning system may need attention.")
             return 1
 
 def main():
