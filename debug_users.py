@@ -14,7 +14,7 @@ async def debug_users_direct():
     """Debug users data directly from Bitrix24 API"""
     try:
         print(f"🔍 Debugging users directly from Bitrix24 API...")
-        print(f"🔗 Webhook URL: {BITRIX24_WEBHOOK_URL[:50]}...")
+        print(f"🔗 Webhook URL: {BITRIX24_WEBHOOK_URL}")
         
         url = f"{BITRIX24_WEBHOOK_URL}user.get.json"
         print(f"🔗 Full URL: {url}")
