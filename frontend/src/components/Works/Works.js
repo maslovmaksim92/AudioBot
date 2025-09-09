@@ -221,7 +221,7 @@ const Works = () => {
                 <div className="text-orange-600">Этажей</div>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Filters Panel */}
