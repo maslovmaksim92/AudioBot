@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 class BitrixService:
     def __init__(self, webhook_url: str):
         self.webhook_url = webhook_url
+        # Кэш для пользователей и компаний чтобы избежать повторных API запросов
+        self._users_cache = {}
+        self._companies_cache = {}
         logger.info(f"🔗 Bitrix24 service initialized")
         
     async def get_deals(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
