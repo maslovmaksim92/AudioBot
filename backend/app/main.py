@@ -2,7 +2,7 @@
 Основное FastAPI приложение VasDom AudioBot с модулем самообучения
 Интегрирует существующую функциональность с новыми возможностями AI
 """
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
