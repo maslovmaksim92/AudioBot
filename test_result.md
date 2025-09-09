@@ -881,7 +881,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Bitrix24 Management Company and Personnel Data Fix"
+    - "Bitrix24 Management Company and Personnel Data Fix - TESTING COMPLETE"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
