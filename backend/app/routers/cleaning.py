@@ -874,6 +874,23 @@ async def test_bitrix24_integration():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+@router.post("/cleaning/cache/clear")
+async def clear_bitrix_cache():
+    """Очистка кэша Bitrix24 для принудительного обновления данных"""
+    try:
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        bitrix.clear_cache()
+        
+        return {
+            "status": "success",
+            "message": "Кэш Bitrix24 успешно очищен",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Clear cache error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.post("/cleaning/houses", response_model=dict)
 async def create_house(house_data: CreateHouseRequest):
     """Создать новый дом в Bitrix24"""
