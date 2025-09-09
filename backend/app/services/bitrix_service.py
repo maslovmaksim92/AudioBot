@@ -546,6 +546,171 @@ class BitrixService:
         else:
             return "🔄 В работе", "processing"
 
+    async def get_tasks(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Получить список задач из Bitrix24"""
+        try:
+            logger.info(f"📋 Loading tasks from Bitrix24...")
+            
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'TITLE',
+                'select[2]': 'DESCRIPTION', 
+                'select[3]': 'STATUS',
+                'select[4]': 'PRIORITY',
+                'select[5]': 'DEADLINE',
+                'select[6]': 'CREATED_DATE',
+                'select[7]': 'CLOSED_DATE',
+                'select[8]': 'CREATED_BY',
+                'select[9]': 'RESPONSIBLE_ID',
+                'select[10]': 'GROUP_ID',
+                'order[CREATED_DATE]': 'DESC',
+                'start': '0'
+            }
+            
+            if limit:
+                params['start'] = '0'  # Пагинация при необходимости
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}tasks.task.list.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    tasks = data.get('result', {}).get('tasks', [])
+                    
+                    if tasks:
+                        logger.info(f"✅ Tasks loaded: {len(tasks)} tasks from Bitrix24")
+                        
+                        # Обогащаем задачи данными пользователей
+                        enriched_tasks = []
+                        for task in tasks:
+                            enriched_task = await self._enrich_task_data(task)
+                            enriched_tasks.append(enriched_task)
+                        
+                        return enriched_tasks[:limit] if limit else enriched_tasks
+                    else:
+                        logger.info("📋 No tasks found in Bitrix24")
+                        return []
+                else:
+                    logger.error(f"❌ Bitrix24 tasks HTTP error: {response.status_code}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Get tasks error: {e}")
+            return []
+    
+    async def _enrich_task_data(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """Обогащение задачи данными пользователей"""
+        
+        # Получаем данные создателя задачи
+        created_by_id = task.get('createdBy')
+        if created_by_id and str(created_by_id) not in self._users_cache:
+            await self._batch_load_users([str(created_by_id)])
+        
+        if created_by_id and str(created_by_id) in self._users_cache:
+            creator = self._users_cache[str(created_by_id)]
+            if creator:
+                task['creator_name'] = f"{creator.get('NAME', '')} {creator.get('LAST_NAME', '')}".strip()
+            else:
+                task['creator_name'] = 'Неизвестен'
+        
+        # Получаем данные ответственного
+        responsible_id = task.get('responsibleId')
+        if responsible_id and str(responsible_id) not in self._users_cache:
+            await self._batch_load_users([str(responsible_id)])
+        
+        if responsible_id and str(responsible_id) in self._users_cache:
+            responsible = self._users_cache[str(responsible_id)]
+            if responsible:
+                task['responsible_name'] = f"{responsible.get('NAME', '')} {responsible.get('LAST_NAME', '')}".strip()
+            else:
+                task['responsible_name'] = 'Не назначен'
+        
+        # Определяем приоритет
+        priority_map = {
+            '0': 'Низкий',
+            '1': 'Обычный', 
+            '2': 'Высокий'
+        }
+        task['priority_text'] = priority_map.get(str(task.get('priority', '1')), 'Обычный')
+        
+        # Определяем статус
+        status_map = {
+            '1': 'Новая',
+            '2': 'Ждет выполнения',
+            '3': 'Выполняется',
+            '4': 'Ждет контроля',
+            '5': 'Завершена',
+            '6': 'Отложена'
+        }
+        task['status_text'] = status_map.get(str(task.get('status', '1')), 'Новая')
+        
+        return task
+
+    async def create_task_enhanced(
+        self, 
+        title: str, 
+        description: str = "",
+        responsible_id: int = 1,
+        priority: int = 1,
+        deadline: Optional[str] = None,
+        group_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Создать задачу в Bitrix24 с расширенными параметрами"""
+        try:
+            logger.info(f"📝 Creating enhanced task in Bitrix24: {title}")
+            
+            params = {
+                'fields[TITLE]': title,
+                'fields[DESCRIPTION]': description,
+                'fields[RESPONSIBLE_ID]': str(responsible_id),
+                'fields[CREATED_BY]': str(responsible_id),
+                'fields[PRIORITY]': str(priority)
+            }
+            
+            if group_id:
+                params['fields[GROUP_ID]'] = str(group_id)
+            
+            if deadline:
+                params['fields[DEADLINE]'] = deadline
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}tasks.task.add.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get('result'):
+                        task_data = data['result']['task']
+                        task_id = task_data.get('id')
+                        logger.info(f"✅ Enhanced task created successfully: ID {task_id}")
+                        
+                        return {
+                            "status": "success",
+                            "task_id": task_id,
+                            "title": title,
+                            "description": description,
+                            "responsible_id": responsible_id,
+                            "priority": priority,
+                            "deadline": deadline,
+                            "bitrix_url": f"https://vas-dom.bitrix24.ru/workgroups/group/0/tasks/task/view/{task_id}/"
+                        }
+                    else:
+                        logger.error(f"❌ Enhanced task creation failed: {data}")
+                        return {"status": "error", "message": "Failed to create task", "details": data}
+                else:
+                    logger.error(f"❌ Bitrix24 API error: {response.status_code}")
+                    return {"status": "error", "message": f"API error: {response.status_code}"}
+                    
+        except Exception as e:
+            logger.error(f"❌ Create enhanced task error: {e}")
+            return {"status": "error", "message": str(e)}
+
     async def create_task(
         self, 
         title: str, 
