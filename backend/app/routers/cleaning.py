@@ -710,6 +710,94 @@ async def get_bitrix24_categories():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+@router.get("/bitrix24/debug")
+async def debug_bitrix24_raw_response():
+    """Отладка raw ответа Bitrix24 API для исследования доступных полей"""
+    try:
+        logger.info("🔍 DEBUG: Investigating raw Bitrix24 API response...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Делаем raw запрос к API с минимальными полями для отладки
+        params = {
+            'select[0]': 'ID',
+            'select[1]': 'TITLE', 
+            'select[2]': 'STAGE_ID',
+            'select[3]': 'COMPANY_ID',
+            'select[4]': 'COMPANY_TITLE',        # Тестируем это поле
+            'select[5]': 'ASSIGNED_BY_ID',
+            'select[6]': 'ASSIGNED_BY_NAME',     # Тестируем это поле
+            'select[7]': 'ASSIGNED_BY_LAST_NAME', # Тестируем это поле
+            'filter[CATEGORY_ID]': '34',
+            'start': '0'
+        }
+        
+        import urllib.parse
+        import httpx
+        
+        query_string = urllib.parse.urlencode(params)
+        url = f"{bitrix.webhook_url}crm.deal.list.json?{query_string}"
+        
+        logger.info(f"🔗 DEBUG URL: {url[:100]}...")
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                deals = data.get('result', [])
+                
+                if deals:
+                    first_deal = deals[0]
+                    
+                    # Показываем все доступные поля первой сделки
+                    debug_info = {
+                        "status": "success",
+                        "total_deals": len(deals),
+                        "raw_api_response_keys": list(data.keys()),
+                        "first_deal_all_fields": first_deal,
+                        "company_fields_check": {
+                            "COMPANY_ID": first_deal.get('COMPANY_ID'),
+                            "COMPANY_TITLE": first_deal.get('COMPANY_TITLE'),
+                            "has_company_id": 'COMPANY_ID' in first_deal,
+                            "has_company_title": 'COMPANY_TITLE' in first_deal
+                        },
+                        "assigned_fields_check": {
+                            "ASSIGNED_BY_ID": first_deal.get('ASSIGNED_BY_ID'),
+                            "ASSIGNED_BY_NAME": first_deal.get('ASSIGNED_BY_NAME'),
+                            "ASSIGNED_BY_LAST_NAME": first_deal.get('ASSIGNED_BY_LAST_NAME'),
+                            "has_assigned_id": 'ASSIGNED_BY_ID' in first_deal,
+                            "has_assigned_name": 'ASSIGNED_BY_NAME' in first_deal,
+                            "has_assigned_last_name": 'ASSIGNED_BY_LAST_NAME' in first_deal
+                        },
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    
+                    logger.info(f"✅ DEBUG: Found {len(first_deal)} fields in deal")
+                    return debug_info
+                else:
+                    return {
+                        "status": "error",
+                        "message": "No deals found in category 34",
+                        "raw_response": data,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"HTTP error: {response.status_code}",
+                    "response_text": response.text[:500],
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                
+    except Exception as e:
+        logger.error(f"❌ DEBUG error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @router.get("/bitrix24/test")
 async def test_bitrix24_integration():
     """Тест интеграции с Bitrix24"""
