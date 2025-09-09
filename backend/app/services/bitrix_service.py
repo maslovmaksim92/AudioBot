@@ -226,6 +226,42 @@ class BitrixService:
         
         return deal
     
+    async def get_users(self) -> List[Dict[str, Any]]:
+        """Получить список всех пользователей из Bitrix24"""
+        try:
+            logger.info(f"👥 Loading users from Bitrix24...")
+            
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'NAME',
+                'select[2]': 'LAST_NAME',
+                'select[3]': 'SECOND_NAME',
+                'select[4]': 'EMAIL',
+                'select[5]': 'ACTIVE',
+                'select[6]': 'WORK_POSITION',
+                'start': '0'
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}user.get.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    users = data.get('result', [])
+                    
+                    logger.info(f"✅ Users loaded: {len(users)} users from Bitrix24")
+                    return users
+                else:
+                    logger.error(f"❌ Bitrix24 users HTTP error: {response.status_code}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Get users error: {e}")
+            return []
+
     def clear_cache(self):
         """Очистка кэша для принудительного обновления"""
         self._users_cache.clear()
