@@ -110,6 +110,81 @@ async def get_cleaning_stats():
         logger.error(f"❌ Cleaning stats error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/bitrix24/categories")
+async def get_bitrix24_categories():
+    """Исследование всех категорий сделок в Bitrix24"""
+    try:
+        logger.info("🔍 Investigating Bitrix24 categories...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Загружаем первые 100 сделок без фильтра по категории
+        params = {
+            'select[0]': 'ID',
+            'select[1]': 'TITLE', 
+            'select[2]': 'CATEGORY_ID',
+            'select[3]': 'STAGE_ID',
+            'order[DATE_CREATE]': 'DESC',
+            'start': '0'
+        }
+        
+        import urllib.parse
+        query_string = urllib.parse.urlencode(params)
+        url = f"{bitrix.webhook_url}crm.deal.list.json?{query_string}"
+        
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                deals = data.get('result', [])
+                
+                # Группируем по категориям
+                categories = {}
+                for deal in deals:
+                    cat_id = deal.get('CATEGORY_ID', 'no_category')
+                    stage_id = deal.get('STAGE_ID', 'no_stage')
+                    
+                    if cat_id not in categories:
+                        categories[cat_id] = {
+                            'count': 0,
+                            'stages': set(),
+                            'sample_titles': []
+                        }
+                    
+                    categories[cat_id]['count'] += 1
+                    categories[cat_id]['stages'].add(stage_id)
+                    
+                    if len(categories[cat_id]['sample_titles']) < 3:
+                        categories[cat_id]['sample_titles'].append(deal.get('TITLE', ''))
+                
+                # Преобразуем sets в lists для JSON
+                for cat_data in categories.values():
+                    cat_data['stages'] = list(cat_data['stages'])
+                
+                logger.info(f"✅ Found categories: {list(categories.keys())}")
+                return {
+                    "status": "success",
+                    "categories": categories,
+                    "total_deals_analyzed": len(deals),
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Bitrix24 API error: {response.status_code}",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                
+    except Exception as e:
+        logger.error(f"❌ Categories investigation error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @router.get("/bitrix24/test")
 async def test_bitrix24_integration():
     """Тест интеграции с Bitrix24"""
