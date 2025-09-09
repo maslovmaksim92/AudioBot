@@ -583,6 +583,33 @@ class AdvancedAI:
 
 ai = AdvancedAI()
 
+@api_router.get("/health")
+async def health_check():
+    """Health check для Render"""
+    try:
+        db_status = "connected" if database.is_connected else "disconnected"
+        ai_status = "active" if EMERGENT_AVAILABLE else "fallback"
+        
+        return {
+            "status": "healthy",
+            "service": "VasDom AudioBot",
+            "version": "3.0.0",
+            "database": db_status,
+            "ai_mode": ai_status,
+            "features": {
+                "bitrix24": bool(os.environ.get('BITRIX24_WEBHOOK_URL')),
+                "telegram": bool(os.environ.get('TELEGRAM_BOT_TOKEN')),
+                "emergent_llm": bool(os.environ.get('EMERGENT_LLM_KEY'))
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 # Dashboard Routes для Render
 @app.get("/", response_class=HTMLResponse)  
 async def root_redirect():
