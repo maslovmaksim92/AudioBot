@@ -745,7 +745,6 @@ async def dashboard_page():
     """)
 
 # API Routes (все остальные маршруты)
-api_router = APIRouter(prefix="/api")
 @api_router.get("/")
 async def root():
     logger.info("📡 API root accessed")
