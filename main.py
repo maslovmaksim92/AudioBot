@@ -11,6 +11,12 @@ sys.path.insert(0, backend_path)
 
 try:
     # Пытаемся использовать новое модульное приложение
+    import sys
+    import os
+    backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+    if backend_path not in sys.path:
+        sys.path.insert(0, backend_path)
+    
     from app.main import app
     print("✅ Запуск модульного приложения с самообучением v2.0")
 except ImportError as e:
