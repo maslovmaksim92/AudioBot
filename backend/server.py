@@ -809,13 +809,39 @@ async def send_telegram_message(bot_token: str, chat_id: int, text: str):
 
 @api_router.get("/telegram/status")
 async def telegram_status():
-    """Telegram bot status"""
-    return {
-        "status": "active",
-        "bot_token": "configured" if os.environ.get('TELEGRAM_BOT_TOKEN') else "missing",
-        "webhook_url": os.environ.get('TELEGRAM_WEBHOOK_URL', 'not_configured'),
+    """Telegram bot status с тестированием"""
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    webhook_url = os.environ.get('TELEGRAM_WEBHOOK_URL', 'not_configured')
+    
+    status = {
+        "status": "configured" if bot_token else "missing_token",
+        "bot_token": "present" if bot_token else "missing",
+        "webhook_url": webhook_url,
         "message": "Telegram bot готов для интеграции"
     }
+    
+    # Проверяем соединение с Telegram API если есть токен
+    if bot_token:
+        try:
+            url = f"https://api.telegram.org/bot{bot_token}/getMe"
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    bot_info = response.json()
+                    if bot_info.get("ok"):
+                        status["bot_info"] = bot_info["result"]
+                        status["connection"] = "✅ Connected to Telegram API"
+                        logger.info(f"✅ Telegram bot connected: @{bot_info['result'].get('username')}")
+                    else:
+                        status["connection"] = "❌ Telegram API error"
+                else:
+                    status["connection"] = f"❌ HTTP {response.status_code}"
+        except Exception as e:
+            status["connection"] = f"❌ Connection error: {str(e)}"
+            logger.error(f"❌ Telegram API test failed: {e}")
+    
+    return status
 
 @api_router.get("/logs")
 async def get_logs():
