@@ -26,7 +26,7 @@ const Tasks = () => {
     group_id: null
   });
 
-  const { state } = useAppContext();
+  const { state } = useApp();
   const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
 
   useEffect(() => {
