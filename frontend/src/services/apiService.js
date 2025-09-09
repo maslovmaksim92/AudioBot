@@ -1,144 +1,84 @@
-import axios from 'axios';
+// API Service - Centralized HTTP client
+// Backend URL from environment variable
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
-const API = `${BACKEND_URL}/api`;
+console.log('🔗 API Service initialized with backend URL:', BACKEND_URL);
 
-console.log('🔗 API Service initialized');
-console.log('🔗 Backend URL:', BACKEND_URL);
-console.log('🔗 API URL:', API);
-
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: API,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Request interceptor for logging
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log(`🌐 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => {
-    console.error('❌ API Request Error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for logging and error handling
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log(`✅ API Response: ${response.config.url}`, response.data);
-    return response;
-  },
-  (error) => {
-    console.error(`❌ API Error: ${error.config?.url}`, error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
-
-export const apiService = {
-  // Dashboard
+const apiService = {
+  // Dashboard statistics
   getDashboardStats: async () => {
-    const response = await apiClient.get('/dashboard');
-    return response.data;
+    const response = await fetch(`${BACKEND_URL}/api/dashboard`);
+    return response.json();
   },
 
-  // Voice Chat
-  sendVoiceMessage: async (message) => {
-    const response = await apiClient.post('/voice/process', {
-      text: message,
-      user_id: 'dashboard_user'
+  // Voice processing
+  processVoice: async (text, userId = 'user') => {
+    const response = await fetch(`${BACKEND_URL}/api/voice/process`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, user_id: userId }),
     });
-    return response.data;
+    return response.json();
   },
 
   // Meetings
-  startMeeting: async (title) => {
-    const response = await apiClient.post('/meetings/start-recording', { title });
-    return response.data;
-  },
-
-  stopMeeting: async (meetingId) => {
-    const response = await apiClient.post('/meetings/stop-recording', { meeting_id: meetingId });
-    return response.data;
-  },
-
   getMeetings: async () => {
-    const response = await apiClient.get('/meetings');
-    return response.data;
+    const response = await fetch(`${BACKEND_URL}/api/meetings`);
+    return response.json();
   },
 
-  // Houses/Cleaning
-  getHouses: async () => {
-    const response = await apiClient.get('/cleaning/houses');
-    return response.data;
+  startMeetingRecording: async (title) => {
+    const response = await fetch(`${BACKEND_URL}/api/meetings/start-recording`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title }),
+    });
+    return response.json();
   },
 
-  getCleaningStats: async () => {
-    const response = await apiClient.get('/cleaning/stats');
-    return response.data;
+  stopMeetingRecording: async (meetingId) => {
+    const response = await fetch(`${BACKEND_URL}/api/meetings/stop-recording`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ meeting_id: meetingId }),
+    });
+    return response.json();
   },
 
-  // AI Tasks
-  getAITasks: async () => {
-    const response = await apiClient.get('/ai-tasks');
-    return response.data;
+  // Houses and cleaning
+  getCleaningHouses: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
+    
+    const url = `${BACKEND_URL}/api/cleaning/houses${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await fetch(url);
+    return response.json();
   },
 
-  createAITask: async (task) => {
-    const response = await apiClient.post('/ai-tasks', task);
-    return response.data;
+  getBrigades: async () => {
+    const response = await fetch(`${BACKEND_URL}/api/cleaning/brigades`);
+    return response.json();
   },
 
-  // Employees
-  getEmployees: async () => {
-    const response = await apiClient.get('/employees');
-    return response.data;
-  },
-
-  // Logs
+  // System logs
   getLogs: async () => {
-    const response = await apiClient.get('/logs');
-    return response.data;
-  },
-
-  getAILogs: async () => {
-    const response = await apiClient.get('/logs/ai');
-    return response.data;
-  },
-
-  // Bitrix24
-  testBitrix24: async () => {
-    const response = await apiClient.get('/bitrix24/test');
-    return response.data;
+    const response = await fetch(`${BACKEND_URL}/api/logs`);
+    return response.json();
   },
 
   // Health check
-  healthCheck: async () => {
-    const response = await apiClient.get('/health');
-    return response.data;
-  },
-
-  // Self-learning
-  getSelfLearningStatus: async () => {
-    const response = await apiClient.get('/self-learning/status');
-    return response.data;
-  },
-
-  testSelfLearning: async () => {
-    const response = await apiClient.get('/self-learning/test');
-    return response.data;
-  },
-
-  // Telegram
-  getTelegramStatus: async () => {
-    const response = await apiClient.get('/telegram/status');
-    return response.data;
+  getHealth: async () => {
+    const response = await fetch(`${BACKEND_URL}/api/health`);
+    return response.json();
   }
 };
 
-export default apiService;
+export { apiService };
