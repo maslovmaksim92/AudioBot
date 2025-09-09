@@ -6,7 +6,7 @@ import { Layout } from './components/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
 import AIChat from './components/AIChat/AIChat';
 import Meetings from './components/Meetings/Meetings';
-import Works from './components/Works/Works';
+import Tasks from './components/Tasks/Tasks';
 import Employees from './components/Employees/Employees';
 
 import './App.css';
