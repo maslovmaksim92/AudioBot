@@ -13,8 +13,14 @@ sys.path.insert(0, str(parent_path))
 
 print("🔄 app/main.py: Redirecting to main app...")
 
-# Import from parent directory
-from app import app
+# Import directly from the root app.py file (not app module)
+import importlib.util
+app_path = parent_path / "app.py"
+spec = importlib.util.spec_from_file_location("vasdom_app", app_path)
+vasdom_app = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(vasdom_app)
+
+app = vasdom_app.app
 
 print("✅ app/main.py: Successfully imported app")
 
