@@ -28,6 +28,7 @@ const AppRouter = () => {
     'meetings': Meetings,
     'works': Works,
     'employees': Employees,
+    'tasks': Tasks,
     'ai-tasks': React.lazy(() => import('./components/AITasks/AITasks')),
     'training': React.lazy(() => import('./components/Training/Training')),
     'logs': React.lazy(() => import('./components/Logs/Logs'))
