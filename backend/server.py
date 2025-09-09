@@ -547,19 +547,20 @@ async def get_dashboard_stats():
     except Exception as e:
         logger.error(f"❌ Dashboard error: {e}")
         return {
-            "status": "success",
+            "status": "error",
+            "message": "CRM недоступен, попробуйте позже",
             "stats": {
                 "employees": 82,
-                "houses": 491,
-                "entrances": 1473,
-                "apartments": 25892,
-                "floors": 2455,
+                "houses": 0,
+                "entrances": 0,
+                "apartments": 0,
+                "floors": 0,
                 "meetings": 0,
                 "ai_tasks": 0,
-                "won_houses": 350,
-                "problem_houses": 50
+                "won_houses": 0,
+                "problem_houses": 0
             },
-            "data_source": "🔥 Fallback CSV Data"
+            "data_source": "❌ CRM Error - данные недоступны"
         }
 
 @api_router.get("/cleaning/houses")
