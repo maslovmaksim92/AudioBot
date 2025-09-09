@@ -268,14 +268,17 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Кнопка создания */}
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
-        >
-          <span className="text-xl">➕</span>
-          <span>Создать дом</span>
-        </Button>
+        {/* Переливающаяся кнопка создания дома */}
+        <div className="relative">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 rounded-xl blur opacity-70 animate-pulse"></div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="relative px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all duration-200 flex items-center space-x-2"
+          >
+            <span>🏠</span>
+            <span>Создать дом</span>
+          </button>
+        </div>
       </div>
     </div>
   );
