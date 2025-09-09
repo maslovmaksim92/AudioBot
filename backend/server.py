@@ -40,7 +40,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Database configuration - ТОЛЬКО PostgreSQL или простой fallback
+# CORS settings - читаем из переменных окружения (УЛУЧШЕНИЕ 1)
+CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://vasdom-audiobot.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(',') if origin.strip()]
+
+# Безопасные дефолтные origins если переменная пустая
+if not CORS_ORIGINS:
+    CORS_ORIGINS = [
+        "https://vasdom-audiobot.preview.emergentagent.com", 
+        "https://audiobot-qci2.onrender.com"
+    ]
+
+# Frontend redirect URLs - вынос в конфигурацию (УЛУЧШЕНИЕ 7)  
+FRONTEND_DASHBOARD_URL = os.environ.get(
+    'FRONTEND_DASHBOARD_URL', 
+    'https://vasdom-audiobot.preview.emergentagent.com'
+)
+
+# Security settings (УЛУЧШЕНИЕ 3)
+API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'vasdom-secret-key-change-in-production')
+REQUIRE_AUTH_FOR_PUBLIC_API = os.environ.get('REQUIRE_AUTH_FOR_PUBLIC_API', 'false').lower() == 'true'
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///:memory:')
 
 # Скрываем чувствительные данные в логах (как требует CodeGPT)
