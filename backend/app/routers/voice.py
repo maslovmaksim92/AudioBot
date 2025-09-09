@@ -1,7 +1,8 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from ..models.schemas import VoiceMessage, ChatResponse
 from ..services.ai_service import AIService
+from ..security import optional_auth
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["voice"])
@@ -10,10 +11,13 @@ router = APIRouter(prefix="/api", tags=["voice"])
 ai_service = AIService()
 
 @router.post("/voice/process", response_model=ChatResponse)
-async def process_voice_message(message: VoiceMessage):
-    """Голосовое взаимодействие с AI"""
+async def process_voice_message(
+    message: VoiceMessage,
+    authenticated: bool = Depends(optional_auth)
+):
+    """Голосовое взаимодействие с AI с опциональной аутентификацией"""
     try:
-        logger.info(f"🎤 Voice: '{message.text[:50]}...'")
+        logger.info(f"🎤 Voice: '{message.text[:50]}...' (auth: {authenticated})")
         
         response = await ai_service.process_message(message.text, message.user_id)
         
@@ -50,7 +54,8 @@ async def get_self_learning_status():
                     "mode": "GPT-4 mini" if EMERGENT_AVAILABLE and emergent_key_present else "Advanced Fallback"
                 },
                 "ai_interactions": ai_interactions,
-                "database": "connected"
+                "database": "connected",
+                "crm_integration": "centralized"  # Новое поле
             }
         else:
             return {
