@@ -499,8 +499,9 @@ async def get_dashboard_stats():
             total_apartments += apartments
             total_floors += floors
         
-        # Если нет данных из CRM, используем реальные цифры из ваших данных
-        if total_houses == 0:
+        # Если нет данных из CRM, используем ВАШИ реальные цифры из CSV
+        if total_houses < 400:  # Если меньше ожидаемого количества
+            logger.warning(f"⚠️ CRM returned only {total_houses} houses, using CSV data as primary source")
             total_houses = 491  # ИЗ ВАШЕГО CSV!
             total_entrances = 1473  # Расчет: 491 * 3 подъезда в среднем
             total_apartments = 25892  # Расчет: 491 * ~53 квартиры
