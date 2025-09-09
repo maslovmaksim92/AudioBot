@@ -131,44 +131,31 @@ async def handle_bitrix_task_creation(text: str, chat_id: int, user_name: str) -
         )
         return {"status": "failed", "message": str(e)}
 
-async def create_bitrix_task(task_text: str, author: str) -> bool:
-    """Создание задачи в Bitrix24"""
+async def create_bitrix_task(task_text: str, user_name: str) -> bool:
+    """Создать задачу в Bitrix24 из Telegram"""
     try:
-        import httpx
-        import urllib.parse
+        # Определяем ответственного по тексту задачи
+        responsible_id = 1  # По умолчанию - администратор
         
-        if not BITRIX24_WEBHOOK_URL:
-            logger.error("❌ BITRIX24_WEBHOOK_URL not configured")
-            return False
+        # Можно добавить логику определения ответственного по адресу
+        if "пролетарская" in task_text.lower() or "центр" in task_text.lower():
+            responsible_id = 1  # 1 бригада
+        elif "чижевского" in task_text.lower() or "никитинский" in task_text.lower():
+            responsible_id = 2  # 2 бригада
+        # и т.д.
         
-        # Параметры для создания задачи
-        params = {
-            'fields[TITLE]': f"Задача от {author}",
-            'fields[DESCRIPTION]': task_text,
-            'fields[PRIORITY]': '2',  # Высокий приоритет  
-            'fields[CREATED_BY]': '1',  # ID пользователя-создателя
-            'fields[RESPONSIBLE_ID]': '1',  # ID ответственного
-        }
+        # Создаем задачу
+        title = f"Telegram: {task_text[:50]}{'...' if len(task_text) > 50 else ''}"
+        description = f"Задача от {user_name} через Telegram:\n\n{task_text}"
         
-        query_string = urllib.parse.urlencode(params)
-        url = f"{BITRIX24_WEBHOOK_URL}tasks.task.add.json?{query_string}"
+        result = await bitrix_service.create_task(
+            title=title,
+            description=description,
+            responsible_id=responsible_id
+        )
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('result'):
-                    task_id = data['result']['task']['id']
-                    logger.info(f"✅ Bitrix24 task created: ID {task_id}")
-                    return True
-                else:
-                    logger.error(f"❌ Bitrix24 task creation failed: {data}")
-                    return False
-            else:
-                logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
-                return False
-                
+        return result.get("status") == "success"
+        
     except Exception as e:
         logger.error(f"❌ Create Bitrix task error: {e}")
         return False
