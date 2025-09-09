@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for VasDom AudioBot with Self-Learning Module
-Tests all API endpoints mentioned in the review request
+Comprehensive Backend Testing for VasDom AudioBot v3.0 - Self-Learning AI
+Tests all NEW API endpoints mentioned in the review request:
+- POST /api/voice/process - Main self-learning AI chat
+- POST /api/voice/feedback - Rating system for learning
+- GET /api/learning/stats - Live learning statistics
+- GET /api/learning/export - Export quality data
+- GET /api/learning/similar/{log_id} - Similar conversations search
 """
 
 import requests
@@ -18,6 +23,7 @@ class VasDomAudioBotTester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_log_id = None  # Store log_id for feedback testing
+        self.session_id = f"test_session_{int(time.time())}"
         
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test results"""
