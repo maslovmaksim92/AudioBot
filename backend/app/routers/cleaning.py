@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
-from ..models.schemas import House
+from ..models.schemas import House, CreateHouseRequest
 from ..services.bitrix_service import BitrixService
 from ..config.settings import BITRIX24_WEBHOOK_URL
 
