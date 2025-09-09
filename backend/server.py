@@ -415,8 +415,14 @@ class AdvancedAI:
         return response
     
     async def _simple_fallback_response(self, text: str) -> str:
-        """Простейший fallback"""
-        return f"🤖 VasDom AI: У нас 491 дом, 82 сотрудника, 6 бригад в Калуге. Ваш запрос: '{text[:50]}...'"
+        """Простейший fallback с актуальными данными из CRM"""
+        try:
+            houses_data = await bitrix.get_deals(limit=None)
+            houses_count = len(houses_data)
+        except Exception:
+            houses_count = 348  # Fallback к известному количеству из CRM
+        
+        return f"🤖 VasDom AI: У нас {houses_count} домов, 82 сотрудника, 6 бригад в Калуге. Ваш запрос: '{text[:50]}...'"
     
     async def _save_to_db(self, question: str, response: str, context: str):
         """Сохранение в PostgreSQL для самообучения"""
