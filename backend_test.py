@@ -322,7 +322,7 @@ class VasDomAPITester:
             return False
 
     def test_voice_ai_processing(self):
-        """Test AI voice processing with GPT-4 mini через Emergent LLM"""
+        """Test AI voice processing with GPT-4 mini через Emergent LLM - должен упоминать 348 домов из CRM"""
         try:
             test_message = {
                 "text": "Сколько домов у нас в работе и какие бригады работают?",
@@ -344,7 +344,7 @@ class VasDomAPITester:
                     print(f"   🤖 AI Response: {ai_response[:150]}...")
                     
                     # Проверяем что AI отвечает с контекстом VasDom
-                    vasdom_keywords = ["491", "дом", "бригад", "калуг", "vasdom", "клининг", "подъезд"]
+                    vasdom_keywords = ["дом", "бригад", "калуг", "vasdom", "клининг", "подъезд"]
                     has_vasdom_context = any(keyword.lower() in ai_response.lower() for keyword in vasdom_keywords)
                     
                     if has_vasdom_context:
@@ -353,18 +353,20 @@ class VasDomAPITester:
                         print("   ❌ AI response lacks VasDom context - may not be using GPT-4 mini properly")
                         success = False
                     
-                    # Проверяем упоминание правильного количества домов
-                    if "491" in ai_response:
-                        print("   ✅ AI correctly mentions 491 houses")
-                    elif "348" in ai_response:
-                        print("   ❌ AI mentions old 348 houses instead of 491")
+                    # Проверяем упоминание правильного количества домов (348 из CRM, НЕ 491 из CSV)
+                    if "348" in ai_response:
+                        print("   ✅ AI correctly mentions 348 houses from CRM")
+                    elif "491" in ai_response:
+                        print("   ❌ AI mentions 491 houses - using CSV data instead of CRM")
                         success = False
+                    else:
+                        print("   ⚠️ AI doesn't mention specific house count")
                 
-            self.log_test("GPT-4 Mini AI Processing", success, 
+            self.log_test("GPT-4 Mini AI Processing (CRM Context)", success, 
                          f"Status: {response.status_code}, Context check: {'✅' if success else '❌'}")
             return success
         except Exception as e:
-            self.log_test("GPT-4 Mini AI Processing", False, str(e))
+            self.log_test("GPT-4 Mini AI Processing (CRM Context)", False, str(e))
             return False
 
     def test_meetings_functionality(self):
