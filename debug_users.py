@@ -6,9 +6,14 @@ import asyncio
 import sys
 import os
 import httpx
-sys.path.append('/app/backend')
+from pathlib import Path
+from dotenv import load_dotenv
 
-from app.config.settings import BITRIX24_WEBHOOK_URL
+# Load environment variables
+ROOT_DIR = Path(__file__).parent / 'backend'
+load_dotenv(ROOT_DIR / '.env')
+
+BITRIX24_WEBHOOK_URL = os.environ.get('BITRIX24_WEBHOOK_URL', '')
 
 async def debug_users_direct():
     """Debug users data directly from Bitrix24 API"""
