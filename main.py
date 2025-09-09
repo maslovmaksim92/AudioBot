@@ -1,6 +1,6 @@
 """
-Entry point для VasDom AudioBot с модулем самообучения
-Совместимость с Render.com и supervisor управлением
+Entry point для VasDom AudioBot на Render
+Cloud-native версия без MongoDB, только PostgreSQL
 """
 import sys
 import os
@@ -10,26 +10,20 @@ backend_path = os.path.join(os.path.dirname(__file__), 'backend')
 sys.path.insert(0, backend_path)
 
 try:
-    # Пытаемся использовать новое модульное приложение
-    import sys
-    import os
-    backend_path = os.path.join(os.path.dirname(__file__), 'backend')
-    if backend_path not in sys.path:
-        sys.path.insert(0, backend_path)
-    
+    # Используем новое модульное приложение для Render
     from app.main import app
-    print("✅ Запуск модульного приложения с самообучением v2.0")
+    print("✅ Запуск VasDom AudioBot с самообучением v2.0 на Render")
 except ImportError as e:
-    print(f"⚠️ Ошибка импорта модульного приложения: {e}")
-    print("🔄 Fallback на старый server.py")
+    print(f"⚠️ Модульное приложение недоступно: {e}")
+    print("🔄 Fallback на минимальную версию")
     
-    # Fallback на старое приложение
+    # Fallback на минимальное приложение
     try:
         from server import app
-        print("✅ Запуск совместимого приложения")
+        print("✅ Запуск минимальной версии на Render")
     except ImportError as fallback_error:
         print(f"❌ Критическая ошибка: {fallback_error}")
-        # Создаем минимальное приложение
+        # Создаем экстренное приложение
         from fastapi import FastAPI
         app = FastAPI(title="VasDom AudioBot - Emergency Mode")
         
@@ -37,7 +31,8 @@ except ImportError as e:
         async def emergency_root():
             return {
                 "status": "emergency_mode",
-                "message": "Приложение запущено в аварийном режиме",
+                "message": "Приложение запущено в аварийном режиме на Render",
+                "platform": "Render",
                 "error": str(fallback_error)
             }
 
