@@ -104,9 +104,9 @@ class VasDomAPITester:
             return False
 
     def test_cleaning_houses(self):
-        """Test cleaning houses data from Bitrix24"""
+        """Test cleaning houses data from Bitrix24 CRM - должен загружать все дома"""
         try:
-            response = requests.get(f"{self.api_url}/cleaning/houses?limit=50", timeout=20)
+            response = requests.get(f"{self.api_url}/cleaning/houses", timeout=25)
             success = response.status_code == 200
             
             if success:
@@ -117,16 +117,41 @@ class VasDomAPITester:
                 
                 if success:
                     houses_count = len(data["houses"])
+                    total_from_api = data.get("total", houses_count)
                     print(f"   🏠 Loaded {houses_count} houses from {data.get('source', 'Unknown')}")
+                    print(f"   🏠 Total reported: {total_from_api}")
+                    
                     if houses_count > 0:
                         sample_house = data["houses"][0]
                         print(f"   🏠 Sample: {sample_house.get('address', 'No address')}")
+                        print(f"   🏠 Brigade: {sample_house.get('brigade', 'No brigade')}")
+                        print(f"   🏠 Bitrix24 ID: {sample_house.get('bitrix24_deal_id', 'No ID')}")
+                        
+                        # Проверяем что данные реально из Bitrix24
+                        has_bitrix_fields = (sample_house.get('bitrix24_deal_id') and 
+                                           sample_house.get('stage') and
+                                           sample_house.get('brigade'))
+                        
+                        if has_bitrix_fields:
+                            print("   ✅ Real Bitrix24 CRM data detected")
+                        else:
+                            print("   ❌ May be using mock data instead of real Bitrix24")
+                            success = False
+                    
+                    # Проверяем что загружается достаточно домов (должно быть много)
+                    if houses_count >= 400:
+                        print(f"   ✅ Good amount of houses loaded: {houses_count}")
+                    elif houses_count >= 50:
+                        print(f"   ⚠️ Moderate amount of houses: {houses_count} (may be limited)")
+                    else:
+                        print(f"   ❌ Too few houses: {houses_count} (likely mock data)")
+                        success = False
                 
-            self.log_test("Cleaning Houses", success, 
+            self.log_test("Bitrix24 CRM Houses Loading", success, 
                          f"Status: {response.status_code}, Houses: {len(data.get('houses', []))}")
             return success
         except Exception as e:
-            self.log_test("Cleaning Houses", False, str(e))
+            self.log_test("Bitrix24 CRM Houses Loading", False, str(e))
             return False
 
     def test_voice_ai_processing(self):
