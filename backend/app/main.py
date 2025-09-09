@@ -47,8 +47,11 @@ async def lifespan(app: FastAPI):
     
     # Подключение к PostgreSQL для самообучения
     try:
-        await database.connect()
-        logger.info("✅ PostgreSQL подключен для самообучения")
+        if database is not None:
+            await database.connect()
+            logger.info("✅ PostgreSQL подключен для самообучения")
+        else:
+            logger.warning("⚠️ PostgreSQL недоступен - самообучение отключено")
     except Exception as e:
         logger.error(f"❌ Ошибка подключения к PostgreSQL: {str(e)}")
     
@@ -65,7 +68,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("🛑 Завершение работы VasDom AudioBot")
     try:
-        await database.disconnect()
+        if database is not None:
+            await database.disconnect()
         if mongo_client:
             mongo_client.close()
         logger.info("✅ Все подключения закрыты")
