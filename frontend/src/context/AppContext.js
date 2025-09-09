@@ -7,10 +7,10 @@ const initialState = {
   isMenuCollapsed: false,
   dashboardStats: {
     employees: 82,
-    houses: 348,
-    entrances: 1131,
-    apartments: 36232,
-    floors: 2958,
+    houses: 490,
+    entrances: 1592,
+    apartments: 50960,
+    floors: 4165,
     meetings: 0,
     ai_tasks: 0
   },
