@@ -49,7 +49,7 @@ class VasDomAPITester:
             return False
 
     def test_dashboard_stats(self):
-        """Test dashboard statistics endpoint"""
+        """Test dashboard statistics endpoint - должен показывать 491 дом"""
         try:
             response = requests.get(f"{self.api_url}/dashboard", timeout=15)
             success = response.status_code == 200
@@ -64,14 +64,25 @@ class VasDomAPITester:
                     stats = data["stats"]
                     required_stats = ["employees", "houses", "entrances", "apartments", "floors"]
                     success = all(stat in stats for stat in required_stats)
-                    print(f"   📊 Houses: {stats.get('houses', 0)}, Employees: {stats.get('employees', 0)}")
+                    
+                    houses_count = stats.get('houses', 0)
+                    print(f"   📊 Houses: {houses_count}, Employees: {stats.get('employees', 0)}")
                     print(f"   📊 Data source: {data.get('data_source', 'Unknown')}")
+                    
+                    # КРИТИЧЕСКИЙ ТЕСТ: должно быть 491 дом, не 348
+                    if houses_count == 491:
+                        print(f"   ✅ CORRECT: Shows 491 houses as expected from CSV data")
+                    elif houses_count == 348:
+                        print(f"   ❌ WRONG: Shows old 348 houses instead of updated 491")
+                        success = False
+                    else:
+                        print(f"   ⚠️ UNEXPECTED: Shows {houses_count} houses (expected 491)")
                 
-            self.log_test("Dashboard Stats", success, 
-                         f"Status: {response.status_code}, Data: {response.text[:200]}")
+            self.log_test("Dashboard Stats (491 Houses Check)", success, 
+                         f"Status: {response.status_code}, Houses: {data.get('stats', {}).get('houses', 'N/A')}")
             return success
         except Exception as e:
-            self.log_test("Dashboard Stats", False, str(e))
+            self.log_test("Dashboard Stats (491 Houses Check)", False, str(e))
             return False
 
     def test_bitrix24_connection(self):
