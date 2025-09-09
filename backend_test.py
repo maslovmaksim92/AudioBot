@@ -135,8 +135,8 @@ class VasDomAudioBotTester:
             return False
 
     def test_voice_feedback(self):
-        """Test POST /api/voice/feedback - User feedback system"""
-        print("\n🔍 Testing Voice Feedback System...")
+        """Test POST /api/voice/feedback - Rating system for learning improvement"""
+        print("\n🔍 Testing Voice Feedback System (Learning Ratings)...")
         
         if not self.test_log_id:
             self.log_test("Voice Feedback", False, "No log_id available from previous test")
@@ -145,7 +145,7 @@ class VasDomAudioBotTester:
         feedback_data = {
             "log_id": self.test_log_id,
             "rating": 5,
-            "feedback_text": "Отличный ответ! Очень полезно."
+            "feedback_text": "Отличный ответ! Очень полезная информация для клининговой компании."
         }
         
         success, data, status = self.make_request('POST', 'voice/feedback', feedback_data)
@@ -154,93 +154,96 @@ class VasDomAudioBotTester:
             has_success_field = 'success' in data
             is_successful = data.get('success', False)
             has_message = 'message' in data
+            will_be_used = data.get('will_be_used_for_training', False)
             
             overall_success = has_success_field and is_successful and has_message
-            self.log_test("Voice Feedback", overall_success, 
-                         f"Success: {is_successful}, Message: {data.get('message', '')[:50]}")
+            self.log_test("Voice Feedback (Learning Ratings)", overall_success, 
+                         f"Success: {is_successful}, Will train: {will_be_used}, Message: {data.get('message', '')[:50]}...")
             return overall_success
         else:
-            self.log_test("Voice Feedback", False, f"Status: {status}")
+            self.log_test("Voice Feedback (Learning Ratings)", False, f"Status: {status}")
             return False
 
-    def test_self_learning_status(self):
-        """Test GET /api/voice/self-learning/status - Self-learning system status"""
-        print("\n🔍 Testing Self-Learning Status...")
-        success, data, status = self.make_request('GET', 'voice/self-learning/status')
+    def test_learning_stats(self):
+        """Test GET /api/learning/stats - Live learning statistics"""
+        print("\n🔍 Testing Learning Statistics (Real-time Metrics)...")
+        success, data, status = self.make_request('GET', 'learning/stats')
         
         if success and status == 200:
-            required_fields = ['total_interactions', 'current_model']
+            required_fields = ['total_interactions', 'positive_ratings', 'negative_ratings', 'improvement_rate']
             has_required = all(field in data for field in required_fields)
             
             # Check if we have meaningful data
             total_interactions = data.get('total_interactions', 0)
-            current_model = data.get('current_model', '')
+            avg_rating = data.get('avg_rating')
+            improvement_rate = data.get('improvement_rate', 0)
             
             overall_success = has_required and isinstance(total_interactions, int)
-            self.log_test("Self-Learning Status", overall_success, 
-                         f"Interactions: {total_interactions}, Model: {current_model}")
+            self.log_test("Learning Statistics", overall_success, 
+                         f"Interactions: {total_interactions}, Avg rating: {avg_rating}, Improvement: {improvement_rate:.2f}")
             return overall_success
         else:
-            self.log_test("Self-Learning Status", False, f"Status: {status}")
+            self.log_test("Learning Statistics", False, f"Status: {status}")
             return False
 
-    def test_similar_responses(self):
-        """Test GET /api/voice/similar/{log_id} - Similar responses search"""
-        print("\n🔍 Testing Similar Responses Search...")
+    def test_learning_export(self):
+        """Test GET /api/learning/export - Export quality data for fine-tuning"""
+        print("\n🔍 Testing Learning Data Export (Quality Data)...")
+        success, data, status = self.make_request('GET', 'learning/export')
+        
+        if success and status == 200:
+            required_fields = ['total_exported', 'min_rating_used', 'data', 'export_timestamp']
+            has_required = all(field in data for field in required_fields)
+            
+            exported_data = data.get('data', [])
+            total_exported = data.get('total_exported', 0)
+            min_rating = data.get('min_rating_used', 0)
+            
+            # Check data format for fine-tuning
+            is_valid_format = True
+            if exported_data and len(exported_data) > 0:
+                sample = exported_data[0]
+                is_valid_format = 'messages' in sample and 'metadata' in sample
+            
+            overall_success = has_required and is_valid_format
+            self.log_test("Learning Data Export", overall_success, 
+                         f"Exported: {total_exported} conversations, Min rating: {min_rating}, Valid format: {is_valid_format}")
+            return overall_success
+        else:
+            self.log_test("Learning Data Export", False, f"Status: {status}")
+            return False
+
+    def test_similar_conversations(self):
+        """Test GET /api/learning/similar/{log_id} - Similar conversations search"""
+        print("\n🔍 Testing Similar Conversations Search...")
         
         if not self.test_log_id:
-            self.log_test("Similar Responses", False, "No log_id available from previous test")
+            self.log_test("Similar Conversations", False, "No log_id available from previous test")
             return False
         
-        success, data, status = self.make_request('GET', f'voice/similar/{self.test_log_id}?limit=3')
+        success, data, status = self.make_request('GET', f'learning/similar/{self.test_log_id}?limit=3')
         
         if success and status == 200:
-            # Should return a list (might be empty if no similar responses)
-            is_list = isinstance(data, list)
-            self.log_test("Similar Responses", is_list, 
-                         f"Found {len(data) if is_list else 0} similar responses")
-            return is_list
-        else:
-            self.log_test("Similar Responses", False, f"Status: {status}")
-            return False
-
-    def test_embeddings_update(self):
-        """Test POST /api/voice/embeddings/update - Batch embeddings update"""
-        print("\n🔍 Testing Embeddings Update...")
-        success, data, status = self.make_request('POST', 'voice/embeddings/update?batch_size=10')
-        
-        if success and status == 200:
-            # Should return processing results
-            has_result_info = any(key in data for key in ['success', 'processed', 'total_found'])
-            self.log_test("Embeddings Update", has_result_info, 
-                         f"Processed: {data.get('processed', 'N/A')}")
-            return has_result_info
-        else:
-            self.log_test("Embeddings Update", False, f"Status: {status}")
-            return False
-
-    def test_backward_compatibility(self):
-        """Test backward compatibility endpoints (MongoDB status checks)"""
-        print("\n🔍 Testing Backward Compatibility...")
-        
-        # Test creating a status check
-        status_data = {"client_name": "test_client"}
-        success, data, status = self.make_request('POST', 'status', status_data)
-        
-        if success and status == 200:
-            # Test getting status checks
-            success2, data2, status2 = self.make_request('GET', 'status')
+            required_fields = ['original_message', 'found_similar', 'similar_conversations']
+            has_required = all(field in data for field in required_fields)
             
-            if success2 and status2 == 200:
-                is_list = isinstance(data2, list)
-                self.log_test("Backward Compatibility", is_list, 
-                             f"Status checks: {len(data2) if is_list else 0}")
-                return is_list
-            else:
-                self.log_test("Backward Compatibility", False, f"GET status failed: {status2}")
-                return False
+            original_message = data.get('original_message', '')
+            found_similar = data.get('found_similar', 0)
+            similar_conversations = data.get('similar_conversations', [])
+            
+            # Validate structure of similar conversations
+            is_valid_structure = True
+            if similar_conversations and len(similar_conversations) > 0:
+                sample = similar_conversations[0]
+                expected_fields = ['log_id', 'user_message', 'ai_response', 'rating', 'timestamp']
+                is_valid_structure = all(field in sample for field in expected_fields)
+            
+            overall_success = has_required and isinstance(found_similar, int)
+            self.log_test("Similar Conversations Search", overall_success, 
+                         f"Original: '{original_message[:30]}...', Found: {found_similar}, Valid structure: {is_valid_structure}")
+            return overall_success
         else:
-            self.log_test("Backward Compatibility", False, f"POST status failed: {status}")
+            self.log_test("Similar Conversations Search", False, f"Status: {status}")
             return False
 
     def run_comprehensive_test(self):
