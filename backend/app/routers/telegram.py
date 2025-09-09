@@ -50,6 +50,18 @@ async def telegram_webhook(
         if text.lower().startswith('/задача ') or text.lower().startswith('/task '):
             return await handle_bitrix_task_creation(text, chat_id, user_name)
         
+        # Команда для получения информации о бригадах
+        elif text.lower() in ['/бригады', '/brigades', '/help']:
+            return await handle_brigades_info(chat_id)
+        
+        # Команда для получения статистики
+        elif text.lower() in ['/статистика', '/stats']:
+            return await handle_statistics(chat_id)
+        
+        # Команда для получения списка домов
+        elif text.lower().startswith('/дома') or text.lower().startswith('/houses'):
+            return await handle_houses_list(chat_id)
+        
         # Обычный AI ответ
         ai_response = await ai_service.process_message(text, f"telegram_{chat_id}")
         
