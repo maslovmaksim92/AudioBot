@@ -745,6 +745,7 @@ async def get_self_learning_status():
         }
 
 @api_router.post("/telegram/webhook")
+@app.post("/telegram/webhook")  # Добавляем маршрут на корневой уровень тоже
 async def telegram_webhook(update: dict):
     """Telegram webhook endpoint"""
     try:
