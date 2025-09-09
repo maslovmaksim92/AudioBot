@@ -1,61 +1,79 @@
 <analysis>
-The trajectory details the previous AI engineer's intensive development on the VasDom AudioBot, primarily focusing on a significant enhancement of the Bitrix24 integration and the corresponding frontend Houses Management page. Initial efforts resolved discrepancies in the number of houses loaded from Bitrix24 by correctly identifying and configuring the Bitrix24 category ID (34) and updating frontend state. Subsequently, the engineer incorporated comprehensive house details (e.g., apartments, floors, cleaning schedules, real management companies, Google Maps addresses) using specific Bitrix24 field IDs provided by the user. This involved extensive modifications to the FastAPI backend models and services. Concurrently, a new, creative React frontend component () was developed to display these details with advanced filtering, a calendar, data export, and a modern UI, ensuring automated tests passed. While a navigation issue to this new frontend page was observed, the core feature implementation was declared complete and thoroughly tested.
+The AI engineer's work on the VasDom AudioBot commenced by addressing user-reported code quality and stability issues. This included fixing an  validation flaw in , refining exception handling in  to return HTTP 500s, adding missing newlines, and resolving a frontend navigation bug. After these foundational fixes, the engineer focused on implementing new WOW features: integrating a user-provided logo, making addresses clickable to Google Maps, and adding a backend endpoint and frontend button for Create House in Bitrix24. Lastly, the engineer tackled a critical issue regarding incorrect management company (УК) and assigned personnel data from Bitrix24, updating the backend to use specific Bitrix24 fields and replace old derivation logic. However, the latest test indicates that the real Bitrix24 fields for UK and assigned personnel are still not being correctly retrieved, necessitating further debugging.
 </analysis>
 
 <product_requirements>
-The VasDom AudioBot is an AI-powered business management application for a cleaning and construction company, integrating with Bitrix24 CRM to manage multi-apartment buildings and cleaning brigades. Key implemented features include a FastAPI backend, React frontend, PostgreSQL database (with Alembic), voice features, AI (Emergent LLM), a dashboard, and a Telegram bot, all deployed on Render.
+The VasDom AudioBot is an AI-powered business management application for a cleaning and construction company, designed to integrate with Bitrix24 CRM for managing multi-apartment buildings and cleaning brigades. Key existing features include a FastAPI backend, React frontend, PostgreSQL with Alembic, voice features, AI (Emergent LLM), a dashboard, and a Telegram bot.
 
-The primary focus of the recent work was enhancing the Bitrix24 integration for Houses Management. This involved:
-1.  **Correctly loading 490 houses** from Bitrix24 (not the initial 348), by identifying the accurate Bitrix24 category (ID 34).
-2.  **Integrating detailed house information**: Including apartments, floors, entrances, tariffs, real Google Maps addresses, and multi-month cleaning schedules using specific Bitrix24 field IDs.
-3.  **Loading real management companies**: Over 20 distinct companies for official correspondence.
-4.  **Implementing advanced filters**: For address, brigades, cleaning weeks, months, and management companies.
-5.  **Developing a visually appealing Houses Management (Works) page**: Featuring the РЯДОМ logo, gradient designs, a calendar, CSV export, sorting, view toggling, and responsive design.
-6.  **Ensuring dashboard accuracy**: Reflecting the correct house counts and statistics.
+The immediate past work focused on enhancing Houses Management by correctly loading 490 houses from Bitrix24 (Category ID 34), integrating detailed house information (apartments, floors, addresses, tariffs, multi-month cleaning schedules with specific Bitrix24 field IDs), loading 29 real management companies, and implementing advanced filters. A visually appealing Houses Management (Works) page was developed with a РЯДОМ logo, gradient designs, a calendar, CSV export, sorting, and view toggling, with an emphasis on dashboard accuracy.
+
+Recent user requests included making the Houses Management section more visually engaging (ВАУ функционал), integrating a provided logo, making addresses clickable to open Google Maps, and adding a Create House button that creates an entry in Bitrix24, with address as the sole mandatory field. Subsequent feedback highlighted issues with incorrect management company data and the use of  URLs, requiring the system to correctly map Bitrix24's , , , and  fields, and to derive brigade names from responsible personnel.
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, Python-dotenv, SQLAlchemy, Databases (asyncpg), PostgreSQL, Alembic, Pydantic (v2 ).
--   **Frontend**: React.js, React Router, React Context, Tailwind CSS, Web Speech API.
--   **Integrations**: Bitrix24 CRM, Emergent LLM (GPT-4 mini), Telegram Bot API.
--   **Deployment**: Render (Procfile, render.yaml), Supervisor.
--   **Testing**: Pytest (backend), Automated frontend testing.
+- **Backend**: FastAPI, Python-dotenv, PostgreSQL, Alembic, Pydantic (v2 ).
+- **Frontend**: React.js, React Router, React Context, Tailwind CSS.
+- **Integrations**: Bitrix24 CRM API, Emergent LLM (GPT-4 mini), Telegram Bot API.
+- **Deployment**: Render (Procfile, render.yaml), Supervisor.
+- **Testing**: Pytest, Automated frontend testing (Playwright).
 </key_technical_concepts>
 
 <code_architecture>
 The application employs a modular full-stack architecture.
 
-**File Specific Changes Summary:**
--   **/app/backend/app/models/schemas.py**: Crucial for defining data structures. The  Pydantic model was significantly expanded to include new fields like , , , , , , and detailed  objects for cleaning schedules across multiple months (Sept-Dec). A new  model was also introduced.
--   **/app/backend/app/services/bitrix_service.py**: Central to Bitrix24 integration. This file underwent extensive modifications to correctly fetch 490 houses by removing status filters, setting the  to , and updating deal retrieval to map specific Bitrix24 custom field IDs (e.g.,  for ) to the expanded  model. It also handles the retrieval of 29 real management companies.
--   **/app/backend/app/routers/cleaning.py**: Defines API endpoints for house management. Modified to integrate the new  model, provide  for all new filter types (brigades, weeks, months, companies),  for page-specific dashboard data, and enhanced filtering logic within  endpoint. Debugging endpoints like  and  were temporarily added.
--   **/app/frontend/src/context/AppContext.js**: Manages global React state. Its  was updated to  for house and entrance counts to prevent hardcoding and ensure dynamic loading from the API.
--   **/app/frontend/src/components/Works/Works.js**: This is the Houses Management page. It was completely rewritten multiple times to implement the creative UI/UX, including the РЯДОМ logo, gradient designs, dashboard cards, a large interactive calendar, and all 6 types of advanced filters. It integrates API calls via  and handles data display, sorting, CSV export, and view toggling.
+   - :
+      - Summary: Defines Pydantic data models for API requests and responses.
+      - Changes: Expanded  model with detailed fields (e.g., apartments, floors, schedules). A new  was introduced for Bitrix24 house creation, requiring an .
+   - :
+      - Summary: Centralized service for Bitrix24 CRM API interactions.
+      - Changes: Modified to fetch 490 houses from . Updated deal retrieval to map specific Bitrix24 custom field IDs for house details and cleaning schedules. Added a  method. Recently,  fields were updated to include , , , ,  for accurate management company and responsible person data.
+   - :
+      - Summary: FastAPI router handling API endpoints for house management and cleaning.
+      - Changes: Integrated the new  model and enhanced filtering. Added a new POST endpoint  for creating houses in Bitrix24. The logic for deriving  and  was updated to use the newly fetched Bitrix24  and  fields, replacing previous heuristic-based extraction.
+   - :
+      - Summary: Provides security utilities, specifically API key validation.
+      - Changes: Corrected the  function to properly extract and validate the  header, fixing a security bypass.
+   - :
+      - Summary: Defines endpoints for voice message processing.
+      - Changes: Replaced a general  with  to prevent masking errors and provide clearer API responses for internal server errors.
+   - :
+      - Summary: Manages PostgreSQL database connection settings.
+      - Changes: Minor stylistic improvements, breaking long lines for better code readability.
+   - :
+      - Summary: Manages global state for the React application.
+      - Changes: The  for house and entrance counts was updated to  to ensure dynamic loading from the API.
+   - :
+      - Summary: Centralized service for making all API calls from the frontend.
+      - Changes: Updated to consistently use  from environment variables, replacing any  fallbacks with the production Render URL.
+   - :
+      - Summary: The Houses Management page, a key frontend component.
+      - Changes: Completely refactored multiple times. The initial version integrated a creative UI with РЯДОМ logo, gradient designs, dashboard cards, an interactive calendar, advanced filters, CSV export, sorting, and view toggling. Later, it was enhanced with clickable Google Maps addresses, a Create House button, and various WOW visual features (e.g., 3D animations).
+   - :
+      - Summary: Frontend environment variables, including the backend URL.
+      - Changes: Ensured  accurately reflects the Render deployment URL ().
+   - :
+      - Summary: A new markdown file providing detailed instructions for deploying the application to Render.
+      - Changes: Created as a final documentation step after significant feature implementation and fixes.
 </code_architecture>
 
 <pending_tasks>
--   **Alembic Migration Verification**: Actual execution and verification of Alembic migrations on a live PostgreSQL database needs to be confirmed.
--   **Comprehensive Test Coverage**: A full review and implementation of unit and integration tests are required for all newly introduced features beyond the automated tests performed.
--   **Bitrix24 PDF Integration**: Specific instructions from the unreadable  regarding Bitrix24 integration were not applied.
--   **Phase 2.1: Full Telegram Bot**: Implement additional Telegram bot functionalities as outlined in the future development plan.
+- **Alembic Migration Verification**: Actual execution and verification of Alembic migrations on a live PostgreSQL database.
+- **Comprehensive Test Coverage**: Full review and implementation of unit and integration tests for newly introduced features.
+- **Bitrix24 PDF Integration**: Application of specific instructions from .
+- **Phase 2.1: Full Telegram Bot**: Implement additional Telegram bot functionalities.
+- **Unify Service Initialization**: Move service creation in  into functions or inject via .
 </pending_tasks>
 
 <current_work>
-Immediately prior to this summary request, the previous AI engineer successfully completed a comprehensive enhancement of the Houses Management feature within the VasDom AudioBot application. This involved a deep integration with Bitrix24 CRM to accurately fetch and display detailed house data, and a complete overhaul of the corresponding React frontend page.
+Immediately prior to this summary, the AI engineer was addressing user-reported issues regarding incorrect management company (УК) data and the presence of  URLs.
 
-Key achievements include:
--   **Corrected Bitrix24 Data Fetching**: The application now correctly loads 490 houses (previously 348) from Bitrix24 by accurately targeting  and removing extraneous status filters.
--   **Enriched House Data**: The  Pydantic model and backend services have been updated to retrieve and process extensive details from Bitrix24, including real Google Maps addresses (), accurate apartment, floor, and entrance counts, tariff information, and cleaning schedules for September, October, November, and December 2025 using their specific Bitrix24 field IDs.
--   **Real Management Companies**: The system now loads and displays 29 real management companies, addressing a user requirement for more than 20 for communication purposes.
--   **Advanced Filtering and UI/UX**: The  component was entirely refactored to provide a creative and functional Houses Management page. This includes:
-    -   **Visual Enhancements**: Integration of the РЯДОМ logo, gradient headers, colored dashboard cards, hover effects on house cards, and a modern, responsive design.
-    -   **Comprehensive Filters**: Six types of filters implemented: search by address, filtering by 6 brigades, 5 cleaning weeks, 4 months (Sept-Dec), 29 management companies, and a schedule month selector.
-    -   **Interactive Features**: A large, interactive calendar modal displaying highlighted cleaning days, CSV data export functionality, sorting options (by address, apartments, entrances, УК), and a view toggle (cards/table).
--   **Dashboard Integration**: Relevant statistics (total houses, apartments, entrances, floors, average metrics) are now displayed directly on the Houses Management page.
+The  URL issue was resolved by ensuring the  in  points to the correct Render deployment URL (). Additionally, hardcoded  references within  and  were updated to use the Render URL. This ensures the frontend correctly communicates with the deployed backend.
 
-All backend API endpoints and frontend components have undergone automated testing, confirming the correct data retrieval, filtering, and rendering, making the system COMPLETE AND PRODUCTION READY! The only noted outstanding technical observation was a persistent frontend navigation issue from the main dashboard to the Houses Management page, which was explicitly set aside as a separate concern.
+For the management company data issue, the backend was updated. In , new fields (, , , , ) were added to the  array for fetching deals from Bitrix24. Subsequently, the logic in  was modified to extract the  directly from  and to determine the  from the  fields, replacing previous logic that heuristically derived these values (e.g., from house address).
+
+However, a recent test using  to the  endpoint revealed that despite these changes, the  and  fields in the returned  objects were still empty or incorrect. This indicates that the Bitrix24 API might not be returning the expected data for these specific fields, or their field IDs might be different, or they might require separate API calls. The engineer's last action was to investigate the raw Bitrix24 response to understand why these fields are not being correctly populated.
 </current_work>
 
 <optional_next_step>
-Verify Bitrix24 field IDs with production data.
+Inspect the raw Bitrix24 API response to debug why the  and  fields are not being correctly retrieved for management companies and assigned personnel.
 </optional_next_step>

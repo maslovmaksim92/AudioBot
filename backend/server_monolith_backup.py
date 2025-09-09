@@ -451,13 +451,13 @@ ai = AdvancedAI()
 @app.get("/", response_class=HTMLResponse)  
 async def root_redirect():
     """Redirect root to React dashboard"""
-    return RedirectResponse(url="https://vasdom-houses.preview.emergentagent.com", status_code=302)
+    return RedirectResponse(url="https://crm-connector-2.preview.emergentagent.com", status_code=302)
 
 @app.get("/dashbord", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_redirect():
     """Redirect to React VasDom AudioBot Dashboard"""
-    return RedirectResponse(url="https://vasdom-houses.preview.emergentagent.com", status_code=302)
+    return RedirectResponse(url="https://crm-connector-2.preview.emergentagent.com", status_code=302)
 
 # API Routes
 api_router = APIRouter(prefix="/api")
