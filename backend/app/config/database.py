@@ -56,10 +56,9 @@ async def init_database():
             await database.connect()
             logger.info("✅ PostgreSQL connected successfully")
             
-            # Create tables
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            logger.info("✅ Database tables created")
+            # Tables creation is now handled by Alembic migrations
+            # Use 'alembic upgrade head' to create/update tables
+            logger.info("ℹ️ Database tables managed by Alembic migrations")
             
             return True
         else:
