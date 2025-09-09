@@ -36,18 +36,18 @@ const AppRouter = () => {
   const CurrentComponent = sectionComponents[currentSection] || Dashboard;
 
   return (
-    &lt;Layout&gt;
-      &lt;React.Suspense 
+    <Layout>
+      <React.Suspense 
         fallback={
-          &lt;div className="flex justify-center items-center h-64"&gt;
-            &lt;div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"&gt;&lt;/div&gt;
-            &lt;span className="ml-2 text-gray-600"&gt;Загрузка...&lt;/span&gt;
-          &lt;/div&gt;
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Загрузка...</span>
+          </div>
         }
-      &gt;
-        &lt;CurrentComponent /&gt;
-      &lt;/React.Suspense&gt;
-    &lt;/Layout&gt;
+      >
+        <CurrentComponent />
+      </React.Suspense>
+    </Layout>
   );
 };
 
