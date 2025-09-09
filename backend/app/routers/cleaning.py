@@ -9,6 +9,67 @@ from ..config.settings import BITRIX24_WEBHOOK_URL
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["cleaning"])
 
+@router.get("/cleaning/houses/test", response_model=dict)
+async def get_test_houses():
+    """Быстрый тест нескольких домов с полной интеграцией"""
+    try:
+        logger.info("🧪 Тестирование нескольких домов с полными данными...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Получаем только первые 3 дома для быстрого тестирования
+        all_deals = await bitrix.get_deals(limit=None)
+        test_deals = all_deals[:3]  # Берем только первые 3
+        
+        houses = []
+        for deal in test_deals:
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            
+            # Получаем реальные данные УК и ответственного из Bitrix24
+            real_company_title = deal.get('COMPANY_TITLE', '')
+            assigned_name = deal.get('ASSIGNED_BY_NAME', '')
+            assigned_second_name = deal.get('ASSIGNED_BY_SECOND_NAME', '')
+            assigned_last_name = deal.get('ASSIGNED_BY_LAST_NAME', '')
+            
+            # Формируем полное имя ответственного
+            responsible_full_name = f"{assigned_name} {assigned_second_name} {assigned_last_name}".strip()
+            
+            # Определяем бригаду по имени ответственного
+            brigade_info = _get_brigade_by_responsible_name(assigned_name) if assigned_name else bitrix.analyze_house_brigade(address)
+            
+            # Используем реальное название УК из API или fallback по адресу
+            if real_company_title:
+                management_company_name = real_company_title
+            else:
+                management_company_name = _get_management_company(address)
+            
+            house_data = {
+                'address': address,
+                'deal_id': deal_id,
+                'management_company': management_company_name,
+                'brigade': brigade_info,
+                'assigned_by_id': deal.get('ASSIGNED_BY_ID'),
+                'company_id': deal.get('COMPANY_ID'),
+                'real_company_title': real_company_title,
+                'responsible_full_name': responsible_full_name,
+                'test_data': True
+            }
+            
+            houses.append(house_data)
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "message": "Тестовые данные с полной интеграцией",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Test houses error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/houses", response_model=dict)
 async def get_cleaning_houses(
     limit: Optional[int] = None,
