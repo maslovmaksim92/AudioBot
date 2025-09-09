@@ -184,17 +184,32 @@ def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Opti
     }
 
 def _extract_weeks(dates: List[str]) -> List[int]:
-    """Извлечение номеров недель из дат"""
+    """Извлечение номеров недель из дат (поддерживает ISO и DD.MM.YYYY форматы)"""
     weeks = set()
     for date_str in dates:
         try:
-            day, month, year = date_str.split('.')
-            from datetime import date
-            date_obj = date(int(year), int(month), int(day))
-            # Определяем неделю месяца (1-5)
-            week_of_month = ((date_obj.day - 1) // 7) + 1
-            weeks.add(week_of_month)
-        except (ValueError, IndexError):
+            # Очищаем строку от лишних символов
+            clean_date = date_str.strip().strip("'[]")
+            
+            # Проверяем формат даты
+            if 'T' in clean_date and ':' in clean_date:
+                # ISO формат: 2025-09-16T03:00:00+03:00
+                from datetime import datetime
+                date_obj = datetime.fromisoformat(clean_date)
+                # Определяем неделю месяца (1-5)
+                week_of_month = ((date_obj.day - 1) // 7) + 1
+                weeks.add(week_of_month)
+            elif '.' in clean_date and len(clean_date.split('.')) == 3:
+                # DD.MM.YYYY формат
+                day, month, year = clean_date.split('.')
+                from datetime import date
+                date_obj = date(int(year), int(month), int(day))
+                # Определяем неделю месяца (1-5)
+                week_of_month = ((date_obj.day - 1) // 7) + 1
+                weeks.add(week_of_month)
+        except (ValueError, IndexError, TypeError) as e:
+            # Логируем проблемные даты для отладки
+            print(f"⚠️ Cannot parse date: {date_str} - {e}")
             continue
     return sorted(list(weeks))
 
