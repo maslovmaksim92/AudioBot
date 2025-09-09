@@ -236,10 +236,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Dashboard API - 491 houses display"
     - "Self-Learning System (PostgreSQL)"
   stuck_tasks:
-    - "Dashboard API - 491 houses display"
     - "Self-Learning System (PostgreSQL)"
   test_all: false
   test_priority: "high_first"
