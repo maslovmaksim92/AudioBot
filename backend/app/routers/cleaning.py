@@ -109,3 +109,51 @@ async def get_cleaning_stats():
     except Exception as e:
         logger.error(f"❌ Cleaning stats error: {e}")
         return {"status": "error", "message": str(e)}
+
+@router.get("/bitrix24/test")
+async def test_bitrix24_integration():
+    """Тест интеграции с Bitrix24"""
+    try:
+        logger.info("🔧 Testing Bitrix24 integration...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)  
+        deals = await bitrix.get_deals(limit=3)  # Тестируем на 3 домах
+        
+        if deals and len(deals) > 0:
+            test_results = {
+                "status": "success",
+                "webhook_url": BITRIX24_WEBHOOK_URL[:50] + "..." if len(BITRIX24_WEBHOOK_URL) > 50 else BITRIX24_WEBHOOK_URL,
+                "connection": "✅ Connected",
+                "sample_deals": len(deals),
+                "sample_data": [
+                    {
+                        "id": deal.get('ID'),
+                        "title": deal.get('TITLE', ''),
+                        "stage": deal.get('STAGE_ID', ''),
+                        "created": deal.get('DATE_CREATE', '')
+                    } for deal in deals[:2]  # Показываем только первые 2
+                ],
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            logger.info(f"✅ Bitrix24 test successful: {len(deals)} deals loaded")
+            return test_results
+            
+        else:
+            return {
+                "status": "error",
+                "webhook_url": "configured" if BITRIX24_WEBHOOK_URL else "not_configured",
+                "connection": "❌ No data received",
+                "message": "Bitrix24 вернул пустой результат",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Bitrix24 test error: {e}")
+        return {
+            "status": "error",
+            "webhook_url": "error" if BITRIX24_WEBHOOK_URL else "not_configured", 
+            "connection": "❌ Connection failed",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
