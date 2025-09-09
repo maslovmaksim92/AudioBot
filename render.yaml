@@ -12,7 +12,7 @@ services:
       
       # Install Node.js dependencies and build frontend
       cd frontend && yarn install && yarn build
-    startCommand: uvicorn main:app --host=0.0.0.0 --port=$PORT
+    startCommand: uvicorn deploy.main:app --host=0.0.0.0 --port=$PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
