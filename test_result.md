@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Улучшение кода VasDom AudioBot: 1. CORS origins - ограничить и читать из переменных окружения, 2. Telegram webhook validation - добавить Pydantic модели, 3. Authentication - добавить безопасность для публичных API, 4. CRM data centralization - централизовать получение данных, 5. Telegram error handling - обрабатывать ошибки отправки, 6. Database migrations - подключить Alembic, 7. Frontend redirect URLs - вынести в конфигурацию, 8. README expansion - расширить документацию. Все улучшения должны сохранить работающий функционал приложения."
+user_problem_statement: "Декомпозиция React frontend VasDom AudioBot: разбить App.js (1200+ строк) на модульные компоненты (Dashboard, Statistics, AIChat, Settings), внедрить React Context для state management, добавить React Router для навигации, создать переиспользуемые UI компоненты. Новая архитектура должна сохранить всю функциональность и улучшить maintainability."
 
 backend:
   - task: "Modular Architecture Implementation"
