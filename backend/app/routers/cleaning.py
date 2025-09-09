@@ -172,8 +172,8 @@ async def get_cleaning_filters():
             brigades.add(brigade_info)
             
             # Извлекаем дни уборки
-            cleaning_date_1_str = deal.get('UF_CRM_1726148261', '')
-            cleaning_date_2_str = deal.get('UF_CRM_1726148299', '')
+            cleaning_date_1_str = deal.get('UF_CRM_CLEANING_DATE_1', '')
+            cleaning_date_2_str = deal.get('UF_CRM_CLEANING_DATE_2', '')
             
             dates = _parse_dates(cleaning_date_1_str) + _parse_dates(cleaning_date_2_str)
             weekdays = _extract_weekdays(dates)
