@@ -153,18 +153,18 @@ class BitrixService:
     async def _enrich_deal_with_external_data(self, deal: Dict[str, Any]) -> Dict[str, Any]:
         """Обогащение сделки данными из отдельных API вызовов"""
         
-        # Получаем данные пользователя
+        # Получаем данные пользователя только если есть ASSIGNED_BY_ID
         assigned_by_id = deal.get('ASSIGNED_BY_ID')
-        if assigned_by_id:
+        if assigned_by_id and str(assigned_by_id) != '0':
             user_info = await self._get_user_info(assigned_by_id)
             if user_info:
                 deal['ASSIGNED_BY_NAME'] = user_info.get('NAME', '')
                 deal['ASSIGNED_BY_LAST_NAME'] = user_info.get('LAST_NAME', '')
                 deal['ASSIGNED_BY_SECOND_NAME'] = user_info.get('SECOND_NAME', '')
         
-        # Получаем данные компании
+        # Получаем данные компании только если есть COMPANY_ID
         company_id = deal.get('COMPANY_ID')
-        if company_id:
+        if company_id and str(company_id) != '0':
             company_info = await self._get_company_info(company_id)
             if company_info:
                 deal['COMPANY_TITLE'] = company_info.get('TITLE', '')
