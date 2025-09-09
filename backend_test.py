@@ -61,58 +61,41 @@ class VasDomAudioBotTester:
         except Exception as e:
             return False, {"error": str(e)}, 0
 
-    def test_api_root(self):
-        """Test GET /api/ - API information"""
-        print("\n🔍 Testing API Root Endpoint...")
-        success, data, status = self.make_request('GET', '')
+    def test_root_endpoint(self):
+        """Test GET / - Main application info"""
+        print("\n🔍 Testing Root Endpoint...")
+        success, data, status = self.make_request('GET', '', endpoint_override=self.base_url)
         
         if success and status == 200:
-            expected_keys = ['message', 'features', 'endpoints']
+            expected_keys = ['name', 'version', 'features', 'stats']
             has_expected_structure = all(key in data for key in expected_keys)
-            self.log_test("API Root", has_expected_structure, 
-                         f"Status: {status}, Features: {len(data.get('features', []))}")
-            return has_expected_structure
+            is_v3 = data.get('version') == '3.0.0'
+            self.log_test("Root Endpoint", has_expected_structure and is_v3, 
+                         f"Version: {data.get('version')}, Features: {len(data.get('features', []))}")
+            return has_expected_structure and is_v3
         else:
-            self.log_test("API Root", False, f"Status: {status}, Error: {data.get('error', 'Unknown')}")
+            self.log_test("Root Endpoint", False, f"Status: {status}, Error: {data.get('error', 'Unknown')}")
             return False
 
-    def test_general_health(self):
-        """Test GET /api/health - General system health"""
-        print("\n🔍 Testing General Health Check...")
+    def test_health_check(self):
+        """Test GET /api/health - System health with AI services"""
+        print("\n🔍 Testing Health Check...")
         success, data, status = self.make_request('GET', 'health')
         
         if success and status == 200:
-            has_status = 'status' in data
-            has_components = 'components' in data
-            is_healthy = data.get('status') in ['healthy', 'degraded']
+            has_status = 'status' in data and data['status'] == 'healthy'
+            has_services = 'services' in data
+            has_learning_data = 'learning_data' in data
             
-            overall_success = has_status and has_components and is_healthy
-            self.log_test("General Health", overall_success, 
-                         f"Status: {data.get('status')}, Components: {len(data.get('components', {}))}")
+            services = data.get('services', {})
+            learning_data = data.get('learning_data', {})
+            
+            overall_success = has_status and has_services and has_learning_data
+            self.log_test("Health Check", overall_success, 
+                         f"Status: {data.get('status')}, LLM: {services.get('emergent_llm')}, Embeddings: {services.get('embeddings')}")
             return overall_success
         else:
-            self.log_test("General Health", False, f"Status: {status}")
-            return False
-
-    def test_voice_health(self):
-        """Test GET /api/voice/health - Voice service health"""
-        print("\n🔍 Testing Voice Service Health...")
-        success, data, status = self.make_request('GET', 'voice/health')
-        
-        if success and status == 200:
-            has_components = 'components' in data
-            components = data.get('components', {})
-            
-            # Check for expected components
-            expected_components = ['ai_service', 'embedding_service', 'database']
-            has_expected = all(comp in components for comp in expected_components)
-            
-            overall_success = has_components and has_expected
-            self.log_test("Voice Health", overall_success, 
-                         f"AI: {components.get('ai_service')}, Embedding: {components.get('embedding_service')}")
-            return overall_success
-        else:
-            self.log_test("Voice Health", False, f"Status: {status}")
+            self.log_test("Health Check", False, f"Status: {status}")
             return False
 
     def test_voice_process(self):
