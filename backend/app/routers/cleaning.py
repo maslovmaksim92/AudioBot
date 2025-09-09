@@ -36,6 +36,7 @@ async def get_cleaning_houses(
             status_text, status_color = bitrix.get_status_info(stage_id)
             
             # Извлекаем данные из Bitrix24 с правильными полями
+            house_address = deal.get('UF_CRM_1669561599956', '') or address  # Адрес дома
             apartments_count = _parse_int(deal.get('UF_CRM_1669704529022'))
             entrances_count = _parse_int(deal.get('UF_CRM_1669705507390'))
             floors_count = _parse_int(deal.get('UF_CRM_1669704631166'))
