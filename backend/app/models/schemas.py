@@ -41,12 +41,11 @@ class DashboardStats(BaseModel):
     won_houses: Optional[int] = 0
     problem_houses: Optional[int] = 0
 
-class CleaningSchedule(BaseModel):
+class MonthlySchedule(BaseModel):
     cleaning_date_1: Optional[List[str]] = None  # Даты первого типа уборки
     cleaning_type_1: Optional[str] = None        # Тип уборки 1
     cleaning_date_2: Optional[List[str]] = None  # Даты второго типа уборки  
     cleaning_type_2: Optional[str] = None        # Тип уборки 2
-    frequency: Optional[str] = None              # Периодичность (например "2 // 140")
 
 class House(BaseModel):
     address: str
@@ -59,14 +58,23 @@ class House(BaseModel):
     opportunity: Optional[str] = None
     last_sync: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     
-    # Расширенная информация о доме
+    # Основная информация о доме
     apartments_count: Optional[int] = None       # Количество квартир
     floors_count: Optional[int] = None           # Количество этажей  
     entrances_count: Optional[int] = None        # Количество подъездов
-    tariff: Optional[str] = None                 # Тариф
+    tariff: Optional[str] = None                 # Тариф/периодичность
     
-    # График уборки на сентябрь 2025
-    september_schedule: Optional[CleaningSchedule] = None
+    # Управляющая компания и ответственные
+    assigned_by_id: Optional[str] = None         # Ответственный
+    company_id: Optional[str] = None             # Управляющая компания
+    
+    # Графики уборки по месяцам
+    september_schedule: Optional[MonthlySchedule] = None
+    october_schedule: Optional[MonthlySchedule] = None
+    november_schedule: Optional[MonthlySchedule] = None
+    december_schedule: Optional[MonthlySchedule] = None
     
     # Дополнительные поля для фильтрации
-    cleaning_days: Optional[List[str]] = None    # Дни недели уборки для фильтра
+    cleaning_weeks: Optional[List[int]] = None   # Недели уборки (1,2,3,4,5)
+    cleaning_days: Optional[List[str]] = None    # Дни недели уборки
+    management_company: Optional[str] = None     # Название управляющей компании
