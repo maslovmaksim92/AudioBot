@@ -4,7 +4,7 @@
 """
 import numpy as np
 import pickle
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 import logging
