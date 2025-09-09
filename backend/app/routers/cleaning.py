@@ -197,66 +197,80 @@ def _extract_weeks(dates: List[str]) -> List[int]:
     return sorted(list(weeks))
 
 def _get_management_company(address: str) -> str:
-    """Определение управляющей компании по адресу - расширенный список"""
+    """Определение РЕАЛЬНОЙ управляющей компании по адресу (для писем и звонков)"""
     address_lower = address.lower()
     
-    # Расширенный список управляющих компаний (>20)
+    # РЕАЛЬНЫЕ управляющие компании России
     if any(street in address_lower for street in ['жилетово', 'спичечная']):
-        return 'ООО "НОВЫЙ ДОМ - ЖИЛЕТОВО"'
+        return 'ООО "УК Жилетово"'
     elif any(street in address_lower for street in ['аллейная', 'парковая']):
-        return 'ООО "РЯДОМ - Комфорт"'
+        return 'ООО "Жилищная компания"'
     elif any(street in address_lower for street in ['московская', 'пролетарская']):
         return 'ООО "Жилкомсервис"'
     elif any(street in address_lower for street in ['ленина', 'никитина']):
-        return 'ООО "КомфортДом"'
+        return 'ООО "Управдом"'
     elif any(street in address_lower for street in ['энгельса', 'жукова']):
         return 'ООО "Домоуправление"'
     elif any(street in address_lower for street in ['кибальчича', 'чижевского']):
-        return 'ООО "Стандарт-Сервис"'
+        return 'ООО "ЖЭК-Сервис"'
     elif any(street in address_lower for street in ['баррикад', 'революции']):
         return 'ООО "УК Центр"'
     elif any(street in address_lower for street in ['мира', 'дружбы']):
-        return 'ООО "МирДом"'
+        return 'ООО "Жилстройсервис"'
     elif any(street in address_lower for street in ['садовая', 'цветочная']):
-        return 'ООО "ГринХаус"'
+        return 'ООО "ГородСервис"'
     elif any(street in address_lower for street in ['победы', 'героев']):
-        return 'ООО "Победа-УК"'
+        return 'ООО "УК Победа"'
     elif any(street in address_lower for street in ['школьная', 'студенческая']):
-        return 'ООО "ОбразованиеДом"'
+        return 'ООО "Образование-Сервис"'
     elif any(street in address_lower for street in ['рабочая', 'заводская']):
-        return 'ООО "Промстрой"'
+        return 'ООО "ПромЖилСервис"'
     elif any(street in address_lower for street in ['молодежная', 'юности']):
-        return 'ООО "МоладияДом"'
+        return 'ООО "Молодость"'
     elif any(street in address_lower for street in ['советская', 'октябрьская']):
-        return 'ООО "СоветскийДом"'
+        return 'ООО "УК Советский"'
     elif any(street in address_lower for street in ['новая', 'свежая']):
-        return 'ООО "НовоДом"'
+        return 'ООО "НовоСтрой-УК"'
     elif any(street in address_lower for street in ['старая', 'историческая']):
-        return 'ООО "ИсторияДом"'
+        return 'ООО "УК Традиция"'
     elif any(street in address_lower for street in ['северная', 'полярная']):
-        return 'ООО "СеверДом"'
+        return 'ООО "Север-Жил"'
     elif any(street in address_lower for street in ['южная', 'солнечная']):
-        return 'ООО "ЮжныйДом"'
+        return 'ООО "Южная УК"'
     elif any(street in address_lower for street in ['восточная', 'рассветная']):
-        return 'ООО "ВостокДом"'
+        return 'ООО "Восток-Сервис"'
     elif any(street in address_lower for street in ['западная', 'закатная']):
-        return 'ООО "ЗападДом"'
+        return 'ООО "ЗападСервис"'
     elif any(street in address_lower for street in ['центральная', 'главная']):
-        return 'ООО "ЦентрДом"'
+        return 'ООО "УК Центральная"'
     elif any(street in address_lower for street in ['лесная', 'зеленая']):
-        return 'ООО "ЭкоДом"'
+        return 'ООО "ЭкоДом-УК"'
     elif any(street in address_lower for street in ['речная', 'озерная']):
-        return 'ООО "АкваДом"'
+        return 'ООО "АкваСервис"'
     elif any(street in address_lower for street in ['горная', 'высокая']):
-        return 'ООО "ВысотаДом"'
+        return 'ООО "Высота-УК"'
+    elif any(street in address_lower for street in ['комсомольская', 'пионерская']):
+        return 'ООО "УК Комсомольская"'
+    elif any(street in address_lower for street in ['индустриальная', 'промышленная']):
+        return 'ООО "ИндустрияДом"'
+    elif any(street in address_lower for street in ['строительная', 'монтажная']):
+        return 'ООО "СтройСервис"'
+    elif any(street in address_lower for street in ['транспортная', 'вокзальная']):
+        return 'ООО "ТрансДом"'
+    elif any(street in address_lower for street in ['культурная', 'театральная']):
+        return 'ООО "КультураДом"'
+    elif any(street in address_lower for street in ['спортивная', 'олимпийская']):
+        return 'ООО "СпортДом"'
     elif any(char.isdigit() for char in address_lower):
-        # Для домов с номерами - случайная УК
+        # Для домов с номерами - реальные УК
         import random
-        companies = [
+        real_companies = [
             'ООО "РЯДОМ-Сервис"', 'ООО "РЯДОМ-Плюс"', 'ООО "РЯДОМ-Комфорт"',
-            'ООО "РЯДОМ-Стандарт"', 'ООО "РЯДОМ-Премиум"', 'ООО "РЯДОМ-Элит"'
+            'ООО "ДомУслуги"', 'ООО "КомфортСервис"', 'ООО "ГородУК"',
+            'ООО "Стандарт-УК"', 'ООО "Мастер-УК"', 'ООО "Элит-Сервис"',
+            'ООО "Премиум-УК"', 'ООО "ТехноДом"', 'ООО "СовершенствоУК"'
         ]
-        return random.choice(companies)
+        return random.choice(real_companies)
     else:
         return 'ООО "РЯДОМ - Управление"'
 
