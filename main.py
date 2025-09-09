@@ -1,6 +1,6 @@
 """
-Entry point для VasDom AudioBot на Render
-Cloud-native версия без MongoDB, только PostgreSQL
+VasDom AudioBot - Entry Point для Render
+Максимально обучаемый AI в production режиме
 """
 import sys
 import os
@@ -10,33 +10,27 @@ backend_path = os.path.join(os.path.dirname(__file__), 'backend')
 sys.path.insert(0, backend_path)
 
 try:
-    # Используем новое модульное приложение для Render
-    from app.main import app
-    print("✅ Запуск VasDom AudioBot с самообучением v2.0 на Render")
+    # Импортируем готовое production приложение
+    from server import app
+    print("🎯 VasDom AudioBot v3.0 - Максимально обучаемый AI запущен!")
+    print("🧠 Режим: Непрерывное самообучение на реальных данных")
+    print("🚀 Платформа: Render Cloud")
 except ImportError as e:
-    print(f"⚠️ Модульное приложение недоступно: {e}")
-    print("🔄 Fallback на минимальную версию")
+    print(f"❌ Критическая ошибка импорта: {e}")
     
-    # Fallback на минимальное приложение
-    try:
-        from server import app
-        print("✅ Запуск минимальной версии на Render")
-    except ImportError as fallback_error:
-        print(f"❌ Критическая ошибка: {fallback_error}")
-        # Создаем экстренное приложение
-        from fastapi import FastAPI
-        app = FastAPI(title="VasDom AudioBot - Emergency Mode")
-        
-        @app.get("/")
-        async def emergency_root():
-            return {
-                "status": "emergency_mode",
-                "message": "Приложение запущено в аварийном режиме на Render",
-                "platform": "Render",
-                "error": str(fallback_error)
-            }
+    # Экстренное приложение
+    from fastapi import FastAPI
+    app = FastAPI(title="VasDom AudioBot - Emergency")
+    
+    @app.get("/")
+    async def emergency():
+        return {
+            "status": "emergency",
+            "error": str(e),
+            "message": "Свяжитесь с администратором"
+        }
 
-# Для Render - приложение должно быть доступно как app
+# Для Render
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8001))
