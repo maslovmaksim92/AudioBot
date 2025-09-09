@@ -116,6 +116,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ CORS origins теперь читаются из переменных окружения CORS_ORIGINS, убран wildcard '*', добавлены безопасные дефолты"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: CORS properly configured from environment variable CORS_ORIGINS. Backend logs show specific origins: ['https://vasdom-audiobot.preview.emergentagent.com', 'https://audiobot-qci2.onrender.com']. No wildcard '*' used."
 
   - task: "Telegram Webhook Validation"
     implemented: true
@@ -128,6 +131,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ Добавлена валидация через TelegramUpdate Pydantic модель, проверка обязательных полей message и text, возврат HTTPException при ошибках"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Telegram webhook validation working correctly. TelegramUpdate Pydantic model validates data properly. Valid data processed, invalid data (missing message/text) rejected with 400 error as expected."
 
   - task: "API Authentication System"
     implemented: true
@@ -140,6 +146,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ Реализован модуль безопасности с зависимостями require_auth и optional_auth, подключен к endpoints /api/voice/process и /api/telegram/webhook"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: API Authentication system working correctly. Both /api/voice/process and /api/telegram/webhook support Bearer token authentication. Security module properly implemented with configurable auth requirements."
 
   - task: "CRM Data Centralization"
     implemented: true
@@ -152,6 +161,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ Создан приватный метод _fetch_crm_stats() в AIService, используется в _emergent_ai_response, _advanced_fallback_response, _simple_fallback_response"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: CRM data centralization working correctly. AI service uses _fetch_crm_stats() method to get current CRM data (348 houses). AI responses dynamically use real-time CRM statistics instead of hardcoded values."
 
   - task: "Telegram Error Handling"
     implemented: true
@@ -164,6 +176,54 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ Добавлена проверка успеха send_message, возврат status 'failed' с деталями при ошибке, логирование ошибок отправки"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Telegram error handling working correctly. When message sending fails, system returns status 'failed' with error details 'Telegram API error'. Proper error logging implemented."
+
+  - task: "Database Migrations (Alembic)"
+    implemented: true
+    working: true
+    file: "backend/alembic/"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ Alembic подключен, создана первая миграция для voice_logs/meetings/ai_tasks, Base.metadata.create_all удален из init_database"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Database migration system properly configured. Alembic setup complete with alembic.ini and migration files. Base.metadata.create_all removed from database.py. Database initialization uses migrations only."
+
+  - task: "Frontend Redirect URLs Configuration"
+    implemented: true
+    working: true
+    file: "backend/app/config/settings.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ URL редиректов вынесены в переменную FRONTEND_DASHBOARD_URL, добавлены в main.py безопасные дефолты"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Frontend redirect URLs properly configured from environment variable FRONTEND_DASHBOARD_URL. Environment variables system working correctly as verified through API accessibility and configuration."
+
+  - task: "README Documentation"
+    implemented: true
+    working: true
+    file: "README.md"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ README полностью переписан: назначение, архитектура, зависимости, настройка, миграции, API endpoints, security, мониторинг"
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: README documentation complete and comprehensive. Contains full architecture documentation, setup instructions, API endpoints, security configuration, and monitoring details. API provides proper version (3.0.0) and feature documentation."
 
   - task: "CRM Bitrix24 Integration - Dashboard API"
     implemented: true
