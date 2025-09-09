@@ -1,20 +1,19 @@
 import pytest
 import asyncio
 from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from ..main import app
-
-@pytest.fixture
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 @pytest.mark.asyncio
 async def test_api_root():
     """Test API root endpoint"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/")
+    async with AsyncClient(base_url="http://test") as client:
+        response = await client.get("/api/", follow_redirects=True)
+        # Since we're testing the actual running app, use sync client for simple test
+    
+    # Alternative sync test
+    with TestClient(app) as client:
+        response = client.get("/api/")
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "VasDom AudioBot API"
@@ -24,8 +23,8 @@ async def test_api_root():
 @pytest.mark.asyncio 
 async def test_health_check():
     """Test health check endpoint"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/health")
+    with TestClient(app) as client:
+        response = client.get("/api/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] in ["healthy", "error"]
@@ -35,8 +34,8 @@ async def test_health_check():
 @pytest.mark.asyncio
 async def test_dashboard_stats():
     """Test dashboard stats endpoint"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/dashboard")
+    with TestClient(app) as client:
+        response = client.get("/api/dashboard")
         assert response.status_code == 200
         data = response.json()
         assert "stats" in data
@@ -51,7 +50,7 @@ async def test_dashboard_stats():
 @pytest.mark.asyncio
 async def test_dashboard_redirect():
     """Test dashboard redirect"""
-    async with AsyncClient(app=app, base_url="http://test", follow_redirects=False) as client:
-        response = await client.get("/dashboard")
+    with TestClient(app) as client:
+        response = client.get("/dashboard", follow_redirects=False)
         assert response.status_code == 302
         assert "smart-facility-ai.preview.emergentagent.com" in response.headers["location"]
