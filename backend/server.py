@@ -39,19 +39,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# PostgreSQL connection with asyncpg
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/vasdom_audiobot')
+# PostgreSQL connection with fallback to SQLite
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///./vasdom_audiobot.db')
 
 # Convert postgres:// to postgresql+asyncpg:// for async support
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+asyncpg://', 1)
-elif DATABASE_URL.startswith('postgresql://'):
+elif DATABASE_URL.startswith('postgresql://') and not DATABASE_URL.startswith('postgresql+asyncpg://'):
     DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)
+elif DATABASE_URL.startswith('sqlite://'):
+    # Для SQLite используем aiosqlite
+    DATABASE_URL = DATABASE_URL.replace('sqlite://', 'sqlite+aiosqlite://', 1)
 
-logger.info(f"🐘 PostgreSQL URL configured: {DATABASE_URL[:50]}...")
+logger.info(f"🗄️ Database URL configured: {DATABASE_URL[:50]}...")
 
-# Database setup with asyncpg
-database = Database(DATABASE_URL)
+# Database setup with fallback
+if 'postgresql' in DATABASE_URL:
+    database = Database(DATABASE_URL)
+    logger.info("🐘 PostgreSQL async driver initialized")
+elif 'sqlite' in DATABASE_URL:
+    database = Database(DATABASE_URL)
+    logger.info("📁 SQLite async driver initialized (fallback)")
+else:
+    database = Database("sqlite+aiosqlite:///./vasdom_audiobot.db")
+    logger.info("📁 Default SQLite fallback initialized")
 Base = declarative_base()
 
 # SQLAlchemy Models
