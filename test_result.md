@@ -878,10 +878,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Enhanced Works Page WOW Functionality Testing Complete"
+    - "Bitrix24 Management Company and Personnel Data Fix"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "🔧 ПРОБЛЕМА BITRIX24 РЕШЕНА: Проведена глубокая отладка API Bitrix24 через debug скрипт. Обнаружено что поля COMPANY_TITLE, ASSIGNED_BY_NAME/LAST_NAME/SECOND_NAME НЕ возвращаются в crm.deal.list. Реализовано правильное решение с отдельными API вызовами user.get и crm.company.get. Добавлены методы _enrich_deal_with_external_data(), _get_user_info(), _get_company_info(). Логи показывают успешную загрузку реальных УК и персонала: 'ООО РИЦ ЖРЭУ', 'УК ГУП Калуги', '1-6 бригады'. Требуется тестирование на production после деплоя."
 
 agent_communication:
     - agent: "testing"
