@@ -725,3 +725,48 @@ async def test_bitrix24_integration():
             "message": str(e),
             "timestamp": datetime.utcnow().isoformat()
         }
+
+@router.post("/cleaning/houses", response_model=dict)
+async def create_house(house_data: CreateHouseRequest):
+    """Создать новый дом в Bitrix24"""
+    try:
+        logger.info(f"🏠 Creating new house: {house_data.address}")
+        
+        if not BITRIX24_WEBHOOK_URL:
+            raise HTTPException(
+                status_code=500,
+                detail="Bitrix24 webhook URL не настроен"
+            )
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Конвертируем Pydantic модель в словарь
+        house_dict = house_data.dict()
+        
+        # Создаем дом в Bitrix24
+        result = await bitrix.create_house(house_dict)
+        
+        if result['success']:
+            logger.info(f"✅ House created successfully: {result['deal_id']}")
+            return {
+                "status": "success",
+                "message": result['message'],
+                "deal_id": result['deal_id'],
+                "address": result['address'],
+                "created_at": datetime.utcnow().isoformat()
+            }
+        else:
+            logger.error(f"❌ Failed to create house: {result['error']}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ошибка создания дома: {result['error']}"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Create house endpoint error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Внутренняя ошибка сервера: {str(e)}"
+        )
