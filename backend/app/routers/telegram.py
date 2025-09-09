@@ -1,9 +1,11 @@
 import logging
-from fastapi import APIRouter, HTTPException
-from ..models.schemas import TelegramUpdate
+from fastapi import APIRouter, HTTPException, Depends
+from ..models.telegram import TelegramUpdate
 from ..services.telegram_service import TelegramService
 from ..services.ai_service import AIService
-from ..config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_URL
+from ..services.bitrix_service import BitrixService
+from ..security import telegram_security_check, optional_auth
+from ..config.settings import TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_URL, BITRIX24_WEBHOOK_URL
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["telegram"])
@@ -11,50 +13,165 @@ router = APIRouter(tags=["telegram"])
 # Initialize services
 telegram_service = TelegramService()
 ai_service = AIService()
+bitrix_service = BitrixService(BITRIX24_WEBHOOK_URL)
 
 @router.post("/telegram/webhook")
 @router.post("/api/telegram/webhook")
-async def telegram_webhook(update: dict):
-    """Telegram webhook endpoint с ответами"""
+async def telegram_webhook(
+    update: TelegramUpdate,  # Заменил dict на TelegramUpdate модель
+    _security: bool = Depends(telegram_security_check)
+):
+    """Telegram webhook endpoint с валидацией и обработкой задач для Bitrix24"""
     try:
-        logger.info(f"📱 Telegram webhook received: {update.get('update_id', 'unknown')}")
+        logger.info(f"📱 Telegram webhook received: {update.update_id}")
+        
+        # Валидация обязательных полей
+        if not update.has_text_message():
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid update: missing message or text content"
+            )
         
         # Извлекаем данные сообщения
-        message_data = telegram_service.extract_message_data(update)
+        message_data = update.extract_message_data()
+        if not message_data:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid update: cannot extract message data"
+            )
         
-        if message_data and message_data["text"]:
-            chat_id = message_data["chat_id"]
-            text = message_data["text"]
-            user_name = message_data["user_name"]
-            
-            logger.info(f"💬 Message from {user_name} (chat {chat_id}): {text}")
-            
-            # Генерируем ответ через AI
-            ai_response = await ai_service.process_message(text, f"telegram_{chat_id}")
-            
-            # Отправляем ответ обратно в Telegram
-            if chat_id:
-                success = await telegram_service.send_message(chat_id, ai_response)
-                if success:
-                    logger.info(f"✅ Response sent to Telegram chat {chat_id}")
-                
+        chat_id = message_data["chat_id"]
+        text = message_data["text"]
+        user_name = message_data["user_name"]
+        
+        logger.info(f"💬 Message from {user_name} (chat {chat_id}): {text}")
+        
+        # Проверяем команды для создания задач в Bitrix24
+        if text.lower().startswith('/задача ') or text.lower().startswith('/task '):
+            return await handle_bitrix_task_creation(text, chat_id, user_name)
+        
+        # Обычный AI ответ
+        ai_response = await ai_service.process_message(text, f"telegram_{chat_id}")
+        
+        # Отправляем ответ обратно в Telegram
+        if chat_id:
+            success = await telegram_service.send_message(chat_id, ai_response)
+            if not success:
+                logger.error(f"❌ Failed to send response to Telegram chat {chat_id}")
                 return {
-                    "status": "processed",
-                    "message": "Message processed and response sent",
-                    "chat_id": chat_id,
-                    "user_message": text,
-                    "ai_response": ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
+                    "status": "failed",
+                    "message": "Message processed but failed to send response",
+                    "error": "Telegram API error",
+                    "chat_id": chat_id
                 }
-        
+            
+            logger.info(f"✅ Response sent to Telegram chat {chat_id}")
+                
         return {
-            "status": "received",
-            "message": "Webhook received but no message to process",
-            "update_id": update.get("update_id")
+            "status": "processed",
+            "message": "Message processed and response sent",
+            "chat_id": chat_id,
+            "user_message": text,
+            "ai_response": ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
         }
         
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
         logger.error(f"❌ Telegram webhook error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {
+            "status": "failed", 
+            "message": "Internal server error",
+            "error": str(e)
+        }
+
+async def handle_bitrix_task_creation(text: str, chat_id: int, user_name: str) -> dict:
+    """Обработка создания задач в Bitrix24 через Telegram"""
+    try:
+        # Извлекаем текст задачи
+        if text.lower().startswith('/задача '):
+            task_text = text[8:].strip()  # Убираем '/задача '
+        elif text.lower().startswith('/task '):
+            task_text = text[6:].strip()  # Убираем '/task '
+        else:
+            task_text = text.strip()
+        
+        if not task_text:
+            await telegram_service.send_message(
+                chat_id, 
+                "❌ Укажите текст задачи.\nПример: /задача Проверить уборку в доме Пролетарская 112"
+            )
+            return {"status": "failed", "message": "Empty task text"}
+        
+        # Создаем задачу в Bitrix24
+        success = await create_bitrix_task(task_text, user_name)
+        
+        if success:
+            response_text = f"✅ Задача создана в Bitrix24!\n\n📝 Текст: {task_text}\n👤 Автор: {user_name}"
+            await telegram_service.send_message(chat_id, response_text)
+            
+            return {
+                "status": "processed",
+                "message": "Bitrix24 task created successfully",
+                "task_text": task_text,
+                "chat_id": chat_id
+            }
+        else:
+            await telegram_service.send_message(
+                chat_id, 
+                "❌ Ошибка при создании задачи в Bitrix24. Попробуйте позже."
+            )
+            return {"status": "failed", "message": "Failed to create Bitrix24 task"}
+            
+    except Exception as e:
+        logger.error(f"❌ Bitrix task creation error: {e}")
+        await telegram_service.send_message(
+            chat_id,
+            "❌ Произошла ошибка при создании задачи. Проверьте подключение к Bitrix24."
+        )
+        return {"status": "failed", "message": str(e)}
+
+async def create_bitrix_task(task_text: str, author: str) -> bool:
+    """Создание задачи в Bitrix24"""
+    try:
+        import httpx
+        import urllib.parse
+        
+        if not BITRIX24_WEBHOOK_URL:
+            logger.error("❌ BITRIX24_WEBHOOK_URL not configured")
+            return False
+        
+        # Параметры для создания задачи
+        params = {
+            'fields[TITLE]': f"Задача от {author}",
+            'fields[DESCRIPTION]': task_text,
+            'fields[PRIORITY]': '2',  # Высокий приоритет  
+            'fields[CREATED_BY]': '1',  # ID пользователя-создателя
+            'fields[RESPONSIBLE_ID]': '1',  # ID ответственного
+        }
+        
+        query_string = urllib.parse.urlencode(params)
+        url = f"{BITRIX24_WEBHOOK_URL}tasks.task.add.json?{query_string}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('result'):
+                    task_id = data['result']['task']['id']
+                    logger.info(f"✅ Bitrix24 task created: ID {task_id}")
+                    return True
+                else:
+                    logger.error(f"❌ Bitrix24 task creation failed: {data}")
+                    return False
+            else:
+                logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"❌ Create Bitrix task error: {e}")
+        return False
 
 @router.get("/api/telegram/status")
 async def telegram_status():
@@ -63,7 +180,11 @@ async def telegram_status():
         "status": "configured" if TELEGRAM_BOT_TOKEN else "missing_token",
         "bot_token": "present" if TELEGRAM_BOT_TOKEN else "missing",
         "webhook_url": TELEGRAM_WEBHOOK_URL or 'not_configured',
-        "message": "Telegram bot готов для интеграции"
+        "message": "Telegram bot готов для интеграции",
+        "features": {
+            "ai_chat": True,
+            "bitrix_tasks": True if BITRIX24_WEBHOOK_URL else False
+        }
     }
     
     # Проверяем соединение с Telegram API если есть токен
