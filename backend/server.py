@@ -586,13 +586,17 @@ async def dashboard_page():
 
 # API Routes (все остальные маршруты)
 api_router = APIRouter(prefix="/api")
+@api_router.get("/")
 async def root():
     logger.info("📡 API root accessed")
     return {
         "message": "VasDom AudioBot API",
         "version": "3.0.0", 
         "status": "🐘 PostgreSQL + Bitrix24",
-        "features": ["Real Bitrix24 CRM", "PostgreSQL Database", "AI Assistant", "Voice Processing"]
+        "features": ["Real Bitrix24 CRM", "PostgreSQL Database", "AI Assistant", "Voice Processing"],
+        "houses": 491,
+        "employees": 82,
+        "ai_model": "GPT-4 mini via Emergent LLM"
     }
 
 @api_router.get("/dashboard")
