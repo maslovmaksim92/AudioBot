@@ -41,11 +41,150 @@ class VasDomAPITester:
                 has_keys = all(key in data for key in expected_keys)
                 success = has_keys and "VasDom AudioBot API" in data.get("message", "")
                 
-            self.log_test("API Root", success, 
+            self.log_test("API Root (/api/)", success, 
                          f"Status: {response.status_code}, Response: {response.text[:100]}")
             return success
         except Exception as e:
-            self.log_test("API Root", False, str(e))
+            self.log_test("API Root (/api/)", False, str(e))
+            return False
+
+    def test_health_endpoint(self):
+        """Test health check endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/health", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "healthy" and 
+                          "service" in data and
+                          "VasDom AudioBot" in data.get("service", ""))
+                print(f"   🏥 Health status: {data.get('status')}")
+                print(f"   🏥 Service: {data.get('service')}")
+                print(f"   🏥 AI mode: {data.get('ai_mode', 'unknown')}")
+                
+            self.log_test("Health Check (/api/health)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Health Check (/api/health)", False, str(e))
+            return False
+
+    def test_dashboard_html(self):
+        """Test dashboard HTML page"""
+        try:
+            response = requests.get(f"{self.base_url}/dashboard", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                html_content = response.text
+                success = ("VasDom AudioBot" in html_content and 
+                          "<!DOCTYPE html>" in html_content and
+                          "491" in html_content)
+                print(f"   📄 HTML length: {len(html_content)} chars")
+                print(f"   📄 Contains VasDom title: {'✅' if 'VasDom AudioBot' in html_content else '❌'}")
+                print(f"   📄 Contains 491 houses: {'✅' if '491' in html_content else '❌'}")
+                
+            self.log_test("Dashboard HTML (/dashboard)", success, 
+                         f"Status: {response.status_code}, HTML: {'✅' if success else '❌'}")
+            return success
+        except Exception as e:
+            self.log_test("Dashboard HTML (/dashboard)", False, str(e))
+            return False
+
+    def test_dashboard_html_typo(self):
+        """Test dashboard HTML page with typo"""
+        try:
+            response = requests.get(f"{self.base_url}/dashbord", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                html_content = response.text
+                success = ("VasDom AudioBot" in html_content and 
+                          "<!DOCTYPE html>" in html_content)
+                print(f"   📄 Typo URL works: {'✅' if success else '❌'}")
+                
+            self.log_test("Dashboard HTML with typo (/dashbord)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Dashboard HTML with typo (/dashbord)", False, str(e))
+            return False
+
+    def test_telegram_status(self):
+        """Test Telegram bot status"""
+        try:
+            response = requests.get(f"{self.api_url}/telegram/status", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = "status" in data
+                print(f"   📱 Telegram status: {data.get('status')}")
+                print(f"   📱 Bot token: {data.get('bot_token')}")
+                print(f"   📱 Webhook URL: {data.get('webhook_url', 'not configured')}")
+                
+            self.log_test("Telegram Status (/api/telegram/status)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Telegram Status (/api/telegram/status)", False, str(e))
+            return False
+
+    def test_telegram_webhook(self):
+        """Test Telegram webhook endpoint"""
+        try:
+            # Test with sample webhook data
+            webhook_data = {
+                "update_id": 123456789,
+                "message": {
+                    "message_id": 1,
+                    "from": {"id": 123, "first_name": "Test"},
+                    "chat": {"id": 123, "type": "private"},
+                    "date": 1234567890,
+                    "text": "Test message"
+                }
+            }
+            
+            response = requests.post(f"{self.api_url}/telegram/webhook", 
+                                   json=webhook_data, timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = data.get("status") == "received"
+                print(f"   📱 Webhook response: {data.get('message', 'No message')}")
+                print(f"   📱 Update ID: {data.get('update_id')}")
+                
+            self.log_test("Telegram Webhook (/api/telegram/webhook)", success, 
+                         f"Status: {response.status_code}, No 404: {'✅' if response.status_code != 404 else '❌'}")
+            return success
+        except Exception as e:
+            self.log_test("Telegram Webhook (/api/telegram/webhook)", False, str(e))
+            return False
+
+    def test_self_learning_status(self):
+        """Test AI self-learning status endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/self-learning/status", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = "status" in data
+                print(f"   🧠 Self-learning status: {data.get('status')}")
+                print(f"   🧠 AI interactions: {data.get('ai_interactions', 0)}")
+                print(f"   🧠 Database: {data.get('database', 'unknown')}")
+                
+                emergent_info = data.get('emergent_llm', {})
+                print(f"   🧠 Emergent LLM available: {emergent_info.get('package_available', False)}")
+                print(f"   🧠 AI mode: {emergent_info.get('mode', 'unknown')}")
+                
+            self.log_test("Self-Learning Status (/api/self-learning/status)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Self-Learning Status (/api/self-learning/status)", False, str(e))
             return False
 
     def test_dashboard_stats(self):
