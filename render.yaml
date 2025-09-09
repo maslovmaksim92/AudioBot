@@ -1,0 +1,45 @@
+# Render конфигурация для VasDom AudioBot с самообучением
+services:
+  # Основной веб-сервис
+  - type: web
+    name: vasdom-audiobot
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      cd backend &&
+      pip install --upgrade pip &&
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend &&
+      python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: EMERGENT_LLM_KEY
+        value: sk-emergent-0A408AfAeF26aCd5aB
+      - key: USE_LOCAL_MODEL
+        value: false
+      - key: EMBEDDING_MODEL
+        value: sentence-transformers/paraphrase-multilingual-MiniLM-L6-v2
+      - key: MIN_RATING_THRESHOLD
+        value: 4
+      - key: RETRAINING_THRESHOLD
+        value: 3.5
+      - key: EVALUATION_SCHEDULE_DAYS
+        value: 7
+      - key: REQUIRE_AUTH_FOR_PUBLIC_API
+        value: false
+      - key: API_SECRET_KEY
+        value: vasdom-audiobot-secret-key-2025
+      - key: CORS_ORIGINS
+        value: https://audiobot-qci2.onrender.com
+
+# База данных PostgreSQL
+databases:
+  - name: vasdom-audiobot-db
+    databaseName: vasdom_audio
+    user: vasdom_user
+    region: oregon
+    plan: free
+    # DATABASE_URL будет автоматически доступен как переменная окружения
