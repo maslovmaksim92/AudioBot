@@ -48,7 +48,8 @@ class MonthlySchedule(BaseModel):
     cleaning_type_2: Optional[str] = None        # Тип уборки 2
 
 class House(BaseModel):
-    address: str
+    address: str                             # Название сделки
+    house_address: Optional[str] = None      # Реальный адрес дома из поля UF_CRM_1669561599956
     deal_id: str
     stage: str
     brigade: str
