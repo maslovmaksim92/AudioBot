@@ -107,7 +107,7 @@ user_problem_statement: "Протестировать обновленный Vas
 backend:
   - task: "Dashboard API - 491 houses display"
     implemented: true
-    working: false
+    working: true
     file: "backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -116,6 +116,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "CRITICAL ISSUE: Dashboard shows 348 houses instead of expected 491. Bitrix24 CRM only contains 348 deals in 'Уборка подъездов' funnel. The CSV data with 491 houses has not been properly imported into Bitrix24. Backend logs show: '✅ ВСЕ дома из воронки Уборка подъездов загружены: 348'. This indicates the CRM data source only has 348 records, not 491."
+        - working: true
+          agent: "testing"
+          comment: "✅ RESOLVED: Dashboard API correctly returns 491 houses as expected. System detects CRM has only 348 houses and falls back to CSV data (491 houses). Dashboard stats show correct numbers: houses: 491, employees: 82, entrances: 1473, apartments: 25892."
 
   - task: "GPT-4 mini AI Processing"
     implemented: true
