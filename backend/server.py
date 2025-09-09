@@ -355,10 +355,48 @@ class AdvancedAI:
     def __init__(self):
         self.emergent_key = os.environ.get('EMERGENT_LLM_KEY')
         self.emergent_available = EMERGENT_AVAILABLE
+        self.bitrix = BitrixIntegration()  # Добавляеи интеграцию с CRM
         if self.emergent_available:
             logger.info(f"🤖 Advanced AI initialized with Emergent LLM (GPT-4 mini)")
         else:
             logger.info(f"🤖 Fallback AI initialized (GPT-4 context without Emergent)")
+    
+    # УЛУЧШЕНИЕ 4: Централизованное получение CRM данных
+    async def _fetch_crm_stats(self) -> dict:
+        """Централизованный метод получения актуальных данных из CRM"""
+        try:
+            # Получаем актуальные данные из Bitrix24
+            deals = await self.bitrix.get_deals()
+            houses_count = len(deals) if deals else 0
+            
+            # Рассчитываем статистику на основе реальных данных
+            employees = 82  # Константа компании
+            brigades = 6    # Константа компании 
+            entrances = houses_count * 3  # ~3 подъезда на дом
+            apartments = houses_count * 75  # ~75 квартир на дом
+            floors = houses_count * 5  # ~5 этажей на дом
+            
+            return {
+                "houses": houses_count,
+                "employees": employees,
+                "brigades": brigades,
+                "entrances": entrances,
+                "apartments": apartments, 
+                "floors": floors,
+                "source": "Bitrix24 CRM"
+            }
+        except Exception as e:
+            logger.error(f"❌ Error fetching CRM stats: {e}")
+            # Fallback к безопасным значениям
+            return {
+                "houses": 348,
+                "employees": 82,
+                "brigades": 6,
+                "entrances": 1044,
+                "apartments": 26100,
+                "floors": 1740,
+                "source": "fallback"
+            }
         
     async def process_message(self, text: str, context: str = "") -> str:
         """AI с GPT-4 mini через Emergent LLM или fallback"""
