@@ -466,32 +466,44 @@ class VasDomAPITester:
         print("🚀 Starting VasDom AudioBot API Tests - Review Requirements")
         print(f"🔗 Testing API at: {self.api_url}")
         print("📋 Review Requirements:")
-        print("   1. Dashboard API - должен возвращать 491 дом (реальные данные из CSV)")
-        print("   2. GPT-4 mini AI - тестировать /api/voice/process с новым Emergent LLM")
-        print("   3. Bitrix24 интеграция - проверить /api/cleaning/houses загружает все дома из CRM")
-        print("   4. Самообучение - убедиться что AI логи сохраняются в PostgreSQL")
-        print("   5. Все остальные эндпоинты - meetings, logs работают корректно")
+        print("   1. Главные endpoints - /api/, /api/dashboard, /api/health")
+        print("   2. Dashboard HTML - /dashboard, /dashbord (с опечаткой)")
+        print("   3. Telegram - /api/telegram/status, /api/telegram/webhook")
+        print("   4. AI система - /api/voice/process и /api/self-learning/status")
+        print("   5. Bitrix24 - /api/cleaning/houses")
+        print("   ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
+        print("   - Все маршруты работают (статус 200)")
+        print("   - Dashboard HTML возвращается корректно")
+        print("   - Telegram webhook не выдает 404")
+        print("   - AI fallback режим активен")
+        print("   - 491 дом в статистике")
         print("=" * 80)
         
-        # Core API tests
+        # 1. Главные endpoints
         self.test_api_root()
-        
-        # 1. Dashboard API - 491 houses check
         self.test_dashboard_stats()
+        self.test_health_endpoint()
         
-        # 3. Bitrix24 integration tests
+        # 2. Dashboard HTML
+        self.test_dashboard_html()
+        self.test_dashboard_html_typo()
+        
+        # 3. Telegram endpoints
+        self.test_telegram_status()
+        self.test_telegram_webhook()
+        
+        # 4. AI система
+        self.test_voice_ai_processing()
+        self.test_self_learning_status()
+        
+        # 5. Bitrix24
         self.test_bitrix24_connection()
         self.test_cleaning_houses()
         
-        # 2. GPT-4 mini AI functionality tests
-        self.test_voice_ai_processing()
-        
-        # 4. Self-learning system test
-        self.test_self_learning_system()
-        
-        # 5. Other endpoints tests
+        # Additional functionality tests
         self.test_meetings_functionality()
         self.test_meetings_list()
+        self.test_self_learning_system()
         
         # Print results
         print("=" * 80)
@@ -507,15 +519,36 @@ class VasDomAPITester:
         
         # Review requirements summary
         print("\n📋 Review Requirements Status:")
-        dashboard_passed = any("Dashboard Stats" in test["name"] for test in self.failed_tests) == False
-        ai_passed = any("GPT-4 Mini" in test["name"] for test in self.failed_tests) == False
-        bitrix_passed = any("Bitrix24" in test["name"] for test in self.failed_tests) == False
-        learning_passed = any("Self-Learning" in test["name"] for test in self.failed_tests) == False
         
-        print(f"   1. Dashboard (491 houses): {'✅' if dashboard_passed else '❌'}")
-        print(f"   2. GPT-4 mini AI: {'✅' if ai_passed else '❌'}")
-        print(f"   3. Bitrix24 CRM: {'✅' if bitrix_passed else '❌'}")
-        print(f"   4. Self-learning: {'✅' if learning_passed else '❌'}")
+        # Check main endpoints
+        main_endpoints_passed = all(not any(endpoint in test["name"] for endpoint in ["API Root", "Dashboard Stats", "Health Check"]) 
+                                  for test in self.failed_tests)
+        
+        # Check dashboard HTML
+        dashboard_html_passed = all(not any("Dashboard HTML" in test["name"]) for test in self.failed_tests)
+        
+        # Check telegram endpoints
+        telegram_passed = all(not any("Telegram" in test["name"]) for test in self.failed_tests)
+        
+        # Check AI system
+        ai_passed = all(not any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning Status"]) 
+                       for test in self.failed_tests)
+        
+        # Check Bitrix24
+        bitrix_passed = all(not any("Bitrix24" in test["name"]) for test in self.failed_tests)
+        
+        print(f"   1. Главные endpoints (/api/, /dashboard, /health): {'✅' if main_endpoints_passed else '❌'}")
+        print(f"   2. Dashboard HTML (/dashboard, /dashbord): {'✅' if dashboard_html_passed else '❌'}")
+        print(f"   3. Telegram (/telegram/status, /webhook): {'✅' if telegram_passed else '❌'}")
+        print(f"   4. AI система (/voice/process, /self-learning/status): {'✅' if ai_passed else '❌'}")
+        print(f"   5. Bitrix24 (/cleaning/houses): {'✅' if bitrix_passed else '❌'}")
+        
+        # Check specific issues mentioned in review
+        print("\n🔍 Проблемы для проверки:")
+        no_404_errors = all(test["details"] and "404" not in test["details"] for test in self.failed_tests)
+        print(f"   - Исправлены ли все 404 Not Found ошибки? {'✅' if no_404_errors else '❌'}")
+        print(f"   - Работает ли dashboard на /dashboard? {'✅' if dashboard_html_passed else '❌'}")
+        print(f"   - Telegram webhook /api/telegram/webhook отвечает? {'✅' if telegram_passed else '❌'}")
         
         return self.tests_passed == self.tests_run
 
