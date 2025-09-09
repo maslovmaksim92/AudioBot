@@ -1113,8 +1113,8 @@ async def get_cleaning_houses(limit: int = None):
         return {"status": "error", "message": str(e)}
 
 @api_router.post("/voice/process")
-async def process_voice_message(message: VoiceMessage):
-    """Голосовое взаимодействие с PostgreSQL"""
+async def process_voice_message(message: VoiceMessage, authorization: str = Depends(require_auth)):
+    """Голосовое взаимодействие с PostgreSQL (УЛУЧШЕНИЕ 3: добавлена аутентификация)"""
     try:
         logger.info(f"🎤 Voice: '{message.text[:50]}...'")
         
