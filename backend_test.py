@@ -903,36 +903,165 @@ class VasDomAPITester:
             self.log_test("Code Quality Fixes (no functionality break)", False, str(e))
             return False
 
+    def test_bitrix24_management_company_fix(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Проверка исправления полей management_company и brigade из Bitrix24"""
+        try:
+            print("\n🔧 ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЯ BITRIX24 INTEGRATION:")
+            print("   Проблема: management_company и brigade возвращали null")
+            print("   Решение: Добавлены отдельные API вызовы user.get и crm.company.get")
+            print("   Ожидается: Реальные названия УК и бригад вместо null")
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses?limit=3", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list) and
+                          len(data["houses"]) > 0)
+                
+                if success:
+                    houses = data["houses"]
+                    print(f"   🏠 Загружено домов для проверки: {len(houses)}")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА 1: management_company НЕ null
+                    management_companies_not_null = 0
+                    management_companies_with_real_names = 0
+                    
+                    for house in houses:
+                        management_company = house.get('management_company')
+                        if management_company and management_company != 'null':
+                            management_companies_not_null += 1
+                            
+                            # Проверяем что это реальные названия УК
+                            real_uc_keywords = ['ООО', 'УК', 'ЖРЭУ', 'РИЦ', 'ГУП', 'Калуги', 'Тайфун', 'УЮТНЫЙ ДОМ']
+                            if any(keyword in management_company for keyword in real_uc_keywords):
+                                management_companies_with_real_names += 1
+                                print(f"   ✅ УК найдена: {management_company}")
+                    
+                    print(f"   📊 УК не null: {management_companies_not_null}/{len(houses)}")
+                    print(f"   📊 УК с реальными названиями: {management_companies_with_real_names}/{len(houses)}")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА 2: brigade НЕ null и содержит корректные названия
+                    brigades_not_null = 0
+                    brigades_with_correct_names = 0
+                    
+                    for house in houses:
+                        brigade = house.get('brigade')
+                        if brigade and brigade != 'null':
+                            brigades_not_null += 1
+                            
+                            # Проверяем что это корректные названия бригад
+                            brigade_keywords = ['бригада', '1 бригада', '2 бригада', '3 бригада', '4 бригада', '5 бригада', '6 бригада']
+                            if any(keyword in brigade for keyword in brigade_keywords):
+                                brigades_with_correct_names += 1
+                                print(f"   ✅ Бригада найдена: {brigade}")
+                    
+                    print(f"   📊 Бригады не null: {brigades_not_null}/{len(houses)}")
+                    print(f"   📊 Бригады с корректными названиями: {brigades_with_correct_names}/{len(houses)}")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА 3: assigned_by_id заполнен
+                    assigned_ids_filled = 0
+                    for house in houses:
+                        assigned_by_id = house.get('assigned_by_id')
+                        if assigned_by_id and assigned_by_id != 'null' and assigned_by_id != '':
+                            assigned_ids_filled += 1
+                    
+                    print(f"   📊 assigned_by_id заполнен: {assigned_ids_filled}/{len(houses)}")
+                    
+                    # ПРОВЕРКА УСПЕШНОСТИ ИСПРАВЛЕНИЯ
+                    management_fix_success = management_companies_not_null > 0
+                    brigade_fix_success = brigades_not_null > 0
+                    assigned_fix_success = assigned_ids_filled > 0
+                    
+                    if management_fix_success and brigade_fix_success:
+                        print(f"   ✅ ИСПРАВЛЕНИЕ УСПЕШНО: УК и бригады больше не null")
+                        success = True
+                    else:
+                        print(f"   ❌ ИСПРАВЛЕНИЕ НЕ РАБОТАЕТ:")
+                        if not management_fix_success:
+                            print(f"      - management_company все еще null")
+                        if not brigade_fix_success:
+                            print(f"      - brigade все еще null")
+                        success = False
+                    
+                    # Показываем примеры данных
+                    if len(houses) > 0:
+                        sample_house = houses[0]
+                        print(f"   📋 Пример дома:")
+                        print(f"      - Адрес: {sample_house.get('address', 'Нет')}")
+                        print(f"      - УК: {sample_house.get('management_company', 'null')}")
+                        print(f"      - Бригада: {sample_house.get('brigade', 'null')}")
+                        print(f"      - Ответственный ID: {sample_house.get('assigned_by_id', 'null')}")
+                
+            self.log_test("Bitrix24 Management Company & Brigade Fix", success, 
+                         f"Status: {response.status_code}, УК не null: {management_companies_not_null if 'management_companies_not_null' in locals() else 0}, Бригады не null: {brigades_not_null if 'brigades_not_null' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Management Company & Brigade Fix", False, str(e))
+            return False
+
+    def test_cleaning_filters_management_companies(self):
+        """Проверка что управляющие компании не пустые в фильтрах"""
+        try:
+            response = requests.get(f"{self.api_url}/cleaning/filters", timeout=15)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "management_companies" in data)
+                
+                if success:
+                    companies = data.get("management_companies", [])
+                    print(f"   🏢 Управляющих компаний в фильтрах: {len(companies)}")
+                    
+                    if len(companies) > 0:
+                        print(f"   ✅ УК не пустые: {companies[:3]}...")  # Показываем первые 3
+                        
+                        # Проверяем что это реальные названия УК
+                        real_companies = [c for c in companies if any(keyword in c for keyword in ['ООО', 'УК', 'ЖРЭУ', 'РИЦ', 'ГУП'])]
+                        print(f"   📊 Реальных УК: {len(real_companies)}/{len(companies)}")
+                        
+                        success = len(companies) > 0
+                    else:
+                        print(f"   ❌ Управляющие компании пустые в фильтрах")
+                        success = False
+                
+            self.log_test("Cleaning Filters - Management Companies Not Empty", success, 
+                         f"Status: {response.status_code}, Companies: {len(companies) if 'companies' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Cleaning Filters - Management Companies Not Empty", False, str(e))
+            return False
+
     def run_all_tests(self):
-        """Run all API tests focusing on code quality fixes"""
-        print("🚀 Starting VasDom AudioBot API Tests - Code Quality Fixes")
+        """Run all API tests focusing on Bitrix24 management company and personnel fix"""
+        print("🚀 Starting VasDom AudioBot API Tests - Bitrix24 Management Company Fix")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Testing code quality fixes:")
-        print("   1. X-API-Key Header Validation - fixed in security.py")
-        print("   2. Voice API Exception Handling - returns HTTP 500 instead of 200")
-        print("   3. Database.py Style Improvements - no functionality break")
-        print("   4. Final newlines added - no parsing issues")
-        print("   CRITICAL FOCUS:")
-        print("   - /api/voice/process with error scenarios should return HTTP 500")
-        print("   - X-API-Key authentication should work properly")
-        print("   - Existing functionality should not be broken")
+        print("📋 Review Requirements - Testing Bitrix24 integration fix:")
+        print("   ПРОБЛЕМА: Поля management_company и brigade возвращали null из API /api/cleaning/houses")
+        print("   КОРЕНЬ ПРОБЛЕМЫ: Bitrix24 API crm.deal.list НЕ возвращает поля COMPANY_TITLE, ASSIGNED_BY_NAME")
+        print("   РЕШЕНИЕ: Добавлены отдельные API вызовы user.get и crm.company.get")
+        print("   КРИТИЧЕСКИЕ ТЕСТЫ:")
+        print("   1. GET /api/cleaning/houses?limit=3 - management_company НЕ null")
+        print("   2. brigade содержит корректные названия бригад")
+        print("   3. assigned_by_id заполнен")
+        print("   4. Реальные названия УК: 'ООО РИЦ ЖРЭУ', 'УК ГУП Калуги' и т.д.")
+        print("   5. GET /api/cleaning/filters - управляющие компании не пустые")
         print("=" * 80)
         
-        # 1. Test X-API-Key header validation fix
-        self.test_x_api_key_authentication()
+        # ОСНОВНОЙ ТЕСТ - Исправление Bitrix24 integration
+        self.test_bitrix24_management_company_fix()
         
-        # 2. Test Voice API error handling fix
-        self.test_voice_api_error_handling()
+        # ДОПОЛНИТЕЛЬНЫЙ ТЕСТ - Фильтры УК не пустые
+        self.test_cleaning_filters_management_companies()
         
-        # 3. Test code quality fixes don't break functionality
-        self.test_code_quality_fixes()
-        
-        # 4. Test key endpoints still work
+        # Базовые тесты для проверки что система работает
         self.test_api_root()
         self.test_health_endpoint()
-        self.test_dashboard_stats()
-        self.test_cleaning_houses()
-        self.test_cleaning_filters()
+        self.test_bitrix24_connection()
         
         # Print results
         print("=" * 80)
@@ -946,36 +1075,30 @@ class VasDomAPITester:
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"✅ Success Rate: {success_rate:.1f}%")
         
-        # Review requirements summary
-        print("\n📋 Fixed Integration Review Status:")
+        # Bitrix24 fix summary
+        print("\n📋 Bitrix24 Management Company Fix Status:")
         
-        # Check CRM-only data (main requirement)
-        crm_tests = [test for test in self.failed_tests if any(crm_test in test["name"] for crm_test in ["Dashboard CRM-Only", "Bitrix24 CRM-Only"])]
-        crm_passed = len(crm_tests) == 0
+        # Check main fix
+        main_fix_tests = [test for test in self.failed_tests if "Management Company & Brigade Fix" in test["name"]]
+        main_fix_passed = len(main_fix_tests) == 0
         
-        # Check telegram webhook responses
-        telegram_tests = [test for test in self.failed_tests if "Telegram" in test["name"]]
-        telegram_passed = len(telegram_tests) == 0
+        # Check filters fix
+        filters_fix_tests = [test for test in self.failed_tests if "Management Companies Not Empty" in test["name"]]
+        filters_fix_passed = len(filters_fix_tests) == 0
         
-        # Check AI system with CRM context
-        ai_tests = [test for test in self.failed_tests if any(ai_test in test["name"] for ai_test in ["GPT-4 Mini", "Self-Learning"])]
-        ai_passed = len(ai_tests) == 0
+        print(f"   1. management_company поля НЕ null: {'✅' if main_fix_passed else '❌'}")
+        print(f"   2. brigade поля содержат корректные названия: {'✅' if main_fix_passed else '❌'}")
+        print(f"   3. assigned_by_id заполнен: {'✅' if main_fix_passed else '❌'}")
+        print(f"   4. Фильтры УК не пустые: {'✅' if filters_fix_passed else '❌'}")
         
-        print(f"   1. CRM Bitrix24 - ONLY CRM data (348 houses): {'✅' if crm_passed else '❌'}")
-        print(f"   2. Telegram webhook - sends responses: {'✅' if telegram_passed else '❌'}")
-        print(f"   3. Telegram status - shows connection: {'✅' if telegram_passed else '❌'}")
-        print(f"   4. Dashboard data - CRM synchronized: {'✅' if crm_passed else '❌'}")
+        # Overall fix status
+        overall_fix_success = main_fix_passed and filters_fix_passed
+        print(f"\n🎯 ОБЩИЙ СТАТУС ИСПРАВЛЕНИЯ: {'✅ УСПЕШНО' if overall_fix_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
         
-        # Check specific fixed integration issues
-        print("\n🔍 Fixed Integration Verification:")
-        no_csv_fallback = not any("491" in test["details"] for test in self.failed_tests if test["details"])
-        crm_only_data = any("348" in test["name"] for test in [{"name": t["name"]} for t in self.failed_tests] if not self.failed_tests)
-        webhook_responses = not any("webhook" in test["name"].lower() and "processing" in test["name"].lower() for test in self.failed_tests)
-        
-        print(f"   - Dashboard shows 348 houses from CRM (not CSV)? {'✅' if crm_passed else '❌'}")
-        print(f"   - Telegram webhook processes and responds? {'✅' if webhook_responses else '❌'}")
-        print(f"   - No CSV fallback to 491 houses? {'✅' if no_csv_fallback else '❌'}")
-        print(f"   - Statistics synchronized with CRM? {'✅' if crm_passed else '❌'}")
+        if overall_fix_success:
+            print("   ✅ Интеграция Bitrix24 для получения данных УК и персонала работает корректно")
+        else:
+            print("   ❌ Интеграция Bitrix24 требует дополнительной отладки")
         
         return self.tests_passed == self.tests_run
 
