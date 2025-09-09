@@ -20,9 +20,9 @@ const NotificationBar = () => {
   if (notifications.length === 0) return null;
 
   return (
-    &lt;div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm"&gt;
+    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
       {notifications.map(notification => (
-        &lt;div
+        <div
           key={notification.id}
           className={`p-4 rounded-lg shadow-lg border-l-4 ${
             notification.type === 'success' 
@@ -33,34 +33,34 @@ const NotificationBar = () => {
               ? 'bg-yellow-50 border-yellow-400 text-yellow-800'
               : 'bg-blue-50 border-blue-400 text-blue-800'
           }`}
-        &gt;
-          &lt;div className="flex justify-between items-start"&gt;
-            &lt;div className="flex"&gt;
-              &lt;div className="flex-shrink-0"&gt;
+        >
+          <div className="flex justify-between items-start">
+            <div className="flex">
+              <div className="flex-shrink-0">
                 {notification.type === 'success' && '✅'}
                 {notification.type === 'error' && '❌'}
                 {notification.type === 'warning' && '⚠️'}
                 {notification.type === 'info' && 'ℹ️'}
-              &lt;/div&gt;
-              &lt;div className="ml-2"&gt;
-                &lt;p className="text-sm font-medium"&gt;{notification.message}&lt;/p&gt;
+              </div>
+              <div className="ml-2">
+                <p className="text-sm font-medium">{notification.message}</p>
                 {notification.details && (
-                  &lt;p className="text-xs mt-1 opacity-75"&gt;{notification.details}&lt;/p&gt;
+                  <p className="text-xs mt-1 opacity-75">{notification.details}</p>
                 )}
-              &lt;/div&gt;
-            &lt;/div&gt;
-            &lt;Button
+              </div>
+            </div>
+            <Button
               variant="ghost"
               size="sm"
               onClick={() => actions.removeNotification(notification.id)}
               className="ml-2 text-current hover:bg-current hover:bg-opacity-20"
-            &gt;
+            >
               ×
-            &lt;/Button&gt;
-          &lt;/div&gt;
-        &lt;/div&gt;
+            </Button>
+          </div>
+        </div>
       ))}
-    &lt;/div&gt;
+    </div>
   );
 };
 
