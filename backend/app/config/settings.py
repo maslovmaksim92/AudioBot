@@ -24,13 +24,36 @@ APP_TITLE = "VasDom AudioBot API"
 APP_VERSION = "3.0.0"
 APP_DESCRIPTION = "🤖 AI-система управления клининговой компанией"
 
-# CORS settings
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*').split(',')
-CORS_ORIGINS.extend(["https://audiobot-qci2.onrender.com", "*"])
+# CORS settings - убираем '*' и читаем из переменных окружения
+CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://smart-facility-ai.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(',') if origin.strip()]
 
-# API Keys
+# Безопасные дефолтные origins если переменная пустая
+if not CORS_ORIGINS:
+    CORS_ORIGINS = [
+        "https://smart-facility-ai.preview.emergentagent.com",
+        "https://audiobot-qci2.onrender.com"
+    ]
+
+# Frontend redirect URLs - вынос в конфигурацию
+FRONTEND_DASHBOARD_URL = os.environ.get(
+    'FRONTEND_DASHBOARD_URL', 
+    'https://smart-facility-ai.preview.emergentagent.com'
+)
+
+# API Keys with validation
 BITRIX24_WEBHOOK_URL = os.environ.get('BITRIX24_WEBHOOK_URL', '')
+
+# Проверяем что Bitrix24 URL корректный
+if BITRIX24_WEBHOOK_URL and not (BITRIX24_WEBHOOK_URL.startswith('http://') or BITRIX24_WEBHOOK_URL.startswith('https://')):
+    print(f"⚠️ Warning: BITRIX24_WEBHOOK_URL seems invalid: {BITRIX24_WEBHOOK_URL[:50]}...")
+    BITRIX24_WEBHOOK_URL = f"https://{BITRIX24_WEBHOOK_URL}" if BITRIX24_WEBHOOK_URL else ''
+
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_WEBHOOK_URL = os.environ.get('TELEGRAM_WEBHOOK_URL')
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
+
+# Security settings
+API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'vasdom-secret-key-change-in-production')
+REQUIRE_AUTH_FOR_PUBLIC_API = os.environ.get('REQUIRE_AUTH_FOR_PUBLIC_API', 'false').lower() == 'true'
