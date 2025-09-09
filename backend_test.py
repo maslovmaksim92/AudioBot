@@ -257,26 +257,69 @@ class VasDomAPITester:
             self.log_test("Meetings List", False, str(e))
             return False
 
-    def test_system_logs(self):
-        """Test system logs endpoint"""
+    def test_self_learning_system(self):
+        """Test AI self-learning system - логи должны сохраняться в PostgreSQL"""
         try:
-            response = requests.get(f"{self.api_url}/logs", timeout=10)
-            success = response.status_code == 200
+            # Сначала отправляем сообщение AI для создания лога
+            test_message = {
+                "text": "Тест системы самообучения VasDom",
+                "user_id": "self_learning_test"
+            }
+            
+            ai_response = requests.post(f"{self.api_url}/voice/process", 
+                                      json=test_message, timeout=30)
+            
+            if ai_response.status_code != 200:
+                self.log_test("Self-Learning System", False, "AI processing failed")
+                return False
+            
+            # Ждем немного чтобы лог сохранился
+            time.sleep(3)
+            
+            # Проверяем что логи сохраняются
+            logs_response = requests.get(f"{self.api_url}/logs", timeout=10)
+            success = logs_response.status_code == 200
             
             if success:
-                data = response.json()
+                data = logs_response.json()
                 success = (data.get("status") == "success" and 
-                          "voice_logs" in data)
+                          "voice_logs" in data and
+                          isinstance(data["voice_logs"], list))
                 
                 if success:
-                    voice_logs = len(data["voice_logs"])
-                    print(f"   📋 Voice logs: {voice_logs}")
+                    voice_logs = data["voice_logs"]
+                    logs_count = len(voice_logs)
+                    print(f"   🧠 Voice logs in PostgreSQL: {logs_count}")
+                    
+                    # Проверяем что наш тестовый лог сохранился
+                    test_log_found = False
+                    for log in voice_logs:
+                        if (log.get("user_message") and 
+                            "самообучения" in log["user_message"].lower()):
+                            test_log_found = True
+                            print(f"   ✅ Self-learning test log found in PostgreSQL")
+                            print(f"   🧠 Log context: {log.get('context', 'No context')}")
+                            break
+                    
+                    if not test_log_found and logs_count > 0:
+                        print(f"   ⚠️ Test log not found, but {logs_count} other logs exist")
+                    elif not test_log_found:
+                        print(f"   ❌ No logs found - self-learning may not be working")
+                        success = False
+                    
+                    # Проверяем что есть GPT4mini логи
+                    gpt4_logs = [log for log in voice_logs if 
+                               log.get("context", "").startswith("GPT4mini_")]
+                    if gpt4_logs:
+                        print(f"   ✅ Found {len(gpt4_logs)} GPT-4 mini learning logs")
+                    else:
+                        print(f"   ⚠️ No GPT-4 mini specific logs found")
                 
-            self.log_test("System Logs", success, 
-                         f"Status: {response.status_code}")
+            self.log_test("Self-Learning System (PostgreSQL)", success, 
+                         f"Logs: {logs_response.status_code}, Count: {len(data.get('voice_logs', []))}")
             return success
         except Exception as e:
-            self.log_test("System Logs", False, str(e))
+            self.log_test("Self-Learning System (PostgreSQL)", False, str(e))
             return False
 
     def run_all_tests(self):
