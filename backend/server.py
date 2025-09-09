@@ -136,10 +136,13 @@ bitrix_client = Bitrix24Client()
 # AI СИСТЕМА
 # =============================================================================
 
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
 class VasDomAI:
-    """AI система для VasDom с контекстуальными ответами"""
+    """AI система для VasDom с интеграцией Emergent LLM"""
     
     def __init__(self):
+        self.api_key = os.getenv("EMERGENT_LLM_KEY")
         self.context = {
             "company": "VasDom",
             "city": "Калуга",
@@ -148,34 +151,73 @@ class VasDomAI:
             "brigades": 6,
             "apartments": 25812
         }
-    
+        self.system_message = f"""Ты - AI-ассистент компании VasDom, клининговой компании в Калуге.
+
+КОНТЕКСТ КОМПАНИИ:
+- Название: VasDom
+- Город: Калуга и область
+- Обслуживаем: {self.context['houses']} многоквартирных домов
+- Сотрудников: {self.context['employees']} человек
+- Рабочих бригад: {self.context['brigades']}
+- Квартир в обслуживании: {self.context['apartments']}
+
+ТВОЯ РОЛЬ:
+- Отвечай на русском языке
+- Предоставляй точную информацию о компании
+- Помогай с планированием задач и управлением
+- Анализируй статистику и данные
+- Будь профессиональным и дружелюбным
+
+СПЕЦИАЛИЗАЦИЯ:
+- Управление клининговыми бригадами
+- Контроль качества уборки
+- Планирование работ по домам
+- Статистика и отчетность
+- Решение проблем с объектами"""
+
     async def process_voice_request(self, text: str, user_id: str) -> VoiceResponse:
-        """Обработка голосового запроса"""
+        """Обработка голосового запроса через Emergent LLM"""
+        try:
+            if not self.api_key:
+                # Fallback to rule-based if no API key
+                return await self._fallback_response(text)
+            
+            # Создаем чат с контекстом
+            chat = LlmChat(
+                api_key=self.api_key,
+                session_id=f"vasdom_{user_id}",
+                system_message=self.system_message
+            ).with_model("openai", "gpt-4o-mini")
+            
+            # Создаем сообщение пользователя
+            user_message = UserMessage(text=text)
+            
+            # Получаем ответ от AI
+            ai_response = await chat.send_message(user_message)
+            
+            logger.info(f"AI response: {ai_response}")
+            
+            return VoiceResponse(response=ai_response, confidence=0.98)
+            
+        except Exception as e:
+            logger.error(f"Error with Emergent LLM: {e}")
+            # Fallback to rule-based response
+            return await self._fallback_response(text)
+    
+    async def _fallback_response(self, text: str) -> VoiceResponse:
+        """Резервная система ответов если AI недоступен"""
         text_lower = text.lower()
         
-        # Правила для ответов
         if any(word in text_lower for word in ["дом", "домов", "объект"]):
             response = f"В настоящий момент компания VasDom обслуживает {self.context['houses']} многоквартирных домов в Калуге и области."
-        
         elif any(word in text_lower for word in ["сотрудник", "работник", "персонал"]):
             response = f"В штате компании VasDom работает {self.context['employees']} сотрудника, разделенных на {self.context['brigades']} рабочих бригад."
-        
         elif any(word in text_lower for word in ["квартир", "площадь", "объем"]):
             response = f"Общая площадь обслуживания составляет {self.context['apartments']} квартир во всех {self.context['houses']} домах."
-        
-        elif any(word in text_lower for word in ["бригад", "команд", "группы"]):
-            response = f"У нас {self.context['brigades']} рабочих бригад, которые обслуживают разные районы Калуги."
-        
-        elif any(word in text_lower for word in ["статистика", "отчет", "данные"]):
-            response = f"Статистика VasDom: {self.context['houses']} домов, {self.context['apartments']} квартир, {self.context['employees']} сотрудников в {self.context['brigades']} бригадах."
-        
-        elif any(word in text_lower for word in ["помощь", "функции", "возможности"]):
-            response = "Я могу предоставить информацию о количестве домов, сотрудников, бригад, статистику работы и помочь с планированием задач для компании VasDom."
-        
         else:
             response = f"Я помогаю управлять компанией VasDom в Калуге. У нас {self.context['houses']} домов и {self.context['employees']} сотрудников. Задайте вопрос о статистике или работе компании."
         
-        return VoiceResponse(response=response, confidence=0.95)
+        return VoiceResponse(response=response, confidence=0.85)
 
 # Initialize AI system
 ai_system = VasDomAI()
