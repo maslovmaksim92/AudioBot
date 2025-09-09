@@ -1036,6 +1036,259 @@ class VasDomAPITester:
             self.log_test("Cleaning Filters - Management Companies Not Empty", False, str(e))
             return False
 
+    def test_bitrix24_tasks_api(self):
+        """НОВЫЙ ТЕСТ: Проверка API задач Bitrix24 - GET /api/tasks"""
+        try:
+            print("\n📋 ТЕСТИРОВАНИЕ НОВОЙ ФУНКЦИОНАЛЬНОСТИ ЗАДАЧ:")
+            print("   Новый API: GET /api/tasks - получение списка задач из Bitrix24")
+            print("   Ожидается: Задачи с полными данными (название, статус, приоритет, ответственный)")
+            
+            # Тест 1: Получение списка задач с лимитом
+            response = requests.get(f"{self.api_url}/tasks?limit=3", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "tasks" in data and
+                          isinstance(data["tasks"], list))
+                
+                if success:
+                    tasks = data["tasks"]
+                    total = data.get("total", 0)
+                    source = data.get("source", "Unknown")
+                    
+                    print(f"   📋 Загружено задач: {len(tasks)}")
+                    print(f"   📋 Общее количество: {total}")
+                    print(f"   📋 Источник данных: {source}")
+                    
+                    # Проверяем что данные из Bitrix24
+                    if "Bitrix24" in source:
+                        print(f"   ✅ Данные загружены из Bitrix24")
+                    else:
+                        print(f"   ⚠️ Источник данных неясен: {source}")
+                    
+                    # Проверяем структуру задач
+                    if len(tasks) > 0:
+                        sample_task = tasks[0]
+                        required_fields = ['id', 'title', 'status', 'status_text', 'priority', 'priority_text', 'responsible_name']
+                        
+                        missing_fields = [field for field in required_fields if field not in sample_task]
+                        
+                        if not missing_fields:
+                            print(f"   ✅ Все обязательные поля присутствуют")
+                            print(f"   📋 Пример задачи:")
+                            print(f"      - ID: {sample_task.get('id')}")
+                            print(f"      - Название: {sample_task.get('title', 'Нет названия')}")
+                            print(f"      - Статус: {sample_task.get('status_text', 'Неизвестно')}")
+                            print(f"      - Приоритет: {sample_task.get('priority_text', 'Неизвестно')}")
+                            print(f"      - Ответственный: {sample_task.get('responsible_name', 'Не назначен')}")
+                            
+                            # Проверяем URL задачи в Bitrix24
+                            bitrix_url = sample_task.get('bitrix_url')
+                            if bitrix_url and 'vas-dom.bitrix24.ru' in bitrix_url:
+                                print(f"   ✅ URL задачи в Bitrix24 сформирован корректно")
+                            else:
+                                print(f"   ⚠️ URL задачи отсутствует или некорректен")
+                        else:
+                            print(f"   ❌ Отсутствующие поля: {missing_fields}")
+                            success = False
+                    else:
+                        print(f"   ⚠️ Нет задач для проверки структуры")
+                        # Это может быть нормально, если задач нет
+                        success = True
+                
+            self.log_test("Bitrix24 Tasks API - GET /api/tasks", success, 
+                         f"Status: {response.status_code}, Tasks: {len(data.get('tasks', [])) if success else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Tasks API - GET /api/tasks", False, str(e))
+            return False
+
+    def test_bitrix24_tasks_stats(self):
+        """НОВЫЙ ТЕСТ: Проверка статистики задач - GET /api/tasks/stats"""
+        try:
+            print("\n📊 ТЕСТИРОВАНИЕ СТАТИСТИКИ ЗАДАЧ:")
+            print("   Новый API: GET /api/tasks/stats - статистика по задачам")
+            print("   Ожидается: Всего задач, по статусам, просрочки")
+            
+            response = requests.get(f"{self.api_url}/tasks/stats", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "stats" in data)
+                
+                if success:
+                    stats = data["stats"]
+                    
+                    total_tasks = stats.get("total_tasks", 0)
+                    by_status = stats.get("by_status", {})
+                    by_priority = stats.get("by_priority", {})
+                    overdue_tasks = stats.get("overdue_tasks", 0)
+                    today_deadline = stats.get("today_deadline", 0)
+                    
+                    print(f"   📊 Всего задач: {total_tasks}")
+                    print(f"   📊 По статусам: {by_status}")
+                    print(f"   📊 По приоритетам: {by_priority}")
+                    print(f"   📊 Просроченных: {overdue_tasks}")
+                    print(f"   📊 На сегодня: {today_deadline}")
+                    
+                    # Проверяем что статистика корректна
+                    if total_tasks >= 0:
+                        print(f"   ✅ Статистика корректно подсчитывается")
+                        
+                        # Проверяем что есть разбивка по статусам
+                        if len(by_status) > 0:
+                            print(f"   ✅ Есть разбивка по статусам: {list(by_status.keys())}")
+                        else:
+                            print(f"   ⚠️ Нет разбивки по статусам (может быть нормально если нет задач)")
+                        
+                        # Проверяем что есть разбивка по приоритетам
+                        if len(by_priority) > 0:
+                            print(f"   ✅ Есть разбивка по приоритетам: {list(by_priority.keys())}")
+                        else:
+                            print(f"   ⚠️ Нет разбивки по приоритетам (может быть нормально если нет задач)")
+                    else:
+                        print(f"   ❌ Некорректная статистика")
+                        success = False
+                
+            self.log_test("Bitrix24 Tasks Stats - GET /api/tasks/stats", success, 
+                         f"Status: {response.status_code}, Total tasks: {stats.get('total_tasks', 0) if success else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Tasks Stats - GET /api/tasks/stats", False, str(e))
+            return False
+
+    def test_bitrix24_tasks_users(self):
+        """НОВЫЙ ТЕСТ: Проверка пользователей для назначения - GET /api/tasks/users"""
+        try:
+            print("\n👥 ТЕСТИРОВАНИЕ ПОЛЬЗОВАТЕЛЕЙ ДЛЯ НАЗНАЧЕНИЯ:")
+            print("   Новый API: GET /api/tasks/users - список пользователей для назначения")
+            print("   Ожидается: Активные пользователи с именами и должностями")
+            
+            response = requests.get(f"{self.api_url}/tasks/users", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "users" in data and
+                          isinstance(data["users"], list))
+                
+                if success:
+                    users = data["users"]
+                    total = data.get("total", 0)
+                    
+                    print(f"   👥 Загружено пользователей: {len(users)}")
+                    print(f"   👥 Общее количество: {total}")
+                    
+                    # Проверяем структуру пользователей
+                    if len(users) > 0:
+                        sample_user = users[0]
+                        required_fields = ['id', 'name']
+                        
+                        missing_fields = [field for field in required_fields if field not in sample_user]
+                        
+                        if not missing_fields:
+                            print(f"   ✅ Все обязательные поля присутствуют")
+                            print(f"   👥 Пример пользователя:")
+                            print(f"      - ID: {sample_user.get('id')}")
+                            print(f"      - Имя: {sample_user.get('name', 'Нет имени')}")
+                            print(f"      - Email: {sample_user.get('email', 'Нет email')}")
+                            print(f"      - Должность: {sample_user.get('position', 'Нет должности')}")
+                            
+                            # Проверяем что есть пользователи с именами
+                            users_with_names = [u for u in users if u.get('name') and u.get('name').strip()]
+                            print(f"   👥 Пользователей с именами: {len(users_with_names)}/{len(users)}")
+                            
+                            if len(users_with_names) > 0:
+                                print(f"   ✅ Пользователи имеют корректные имена")
+                            else:
+                                print(f"   ❌ Пользователи без имен")
+                                success = False
+                        else:
+                            print(f"   ❌ Отсутствующие поля: {missing_fields}")
+                            success = False
+                    else:
+                        print(f"   ⚠️ Нет пользователей для проверки")
+                        success = False
+                
+            self.log_test("Bitrix24 Tasks Users - GET /api/tasks/users", success, 
+                         f"Status: {response.status_code}, Users: {len(data.get('users', [])) if success else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Tasks Users - GET /api/tasks/users", False, str(e))
+            return False
+
+    def test_bitrix24_create_task(self):
+        """НОВЫЙ ТЕСТ: Проверка создания задач - POST /api/tasks"""
+        try:
+            print("\n📝 ТЕСТИРОВАНИЕ СОЗДАНИЯ ЗАДАЧ:")
+            print("   Новый API: POST /api/tasks - создание задач в Bitrix24")
+            print("   Ожидается: Создание задачи и возврат ID в Bitrix24")
+            
+            # Создаем тестовую задачу
+            task_data = {
+                "title": f"Тестовая задача VasDom - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                "description": "Автоматически созданная задача для тестирования интеграции с Bitrix24",
+                "responsible_id": 1,  # ID администратора
+                "priority": 2,  # Высокий приоритет
+                "deadline": "2024-12-31"
+            }
+            
+            response = requests.post(f"{self.api_url}/tasks", json=task_data, timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "task_id" in data)
+                
+                if success:
+                    task_id = data.get("task_id")
+                    title = data.get("title")
+                    bitrix_url = data.get("bitrix_url")
+                    
+                    print(f"   📝 Задача создана успешно:")
+                    print(f"      - ID в Bitrix24: {task_id}")
+                    print(f"      - Название: {title}")
+                    print(f"      - URL в Bitrix24: {bitrix_url}")
+                    
+                    # Проверяем что ID задачи корректен
+                    if task_id and str(task_id).isdigit():
+                        print(f"   ✅ ID задачи корректен: {task_id}")
+                    else:
+                        print(f"   ❌ Некорректный ID задачи: {task_id}")
+                        success = False
+                    
+                    # Проверяем URL задачи
+                    if bitrix_url and 'vas-dom.bitrix24.ru' in bitrix_url and str(task_id) in bitrix_url:
+                        print(f"   ✅ URL задачи в Bitrix24 корректен")
+                    else:
+                        print(f"   ❌ Некорректный URL задачи")
+                        success = False
+                else:
+                    error_message = data.get("message", "Unknown error")
+                    print(f"   ❌ Ошибка создания задачи: {error_message}")
+                    success = False
+            else:
+                print(f"   ❌ HTTP ошибка: {response.status_code}")
+                try:
+                    error_data = response.json()
+                    print(f"   ❌ Детали ошибки: {error_data}")
+                except:
+                    print(f"   ❌ Ответ сервера: {response.text[:200]}")
+                success = False
+                
+            self.log_test("Bitrix24 Create Task - POST /api/tasks", success, 
+                         f"Status: {response.status_code}, Task ID: {data.get('task_id', 'N/A') if success else 'Failed'}")
+            return success
+        except Exception as e:
+            self.log_test("Bitrix24 Create Task - POST /api/tasks", False, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all API tests focusing on Bitrix24 management company and personnel fix"""
         print("🚀 Starting VasDom AudioBot API Tests - Bitrix24 Management Company Fix")
