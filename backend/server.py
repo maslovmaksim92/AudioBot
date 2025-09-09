@@ -173,14 +173,6 @@ class KnowledgeBaseDB(Base):
     keywords = Column(Text)  # JSON string
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# Async engine for PostgreSQL
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    pool_pre_ping=True
-)
-
 # Pydantic Models for API
 class VoiceMessage(BaseModel):
     text: str
