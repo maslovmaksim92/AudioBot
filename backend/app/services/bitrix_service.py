@@ -52,6 +52,14 @@ class BitrixService:
                 'select[3]': 'DATE_CREATE',
                 'select[4]': 'OPPORTUNITY',
                 'select[5]': 'CATEGORY_ID',
+                'select[6]': 'UF_CRM_1726148184',  # Количество квартир
+                'select[7]': 'UF_CRM_1726148203',  # Количество этажей
+                'select[8]': 'UF_CRM_1726148223',  # Количество подъездов
+                'select[9]': 'UF_CRM_1726148242',  # Тариф/периодичность
+                'select[10]': 'UF_CRM_1726148261', # Дата уборки 1 сентябрь
+                'select[11]': 'UF_CRM_1726148280', # Тип уборки 1 сентябрь
+                'select[12]': 'UF_CRM_1726148299', # Дата уборки 2 сентябрь
+                'select[13]': 'UF_CRM_1726148318', # Тип уборки 2 сентябрь
                 'filter[CATEGORY_ID]': category_id,
                 'order[DATE_CREATE]': 'DESC',
                 'start': str(start)
