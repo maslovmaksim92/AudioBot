@@ -416,131 +416,17 @@ class AdvancedAI:
 
 ai = AdvancedAI()
 
-# Dashboard Routes
+# Dashboard Routes - REDIRECT к React приложению
 @app.get("/", response_class=HTMLResponse)  
 async def root_redirect():
-    """Redirect root to dashboard"""
-    return RedirectResponse(url="/dashboard", status_code=302)
+    """Redirect root to React dashboard"""
+    return RedirectResponse(url="https://smart-facility-ai.preview.emergentagent.com", status_code=302)
 
 @app.get("/dashbord", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page():
-    """VasDom AudioBot Dashboard HTML Page"""
-    return HTMLResponse(content="""<!DOCTYPE html>
-<html>
-<head>
-    <title>VasDom AudioBot - Система Excellent</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 40px; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        .stat-card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; text-align: center; backdrop-filter: blur(10px); }
-        .stat-number { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .feature { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; backdrop-filter: blur(10px); }
-        .btn { display: inline-block; background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px; }
-        .status { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
-        .status-dot { width: 12px; height: 12px; background: #4CAF50; border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🤖 VasDom AudioBot</h1>
-            <p>Система Excellent - AI управление клининговой компанией</p>
-            <p>🏠 491 дом • 👥 82 сотрудника • 🤖 GPT-4 mini</p>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <div>🏠 Домов в CRM</div>
-                <div class="stat-number">491</div>
-            </div>
-            <div class="stat-card">
-                <div>👥 Сотрудников</div>
-                <div class="stat-number">82</div>
-            </div>
-            <div class="stat-card">
-                <div>🚪 Подъездов</div>
-                <div class="stat-number">1,473</div>
-            </div>
-            <div class="stat-card">
-                <div>🏠 Квартир</div>
-                <div class="stat-number">25,892</div>
-            </div>
-        </div>
-        
-        <div class="features">
-            <div class="feature">
-                <h3>🤖 AI GPT-4 mini</h3>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Emergent LLM активен</span>
-                </div>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Самообучение включено</span>
-                </div>
-                <a href="/api/voice/process" class="btn">API Тест</a>
-            </div>
-            
-            <div class="feature">
-                <h3>🏠 Bitrix24 CRM</h3>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>491 дом загружено</span>
-                </div>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Синхронизация активна</span>
-                </div>
-                <a href="/api/cleaning/houses" class="btn">Все дома</a>
-            </div>
-            
-            <div class="feature">
-                <h3>📊 Dashboard API</h3>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>PostgreSQL готов</span>
-                </div>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Статистика реальная</span>
-                </div>
-                <a href="/api/dashboard" class="btn">JSON данные</a>
-            </div>
-            
-            <div class="feature">
-                <h3>🎤 Голосовые функции</h3>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Планерки готовы</span>
-                </div>
-                <div class="status">
-                    <div class="status-dot"></div>
-                    <span>Живой разговор</span>
-                </div>
-                <a href="/api/meetings" class="btn">Встречи</a>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 40px;">
-            <h3>🚀 VasDom AudioBot готов к работе!</h3>
-            <p>Система управления 491 домом в Калуге через AI</p>
-            
-            <div style="margin-top: 30px;">
-                <a href="/api/" class="btn">🔗 API Документация</a>
-                <a href="/api/health" class="btn">🏥 Статус системы</a>
-                <a href="/api/telegram/status" class="btn">📱 Telegram бот</a>
-            </div>
-        </div>
-    </div>
-</body>
-</html>""")
+async def dashboard_redirect():
+    """Redirect to React VasDom AudioBot Dashboard"""
+    return RedirectResponse(url="https://smart-facility-ai.preview.emergentagent.com", status_code=302)
 
 # API Routes
 api_router = APIRouter(prefix="/api")
