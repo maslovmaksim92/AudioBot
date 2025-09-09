@@ -7,6 +7,9 @@ services:
       pip install --upgrade pip
       pip install -r requirements.txt
       
+      # Try to install emergentintegrations
+      pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ || echo "⚠️ emergentintegrations not available, using fallback"
+      
       # Install Node.js dependencies and build frontend
       cd frontend && yarn install && yarn build
     startCommand: uvicorn app.main:app --host=0.0.0.0 --port=$PORT
