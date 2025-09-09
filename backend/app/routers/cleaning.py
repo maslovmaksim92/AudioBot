@@ -282,30 +282,120 @@ async def get_cleaning_filters():
         deals = await bitrix.get_deals(limit=None)
         
         brigades = set()
-        cleaning_days = set()
+        cleaning_weeks = set()
+        management_companies = set()
+        months_with_schedule = set()
         
         for deal in deals:
             address = deal.get('TITLE', '')
             brigade_info = bitrix.analyze_house_brigade(address)
             brigades.add(brigade_info)
             
-            # Извлекаем дни уборки
-            cleaning_date_1_str = deal.get('UF_CRM_CLEANING_DATE_1', '')
-            cleaning_date_2_str = deal.get('UF_CRM_CLEANING_DATE_2', '')
+            # Получаем управляющую компанию
+            management_company = _get_management_company(address)
+            management_companies.add(management_company)
             
-            dates = _parse_dates(cleaning_date_1_str) + _parse_dates(cleaning_date_2_str)
-            weekdays = _extract_weekdays(dates)
-            cleaning_days.update(weekdays)
+            # Извлекаем недели уборки из всех месяцев
+            all_schedules = [
+                ('september', {'date_1': 'UF_CRM_1741592774017', 'date_2': 'UF_CRM_1741592892232'}),
+                ('october', {'date_1': 'UF_CRM_1741593004888', 'date_2': 'UF_CRM_1741593067418'}),
+                ('november', {'date_1': 'UF_CRM_1741593156926', 'date_2': 'UF_CRM_1741593231558'}),
+                ('december', {'date_1': 'UF_CRM_1741593340713', 'date_2': 'UF_CRM_1741593408621'})
+            ]
+            
+            for month_name, fields in all_schedules:
+                date_1_str = deal.get(fields['date_1'], '')
+                date_2_str = deal.get(fields['date_2'], '')
+                
+                if date_1_str or date_2_str:
+                    months_with_schedule.add(month_name.capitalize())
+                    
+                    # Извлекаем недели
+                    dates = _parse_dates(date_1_str) + _parse_dates(date_2_str)
+                    weeks = _extract_weeks(dates)
+                    cleaning_weeks.update(weeks)
         
         return {
             "status": "success",
             "brigades": sorted(list(brigades)),
-            "cleaning_days": sorted(list(cleaning_days)),
+            "cleaning_weeks": sorted(list(cleaning_weeks)),
+            "management_companies": sorted(list(management_companies)),
+            "months": sorted(list(months_with_schedule)),
             "timestamp": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Filters error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/cleaning/stats")
+async def get_cleaning_dashboard_stats():
+    """Статистика для дашборда страницы домов"""
+    try:
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=None)
+        
+        # Подсчет основных метрик
+        total_houses = len(deals)
+        total_apartments = 0
+        total_entrances = 0
+        total_floors = 0
+        
+        # Статистика по бригадам
+        brigades_stats = {}
+        
+        # Статистика по месяцам создания
+        creation_stats = {}
+        
+        # Статистика по управляющим компаниям
+        company_stats = {}
+        
+        for deal in deals:
+            # Суммируем квартиры, подъезды, этажи
+            apartments = _parse_int(deal.get('UF_CRM_1669704529022')) or 0
+            entrances = _parse_int(deal.get('UF_CRM_1669705507390')) or 0
+            floors = _parse_int(deal.get('UF_CRM_1669704631166')) or 0
+            
+            total_apartments += apartments
+            total_entrances += entrances
+            total_floors += floors
+            
+            # Статистика по бригадам
+            address = deal.get('TITLE', '')
+            brigade = bitrix.analyze_house_brigade(address)
+            brigades_stats[brigade] = brigades_stats.get(brigade, 0) + 1
+            
+            # Статистика по управляющим компаниям
+            management_company = _get_management_company(address)
+            company_stats[management_company] = company_stats.get(management_company, 0) + 1
+            
+            # Статистика по месяцам создания сделок
+            created_date = deal.get('DATE_CREATE', '')
+            if created_date:
+                try:
+                    from datetime import datetime
+                    date_obj = datetime.fromisoformat(created_date.replace('Z', '+00:00'))
+                    month_key = date_obj.strftime('%Y-%m')
+                    creation_stats[month_key] = creation_stats.get(month_key, 0) + 1
+                except:
+                    pass
+        
+        return {
+            "status": "success",
+            "stats": {
+                "total_houses": total_houses,
+                "total_apartments": total_apartments,
+                "total_entrances": total_entrances,
+                "total_floors": total_floors,
+                "brigades_distribution": brigades_stats,
+                "companies_distribution": company_stats,
+                "creation_dynamics": dict(sorted(creation_stats.items())[-12:])  # Последние 12 месяцев
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Dashboard stats error: {e}")
         return {"status": "error", "message": str(e)}
 
 @router.get("/cleaning/brigades")
