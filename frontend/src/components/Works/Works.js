@@ -315,22 +315,20 @@ const WorksEnhanced = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         {cards.map((card, index) => (
-          <div
-            key={index}
-            className={`bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 hover:shadow-2xl cursor-pointer`}
-            onMouseEnter={() => setHoveredCard(index)}
-            onMouseLeave={() => setHoveredCard(null)}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`text-3xl transform transition-transform duration-300 ${hoveredCard === index ? 'scale-110' : ''}`}>
-                {card.icon}
+          <div key={index} className="group relative">
+            <div className={`absolute -inset-0.5 bg-gradient-to-r ${card.gradient} via-${card.gradient.split('-')[1]}-500 rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500 ${index === 0 ? 'animate-pulse' : ''}`}></div>
+            <div className={`relative bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl cursor-pointer`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`text-3xl transform transition-transform duration-300 ${hoveredCard === index ? 'scale-110' : ''}`}>
+                  {card.icon}
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
+                  <div className="text-xs opacity-80">{card.title}</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
-                <div className="text-xs opacity-80">{card.title}</div>
-              </div>
+              <div className="text-xs opacity-90">{card.subtitle}</div>
             </div>
-            <div className="text-xs opacity-90">{card.subtitle}</div>
           </div>
         ))}
       </div>
