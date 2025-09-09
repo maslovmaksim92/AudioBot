@@ -229,8 +229,6 @@ async def init_database():
         return False
 
 # Security helper functions (УЛУЧШЕНИЕ 3)
-from fastapi import Header
-
 async def verify_api_key(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key")
