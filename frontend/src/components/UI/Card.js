@@ -28,15 +28,15 @@ const Card = ({
   const classes = `${baseClasses} ${paddings[padding]} ${shadows[shadow]} ${className}`;
 
   return (
-    &lt;div className={classes} {...props}&gt;
+    <div className={classes} {...props}>
       {(title || subtitle) && (
-        &lt;div className="mb-4"&gt;
-          {title && &lt;h3 className="text-lg font-semibold text-gray-900"&gt;{title}&lt;/h3&gt;}
-          {subtitle && &lt;p className="text-sm text-gray-600 mt-1"&gt;{subtitle}&lt;/p&gt;}
-        &lt;/div&gt;
+        <div className="mb-4">
+          {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+          {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
+        </div>
       )}
       {children}
-    &lt;/div&gt;
+    </div>
   );
 };
 

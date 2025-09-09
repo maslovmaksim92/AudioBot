@@ -33,21 +33,21 @@ const Button = ({
   const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${disabledClasses} ${className}`;
 
   return (
-    &lt;button
+    <button
       type={type}
       className={classes}
       disabled={disabled || loading}
       onClick={onClick}
       {...props}
-    &gt;
+    >
       {loading && (
-        &lt;svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24"&gt;
-          &lt;circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"&gt;&lt;/circle&gt;
-          &lt;path className="opacity-75" fill="currentColor" d="m12 2v3m0 16v-3m10-8h-3M5 12H2m17.07-5.07l-2.12 2.12M9.05 14.95l-2.12 2.12m12.02 0l-2.12-2.12M9.05 9.05L6.93 6.93"&gt;&lt;/path&gt;
-        &lt;/svg&gt;
+        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="m12 2v3m0 16v-3m10-8h-3M5 12H2m17.07-5.07l-2.12 2.12M9.05 14.95l-2.12 2.12m12.02 0l-2.12-2.12M9.05 9.05L6.93 6.93"></path>
+        </svg>
       )}
       {children}
-    &lt;/button&gt;
+    </button>
   );
 };
 
