@@ -27,7 +27,7 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         value: 8327964029:AAHBMITlIY8ZWLn34mpg82d1-Cb-8RXTSmQ
       - key: TELEGRAM_WEBHOOK_URL
-        value: https://audiobot-qci2.onrender.com/telegram/webhook
+        value: https://audiobot-qci2.onrender.com/api/telegram/webhook
       - key: OPENROUTER_API_KEY
         value: sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd
       - key: CORS_ORIGINS
