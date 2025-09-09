@@ -34,9 +34,12 @@ class VasDomAudioBotTester:
         else:
             print(f"❌ {name} - FAILED {details}")
     
-    def make_request(self, method: str, endpoint: str, data: Dict = None, timeout: int = 30) -> tuple:
+    def make_request(self, method: str, endpoint: str, data: Dict = None, timeout: int = 30, endpoint_override: str = None) -> tuple:
         """Make HTTP request and return (success, response_data, status_code)"""
-        url = f"{self.api_url}/{endpoint}" if not endpoint.startswith('http') else endpoint
+        if endpoint_override:
+            url = endpoint_override
+        else:
+            url = f"{self.api_url}/{endpoint}" if not endpoint.startswith('http') else endpoint
         headers = {'Content-Type': 'application/json'}
         
         try:
