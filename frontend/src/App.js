@@ -759,7 +759,7 @@ function VoiceSection() {
           
           <div className="mt-4 text-center p-3 bg-blue-50 rounded-lg">
             <p className="text-xs text-blue-700">
-              🤖 <strong>Powered by GPT-4 mini</strong> | 📚 База знаний активна | 🧠 Самообучение включено
+              🤖 <strong>Powered by GPT-4 mini (Emergent)</strong> | 📚 База знаний активна | 🧠 Самообучение включено
             </p>
           </div>
         </div>
