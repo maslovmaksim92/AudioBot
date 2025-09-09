@@ -105,6 +105,66 @@
 user_problem_statement: "Улучшение кода VasDom AudioBot: 1. CORS origins - ограничить и читать из переменных окружения, 2. Telegram webhook validation - добавить Pydantic модели, 3. Authentication - добавить безопасность для публичных API, 4. CRM data centralization - централизовать получение данных, 5. Telegram error handling - обрабатывать ошибки отправки, 6. Database migrations - подключить Alembic, 7. Frontend redirect URLs - вынести в конфигурацию, 8. README expansion - расширить документацию. Все улучшения должны сохранить работающий функционал приложения."
 
 backend:
+  - task: "CORS Origins Configuration"
+    implemented: true
+    working: true
+    file: "backend/app/config/settings.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ CORS origins теперь читаются из переменных окружения CORS_ORIGINS, убран wildcard '*', добавлены безопасные дефолты"
+
+  - task: "Telegram Webhook Validation"
+    implemented: true
+    working: true
+    file: "backend/app/routers/telegram.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ Добавлена валидация через TelegramUpdate Pydantic модель, проверка обязательных полей message и text, возврат HTTPException при ошибках"
+
+  - task: "API Authentication System"
+    implemented: true
+    working: true
+    file: "backend/app/security.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ Реализован модуль безопасности с зависимостями require_auth и optional_auth, подключен к endpoints /api/voice/process и /api/telegram/webhook"
+
+  - task: "CRM Data Centralization"
+    implemented: true
+    working: true
+    file: "backend/app/services/ai_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ Создан приватный метод _fetch_crm_stats() в AIService, используется в _emergent_ai_response, _advanced_fallback_response, _simple_fallback_response"
+
+  - task: "Telegram Error Handling"
+    implemented: true
+    working: true
+    file: "backend/app/routers/telegram.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ Добавлена проверка успеха send_message, возврат status 'failed' с деталями при ошибке, логирование ошибок отправки"
+
   - task: "CRM Bitrix24 Integration - Dashboard API"
     implemented: true
     working: true
