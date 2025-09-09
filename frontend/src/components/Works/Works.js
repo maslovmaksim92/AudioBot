@@ -86,21 +86,47 @@ const WorksEnhanced = () => {
       });
       
       const url = `${BACKEND_URL}/api/cleaning/houses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      const response = await fetch(url);
-      const data = await response.json();
+      console.log('🏠 Fetching houses from:', url);
       
-      setHouses(data.houses || []);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('🏠 Houses data received:', data);
+      
+      const housesData = data.houses || data || [];
+      setHouses(housesData);
       
       // Анимация появления карточек
       const newAnimated = new Set();
-      (data.houses || []).forEach((_, index) => {
+      housesData.forEach((_, index) => {
         setTimeout(() => {
           newAnimated.add(index);
           setAnimatedCards(new Set(newAnimated));
         }, index * 50);
       });
+      
+      console.log(`✅ Loaded ${housesData.length} houses`);
     } catch (error) {
       console.error('❌ Error fetching houses:', error);
+      showNotification('❌ Ошибка загрузки домов', 'error');
+      // Fallback data for demo
+      setHouses([
+        {
+          deal_id: 'demo_1',
+          address: 'Демо дом 1',
+          house_address: 'ул. Тестовая, д. 1',
+          apartments_count: 100,
+          floors_count: 10,
+          entrances_count: 4,
+          brigade: 'Бригада 1',
+          management_company: 'ООО Демо-УК',
+          status_text: 'Активен',
+          status_color: 'green'
+        }
+      ]);
     }
   };
 
