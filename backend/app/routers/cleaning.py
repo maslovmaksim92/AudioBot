@@ -44,8 +44,13 @@ async def get_cleaning_houses(
             brigade_info = _get_brigade_by_responsible_name(assigned_name) if assigned_name else bitrix.analyze_house_brigade(address)
             status_text, status_color = bitrix.get_status_info(stage_id)
             
-            # Используем реальное название УК или fallback по адресу
-            management_company_name = real_company_title if real_company_title else _get_management_company(address)
+            # Используем реальное название УК из API или fallback по адресу
+            if real_company_title:
+                management_company_name = real_company_title
+            else:
+                # Fallback для домов без связанной компании в Bitrix24
+                management_company_name = _get_management_company(address)
+                logger.info(f"🏢 Fallback УК для {address}: {management_company_name}")
             
             # Извлекаем данные из Bitrix24 с правильными полями
             house_address = deal.get('UF_CRM_1669561599956', '') or address  # Адрес дома
