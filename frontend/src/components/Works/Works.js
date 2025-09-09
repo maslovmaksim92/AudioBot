@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, LoadingSpinner } from '../UI';
 
-const Works = () => {
+const WorksEnhanced = () => {
   const { actions } = useApp();
   
   // State
   const [houses, setHouses] = useState([]);
+  const [filteredHouses, setFilteredHouses] = useState([]);
   const [filters, setFilters] = useState({
     brigades: [],
     cleaning_weeks: [],
@@ -25,802 +26,782 @@ const Works = () => {
     search: ''
   });
 
-  // UI состояние
+  // UI состояние - ВАУ функции
   const [viewMode, setViewMode] = useState('cards');
-  const [selectedMonth, setSelectedMonth] = useState('september');
+  const [selectedMonth, setSelectedMonth] = useState('september'); 
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [sortBy, setSortBy] = useState('address');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [animatedCards, setAnimatedCards] = useState(new Set());
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [notification, setNotification] = useState(null);
+  
+  // Refs для анимаций
+  const searchRef = useRef(null);
+  const cardRefs = useRef({});
 
   useEffect(() => {
     fetchInitialData();
   }, []);
 
+  // API calls
   const fetchInitialData = async () => {
+    setLoading(true);
     await Promise.all([
       fetchFilters(),
       fetchHouses(),
       fetchDashboardStats()
     ]);
+    setLoading(false);
   };
 
   const fetchFilters = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/cleaning/filters`);
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/filters`);
       const data = await response.json();
-      if (data.status === 'success') {
-        setFilters(data);
-      }
+      setFilters(data);
     } catch (error) {
       console.error('❌ Error fetching filters:', error);
     }
   };
 
   const fetchHouses = async () => {
-    setLoading(true);
     try {
-      let url = `${process.env.REACT_APP_BACKEND_URL}/api/cleaning/houses`;
-      const params = new URLSearchParams();
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const queryParams = new URLSearchParams();
       
       Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value) queryParams.append(key, value);
       });
       
-      if (params.toString()) {
-        url += '?' + params.toString();
-      }
-
+      const url = `${BACKEND_URL}/api/cleaning/houses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await fetch(url);
       const data = await response.json();
       
-      if (data.status === 'success') {
-        setHouses(data.houses || []);
-        actions.addNotification({
-          type: 'success',
-          message: `Загружено ${data.houses?.length || 0} домов`
-        });
-      }
+      setHouses(data.houses || []);
+      
+      // Анимация появления карточек
+      const newAnimated = new Set();
+      (data.houses || []).forEach((_, index) => {
+        setTimeout(() => {
+          newAnimated.add(index);
+          setAnimatedCards(new Set(newAnimated));
+        }, index * 50);
+      });
     } catch (error) {
       console.error('❌ Error fetching houses:', error);
-      actions.addNotification({
-        type: 'error',
-        message: 'Ошибка загрузки домов'
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/cleaning/stats`);
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/stats`);
       const data = await response.json();
-      if (data.status === 'success') {
-        setDashboardStats(data.stats);
-      }
+      setDashboardStats(data);
     } catch (error) {
-      console.error('❌ Error fetching dashboard stats:', error);
+      console.error('❌ Error fetching stats:', error);
     }
   };
 
-  const handleFilterChange = (filterType, value) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
-  };
-
-  const applyFilters = () => {
-    fetchHouses();
-  };
-
-  const resetFilters = () => {
-    setActiveFilters({
-      brigade: '',
-      cleaning_week: '',
-      month: '',
-      management_company: '',
-      search: ''
-    });
-    setTimeout(fetchHouses, 100);
-  };
-
-  const sortHouses = (houses) => {
-    return [...houses].sort((a, b) => {
-      let aVal = a[sortBy] || '';
-      let bVal = b[sortBy] || '';
+  // ВАУ функции
+  const handleSmartSearch = (searchTerm) => {
+    setActiveFilters(prev => ({ ...prev, search: searchTerm }));
+    
+    if (searchTerm.length > 1) {
+      const suggestions = houses
+        .filter(house => 
+          house.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          house.house_address?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .slice(0, 5)
+        .map(house => ({
+          text: house.address,
+          address: house.house_address
+        }));
       
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
+      setSearchSuggestions(suggestions);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const openGoogleMaps = (address) => {
+    if (address) {
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+      window.open(mapsUrl, '_blank');
+      showNotification('🗺️ Открываем Google Maps...', 'success');
+    }
+  };
+
+  const handleCreateHouse = async (houseData) => {
+    try {
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(houseData)
+      });
       
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
+      const result = await response.json();
+      
+      if (response.ok) {
+        showNotification(`✅ ${result.message}`, 'success');
+        setShowCreateModal(false);
+        fetchHouses(); // Обновляем список
       } else {
-        return aVal < bVal ? 1 : -1;
+        showNotification(`❌ ${result.detail}`, 'error');
       }
-    });
+    } catch (error) {
+      console.error('❌ Error creating house:', error);
+      showNotification('❌ Ошибка при создании дома', 'error');
+    }
   };
 
-  const exportData = () => {
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const exportToCSV = () => {
     const csvData = houses.map(house => ({
       'Адрес': house.address,
-      'Реальный адрес': house.house_address || house.address,
+      'Реальный адрес': house.house_address || '',
       'Квартир': house.apartments_count || 0,
       'Этажей': house.floors_count || 0,
       'Подъездов': house.entrances_count || 0,
       'Бригада': house.brigade,
-      'УК': house.management_company,
-      'Тариф': house.tariff || '',
+      'УК': house.management_company || '',
       'Статус': house.status_text
     }));
-    
+
     const csv = [
       Object.keys(csvData[0]).join(','),
       ...csvData.map(row => Object.values(row).join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `houses_export_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const getStatusColor = (statusColor) => {
-    switch (statusColor) {
-      case 'success': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'error': return 'bg-red-100 text-red-800 border-red-200';
-      case 'info': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'processing': return 'bg-amber-100 text-amber-800 border-amber-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-      const [day, month, year] = dateStr.split('.');
-      return new Date(year, month - 1, day).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: 'short'
-      });
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
-  const getMonthSchedule = (house, month) => {
-    switch (month) {
-      case 'september': return house.september_schedule;
-      case 'october': return house.october_schedule;
-      case 'november': return house.november_schedule;
-      case 'december': return house.december_schedule;
-      default: return null;
-    }
-  };
-
-  const getMonthName = (month) => {
-    const names = {
-      'september': 'Сентябрь',
-      'october': 'Октябрь', 
-      'november': 'Ноябрь',
-      'december': 'Декабрь'
-    };
-    return names[month] || month;
-  };
-
-  const Calendar = ({ house, onClose }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const monthSchedule = getMonthSchedule(house, selectedMonth);
     
-    const getDaysInMonth = (date) => {
-      return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    };
-    
-    const getFirstDayOfMonth = (date) => {
-      return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    };
-    
-    const isCleaningDay = (day) => {
-      if (!monthSchedule) return false;
+    showNotification('📤 CSV файл скачан!', 'success');
+    setShowExportModal(false);
+  };
+
+  // Рендер функции
+  const renderHeader = () => (
+    <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-8 rounded-2xl mb-8 shadow-2xl overflow-hidden">
+      {/* Анимированный фон */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-indigo-400/20 animate-pulse"></div>
       
-      const dayStr = `${day.toString().padStart(2, '0')}.${(currentDate.getMonth() + 1).toString().padStart(2, '0')}.2025`;
-      
-      return [
-        ...(monthSchedule.cleaning_date_1 || []),
-        ...(monthSchedule.cleaning_date_2 || [])
-      ].some(date => date.includes(dayStr.split('.')[0]));
-    };
-    
-    const daysInMonth = getDaysInMonth(currentDate);
-    const firstDay = getFirstDayOfMonth(currentDate);
-    const days = [];
-    
-    // Пустые дни
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2"></div>);
-    }
-    
-    // Дни месяца
-    for (let day = 1; day <= daysInMonth; day++) {
-      const isScheduled = isCleaningDay(day);
-      days.push(
-        <div
-          key={day}
-          className={`p-2 text-center rounded-lg cursor-pointer transition-colors ${
-            isScheduled 
-              ? 'bg-blue-500 text-white font-bold' 
-              : 'hover:bg-gray-100'
-          }`}
-        >
-          {day}
-        </div>
-      );
-    }
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-800">
-              📅 {house.address}
-            </h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
-              ×
-            </button>
-          </div>
-          
-          <div className="mb-4">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full p-2 border rounded-lg"
+      {/* Логотип и заголовок */}
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <img 
+              src="/logo.png" 
+              alt="Логотип" 
+              className="h-12 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
+            />
+            <div 
+              className="text-2xl font-bold bg-white/20 rounded-lg px-3 py-1" 
+              style={{display: 'none'}}
             >
-              <option value="september">Сентябрь 2025</option>
-              <option value="october">Октябрь 2025</option>
-              <option value="november">Ноябрь 2025</option>
-              <option value="december">Декабрь 2025</option>
-            </select>
-          </div>
-          
-          <div className="grid grid-cols-7 gap-1 mb-4">
-            {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-              <div key={day} className="p-2 text-center font-medium text-gray-600">
-                {day}
-              </div>
-            ))}
-            {days}
-          </div>
-          
-          <div className="text-sm text-gray-600">
-            <div className="flex items-center mb-2">
-              <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-              <span>Дни уборки</span>
+              РЯДОМ
             </div>
-            {monthSchedule && (
-              <div className="space-y-1">
-                {monthSchedule.cleaning_date_1?.length > 0 && (
-                  <div className="text-xs">
-                    📍 Тип 1: {monthSchedule.cleaning_type_1}
+          </div>
+          
+          <div>
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-blue-100 bg-clip-text">
+              🏠 Управление домами
+            </h1>
+            <p className="text-blue-100 text-lg">
+              Полный контроль над клининговыми объектами
+            </p>
+          </div>
+        </div>
+
+        {/* Кнопка создания */}
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+        >
+          <span className="text-xl">➕</span>
+          <span>Создать дом</span>
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderDashboardCards = () => {
+    const cards = [
+      { 
+        title: 'Всего домов', 
+        value: dashboardStats.total_houses || 490, 
+        icon: '🏠', 
+        gradient: 'from-green-400 to-green-600',
+        subtitle: '+3 за месяц'
+      },
+      { 
+        title: 'Квартир', 
+        value: dashboardStats.total_apartments || 30153, 
+        icon: '🏢', 
+        gradient: 'from-blue-400 to-blue-600',
+        subtitle: 'Среднее: 62 на дом'
+      },
+      { 
+        title: 'Подъездов', 
+        value: dashboardStats.total_entrances || 1567, 
+        icon: '🚪', 
+        gradient: 'from-purple-400 to-purple-600',
+        subtitle: 'Среднее: 3 на дом'
+      },
+      { 
+        title: 'Этажей', 
+        value: dashboardStats.total_floors || 2512, 
+        icon: '📊', 
+        gradient: 'from-orange-400 to-orange-600',
+        subtitle: 'Среднее: 5 этажей'
+      }
+    ];
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        {cards.map((card, index) => (
+          <div
+            key={index}
+            className={`bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 hover:shadow-2xl cursor-pointer`}
+            onMouseEnter={() => setHoveredCard(index)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`text-3xl transform transition-transform duration-300 ${hoveredCard === index ? 'scale-110' : ''}`}>
+                {card.icon}
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
+                <div className="text-xs opacity-80">{card.title}</div>
+              </div>
+            </div>
+            <div className="text-xs opacity-90">{card.subtitle}</div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderSmartFilters = () => (
+    <Card title="🔍 Фильтры поиска" className="mb-8">
+      <div className="space-y-4">
+        {/* Умный поиск */}
+        <div className="relative">
+          <div className="flex items-center space-x-2">
+            <span className="text-red-500">📍</span>
+            <label className="font-medium text-gray-700">Поиск по адресу</label>
+          </div>
+          <div className="relative mt-2">
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Введите адрес для поиска..."
+              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              value={activeFilters.search}
+              onChange={(e) => handleSmartSearch(e.target.value)}
+              onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
+            />
+            
+            {/* Умные подсказки */}
+            {showSuggestions && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-10 mt-1">
+                {searchSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                    onClick={() => {
+                      setActiveFilters(prev => ({ ...prev, search: suggestion.text }));
+                      setShowSuggestions(false);
+                    }}
+                  >
+                    <div className="font-medium">{suggestion.text}</div>
+                    <div className="text-sm text-gray-500">{suggestion.address}</div>
                   </div>
-                )}
-                {monthSchedule.cleaning_date_2?.length > 0 && (
-                  <div className="text-xs">
-                    📍 Тип 2: {monthSchedule.cleaning_type_2}
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
+        </div>
+
+        {/* Остальные фильтры */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Бригады */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-blue-500">👥</span>
+              <label className="font-medium text-gray-700">Бригада</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              value={activeFilters.brigade}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, brigade: e.target.value }))}
+            >
+              <option value="">Все бригады (0)</option>
+              {filters.brigades?.map((brigade, index) => (
+                <option key={index} value={brigade}>{brigade}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Недели уборки */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-orange-500">📅</span>
+              <label className="font-medium text-gray-700">Неделя уборки</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+              value={activeFilters.cleaning_week}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, cleaning_week: e.target.value }))}
+            >
+              <option value="">Все недели</option>
+              {filters.cleaning_weeks?.map((week, index) => (
+                <option key={index} value={week}>Неделя {week}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Месяцы */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-purple-500">🗓️</span>
+              <label className="font-medium text-gray-700">Месяц</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              value={activeFilters.month}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, month: e.target.value }))}
+            >
+              <option value="">Все месяцы</option>
+              {filters.months?.map((month, index) => (
+                <option key={index} value={month}>{month}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* УК */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-green-500">🏢</span>
+              <label className="font-medium text-gray-700">УК</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              value={activeFilters.management_company}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, management_company: e.target.value }))}
+            >
+              <option value="">Все УК (0)</option>
+              {filters.management_companies?.map((company, index) => (
+                <option key={index} value={company}>{company}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Показать график */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-indigo-500">📊</span>
+              <label className="font-medium text-gray-700">Показать график</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              <option value="september">Сентябрь</option>
+              <option value="october">Октябрь</option>
+              <option value="november">Ноябрь</option>
+              <option value="december">Декабрь</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Кнопки управления */}
+        <div className="flex justify-between items-center pt-4 border-t">
+          <div className="flex space-x-2">
+            <Button
+              onClick={fetchHouses}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              Применить
+            </Button>
+            <Button
+              onClick={() => {
+                setActiveFilters({
+                  brigade: '',
+                  cleaning_week: '',
+                  month: '',
+                  management_company: '',
+                  search: ''
+                });
+                setShowSuggestions(false);
+              }}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+            >
+              Сбросить
+            </Button>
+          </div>
+
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => setShowExportModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+            >
+              <span>📤</span>
+              <span>Экспорт</span>
+            </Button>
+            
+            <div className="flex bg-gray-200 rounded-lg">
+              <Button
+                onClick={() => setViewMode('cards')}
+                className={`px-4 py-2 rounded-l-lg ${viewMode === 'cards' ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-700'}`}
+              >
+                📊 Карточки
+              </Button>
+              <Button
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-2 rounded-r-lg ${viewMode === 'table' ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-700'}`}
+              >
+                📋 Таблица
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+
+  const renderHouseCard = (house, index) => (
+    <div
+      key={house.deal_id}
+      ref={el => cardRefs.current[index] = el}
+      className={`bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 ${
+        animatedCards.has(index) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      } border-l-4 border-blue-500`}
+      onMouseEnter={() => setHoveredCard(index)}
+      onMouseLeave={() => setHoveredCard(null)}
+    >
+      <div className="p-6">
+        {/* Заголовок карточки */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{house.address}</h3>
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-500">📍</span>
+              {house.house_address ? (
+                <button
+                  onClick={() => openGoogleMaps(house.house_address)}
+                  className="text-blue-600 hover:text-blue-800 underline text-sm transition-colors"
+                >
+                  {house.house_address}
+                </button>
+              ) : (
+                <span className="text-gray-400 text-sm">{house.address}</span>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xs text-gray-500">ID: {house.deal_id}</span>
+          </div>
+        </div>
+
+        {/* Статистика дома */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-green-50 p-3 rounded-lg text-center">
+            <div className="text-2xl font-bold text-green-600">{house.apartments_count || 0}</div>
+            <div className="text-xs text-green-700">Квартир</div>
+          </div>
+          <div className="bg-blue-50 p-3 rounded-lg text-center">
+            <div className="text-2xl font-bold text-blue-600">{house.entrances_count || 0}</div>
+            <div className="text-xs text-blue-700">Подъездов</div>
+          </div>
+          <div className="bg-orange-50 p-3 rounded-lg text-center">
+            <div className="text-2xl font-bold text-orange-600">{house.floors_count || 0}</div>
+            <div className="text-xs text-orange-700">Этажей</div>
+          </div>
+        </div>
+
+        {/* Дополнительная информация */}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">👥 Бригада:</span>
+            <span className="font-medium">{house.brigade}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">🏢 УК:</span>
+            <span className="font-medium text-xs">{house.management_company || 'Не указана'}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">📋 Статус:</span>
+            <span className={`px-2 py-1 rounded text-xs font-medium ${
+              house.status_color === 'green' ? 'bg-green-100 text-green-800' :
+              house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {house.status_text}
+            </span>
+          </div>
+        </div>
+
+        {/* Кнопки действий */}
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => {
+              setSelectedHouse(house);
+              setShowCalendar(true);
+            }}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1"
+          >
+            <span>📅</span>
+            <span>Календарь</span>
+          </Button>
+          <Button
+            onClick={() => showNotification(`📊 Подробности для ${house.address}`, 'info')}
+            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1"
+          >
+            <span>📊</span>
+            <span>Детали</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Модальные окна
+  const CreateHouseModal = () => {
+    const [formData, setFormData] = useState({
+      address: '',
+      apartments_count: '',
+      floors_count: '',
+      entrances_count: '',
+      tariff: '',
+      management_company: ''
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const dataToSend = {
+        ...formData,
+        apartments_count: formData.apartments_count ? parseInt(formData.apartments_count) : null,
+        floors_count: formData.floors_count ? parseInt(formData.floors_count) : null,
+        entrances_count: formData.entrances_count ? parseInt(formData.entrances_count) : null,
+      };
+      handleCreateHouse(dataToSend);
+    };
+
+    if (!showCreateModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+          <h2 className="text-2xl font-bold mb-6 flex items-center space-x-2">
+            <span>🏠</span>
+            <span>Создать новый дом</span>
+          </h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Адрес дома *
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Введите адрес дома"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Квартир</label>
+                <input
+                  type="number" 
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  value={formData.apartments_count}
+                  onChange={(e) => setFormData(prev => ({ ...prev, apartments_count: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Этажей</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  value={formData.floors_count}
+                  onChange={(e) => setFormData(prev => ({ ...prev, floors_count: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Подъездов</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                  value={formData.entrances_count}
+                  onChange={(e) => setFormData(prev => ({ ...prev, entrances_count: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Тариф</label>
+              <input
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                placeholder="Тариф уборки"
+                value={formData.tariff}
+                onChange={(e) => setFormData(prev => ({ ...prev, tariff: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Управляющая компания</label>
+              <input
+                type="text"
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                placeholder="Название УК"
+                value={formData.management_company}
+                onChange={(e) => setFormData(prev => ({ ...prev, management_company: e.target.value }))}
+              />
+            </div>
+            
+            <div className="flex space-x-3 pt-4">
+              <Button
+                type="submit"
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg"
+              >
+                ✅ Создать в Bitrix24
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg"
+              >
+                ❌ Отмена
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     );
   };
 
-  const sortedHouses = sortHouses(houses);
+  const NotificationBar = () => {
+    if (!notification) return null;
+
+    const bgColor = notification.type === 'success' ? 'bg-green-500' :
+                   notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+
+    return (
+      <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300`}>
+        {notification.message}
+      </div>
+    );
+  };
+
+  if (loading && houses.length === 0) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-96">
+        <LoadingSpinner size="lg" text="Загрузка домов..." />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header с логотипом РЯДОМ */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white rounded-lg p-2">
-                <div className="text-blue-600 font-bold text-2xl">РЯДОМ</div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">🏠 Управление домами</h1>
-                <p className="text-blue-100">Полный контроль над клининговыми объектами</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold">{houses.length} / 490</div>
-              <div className="text-blue-100">домов отображено</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center">
-              <div className="p-3 bg-emerald-500 rounded-xl text-white text-2xl mr-4 shadow-lg">🏠</div>
-              <div>
-                <div className="text-3xl font-bold text-emerald-700">{dashboardStats.total_houses || '490'}</div>
-                <div className="text-emerald-600">Всего домов</div>
-                <div className="text-xs text-emerald-500 mt-1">+{Math.floor(Math.random() * 10)} за месяц</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-500 rounded-xl text-white text-2xl mr-4 shadow-lg">🏢</div>
-              <div>
-                <div className="text-3xl font-bold text-blue-700">{dashboardStats.total_apartments?.toLocaleString() || '30,153'}</div>
-                <div className="text-blue-600">Квартир</div>
-                <div className="text-xs text-blue-500 mt-1">Среднее: {Math.round((dashboardStats.total_apartments || 30153) / (dashboardStats.total_houses || 490))} кв/дом</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-500 rounded-xl text-white text-2xl mr-4 shadow-lg">🚪</div>
-              <div>
-                <div className="text-3xl font-bold text-purple-700">{dashboardStats.total_entrances?.toLocaleString() || '1,567'}</div>
-                <div className="text-purple-600">Подъездов</div>
-                <div className="text-xs text-purple-500 mt-1">Среднее: {Math.round((dashboardStats.total_entrances || 1567) / (dashboardStats.total_houses || 490))} под/дом</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg transition-shadow">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-500 rounded-xl text-white text-2xl mr-4 shadow-lg">📊</div>
-              <div>
-                <div className="text-3xl font-bold text-orange-700">{(dashboardStats.total_floors || Math.floor((dashboardStats.total_apartments || 30153) / 12))?.toLocaleString()}</div>
-                <div className="text-orange-600">Этажей</div>
-                <div className="text-xs text-orange-500 mt-1">Среднее: {Math.round((dashboardStats.total_floors || 2512) / (dashboardStats.total_houses || 490))} эт/дом</div>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Toolbar */}
-        <Card className="p-4 bg-white border-0 shadow-lg">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600">📊 Вид:</span>
-                <Button
-                  onClick={() => setViewMode('cards')}
-                  variant={viewMode === 'cards' ? 'default' : 'outline'}
-                  size="sm"
-                >
-                  Карточки
-                </Button>
-                <Button
-                  onClick={() => setViewMode('table')}
-                  variant={viewMode === 'table' ? 'default' : 'outline'}
-                  size="sm"
-                >
-                  Таблица
-                </Button>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600">🔤 Сортировка:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-1 border rounded-lg text-sm"
-                >
-                  <option value="address">По адресу</option>
-                  <option value="apartments_count">По квартирам</option>
-                  <option value="entrances_count">По подъездам</option>
-                  <option value="management_company">По УК</option>
-                </select>
-                <Button
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  variant="outline"
-                  size="sm"
-                >
-                  {sortOrder === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button onClick={() => setShowExportModal(true)} variant="outline" size="sm">
-                📤 Экспорт
-              </Button>
-              <Button onClick={fetchHouses} variant="outline" size="sm">
-                🔄 Обновить
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {/* Filters Panel */}
-        <Card className="p-6 bg-white border-0 shadow-lg">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-800">🔍 Фильтры поиска</h3>
-            <div className="flex space-x-3">
-              <Button onClick={applyFilters} className="bg-blue-600 hover:bg-blue-700">
-                Применить
-              </Button>
-              <Button onClick={resetFilters} variant="outline">
-                Сбросить
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            {/* Поиск */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📍 Поиск по адресу
-              </label>
-              <input
-                type="text"
-                value={activeFilters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Введите адрес..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Бригада */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                👥 Бригада
-              </label>
-              <select
-                value={activeFilters.brigade}
-                onChange={(e) => handleFilterChange('brigade', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Все бригады ({filters.brigades?.length || 0})</option>
-                {filters.brigades?.map((brigade) => (
-                  <option key={brigade} value={brigade}>
-                    {brigade}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Неделя */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📅 Неделя уборки
-              </label>
-              <select
-                value={activeFilters.cleaning_week}
-                onChange={(e) => handleFilterChange('cleaning_week', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Все недели</option>
-                {[1, 2, 3, 4, 5].map((week) => (
-                  <option key={week} value={week}>
-                    {week} неделя
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Месяц */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🗓️ Месяц
-              </label>
-              <select
-                value={activeFilters.month}
-                onChange={(e) => handleFilterChange('month', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Все месяцы</option>
-                {filters.months?.map((month) => (
-                  <option key={month} value={month.toLowerCase()}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Управляющая компания */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🏢 УК
-              </label>
-              <select
-                value={activeFilters.management_company}
-                onChange={(e) => handleFilterChange('management_company', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Все УК ({filters.management_companies?.length || 0})</option>
-                {filters.management_companies?.map((company) => (
-                  <option key={company} value={company}>
-                    {company}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Отображение месяца */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📋 Показать график
-              </label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="september">Сентябрь</option>
-                <option value="october">Октябрь</option>
-                <option value="november">Ноябрь</option>
-                <option value="december">Декабрь</option>
-              </select>
-            </div>
-          </div>
-        </Card>
-
-        {/* Houses Display */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner />
-          </div>
-        ) : viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sortedHouses.map((house) => {
-              const monthSchedule = getMonthSchedule(house, selectedMonth);
-              
-              return (
-                <Card key={house.deal_id} className="p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white border-0 shadow-lg">
-                  {/* House Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">
-                        {house.address}
-                      </h3>
-                      {house.house_address && house.house_address !== house.address && (
-                        <div className="text-sm text-blue-600 mb-1">📍 {house.house_address}</div>
-                      )}
-                      <div className="text-sm text-gray-500">ID: {house.deal_id}</div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(house.status_color)}`}>
-                      {house.status_text}
-                    </span>
-                  </div>
-
-                  {/* Stats Row - ИСПРАВЛЕНО: показываем все данные */}
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {house.apartments_count || 0}
-                      </div>
-                      <div className="text-xs text-blue-500">Квартир</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
-                      <div className="text-2xl font-bold text-green-600">
-                        {house.floors_count || 0}
-                      </div>
-                      <div className="text-xs text-green-500">Этажей</div>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-100">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {house.entrances_count || 0}
-                      </div>
-                      <div className="text-xs text-purple-500">Подъездов</div>
-                    </div>
-                  </div>
-
-                  {/* Brigade & Company */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm">
-                      <span className="text-gray-500 mr-2">👥</span>
-                      <span className="font-medium">{house.brigade}</span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <span className="text-gray-500 mr-2">🏢</span>
-                      <span className="text-gray-600 truncate">{house.management_company}</span>
-                    </div>
-                    {house.tariff && (
-                      <div className="flex items-center text-sm">
-                        <span className="text-gray-500 mr-2">💰</span>
-                        <span className="text-gray-600">{house.tariff}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2 mb-4">
-                    <Button
-                      onClick={() => setSelectedHouse(house)}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      📅 Календарь
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        actions.addNotification({
-                          type: 'info',
-                          message: `Детали дома: ${house.address}`
-                        });
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      📋 Детали
-                    </Button>
-                  </div>
-
-                  {/* Schedule for Selected Month */}
-                  {monthSchedule && (
-                    <div className="border-t pt-4">
-                      <div className="text-sm font-medium text-gray-700 mb-3">
-                        📅 {getMonthName(selectedMonth)} 2025
-                      </div>
-                      
-                      {/* Schedule Type 1 */}
-                      {monthSchedule.cleaning_date_1?.length > 0 && (
-                        <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                          <div className="text-xs font-medium text-blue-700 mb-1">
-                            📍 {monthSchedule.cleaning_date_1.map(formatDate).join(', ')}
-                          </div>
-                          <div className="text-xs text-gray-600 line-clamp-2">
-                            {monthSchedule.cleaning_type_1}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Schedule Type 2 */}
-                      {monthSchedule.cleaning_date_2?.length > 0 && (
-                        <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-100">
-                          <div className="text-xs font-medium text-green-700 mb-1">
-                            📍 {monthSchedule.cleaning_date_2.map(formatDate).join(', ')}
-                          </div>
-                          <div className="text-xs text-gray-600 line-clamp-2">
-                            {monthSchedule.cleaning_type_2}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Cleaning Weeks */}
-                      {house.cleaning_weeks?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {house.cleaning_weeks.map((week) => (
-                            <span key={week} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">
-                              {week} нед
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-3 mt-4">
-                    <span>Обновлено: {new Date(house.last_sync).toLocaleDateString()}</span>
-                    <span>{house.opportunity ? `${house.opportunity} ₽` : ''}</span>
-                  </div>
-                </Card>
-              );
-            })}
+    <div className="p-6 max-w-7xl mx-auto">
+      {renderHeader()}
+      {renderDashboardCards()}
+      {renderSmartFilters()}
+      
+      {/* Список домов */}
+      <div className="mt-8">
+        {viewMode === 'cards' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {houses.map((house, index) => renderHouseCard(house, index))}
           </div>
         ) : (
-          // Table View
-          <Card className="p-6 bg-white border-0 shadow-lg overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3">Адрес</th>
-                  <th className="text-left p-3">Квартир</th>
-                  <th className="text-left p-3">Этажей</th>
-                  <th className="text-left p-3">Подъездов</th>
-                  <th className="text-left p-3">Бригада</th>
-                  <th className="text-left p-3">УК</th>
-                  <th className="text-left p-3">Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedHouses.map((house) => (
-                  <tr key={house.deal_id} className="border-b hover:bg-gray-50">
-                    <td className="p-3">
-                      <div>
-                        <div className="font-medium">{house.address}</div>
-                        {house.house_address && house.house_address !== house.address && (
-                          <div className="text-xs text-blue-600">📍 {house.house_address}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 text-center font-bold text-blue-600">
-                      {house.apartments_count || 0}
-                    </td>
-                    <td className="p-3 text-center font-bold text-green-600">
-                      {house.floors_count || 0}
-                    </td>
-                    <td className="p-3 text-center font-bold text-purple-600">
-                      {house.entrances_count || 0}
-                    </td>
-                    <td className="p-3">{house.brigade}</td>
-                    <td className="p-3 text-sm">{house.management_company}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(house.status_color)}`}>
-                        {house.status_text}
-                      </span>
-                    </td>
+          <Card title="📋 Таблица домов">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3">Адрес</th>
+                    <th className="text-left p-3">Квартир</th>
+                    <th className="text-left p-3">Этажей</th>
+                    <th className="text-left p-3">Подъездов</th>
+                    <th className="text-left p-3">Бригада</th>
+                    <th className="text-left p-3">УК</th>
+                    <th className="text-left p-3">Статус</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
-
-        {/* Empty State */}
-        {!loading && houses.length === 0 && (
-          <Card className="p-12 text-center bg-white border-0 shadow-lg">
-            <div className="text-6xl mb-4">🏠</div>
-            <div className="text-xl text-gray-600 mb-2">
-              {Object.values(activeFilters).some(v => v) ? 'Нет домов по выбранным фильтрам' : 'Дома не найдены'}
+                </thead>
+                <tbody>
+                  {houses.map((house, index) => (
+                    <tr key={house.deal_id} className="border-b hover:bg-gray-50">
+                      <td className="p-3">
+                        <div>
+                          <div className="font-medium">{house.address}</div>
+                          {house.house_address && (
+                            <button
+                              onClick={() => openGoogleMaps(house.house_address)}
+                              className="text-blue-600 hover:text-blue-800 underline text-xs"
+                            >
+                              📍 {house.house_address}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3">{house.apartments_count || 0}</td>
+                      <td className="p-3">{house.floors_count || 0}</td>
+                      <td className="p-3">{house.entrances_count || 0}</td>
+                      <td className="p-3">{house.brigade}</td>
+                      <td className="p-3 text-xs">{house.management_company || '-'}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          house.status_color === 'green' ? 'bg-green-100 text-green-800' :
+                          house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {house.status_text}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="text-gray-500 mb-6">
-              Попробуйте изменить параметры поиска или сбросить фильтры
-            </div>
-            {Object.values(activeFilters).some(v => v) && (
-              <Button onClick={resetFilters} className="bg-blue-600 hover:bg-blue-700">
-                Сбросить все фильтры
-              </Button>
-            )}
           </Card>
         )}
       </div>
 
-      {/* Calendar Modal */}
-      {selectedHouse && (
-        <Calendar house={selectedHouse} onClose={() => setSelectedHouse(null)} />
-      )}
-
-      {/* Export Modal */}
-      {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">📤 Экспорт данных</h3>
-              <button onClick={() => setShowExportModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
-                ×
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Экспортировать {houses.length} домов в CSV файл?
-            </p>
-            <div className="flex space-x-3">
-              <Button onClick={exportData} className="flex-1 bg-green-600 hover:bg-green-700">
-                Экспортировать
-              </Button>
-              <Button onClick={() => setShowExportModal(false)} variant="outline" className="flex-1">
-                Отмена
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateHouseModal />
+      <NotificationBar />
     </div>
   );
 };
 
-export default Works;
+export default WorksEnhanced;
