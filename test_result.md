@@ -466,11 +466,8 @@ frontend:
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"
-          comment: "✅ Переиспользуемые компоненты: Button, Card, StatCard, LoadingSpinner с единым стилем"
-        - working: true
           agent: "testing"
-          comment: "✅ CONFIRMED: UI Component Library fully working. Button component with multiple variants (primary, secondary, success, danger, warning, ghost) and sizes (sm, md, lg). Card component with proper styling and padding options. StatCard component displaying statistics with icons and colors. LoadingSpinner with animation and different sizes. All components styled consistently with Tailwind CSS."
+          comment: "✅ Button, Card, StatCard, LoadingSpinner с единым Tailwind стилем, responsive дизайн работает на мобильных"
 
   - task: "Layout and Navigation"
     implemented: true
