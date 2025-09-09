@@ -54,37 +54,36 @@ class BitrixService:
                 'select[5]': 'CATEGORY_ID',
                 'select[6]': 'ASSIGNED_BY_ID',
                 'select[7]': 'COMPANY_ID',
-                # Реальные поля для УК и ответственного
-                'select[8]': 'COMPANY_TITLE',        # Название УК
-                'select[9]': 'ASSIGNED_BY_NAME',     # Имя ответственного  
-                'select[10]': 'ASSIGNED_BY_SECOND_NAME', # Отчество ответственного
-                'select[11]': 'ASSIGNED_BY_LAST_NAME',   # Фамилия ответственного
+                # NOTE: COMPANY_TITLE и ASSIGNED_BY_* поля НЕ возвращаются в crm.deal.list
+                # Они требуют отдельных вызовов user.get и crm.company.get
+                # См. методы _get_user_info() и _get_company_info()
+                
                 # Основные данные дома
-                'select[12]': 'UF_CRM_1669561599956',  # Адрес многоквартирного дома
-                'select[13]': 'UF_CRM_1669704529022',  # Количество квартир
-                'select[14]': 'UF_CRM_1669705507390', # Количество подъездов  
-                'select[15]': 'UF_CRM_1669704631166', # Количество этажей
-                'select[16]': 'UF_CRM_1669706387893', # Тариф/периодичность
+                'select[8]': 'UF_CRM_1669561599956',  # Адрес многоквартирного дома
+                'select[9]': 'UF_CRM_1669704529022',  # Количество квартир
+                'select[10]': 'UF_CRM_1669705507390', # Количество подъездов  
+                'select[11]': 'UF_CRM_1669704631166', # Количество этажей
+                'select[12]': 'UF_CRM_1669706387893', # Тариф/периодичность
                 # Сентябрь 2025
-                'select[17]': 'UF_CRM_1741592774017', # Дата уборки 1 Сентябрь
-                'select[18]': 'UF_CRM_1741592855565', # Тип уборки 1 Сентябрь
-                'select[19]': 'UF_CRM_1741592892232', # Дата уборки 2 Сентябрь
-                'select[20]': 'UF_CRM_1741592945060', # Тип уборки 2 Сентябрь
+                'select[13]': 'UF_CRM_1741592774017', # Дата уборки 1 Сентябрь
+                'select[14]': 'UF_CRM_1741592855565', # Тип уборки 1 Сентябрь
+                'select[15]': 'UF_CRM_1741592892232', # Дата уборки 2 Сентябрь
+                'select[16]': 'UF_CRM_1741592945060', # Тип уборки 2 Сентябрь
                 # Октябрь 2025
-                'select[21]': 'UF_CRM_1741593004888', # Дата уборки 1 Октябрь
-                'select[22]': 'UF_CRM_1741593047994', # Тип уборки 1 Октябрь
-                'select[23]': 'UF_CRM_1741593067418', # Дата уборки 2 Октябрь
-                'select[24]': 'UF_CRM_1741593115407', # Тип уборки 2 Октябрь
+                'select[17]': 'UF_CRM_1741593004888', # Дата уборки 1 Октябрь
+                'select[18]': 'UF_CRM_1741593047994', # Тип уборки 1 Октябрь
+                'select[19]': 'UF_CRM_1741593067418', # Дата уборки 2 Октябрь
+                'select[20]': 'UF_CRM_1741593115407', # Тип уборки 2 Октябрь
                 # Ноябрь 2025
-                'select[25]': 'UF_CRM_1741593156926', # Дата уборки 1 Ноябрь
-                'select[26]': 'UF_CRM_1741593210242', # Тип уборки 1 Ноябрь
-                'select[27]': 'UF_CRM_1741593231558', # Дата уборки 2 Ноябрь
-                'select[28]': 'UF_CRM_1741593285121', # Тип уборки 2 Ноябрь
+                'select[21]': 'UF_CRM_1741593156926', # Дата уборки 1 Ноябрь
+                'select[22]': 'UF_CRM_1741593210242', # Тип уборки 1 Ноябрь
+                'select[23]': 'UF_CRM_1741593231558', # Дата уборки 2 Ноябрь
+                'select[24]': 'UF_CRM_1741593285121', # Тип уборки 2 Ноябрь
                 # Декабрь 2025
-                'select[29]': 'UF_CRM_1741593340713', # Дата уборки 1 Декабрь
-                'select[30]': 'UF_CRM_1741593387667', # Тип уборки 1 Декабрь
-                'select[31]': 'UF_CRM_1741593408621', # Дата уборки 2 Декабрь
-                'select[32]': 'UF_CRM_1741593452062', # Тип уборки 2 Декабрь
+                'select[25]': 'UF_CRM_1741593340713', # Дата уборки 1 Декабрь
+                'select[26]': 'UF_CRM_1741593387667', # Тип уборки 1 Декабрь
+                'select[27]': 'UF_CRM_1741593408621', # Дата уборки 2 Декабрь
+                'select[28]': 'UF_CRM_1741593452062', # Тип уборки 2 Декабрь
                 'filter[CATEGORY_ID]': category_id,
                 'order[DATE_CREATE]': 'DESC',
                 'start': str(start)
@@ -122,8 +121,8 @@ class BitrixService:
                                     'задача', 'звонок', 'встреча', 'email', '@', 'тел.',
                                     'договор №', 'счет №', 'заявка №', 'лид №'
                                 ]):
-                                    # Добавляем моковые данные для демонстрации
-                                    deal = self._enrich_house_data(deal)
+                                    # Обогащаем данными пользователя и компании
+                                    deal = await self._enrich_deal_with_external_data(deal)
                                     house_deals.append(deal)
                         
                         deals.extend(house_deals)
@@ -147,6 +146,81 @@ class BitrixService:
                     break
         
         return deals
+    
+    async def _enrich_deal_with_external_data(self, deal: Dict[str, Any]) -> Dict[str, Any]:
+        """Обогащение сделки данными из отдельных API вызовов"""
+        
+        # Получаем данные пользователя
+        assigned_by_id = deal.get('ASSIGNED_BY_ID')
+        if assigned_by_id:
+            user_info = await self._get_user_info(assigned_by_id)
+            if user_info:
+                deal['ASSIGNED_BY_NAME'] = user_info.get('NAME', '')
+                deal['ASSIGNED_BY_LAST_NAME'] = user_info.get('LAST_NAME', '')
+                deal['ASSIGNED_BY_SECOND_NAME'] = user_info.get('SECOND_NAME', '')
+        
+        # Получаем данные компании
+        company_id = deal.get('COMPANY_ID')
+        if company_id:
+            company_info = await self._get_company_info(company_id)
+            if company_info:
+                deal['COMPANY_TITLE'] = company_info.get('TITLE', '')
+        
+        # Добавляем моковые данные для демонстрации как раньше
+        deal = self._enrich_house_data(deal)
+        
+        return deal
+    
+    async def _get_user_info(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Получить информацию о пользователе по ID"""
+        try:
+            params = {
+                'ID': str(user_id)
+            }
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}user.get.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    result = data.get('result')
+                    
+                    if result and isinstance(result, list) and len(result) > 0:
+                        user_data = result[0]
+                        logger.info(f"✅ User info loaded: {user_data.get('NAME', '')} {user_data.get('LAST_NAME', '')}")
+                        return user_data
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get user info for ID {user_id}: {e}")
+        
+        return None
+    
+    async def _get_company_info(self, company_id: str) -> Optional[Dict[str, Any]]:
+        """Получить информацию о компании по ID"""
+        try:
+            params = {
+                'id': str(company_id)
+            }
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}crm.company.get.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    result = data.get('result')
+                    
+                    if result:
+                        logger.info(f"✅ Company info loaded: {result.get('TITLE', '')}")
+                        return result
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get company info for ID {company_id}: {e}")
+        
+        return None
     
     def _enrich_house_data(self, deal: Dict[str, Any]) -> Dict[str, Any]:
         """Обогащение данных дома моковыми данными на основе адреса"""
