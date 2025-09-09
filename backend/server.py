@@ -1140,6 +1140,36 @@ async def test_self_learning():
             "message": str(e)
         }
 
+# Telegram webhook routes
+@api_router.post("/telegram/webhook")
+async def telegram_webhook(update: dict):
+    """Telegram webhook endpoint"""
+    try:
+        logger.info(f"📱 Telegram webhook received: {update}")
+        
+        # Здесь будет обработка Telegram сообщений
+        # Пока возвращаем заглушку
+        return {
+            "status": "received",
+            "message": "Telegram webhook processed",
+            "update_id": update.get("update_id"),
+            "chat_id": update.get("message", {}).get("chat", {}).get("id") if "message" in update else None
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Telegram webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/telegram/status")
+async def telegram_status():
+    """Telegram bot status"""
+    return {
+        "status": "active",
+        "bot_token": "configured" if os.environ.get('TELEGRAM_BOT_TOKEN') else "missing",
+        "webhook_url": os.environ.get('TELEGRAM_WEBHOOK_URL', 'not_configured'),
+        "message": "Telegram bot готов для интеграции"
+    }
+
 @api_router.get("/logs")
 async def get_logs():
     """Системные логи из PostgreSQL"""
