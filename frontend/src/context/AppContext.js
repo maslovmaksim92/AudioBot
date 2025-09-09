@@ -144,9 +144,9 @@ export function AppProvider({ children }) {
   }, []);
 
   return (
-    &lt;AppContext.Provider value={{ state, actions }}&gt;
+    <AppContext.Provider value={{ state, actions }}>
       {children}
-    &lt;/AppContext.Provider&gt;
+    </AppContext.Provider>
   );
 }
 
