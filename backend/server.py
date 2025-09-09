@@ -926,6 +926,68 @@ async def get_meetings():
         logger.error(f"❌ Get meetings error: {e}")
         return {"status": "success", "meetings": []}
 
+@api_router.get("/self-learning/status")
+async def get_self_learning_status():
+    """Статус системы самообучения"""
+    try:
+        if database.is_connected:
+            # Проверяем количество AI взаимодействий
+            query = "SELECT COUNT(*) as count FROM voice_logs WHERE context LIKE 'GPT4mini_%'"
+            logs_result = await database.fetch_one(query)
+            ai_interactions = logs_result['count'] if logs_result else 0
+            
+            # Проверяем задачи самообучения
+            tasks_query = "SELECT COUNT(*) as count FROM ai_tasks WHERE title LIKE '%самообучение%' OR title LIKE '%Самообучение%'"
+            tasks_result = await database.fetch_one(tasks_query)
+            learning_tasks = tasks_result['count'] if tasks_result else 0
+            
+            return {
+                "status": "active",
+                "ai_interactions": ai_interactions,
+                "learning_tasks": learning_tasks,
+                "next_analysis": f"Каждые 10 взаимодействий (осталось: {10 - (ai_interactions % 10)})",
+                "database": "connected",
+                "instructions": {
+                    "test": "POST /api/voice/process with {'text': 'test message', 'user_id': 'test'}",
+                    "check_logs": "GET /api/logs",
+                    "verify": "Отправьте несколько сообщений и проверьте логи"
+                }
+            }
+        else:
+            return {
+                "status": "database_error",
+                "message": "База данных недоступна, самообучение отключено",
+                "fallback": "AI работает без сохранения логов"
+            }
+    except Exception as e:
+        logger.error(f"❌ Self-learning status error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "instructions": "Проверьте подключение к базе данных"
+        }
+
+@api_router.post("/self-learning/test")
+async def test_self_learning():
+    """Тест системы самообучения"""
+    try:
+        # Отправляем тестовое сообщение через AI
+        test_message = "Тест системы самообучения VasDom AudioBot"
+        ai_response = await ai.process_message(test_message, "self_learning_test")
+        
+        return {
+            "status": "success",
+            "test_message": test_message,
+            "ai_response": ai_response,
+            "message": "✅ Тест самообучения выполнен. Проверьте /api/logs для подтверждения сохранения."
+        }
+    except Exception as e:
+        logger.error(f"❌ Self-learning test error: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 @api_router.get("/logs")
 async def get_logs():
     """Системные логи из PostgreSQL"""
