@@ -22,7 +22,16 @@ engine = None
 
 if DATABASE_URL:
     # Скрываем чувствительные данные в логах
-    safe_db_url = DATABASE_URL.replace(DATABASE_URL[DATABASE_URL.find('://')+3:DATABASE_URL.find('@')+1], '://***:***@') if '@' in DATABASE_URL else DATABASE_URL[:30] + '...'
+    if '@' in DATABASE_URL:
+        start_pos = DATABASE_URL.find('://') + 3
+        end_pos = DATABASE_URL.find('@') + 1
+        safe_db_url = DATABASE_URL.replace(
+            DATABASE_URL[start_pos:end_pos], 
+            '***:***@'
+        )
+    else:
+        safe_db_url = DATABASE_URL[:30] + '...'
+    
     logger.info(f"🗄️ Database URL: {safe_db_url}")
     
     # ТОЛЬКО PostgreSQL
