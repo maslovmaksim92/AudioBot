@@ -67,8 +67,29 @@ class BitrixService:
                         break
             
             if all_deals:
-                logger.info(f"✅ CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
-                return all_deals
+                # Фильтруем только дома для уборки по названию
+                house_deals = []
+                for deal in all_deals:
+                    title = deal.get('TITLE', '').lower()
+                    # Исключаем задачи, лиды и другие типы записей
+                    # Включаем только записи, которые похожи на адреса домов
+                    if (any(street_name in title for street_name in [
+                        'ул.', 'улица', 'проспект', 'пр.', 'переулок', 'пер.', 
+                        'шоссе', 'площадь', 'пл.', 'бульвар', 'б-р',
+                        'пролетарская', 'московская', 'ленина', 'жукова', 'никитина',
+                        'чижевского', 'энгельса', 'баррикад', 'кондрово', 'жилетово'
+                    ]) or 
+                    # Или содержит номер дома
+                    any(char.isdigit() for char in title) and len(title) > 5):
+                        # Исключаем явно не дома
+                        if not any(exclude in title for exclude in [
+                            'задача', 'звонок', 'встреча', 'email', '@', 'тел.',
+                            'договор №', 'счет №', 'заявка №', 'лид №'
+                        ]):
+                            house_deals.append(deal)
+                
+                logger.info(f"🏠 Filtered houses: {len(house_deals)} from {len(all_deals)} total deals")
+                return house_deals
             else:
                 logger.warning("⚠️ No deals from Bitrix24, using fallback")
                 return self._get_mock_data(limit or 50)
