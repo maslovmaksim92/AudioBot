@@ -40,6 +40,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# УЛУЧШЕНИЕ 2: Pydantic модели для валидации Telegram данных
+class TelegramUser(BaseModel):
+    id: int
+    first_name: str
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+
+class TelegramChat(BaseModel):
+    id: int
+    type: str
+
+class TelegramMessage(BaseModel):
+    message_id: int
+    date: int
+    chat: TelegramChat
+    from_: Optional[TelegramUser] = Field(None, alias="from")
+    text: Optional[str] = None
+
+class TelegramUpdate(BaseModel):
+    update_id: int
+    message: Optional[TelegramMessage] = None
+    
+    def validate_required_fields(self) -> bool:
+        """Проверка обязательных полей"""
+        if not self.message:
+            return False
+        if not self.message.text:
+            return False
+        if not self.message.chat:
+            return False
+        return True
+
 # CORS settings - читаем из переменных окружения (УЛУЧШЕНИЕ 1)
 CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://vasdom-audiobot.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
 CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(',') if origin.strip()]
