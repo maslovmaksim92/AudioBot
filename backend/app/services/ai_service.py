@@ -290,6 +290,18 @@ class AIService:
     
     async def get_learning_statistics(self) -> Dict:
         """Получение статистики самообучения"""
+        if not DATABASE_AVAILABLE or SessionLocal is None:
+            logger.warning("PostgreSQL недоступен - возвращаем пустую статистику")
+            return {
+                "total_interactions": 0,
+                "rated_interactions": 0,
+                "avg_rating": None,
+                "positive_ratings": 0,
+                "negative_ratings": 0,
+                "current_model": "local-model" if self.use_local_model else "gpt-4-mini",
+                "embedding_service_available": False
+            }
+            
         try:
             async with SessionLocal() as db:
                 # Общее количество взаимодействий
