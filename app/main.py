@@ -8,39 +8,25 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent / 'backend'
 sys.path.insert(0, str(backend_path))
 
-# Import the FastAPI app from modular structure
+# Import the working FastAPI app from server.py (with all improvements)
 try:
-    # Import from backend/app/main.py
-    from app.main import app
-    print("✅ App imported successfully from backend/app/main.py")
+    from server import app
+    print("✅ VasDom AudioBot app imported successfully")
 except ImportError as e:
-    print(f"❌ Import error from modular app: {e}")
-    # Try old server.py import as fallback
-    try:
-        from server import app
-        print("✅ App imported from backup server.py")
-    except ImportError as e2:
-        print(f"❌ Backup import also failed: {e2}")
-        # Last resort fallback - check if we can import the old way
-        try:
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from backend.server import app
-            print("✅ App imported from backend.server")
-        except ImportError as e3:
-            print(f"❌ All imports failed: {e3}")
-            # Create a simple working app
-            from fastapi import FastAPI
-            from fastapi.responses import RedirectResponse
-            
-            app = FastAPI(title="VasDom AudioBot", version="3.0.0")
-            
-            @app.get("/")
-            async def root():
-                return RedirectResponse("https://audiobot-qci2.onrender.com")
-                
-            @app.get("/api/")
-            async def api_root():
-                return {"message": "VasDom AudioBot API", "status": "Import Error Fallback"}
+    print(f"❌ Import error: {e}")
+    # Fallback - create a minimal working app
+    from fastapi import FastAPI
+    from fastapi.responses import RedirectResponse
+    
+    app = FastAPI(title="VasDom AudioBot", version="3.0.0")
+    
+    @app.get("/")
+    async def root():
+        return RedirectResponse("https://audiobot-qci2.onrender.com")
+        
+    @app.get("/api/")
+    async def api_root():
+        return {"message": "VasDom AudioBot API", "status": "fallback"}
 
 if __name__ == "__main__":
     import uvicorn
