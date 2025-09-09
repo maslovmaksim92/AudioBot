@@ -171,16 +171,15 @@ app = FastAPI(
 )
 api_router = APIRouter(prefix="/api")
 
-# CORS
-cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
+# CORS с улучшенной конфигурацией (УЛУЧШЕНИЕ 1)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins + ["https://audiobot-qci2.onrender.com", "*"],
+    allow_origins=CORS_ORIGINS,  # Теперь читается из переменных окружения
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-logger.info(f"✅ CORS configured for origins: {cors_origins}")
+logger.info(f"✅ CORS configured for origins: {CORS_ORIGINS}")
 
 # Database initialization
 async def init_database():
