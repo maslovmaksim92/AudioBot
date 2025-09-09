@@ -95,9 +95,6 @@ async def get_cleaning_houses(
             cleaning_weeks = _extract_weeks(all_dates)
             cleaning_days = _extract_weekdays(all_dates)
             
-            # Определяем управляющую компанию (пока моковые данные)
-            management_company_name = _get_management_company(address)
-            
             from ..models.schemas import House, MonthlySchedule
             
             # Создаем расписания для каждого месяца
