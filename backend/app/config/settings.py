@@ -1,6 +1,5 @@
 import os
 import logging
-from typing import List
 
 # Cloud-friendly logging
 log_handlers = [logging.StreamHandler()]
