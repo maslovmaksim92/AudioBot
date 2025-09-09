@@ -262,6 +262,10 @@ class AIService:
         Returns:
             True если успешно обновлено
         """
+        if not DATABASE_AVAILABLE or SessionLocal is None:
+            logger.warning("PostgreSQL недоступен - рейтинг не сохранен")
+            return False
+            
         try:
             async with SessionLocal() as db:
                 log_entry = await db.query(VoiceLogDB).filter(
