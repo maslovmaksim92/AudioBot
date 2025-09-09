@@ -51,7 +51,3 @@ class House(BaseModel):
     created_date: Optional[str] = None
     opportunity: Optional[str] = None
     last_sync: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
-
-class TelegramUpdate(BaseModel):
-    update_id: int
-    message: Optional[Dict[str, Any]] = None
