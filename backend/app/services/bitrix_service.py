@@ -54,8 +54,8 @@ class BitrixService:
                                 
                             start += batch_size
                             
-                            if len(all_deals) >= 600:
-                                logger.info(f"🛑 Loaded {len(all_deals)} houses limit reached")
+                            if len(all_deals) >= 10000:
+                                logger.info(f"🛑 Loaded {len(all_deals)} houses - limit reached (10,000)")
                                 break
                                 
                             await asyncio.sleep(0.2)
