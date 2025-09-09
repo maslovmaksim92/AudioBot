@@ -359,3 +359,77 @@ class BitrixService:
         except Exception as e:
             logger.error(f"❌ Add comment error: {e}")
             return False
+
+    async def create_house(self, house_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Создать новый дом в Bitrix24"""
+        try:
+            logger.info(f"🏠 Creating new house in Bitrix24: {house_data.get('address', 'Unknown')}")
+            
+            # Подготавливаем данные для создания сделки
+            fields = {
+                'TITLE': house_data.get('address', 'Новый дом'),
+                'CATEGORY_ID': '34',  # Категория для домов уборки
+                'STAGE_ID': 'C34:NEW',  # Начальная стадия
+                'ASSIGNED_BY_ID': '1',  # Назначен администратору по умолчанию
+                'OPENED': 'Y',
+                'TYPE_ID': 'GOODS'
+            }
+            
+            # Добавляем кастомные поля если они есть
+            if house_data.get('apartments_count'):
+                fields['UF_CRM_1669704529022'] = house_data['apartments_count']  # Количество квартир
+            if house_data.get('floors_count'):
+                fields['UF_CRM_1669704631166'] = house_data['floors_count']     # Количество этажей
+            if house_data.get('entrances_count'):
+                fields['UF_CRM_1669705507390'] = house_data['entrances_count']  # Количество подъездов
+            if house_data.get('tariff'):
+                fields['UF_CRM_1669706387893'] = house_data['tariff']           # Тариф
+            if house_data.get('address'):
+                fields['UF_CRM_1669561599956'] = house_data['address']          # Адрес дома
+            
+            # Формируем параметры запроса
+            params = {}
+            for key, value in fields.items():
+                params[f'fields[{key}]'] = str(value)
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{self.webhook_url}crm.deal.add.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    if data.get('result'):
+                        new_deal_id = str(data['result'])
+                        logger.info(f"✅ New house created successfully with ID: {new_deal_id}")
+                        
+                        return {
+                            'success': True,
+                            'deal_id': new_deal_id,
+                            'address': house_data.get('address'),
+                            'message': f'Дом "{house_data.get("address")}" успешно создан в Bitrix24'
+                        }
+                    else:
+                        logger.error(f"❌ Failed to create deal: {data}")
+                        return {
+                            'success': False,
+                            'error': 'Не удалось создать сделку в Bitrix24',
+                            'details': str(data)
+                        }
+                else:
+                    logger.error(f"❌ HTTP error creating deal: {response.status_code}")
+                    return {
+                        'success': False,
+                        'error': f'HTTP ошибка: {response.status_code}',
+                        'details': response.text
+                    }
+                    
+        except Exception as e:
+            logger.error(f"❌ Create house error: {e}")
+            return {
+                'success': False,
+                'error': 'Ошибка при создании дома',
+                'details': str(e)
+            }
