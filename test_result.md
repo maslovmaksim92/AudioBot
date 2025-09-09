@@ -665,15 +665,64 @@ backend:
           agent: "testing"
           comment: "✅ CONFIRMED: Core API functions working correctly. /api/ endpoint returns proper API info with version 3.0.0. /api/dashboard endpoint returns statistics with proper structure. /api/bitrix24/test endpoint shows active CRM connection. Bitrix24 integration loads 348 real houses with complete CRM fields (deal_id, stage, addresses). All core endpoints operational."
 
+  - task: "Новые API Endpoints - Bitrix24 House Fields"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Bitrix24 house fields working perfectly. 490 домов загружено с полем house_address (реальные адреса из Google карт). Количественные данные реалистичные: 30,153 квартир, 1,567 подъездов, 2,871 этаж. 29 управляющих компаний (>= 25 для писем и звонков). Примеры УК: 'ООО Южная УК', 'ООО Элит-Сервис', 'ООО УК Жилетово'."
+
+  - task: "Новые API Endpoints - Cleaning Filters"
+    implemented: true
+    working: false
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ISSUE: Cleaning filters частично работают. /api/cleaning/filters возвращает 6 бригад, 29 УК, месяцы (September, October, November), но недели уборки пустые ([]). Проблема в парсинге дат - данные в ISO формате '2025-09-16T03:00:00+03:00', а функция _extract_weeks ожидает DD.MM.YYYY формат. Фильтрация домов работает корректно."
+
+  - task: "Новые API Endpoints - Dashboard Stats"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Dashboard stats working perfectly. /api/cleaning/stats возвращает реалистичные данные: 490 домов, 30,153 квартир, 1,567 подъездов, 2,871 этаж. Распределение по бригадам (6) и УК (29) работает корректно. Все значения > 0, статистика не содержит нулей."
+
+  - task: "Новые API Endpoints - Export Fields"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ CONFIRMED: Export fields completeness working perfectly. Все основные поля для CSV экспорта присутствуют: address, house_address, deal_id, brigade, status_text, apartments_count, floors_count, entrances_count, management_company, cleaning_weeks, cleaning_days. 3/4 полей расписания (september_schedule, october_schedule, november_schedule). Структура данных готова для экспорта."
+
 metadata:
   created_by: "testing_agent"
-  version: "2.1"
-  test_sequence: 5
+  version: "2.2"
+  test_sequence: 8
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Refactoring Fixes Testing Complete"
-  stuck_tasks: []
+    - "Новые API Endpoints для домов - тестирование завершено"
+  stuck_tasks:
+    - "Новые API Endpoints - Cleaning Filters"
   test_all: false
   test_priority: "high_first"
