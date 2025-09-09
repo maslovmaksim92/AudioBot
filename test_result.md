@@ -478,11 +478,8 @@ frontend:
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"
-          comment: "✅ Sidebar с навигацией, Layout компонент, NotificationBar с auto-hide уведомлениями"
-        - working: true
           agent: "testing"
-          comment: "✅ CONFIRMED: Layout and Navigation fully working. Sidebar with collapse/expand functionality (w-64 ↔ w-16). Navigation menu with 8 items, proper icons, active state highlighting. Layout component with responsive margins (ml-16/ml-64). NotificationBar with fixed positioning (top-4 right-4), auto-hide after 5 seconds, close buttons functional. Mobile responsive design working."
+          comment: "✅ Sidebar навигация с collapse/expand, section-based переключение работает, NotificationBar с auto-hide уведомлениями"
 
   - task: "API Service Layer"
     implemented: true
