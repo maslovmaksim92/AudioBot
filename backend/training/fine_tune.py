@@ -235,9 +235,9 @@ class ModelFineTuner:
         """Обновление статуса датасета в БД"""
         try:
             async with SessionLocal() as db:
-                dataset = await db.query(TrainingDatasetDB).filter(
-                    TrainingDatasetDB.id == dataset_id
-                ).first()
+                stmt = select(TrainingDatasetDB).where(TrainingDatasetDB.id == dataset_id)
+                result = await db.execute(stmt)
+                dataset = result.scalar_one_or_none()
                 
                 if dataset:
                     dataset.status = status
