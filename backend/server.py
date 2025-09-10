@@ -171,10 +171,9 @@ async def process_voice(request: VoiceRequest):
             session_id="voice_session",  # Unique session ID
             system_message=system_message
         )
-        user_message = UserMessage(request.text)  # Simple text parameter
-        
+        # Pass message directly as string
         chat_response = await llm_chat.achat(
-            messages=[user_message],
+            messages=[request.text],
             model="gpt-4o-mini",
             max_tokens=500,
             temperature=0.8
