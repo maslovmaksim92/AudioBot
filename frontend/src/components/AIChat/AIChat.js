@@ -181,79 +181,137 @@ const AIChat = () => {
     }
   };
 
-  // Initialize WebSocket connection to OpenAI Realtime API
+  // Initialize REAL WebSocket connection to OpenAI Realtime API
   const initializeRealtimeConnection = async () => {
     try {
       setConnectionStatus("connecting");
+      console.log("🎙️ Starting real-time voice connection...");
       
       // Connect to our WebSocket proxy
       const wsUrl = BACKEND_URL.replace(/^https?/, 'ws') + '/ws/realtime';
+      console.log("Connecting to:", wsUrl);
+      
       const ws = new WebSocket(wsUrl);
       
-      ws.onopen = () => {
-        console.log('Connected to Realtime API');
-        setIsLiveConnected(true);
-        setConnectionStatus("connected");
+      ws.onopen = async () => {
+        console.log('✅ Connected to Realtime API WebSocket');
         
-        // Get user media (microphone) for audio input
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(stream => {
-            const mediaRecorder = new MediaRecorder(stream, {
-              mimeType: 'audio/webm;codecs=opus'
-            });
-            
-            mediaRecorder.ondataavailable = (event) => {
-              if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-                // Convert audio data to base64 and send to OpenAI
-                const reader = new FileReader();
-                reader.onload = () => {
-                  const audioData = reader.result.split(',')[1]; // Remove data URL prefix
-                  ws.send(JSON.stringify({
-                    type: "input_audio_buffer.append",
-                    audio: audioData
-                  }));
-                };
-                reader.readAsDataURL(event.data);
-              }
-            };
-            
-            // Start recording continuously
-            mediaRecorder.start(100); // Send data every 100ms
-            mediaRecorderRef.current = mediaRecorder;
-          })
-          .catch(err => {
-            console.error('Error accessing microphone:', err);
-            setConnectionStatus("failed");
-            setIsLiveConnected(false);
+        try {
+          // Get user microphone access
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              sampleRate: 24000,
+              channelCount: 1,
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            } 
           });
+          
+          console.log('🎤 Microphone access granted');
+          
+          // Create audio context for processing
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 24000
+          });
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          const processor = audioContext.createScriptProcessor(4096, 1, 1);
+          
+          processor.onaudioprocess = (event) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              const inputBuffer = event.inputBuffer.getChannelData(0);
+              
+              // Convert float32 to int16 PCM
+              const pcmData = new Int16Array(inputBuffer.length);
+              for (let i = 0; i < inputBuffer.length; i++) {
+                pcmData[i] = Math.max(-32768, Math.min(32767, inputBuffer[i] * 32768));
+              }
+              
+              // Convert to base64
+              const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer)));
+              
+              // Send audio data to OpenAI
+              ws.send(JSON.stringify({
+                type: "input_audio_buffer.append",
+                audio: base64Audio
+              }));
+            }
+          };
+          
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+          
+          // Store references
+          mediaRecorderRef.current = { stream, audioContext, processor };
+          
+          setIsLiveConnected(true);
+          setConnectionStatus("connected");
+          
+        } catch (audioError) {
+          console.error('❌ Microphone access denied:', audioError);
+          setConnectionStatus("failed");
+          setIsLiveConnected(false);
+          ws.close();
+        }
       };
       
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Received:', data);
+          console.log('📥 Received:', data.type);
           
-          // Handle different message types
           switch (data.type) {
+            case "connection.established":
+              console.log('✅ OpenAI connection established');
+              break;
+              
+            case "session.created":
+              console.log('✅ Session created successfully');
+              break;
+              
             case "response.audio.delta":
-              // Play incoming audio
-              if (data.delta && audioRef.current) {
-                const audioData = atob(data.delta);
-                const audioArray = new Uint8Array(audioData.length);
-                for (let i = 0; i < audioData.length; i++) {
-                  audioArray[i] = audioData.charCodeAt(i);
+              // Play incoming audio from AI
+              if (data.delta) {
+                try {
+                  const audioData = atob(data.delta);
+                  const audioArray = new Int16Array(audioData.length / 2);
+                  
+                  for (let i = 0; i < audioArray.length; i++) {
+                    const byte1 = audioData.charCodeAt(i * 2);
+                    const byte2 = audioData.charCodeAt(i * 2 + 1);
+                    audioArray[i] = (byte2 << 8) | byte1;
+                  }
+                  
+                  // Create audio context if needed
+                  if (!audioRef.current) {
+                    audioRef.current = new (window.AudioContext || window.webkitAudioContext)({
+                      sampleRate: 24000
+                    });
+                  }
+                  
+                  const audioContext = audioRef.current;
+                  const audioBuffer = audioContext.createBuffer(1, audioArray.length, 24000);
+                  const channelData = audioBuffer.getChannelData(0);
+                  
+                  // Convert int16 to float32
+                  for (let i = 0; i < audioArray.length; i++) {
+                    channelData[i] = audioArray[i] / 32768;
+                  }
+                  
+                  const source = audioContext.createBufferSource();
+                  source.buffer = audioBuffer;
+                  source.connect(audioContext.destination);
+                  source.start();
+                  
+                } catch (audioError) {
+                  console.error('Audio playback error:', audioError);
                 }
-                
-                // Create audio blob and play
-                const audioBlob = new Blob([audioArray], { type: 'audio/pcm' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                audio.play().catch(e => console.error('Audio play error:', e));
               }
               break;
               
             case "response.text.delta":
-              // Display text response in chat
+              // Display text response
               if (data.delta) {
                 const aiMessage = {
                   id: Date.now(),
@@ -266,41 +324,53 @@ const AIChat = () => {
               break;
               
             case "input_audio_buffer.speech_started":
-              console.log("Speech started");
+              console.log("🗣️ Speech detected");
               break;
               
             case "input_audio_buffer.speech_stopped":
-              console.log("Speech stopped");
-              // Commit the audio buffer
+              console.log("🤐 Speech ended");
+              // Commit audio buffer for processing
               ws.send(JSON.stringify({
                 type: "input_audio_buffer.commit"
               }));
               break;
               
+            case "response.done":
+              console.log("✅ Response completed");
+              break;
+              
             case "error":
-              console.error("OpenAI Realtime error:", data);
+              console.error("❌ OpenAI error:", data);
               setConnectionStatus("failed");
               break;
+              
+            default:
+              console.log('📋 Other message:', data.type);
           }
         } catch (e) {
-          console.error('Error parsing WebSocket message:', e);
+          console.error('❌ Error parsing message:', e);
         }
       };
       
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('❌ WebSocket error:', error);
         setConnectionStatus("failed");
         setIsLiveConnected(false);
       };
       
-      ws.onclose = () => {
-        console.log('WebSocket connection closed');
+      ws.onclose = (event) => {
+        console.log('🔌 WebSocket closed:', event.code, event.reason);
         setIsLiveConnected(false);
         setConnectionStatus("disconnected");
         
-        // Stop media recorder
+        // Clean up audio resources
         if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stop();
+          if (mediaRecorderRef.current.stream) {
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          }
+          if (mediaRecorderRef.current.audioContext) {
+            mediaRecorderRef.current.audioContext.close();
+          }
           mediaRecorderRef.current = null;
         }
       };
@@ -309,7 +379,7 @@ const AIChat = () => {
       peerConnectionRef.current = ws;
       
     } catch (error) {
-      console.error('Error initializing realtime connection:', error);
+      console.error('❌ Failed to initialize connection:', error);
       setConnectionStatus("failed");
       setIsLiveConnected(false);
     }
