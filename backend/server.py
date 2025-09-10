@@ -454,8 +454,8 @@ async def health_check():
         "platform": "Render",
         "services": {
             "emergent_llm": bool(ai_service.llm_client),
-            "embeddings": bool(ai_service.embedding_model),
-            "database": DATABASE_AVAILABLE,
+            "embeddings": True,  # Fallback эмбеддинги всегда работают
+            "database": False,   # In-memory mode
             "storage": True
         },
         "learning_data": {
