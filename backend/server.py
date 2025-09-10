@@ -712,7 +712,7 @@ async def health_check():
         critical_checks = {
             "ai_service_init": ai_service is not None,
             "storage_accessible": len(storage.conversations) >= 0,
-            "config_loaded": config.EMERGENT_LLM_KEY != "",
+            "config_loaded": len(config.EMERGENT_LLM_KEY) > 0,
             "embedding_creation": True  # Всегда работает через fallback
         }
         
