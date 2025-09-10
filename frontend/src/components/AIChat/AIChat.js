@@ -626,6 +626,21 @@ const AIChat = () => {
                 </span>
               </div>
               
+              {/* TEST BUTTON - Force show indicators */}
+              <button
+                onClick={() => {
+                  console.log("🧪 TESTING: Force show indicators");
+                  setIsLiveConnected(true);
+                  setConnectionStatus("connected");
+                  setIsListening(true);
+                  setTranscription("ТЕСТ: Это тест визуальных индикаторов!");
+                  setAudioLevel(75);
+                }}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
+              >
+                🧪 ТЕСТ
+              </button>
+              
               <button
                 onClick={toggleLiveVoice}
                 disabled={connectionStatus === "connecting"}
