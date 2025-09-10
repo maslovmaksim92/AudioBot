@@ -242,15 +242,18 @@
 
   - task: "Обновить render.yaml для установки ML пакетов"
     implemented: true
-    working: true
+    working: false
     file: "render.yaml"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
     needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "✅ Обновлен buildCommand на pip install -r backend/requirements.txt для правильного пути"
+      - working: false
+        agent: "testing"
+        comment: "❌ ПРОБЛЕМА С УСТАНОВКОЙ ML ПАКЕТОВ: AI сервисы не работают, что указывает на проблемы с установкой или инициализацией ML пакетов в production среде"
 
 ## frontend:
   - task: "Нет изменений frontend"
