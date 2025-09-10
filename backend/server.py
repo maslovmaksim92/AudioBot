@@ -981,6 +981,11 @@ async def get_status_checks():
         logger.error(f"Ошибка получения status checks: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/metrics")
+async def get_metrics():
+    """Prometheus метрики для мониторинга"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 logger.info("🎯 VasDom AudioBot запущен в режиме максимального самообучения!")
 logger.info(f"🧠 AI сервисы: LLM={bool(ai_service.llm_client)}, HTTP={HTTP_CLIENT_AVAILABLE or REQUESTS_AVAILABLE}")
 logger.info(f"💾 Хранилище: In-Memory с безопасной сериализацией")
