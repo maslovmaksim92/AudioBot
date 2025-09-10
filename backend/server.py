@@ -606,6 +606,24 @@ app = FastAPI(
     version="3.0.0"
 )
 
+# Middleware для метрик
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    
+    # Записываем метрики
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_DURATION.observe(duration)
+    
+    return response
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
