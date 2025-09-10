@@ -721,9 +721,6 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
 
-# Глобальная переменная для отслеживания времени запуска
-app_start_time = time.time()
-
 @app.post("/api/voice/process", response_model=VoiceResponse)
 async def process_voice(message_data: VoiceMessage):
     """
