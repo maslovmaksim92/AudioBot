@@ -188,7 +188,7 @@ const AIChat = () => {
       console.log("🎙️ Starting real-time voice connection...");
       
       // Connect to our WebSocket proxy
-      const wsUrl = BACKEND_URL.replace(/^https?/, 'ws') + '/ws/realtime';
+      const wsUrl = BACKEND_URL.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws/realtime';
       console.log("Connecting to:", wsUrl);
       
       const ws = new WebSocket(wsUrl);
