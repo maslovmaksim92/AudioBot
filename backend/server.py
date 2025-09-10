@@ -690,7 +690,7 @@ async def process_voice(message_data: VoiceMessage):
 @app.post("/api/voice/feedback")
 async def submit_feedback(feedback: FeedbackRequest, background_tasks: BackgroundTasks):
     """⭐ Обратная связь для улучшения AI"""
-    success = storage.update_rating(
+    success = await storage.update_rating(
         feedback.log_id, 
         feedback.rating, 
         feedback.feedback_text
