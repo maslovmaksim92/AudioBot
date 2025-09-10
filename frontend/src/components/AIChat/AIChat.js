@@ -184,26 +184,40 @@ const AIChat = () => {
     }
   };
 
-  // Initialize REAL WebSocket connection to OpenAI Realtime API
+  // SIMPLIFIED Real-Time Voice Connection with Visual Feedback
   const initializeRealtimeConnection = async () => {
     try {
       setConnectionStatus("connecting");
-      console.log("🎙️ Starting real-time voice connection...");
+      setTranscription("Инициализация соединения...");
+      console.log("🎙️ Starting SIMPLIFIED real-time voice connection...");
       
-      // Connect to our WebSocket proxy
+      // Connect to our WebSocket proxy with timeout
       const wsUrl = BACKEND_URL.replace(/^https/, 'wss').replace(/^http/, 'ws') + '/ws/realtime';
       console.log("Connecting to:", wsUrl);
       
       const ws = new WebSocket(wsUrl);
+      let connectionTimeout;
+      
+      // Set connection timeout
+      connectionTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.log("⏰ Connection timeout, closing...");
+          ws.close();
+          setConnectionStatus("failed");
+          setTranscription("Ошибка: Превышено время ожидания подключения");
+        }
+      }, 10000); // 10 second timeout
       
       ws.onopen = async () => {
-        console.log('✅ Connected to Realtime API WebSocket');
+        clearTimeout(connectionTimeout);
+        console.log('✅ WebSocket Connected!');
+        setTranscription("WebSocket подключен! Запрашиваю доступ к микрофону...");
         
         try {
-          // Get user microphone access
+          // Get microphone with better settings
           const stream = await navigator.mediaDevices.getUserMedia({ 
             audio: {
-              sampleRate: 24000,
+              sampleRate: 16000, // Lower sample rate for better performance
               channelCount: 1,
               echoCancellation: true,
               noiseSuppression: true,
@@ -212,29 +226,47 @@ const AIChat = () => {
           });
           
           console.log('🎤 Microphone access granted');
+          setTranscription("Микрофон подключен! Настройка аудио...");
           
-          // Create audio context for processing
+          // Create audio processing
           const audioContext = new (window.AudioContext || window.webkitAudioContext)({
-            sampleRate: 24000
+            sampleRate: 16000
           });
           
           const source = audioContext.createMediaStreamSource(stream);
-          const processor = audioContext.createScriptProcessor(4096, 1, 1);
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          
+          const processor = audioContext.createScriptProcessor(1024, 1, 1);
+          
+          source.connect(analyser);
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+          
+          // Audio level monitoring
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const updateAudioLevel = () => {
+            if (isLiveConnected) {
+              analyser.getByteFrequencyData(dataArray);
+              const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+              setAudioLevel(Math.min(100, (average / 255) * 100));
+              requestAnimationFrame(updateAudioLevel);
+            }
+          };
+          updateAudioLevel();
           
           processor.onaudioprocess = (event) => {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === WebSocket.OPEN && isLiveConnected) {
               const inputBuffer = event.inputBuffer.getChannelData(0);
               
-              // Convert float32 to int16 PCM
+              // Simple audio processing - send every 100ms
               const pcmData = new Int16Array(inputBuffer.length);
               for (let i = 0; i < inputBuffer.length; i++) {
                 pcmData[i] = Math.max(-32768, Math.min(32767, inputBuffer[i] * 32768));
               }
               
-              // Convert to base64
               const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcmData.buffer)));
               
-              // Send audio data to OpenAI
               ws.send(JSON.stringify({
                 type: "input_audio_buffer.append",
                 audio: base64Audio
@@ -242,19 +274,18 @@ const AIChat = () => {
             }
           };
           
-          source.connect(processor);
-          processor.connect(audioContext.destination);
-          
           // Store references
-          mediaRecorderRef.current = { stream, audioContext, processor };
+          mediaRecorderRef.current = { stream, audioContext, processor, analyser };
           
           setIsLiveConnected(true);
           setConnectionStatus("connected");
+          setTranscription("🎉 Готов к разговору! Говорите...");
+          setIsListening(true);
           
         } catch (audioError) {
-          console.error('❌ Microphone access denied:', audioError);
+          console.error('❌ Microphone error:', audioError);
           setConnectionStatus("failed");
-          setIsLiveConnected(false);
+          setTranscription(`Ошибка микрофона: ${audioError.message}`);
           ws.close();
         }
       };
@@ -262,21 +293,60 @@ const AIChat = () => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📥 Received:', data.type);
+          console.log('📥 Received:', data.type, data);
           
           switch (data.type) {
             case "connection.established":
               console.log('✅ OpenAI connection established');
+              setTranscription("OpenAI соединение установлено!");
               break;
               
             case "session.created":
-              console.log('✅ Session created successfully');
+              console.log('✅ Session created');
+              setTranscription("Сессия создана! Готов к разговору.");
+              break;
+              
+            case "input_audio_buffer.speech_started":
+              console.log("🗣️ Speech started");
+              setIsListening(true);
+              setTranscription("🎤 Слушаю вашу речь...");
+              break;
+              
+            case "input_audio_buffer.speech_stopped":
+              console.log("🤐 Speech stopped");
+              setIsListening(false);
+              setTranscription("✋ Речь остановлена, обрабатываю...");
+              
+              // Commit audio for processing
+              ws.send(JSON.stringify({
+                type: "input_audio_buffer.commit"
+              }));
+              break;
+              
+            case "conversation.item.input_audio_transcription.completed":
+              if (data.transcript) {
+                console.log("📝 Transcription:", data.transcript);
+                setTranscription(`Вы сказали: "${data.transcript}"`);
+                
+                // Add user message to chat
+                const userMessage = {
+                  id: Date.now(),
+                  text: data.transcript,
+                  sender: "user",
+                  timestamp: new Date(),
+                  isTranscription: true
+                };
+                setMessages(prev => [...prev, userMessage]);
+              }
               break;
               
             case "response.audio.delta":
-              // Play incoming audio from AI
+              // Handle AI audio response
               if (data.delta) {
+                setTranscription("🤖 AI отвечает голосом...");
+                
                 try {
+                  // Simple audio playback
                   const audioData = atob(data.delta);
                   const audioArray = new Int16Array(audioData.length / 2);
                   
@@ -286,27 +356,21 @@ const AIChat = () => {
                     audioArray[i] = (byte2 << 8) | byte1;
                   }
                   
-                  // Create audio context if needed
-                  if (!audioRef.current) {
-                    audioRef.current = new (window.AudioContext || window.webkitAudioContext)({
-                      sampleRate: 24000
-                    });
+                  // Create and play audio
+                  const audioContext = mediaRecorderRef.current?.audioContext;
+                  if (audioContext) {
+                    const audioBuffer = audioContext.createBuffer(1, audioArray.length, 16000);
+                    const channelData = audioBuffer.getChannelData(0);
+                    
+                    for (let i = 0; i < audioArray.length; i++) {
+                      channelData[i] = audioArray[i] / 32768;
+                    }
+                    
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start();
                   }
-                  
-                  const audioContext = audioRef.current;
-                  const audioBuffer = audioContext.createBuffer(1, audioArray.length, 24000);
-                  const channelData = audioBuffer.getChannelData(0);
-                  
-                  // Convert int16 to float32
-                  for (let i = 0; i < audioArray.length; i++) {
-                    channelData[i] = audioArray[i] / 32768;
-                  }
-                  
-                  const source = audioContext.createBufferSource();
-                  source.buffer = audioBuffer;
-                  source.connect(audioContext.destination);
-                  source.start();
-                  
                 } catch (audioError) {
                   console.error('Audio playback error:', audioError);
                 }
@@ -314,59 +378,50 @@ const AIChat = () => {
               break;
               
             case "response.text.delta":
-              // Display text response
               if (data.delta) {
-                const aiMessage = {
-                  id: Date.now(),
-                  text: data.delta,
-                  sender: "ai",
-                  timestamp: new Date()
-                };
-                setMessages(prev => [...prev, aiMessage]);
+                setTranscription(`AI: ${data.delta}`);
               }
-              break;
-              
-            case "input_audio_buffer.speech_started":
-              console.log("🗣️ Speech detected");
-              break;
-              
-            case "input_audio_buffer.speech_stopped":
-              console.log("🤐 Speech ended");
-              // Commit audio buffer for processing
-              ws.send(JSON.stringify({
-                type: "input_audio_buffer.commit"
-              }));
               break;
               
             case "response.done":
               console.log("✅ Response completed");
+              setTranscription("✅ Ответ завершен. Готов к следующему вопросу.");
+              setIsListening(true);
               break;
               
             case "error":
               console.error("❌ OpenAI error:", data);
               setConnectionStatus("failed");
+              setTranscription(`Ошибка: ${data.error?.message || 'Неизвестная ошибка'}`);
               break;
               
             default:
-              console.log('📋 Other message:', data.type);
+              console.log('📋 Message:', data.type);
           }
         } catch (e) {
           console.error('❌ Error parsing message:', e);
+          setTranscription(`Ошибка парсинга: ${e.message}`);
         }
       };
       
       ws.onerror = (error) => {
+        clearTimeout(connectionTimeout);
         console.error('❌ WebSocket error:', error);
         setConnectionStatus("failed");
-        setIsLiveConnected(false);
+        setTranscription("Ошибка WebSocket соединения");
+        setIsListening(false);
       };
       
       ws.onclose = (event) => {
+        clearTimeout(connectionTimeout);
         console.log('🔌 WebSocket closed:', event.code, event.reason);
         setIsLiveConnected(false);
         setConnectionStatus("disconnected");
+        setIsListening(false);
+        setTranscription("Соединение закрыто");
+        setAudioLevel(0);
         
-        // Clean up audio resources
+        // Clean up audio
         if (mediaRecorderRef.current) {
           if (mediaRecorderRef.current.stream) {
             mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
@@ -382,9 +437,10 @@ const AIChat = () => {
       peerConnectionRef.current = ws;
       
     } catch (error) {
-      console.error('❌ Failed to initialize connection:', error);
+      console.error('❌ Failed to initialize:', error);
       setConnectionStatus("failed");
-      setIsLiveConnected(false);
+      setTranscription(`Ошибка инициализации: ${error.message}`);
+      setIsListening(false);
     }
   };
 
