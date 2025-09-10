@@ -329,25 +329,36 @@ class VasDomNewFeaturesTester:
     # =============================================================================
 
     def test_dashboard_root(self):
-        """Test GET / - Main page with updated statistics"""
-        print("\n🔍 Testing Updated Dashboard Root...")
-        success, data, status = self.make_request('GET', '', endpoint_override=self.base_url)
+        """Test GET / - Main page (serves React frontend) and API root"""
+        print("\n🔍 Testing Updated Dashboard...")
+        
+        # Test frontend root (should serve HTML)
+        try:
+            response = requests.get(self.base_url, timeout=10)
+            frontend_ok = response.status_code == 200 and 'html' in response.text.lower()
+        except:
+            frontend_ok = False
+        
+        # Test API root (should serve JSON)
+        success, data, status = self.make_request('GET', '')
         
         if success and status == 200:
-            expected_keys = ['name', 'version', 'features', 'stats', 'ai_services']
+            expected_keys = ['message', 'version', 'features', 'endpoints']
             has_expected_structure = all(key in data for key in expected_keys)
             
             # Check if it's the updated version
             is_updated_version = data.get('version') == '3.0.0'
             has_features = isinstance(data.get('features', []), list) and len(data.get('features', [])) > 0
-            has_ai_services = isinstance(data.get('ai_services', {}), dict)
+            has_endpoints = isinstance(data.get('endpoints', {}), dict)
             
-            overall_success = has_expected_structure and is_updated_version and has_features and has_ai_services
-            self.log_test("Updated Dashboard Root", overall_success, 
-                         f"Version: {data.get('version')}, Features: {len(data.get('features', []))}, AI Services: {len(data.get('ai_services', {}))}")
+            api_ok = has_expected_structure and is_updated_version and has_features and has_endpoints
+            overall_success = frontend_ok and api_ok
+            
+            self.log_test("Updated Dashboard", overall_success, 
+                         f"Frontend: {frontend_ok}, API Version: {data.get('version')}, Features: {len(data.get('features', []))}")
             return overall_success
         else:
-            self.log_test("Updated Dashboard Root", False, f"Status: {status}, Error: {data.get('error', 'Unknown')}")
+            self.log_test("Updated Dashboard", False, f"API Status: {status}, Frontend: {frontend_ok}")
             return False
 
     # =============================================================================
