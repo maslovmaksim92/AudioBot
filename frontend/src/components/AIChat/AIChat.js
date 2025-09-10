@@ -660,6 +660,19 @@ const AIChat = () => {
         </div>
       </div>
 
+      {/* ALWAYS VISIBLE Status Debug Panel - REMOVE IN PRODUCTION */}
+      {isVoicePage && (
+        <div className="glass rounded-xl p-4 mb-6 bg-blue-500/10 border border-blue-500/20">
+          <div className="text-sm space-y-2">
+            <div><span className="text-blue-400">Статус подключения:</span> <span className="text-white">{connectionStatus}</span></div>
+            <div><span className="text-blue-400">Живое соединение:</span> <span className="text-white">{isLiveConnected ? 'ДА' : 'НЕТ'}</span></div>
+            <div><span className="text-blue-400">Слушает:</span> <span className="text-white">{isListening ? 'ДА' : 'НЕТ'}</span></div>
+            <div><span className="text-blue-400">Уровень звука:</span> <span className="text-white">{Math.round(audioLevel)}%</span></div>
+            <div><span className="text-blue-400">Транскрипция:</span> <span className="text-white">{transcription || 'Нет'}</span></div>
+          </div>
+        </div>
+      )}
+
       {/* Connection Progress Indicator */}
       {isVoicePage && connectionStatus === "connecting" && (
         <div className="glass rounded-xl p-6 mb-6 bg-yellow-500/10 border border-yellow-500/20">
