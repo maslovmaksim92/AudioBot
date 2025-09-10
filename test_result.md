@@ -138,7 +138,7 @@
     file: "render.yaml, Procfile"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -146,6 +146,9 @@
       - working: true
         agent: "main"
         comment: "✅ Обновлен render.yaml startCommand на uvicorn app.main:app для согласования с Procfile"
+      - working: true
+        agent: "testing"
+        comment: "✅ ТЕСТ ПРОЙДЕН: Backend сервер успешно запущен и отвечает на все базовые endpoints (6/6). Команды запуска работают корректно"
 
   - task: "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
     implemented: true
