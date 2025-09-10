@@ -164,13 +164,59 @@ class SuperLearningAI:
     
     def init_services(self):
         """Инициализация AI сервисов"""
-        # Emergent LLM
-        if EMERGENT_AVAILABLE and config.EMERGENT_LLM_KEY:
+        # Emergent LLM - прямая интеграция
+        if config.EMERGENT_LLM_KEY:
             try:
-                self.llm_client = EmergentLLM(api_key=config.EMERGENT_LLM_KEY)
-                logger.info("✅ Emergent LLM инициализирован")
+                # Попытка 1: через emergentintegrations
+                if EMERGENT_AVAILABLE:
+                    self.llm_client = EmergentLLM(api_key=config.EMERGENT_LLM_KEY)
+                    logger.info("✅ Emergent LLM через библиотеку инициализирован")
+                else:
+                    # Попытка 2: прямые HTTP запросы
+                    import requests
+                    
+                    class DirectEmergentLLM:
+                        def __init__(self, api_key):
+                            self.api_key = api_key
+                            self.base_url = "https://api.emergent.ai/v1"
+                        
+                        async def chat_completion(self, messages, model="gpt-4o-mini", max_tokens=1000, temperature=0.7):
+                            import aiohttp
+                            async with aiohttp.ClientSession() as session:
+                                headers = {
+                                    "Authorization": f"Bearer {self.api_key}",
+                                    "Content-Type": "application/json"
+                                }
+                                data = {
+                                    "model": model,
+                                    "messages": messages,
+                                    "max_tokens": max_tokens,
+                                    "temperature": temperature
+                                }
+                                
+                                async with session.post(f"{self.base_url}/chat/completions", 
+                                                       headers=headers, json=data) as resp:
+                                    if resp.status == 200:
+                                        result = await resp.json()
+                                        # Эмуляция структуры ответа
+                                        class Choice:
+                                            def __init__(self, content):
+                                                self.message = type('obj', (object,), {'content': content})
+                                        
+                                        class Response:
+                                            def __init__(self, content):
+                                                self.choices = [Choice(content)]
+                                        
+                                        return Response(result['choices'][0]['message']['content'])
+                                    else:
+                                        raise Exception(f"API error: {resp.status}")
+                    
+                    self.llm_client = DirectEmergentLLM(config.EMERGENT_LLM_KEY)
+                    logger.info("✅ Emergent LLM через прямой API инициализирован")
+                    
             except Exception as e:
                 logger.error(f"❌ Ошибка Emergent LLM: {e}")
+                logger.info("🔄 Работаем в режиме умного fallback")
         
         # Embedding модель
         if EMBEDDINGS_AVAILABLE:
@@ -179,6 +225,7 @@ class SuperLearningAI:
                 logger.info("✅ Embedding модель загружена")
             except Exception as e:
                 logger.error(f"❌ Ошибка embedding модели: {e}")
+                logger.info("🔄 Используем fallback эмбеддинги")
     
     def create_embedding(self, text: str) -> Optional[np.ndarray]:
         """Создание эмбеддинга для текста (с fallback на простой хеш)"""
