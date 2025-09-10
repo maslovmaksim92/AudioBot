@@ -623,9 +623,9 @@ async def health_check():
         
         # Проверка learning данных
         learning_data = {
-            "total_conversations": len(storage.conversations),
-            "embeddings_cached": len(storage.embeddings),
-            "rated_conversations": len([c for c in storage.conversations if c.get("rating") is not None]),
+            "total_conversations": len(storage.conversations) if hasattr(storage, 'conversations') else 0,
+            "embeddings_cached": len(storage.embeddings) if hasattr(storage, 'embeddings') else 0,
+            "rated_conversations": 0,  # Будет получено через stats
             "max_storage_limit": storage.max_conversations
         }
         
