@@ -21,6 +21,7 @@ transformers==4.47.1
 # Database для production
 sqlalchemy==2.0.36
 asyncpg==0.30.0
+psycopg2-binary==2.9.10
 alembic==1.16.5
 
 # Emergent LLM integration
