@@ -39,11 +39,6 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-def get_url():
-    """Получение URL базы данных из настроек"""
-    settings = get_settings()
-    return settings.DATABASE_URL
-
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -56,20 +51,13 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = get_url()
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
         context.run_migrations()
