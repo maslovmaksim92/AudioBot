@@ -28,7 +28,7 @@ class ModelEvaluator:
     
     async def evaluate_current_model(self) -> Dict:
         """
-        Оценка текущей модели по пользовательским рейтингам
+        Оценка текущей модели по пользовательским рейтингам (исправлено - асинхронные вызовы)
         
         Returns:
             Словарь с метриками качества
@@ -41,19 +41,30 @@ class ModelEvaluator:
             start_date = end_date - timedelta(days=self.evaluation_period_days)
             
             async with SessionLocal() as db:
-                # Базовые метрики за период
-                period_logs = db.query(VoiceLogDB).filter(
+                # Исправлено: используем select() вместо db.query()
+                period_logs_stmt = select(VoiceLogDB).where(
                     and_(
                         VoiceLogDB.created_at >= start_date,
                         VoiceLogDB.created_at <= end_date
                     )
                 )
                 
-                total_interactions = await period_logs.count()
+                period_result = await db.execute(period_logs_stmt)
+                period_logs = period_result.scalars().all()
+                total_interactions = len(period_logs)
                 
                 # Взаимодействия с рейтингами
-                rated_logs = period_logs.filter(VoiceLogDB.rating.isnot(None))
-                rated_count = await rated_logs.count()
+                rated_logs_stmt = select(VoiceLogDB).where(
+                    and_(
+                        VoiceLogDB.created_at >= start_date,
+                        VoiceLogDB.created_at <= end_date,
+                        VoiceLogDB.rating.isnot(None)
+                    )
+                )
+                
+                rated_result = await db.execute(rated_logs_stmt)
+                rated_logs = rated_result.scalars().all()
+                rated_count = len(rated_logs)
                 
                 if rated_count < self.min_interactions_for_evaluation:
                     logger.warning(f"Недостаточно оценок для анализа: {rated_count} < {self.min_interactions_for_evaluation}")
@@ -64,45 +75,53 @@ class ModelEvaluator:
                         "min_required": self.min_interactions_for_evaluation
                     }
                 
-                # Средний рейтинг
-                avg_rating_result = await db.query(
-                    func.avg(VoiceLogDB.rating)
-                ).filter(
+                # Исправлено: средний рейтинг через select и func.avg
+                avg_rating_stmt = select(func.avg(VoiceLogDB.rating)).where(
                     and_(
                         VoiceLogDB.created_at >= start_date,
                         VoiceLogDB.created_at <= end_date,
                         VoiceLogDB.rating.isnot(None)
                     )
-                ).scalar()
+                )
                 
-                avg_rating = float(avg_rating_result) if avg_rating_result else 0.0
+                avg_rating_result = await db.execute(avg_rating_stmt)
+                avg_rating_value = avg_rating_result.scalar()
+                avg_rating = float(avg_rating_value) if avg_rating_value else 0.0
                 
-                # Положительные и отрицательные оценки
-                positive_ratings = await db.query(func.count(VoiceLogDB.id)).filter(
+                # Исправлено: положительные рейтинги
+                positive_ratings_stmt = select(func.count(VoiceLogDB.id)).where(
                     and_(
                         VoiceLogDB.created_at >= start_date,
                         VoiceLogDB.created_at <= end_date,
                         VoiceLogDB.rating >= 4
                     )
-                ).scalar()
+                )
                 
-                negative_ratings = await db.query(func.count(VoiceLogDB.id)).filter(
+                positive_result = await db.execute(positive_ratings_stmt)
+                positive_ratings = positive_result.scalar() or 0
+                
+                # Исправлено: отрицательные рейтинги
+                negative_ratings_stmt = select(func.count(VoiceLogDB.id)).where(
                     and_(
                         VoiceLogDB.created_at >= start_date,
                         VoiceLogDB.created_at <= end_date,
                         VoiceLogDB.rating <= 2
                     )
-                ).scalar()
+                )
+                
+                negative_result = await db.execute(negative_ratings_stmt)
+                negative_ratings = negative_result.scalar() or 0
                 
                 # Расчет дополнительных метрик
                 user_satisfaction = positive_ratings / rated_count if rated_count > 0 else 0.0
                 
-                # Определяем текущую модель
-                current_model_query = await db.query(VoiceLogDB.model_used).filter(
+                # Исправлено: определяем текущую модель
+                current_model_stmt = select(VoiceLogDB.model_used).where(
                     VoiceLogDB.created_at >= start_date
-                ).distinct().all()
+                ).distinct()
                 
-                current_models = [result[0] for result in current_model_query]
+                current_model_result = await db.execute(current_model_stmt)
+                current_models = [row[0] for row in current_model_result.all()]
                 primary_model = current_models[0] if current_models else "unknown"
                 
                 # Формируем результат оценки
