@@ -6,7 +6,8 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.database import SessionLocal
 from app.config.settings import get_settings
