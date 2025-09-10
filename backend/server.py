@@ -20,33 +20,18 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Emergent LLM
+# Простая проверка доступности библиотек (без критичных зависимостей)
 try:
-    from emergentintegrations import EmergentLLM
-    EMERGENT_AVAILABLE = True
-    logger.info("✅ Emergent LLM доступен")
+    import aiohttp
+    HTTP_CLIENT_AVAILABLE = True
+    logger.info("✅ aiohttp доступен для HTTP API")
 except ImportError:
-    EMERGENT_AVAILABLE = False
-    logger.warning("❌ Emergent LLM недоступен")
+    HTTP_CLIENT_AVAILABLE = False
+    logger.warning("❌ aiohttp недоступен - используем requests fallback")
 
-# Sentence Transformers для эмбеддингов
-try:
-    from sentence_transformers import SentenceTransformer
-    EMBEDDINGS_AVAILABLE = True
-    logger.info("✅ Sentence Transformers доступен")
-except ImportError:
-    EMBEDDINGS_AVAILABLE = False
-    logger.warning("❌ Sentence Transformers недоступен")
-
-# PostgreSQL
-try:
-    import asyncpg
-    import databases
-    DATABASE_AVAILABLE = True
-    logger.info("✅ PostgreSQL драйверы доступны")
-except ImportError:
-    DATABASE_AVAILABLE = False
-    logger.warning("❌ PostgreSQL недоступен - используем in-memory")
+# Для совместимости - всегда используем in-memory режим
+DATABASE_AVAILABLE = False
+logger.info("💾 Используем in-memory хранилище для максимальной надежности")
 
 # =============================================================================
 # КОНФИГУРАЦИЯ
