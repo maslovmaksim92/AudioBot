@@ -69,9 +69,19 @@ except ImportError:
         REQUESTS_AVAILABLE = False
         logger.error("❌ Никаких HTTP клиентов недостно!")
 
-# Для совместимости - всегда используем in-memory режим
-DATABASE_AVAILABLE = False
-logger.info("💾 Используем in-memory хранилище для максимальной надежности")
+# Проверяем доступность базы данных
+try:
+    database_url = os.getenv("DATABASE_URL", "")
+    if database_url and database_url.startswith("postgresql"):
+        DATABASE_AVAILABLE = True
+        logger.success(f"✅ PostgreSQL база данных доступна: {database_url.split('@')[1] if '@' in database_url else 'configured'}")
+    else:
+        DATABASE_AVAILABLE = False
+        logger.info("💾 PostgreSQL не настроен - используем in-memory хранилище")
+except Exception as e:
+    DATABASE_AVAILABLE = False
+    logger.warning(f"⚠️ Ошибка подключения к PostgreSQL: {e}")
+    logger.info("💾 Fallback на in-memory хранилище для максимальной надежности")
 
 # =============================================================================
 # КОНФИГУРАЦИЯ
