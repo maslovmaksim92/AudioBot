@@ -269,15 +269,14 @@ const AIChat = () => {
       const ws = new WebSocket(wsUrl);
       let connectionTimeout;
       
-      // Set connection timeout
+      // Set connection timeout with fallback
       connectionTimeout = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
-          console.log("⏰ Connection timeout, closing...");
+          console.log("⏰ WebSocket timeout, falling back to voice simulation...");
           ws.close();
-          setConnectionStatus("failed");
-          setTranscription("Ошибка: Превышено время ожидания подключения");
+          startVoiceSimulation(); // Fallback to simulation
         }
-      }, 10000); // 10 second timeout
+      }, 8000); // 8 second timeout
       
       ws.onopen = async () => {
         clearTimeout(connectionTimeout);
