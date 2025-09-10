@@ -2,7 +2,7 @@
 VasDom AudioBot - Самообучающийся AI для клининговой компанией
 Production-ready версия для Render с исправленными критическими проблемами
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -15,6 +15,8 @@ import hashlib
 import numpy as np
 from collections import deque
 from dotenv import load_dotenv
+import websockets
+import time
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
