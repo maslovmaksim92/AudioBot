@@ -288,14 +288,14 @@
 
 ## test_plan:
   current_focus:
-    - "Исправить DATABASE_URL в render.yaml"
-    - "Согласовать команды запуска в render.yaml и Procfile"
+    - "КРИТИЧЕСКАЯ ПРОБЛЕМА: Исправить AI сервисы и модуль самообучения"
+  stuck_tasks: 
     - "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
-    - "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
-    - "Заменить небезопасный pickle на безопасную сериализацию"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+    - "Добавить ML пакеты в requirements.txt"
+    - "Обновить render.yaml для установки ML пакетов"
+    - "КРИТИЧЕСКАЯ ПРОБЛЕМА: Исправить AI сервисы и модуль самообучения"
+  test_all: false
+  test_priority: "stuck_first"
 
 ## agent_communication:
   - agent: "main"
