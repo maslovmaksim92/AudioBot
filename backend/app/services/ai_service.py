@@ -268,9 +268,9 @@ class AIService:
             
         try:
             async with SessionLocal() as db:
-                log_entry = await db.query(VoiceLogDB).filter(
-                    VoiceLogDB.id == log_id
-                ).first()
+                stmt = select(VoiceLogDB).where(VoiceLogDB.id == log_id)
+                result = await db.execute(stmt)
+                log_entry = result.scalar_one_or_none()
                 
                 if not log_entry:
                     logger.warning(f"Лог с ID {log_id} не найден")
