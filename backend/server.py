@@ -80,30 +80,18 @@ async def send_chat_message(request: ChatRequest):
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
-        # Make request to OpenAI
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": "Ты - AI помощник VasDom AudioBot. Отвечай дружелюбно и помогай пользователям. Отвечай на русском языке."},
-                        {"role": "user", "content": request.message}
-                    ],
-                    "max_tokens": 1000,
-                    "temperature": 0.7
-                }
-            )
+        # Use LlmChat for OpenAI communication
+        llm_chat = LlmChat(api_key=openai_key)
+        system_message = "Ты - AI помощник VasDom AudioBot. Отвечай дружелюбно и помогай пользователям. Отвечай на русском языке."
+        user_message = UserMessage(content=request.message)
         
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Error communicating with OpenAI")
-        
-        ai_response = response.json()
-        chat_response = ai_response["choices"][0]["message"]["content"]
+        chat_response = await llm_chat.chat_async(
+            messages=[user_message],
+            system_message=system_message,
+            model="gpt-4o-mini",
+            max_tokens=1000,
+            temperature=0.7
+        )
         
         # Save to database
         chat_message = ChatMessage(
