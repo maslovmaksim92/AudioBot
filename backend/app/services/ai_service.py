@@ -305,28 +305,37 @@ class AIService:
         try:
             async with SessionLocal() as db:
                 # Общее количество взаимодействий
-                total_interactions = await db.query(VoiceLogDB).count()
+                stmt = select(func.count()).select_from(VoiceLogDB)
+                result = await db.execute(stmt)
+                total_interactions = result.scalar()
                 
                 # Взаимодействия с оценками
-                rated_interactions = await db.query(VoiceLogDB).filter(
+                stmt = select(func.count()).select_from(VoiceLogDB).where(
                     VoiceLogDB.rating.isnot(None)
-                ).count()
+                )
+                result = await db.execute(stmt)
+                rated_interactions = result.scalar()
                 
                 # Средняя оценка
-                avg_rating_result = await db.query(
-                    func.avg(VoiceLogDB.rating)
-                ).filter(VoiceLogDB.rating.isnot(None)).scalar()
-                
-                avg_rating = float(avg_rating_result) if avg_rating_result else None
+                stmt = select(func.avg(VoiceLogDB.rating)).where(
+                    VoiceLogDB.rating.isnot(None)
+                )
+                result = await db.execute(stmt)
+                avg_rating_result = result.scalar()
+                avg_rating = float(avg_rating_result) if avg_rating_result is not None else None
                 
                 # Положительные и отрицательные оценки
-                positive_ratings = await db.query(VoiceLogDB).filter(
+                stmt = select(func.count()).select_from(VoiceLogDB).where(
                     VoiceLogDB.rating >= 4
-                ).count()
+                )
+                result = await db.execute(stmt)
+                positive_ratings = result.scalar()
                 
-                negative_ratings = await db.query(VoiceLogDB).filter(
+                stmt = select(func.count()).select_from(VoiceLogDB).where(
                     VoiceLogDB.rating <= 2
-                ).count()
+                )
+                result = await db.execute(stmt)
+                negative_ratings = result.scalar()
                 
                 return {
                     "total_interactions": total_interactions,
