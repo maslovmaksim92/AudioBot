@@ -13,6 +13,15 @@ requests>=2.31.0
 
 # ML для самообучения (опционально - с fallback)  
 numpy>=1.24.0
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+torch>=2.0.0
+transformers>=4.21.0
+
+# Database для production (опционально)
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+alembic>=1.12.0
 
 # Базовые утилиты
 python-multipart>=0.0.9
