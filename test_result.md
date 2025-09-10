@@ -206,9 +206,9 @@
 
   - task: "Добавить ML пакеты в requirements.txt"
     implemented: true
-    working: true
+    working: false
     file: "backend/requirements.txt"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
     needs_retesting: true
     status_history:
@@ -218,6 +218,9 @@
       - working: true
         agent: "main"
         comment: "✅ Добавлены ML пакеты: sentence-transformers, scikit-learn, torch, transformers, sqlalchemy, asyncpg"
+      - working: false
+        agent: "testing"
+        comment: "❌ ПРОБЛЕМА С ML ПАКЕТАМИ: Health check показывает emergent_llm=false, AI сервисы не инициализируются корректно. Voice processing падает с ошибками. Возможно ML пакеты не установлены или есть проблемы с их инициализацией"
 
   - task: "Заменить небезопасный pickle на безопасную сериализацию"
     implemented: true
