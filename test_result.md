@@ -255,6 +255,18 @@
         agent: "testing"
         comment: "❌ ПРОБЛЕМА С УСТАНОВКОЙ ML ПАКЕТОВ: AI сервисы не работают, что указывает на проблемы с установкой или инициализацией ML пакетов в production среде"
 
+  - task: "КРИТИЧЕСКАЯ ПРОБЛЕМА: Исправить AI сервисы и модуль самообучения"
+    implemented: false
+    working: false
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ ОБНАРУЖЕНА КРИТИЧЕСКАЯ ПРОБЛЕМА: Voice processing возвращает error responses, learning endpoints (/api/learning/stats, /api/learning/export) возвращают 500 ошибки. AI сервисы не инициализируются (emergent_llm=false). Требуется немедленное исследование и исправление модуля самообучения"
+
 ## frontend:
   - task: "Нет изменений frontend"
     implemented: true
