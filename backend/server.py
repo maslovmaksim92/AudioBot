@@ -166,13 +166,16 @@ async def process_voice(request: VoiceRequest):
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
         # Use LlmChat for OpenAI communication
-        llm_chat = LlmChat(api_key=openai_key)
         system_message = "Ты - голосовой AI помощник VasDom AudioBot. Отвечай кратко и по делу. Используй разговорный стиль. Отвечай на русском языке."
+        llm_chat = LlmChat(
+            api_key=openai_key,
+            session_id="voice_session",  # Unique session ID
+            system_message=system_message
+        )
         user_message = UserMessage(content=request.text)
         
         chat_response = await llm_chat.chat_async(
             messages=[user_message],
-            system_message=system_message,
             model="gpt-4o-mini",
             max_tokens=500,
             temperature=0.8
