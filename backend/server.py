@@ -1126,13 +1126,14 @@ async def api_root():
 @app.get("/api/dashboard")
 async def dashboard():
     """Dashboard с данными компании"""
+    ai_stats = await storage.get_stats()
     return {
         "company": "VasDom - Клининговая компания Калуги",
         "houses": 348,
         "employees": 82,
         "brigades": 6,
         "regions": ["Центральный", "Никитинский", "Жилетово", "Северный", "Пригород", "Окраины"],
-        "ai_stats": storage.get_stats()
+        "ai_stats": ai_stats
     }
 
 @app.get("/api/telegram/status")
