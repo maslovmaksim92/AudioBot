@@ -114,9 +114,9 @@ async def get_similar_responses(log_id: int, limit: int = 5):
         from app.models.database import VoiceLogDB
         
         async with SessionLocal() as db:
-            original_log = await db.query(VoiceLogDB).filter(
-                VoiceLogDB.id == log_id
-            ).first()
+            stmt = select(VoiceLogDB).where(VoiceLogDB.id == log_id)
+            result = await db.execute(stmt)
+            original_log = result.scalar_one_or_none()
             
             if not original_log:
                 raise HTTPException(
