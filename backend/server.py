@@ -634,6 +634,253 @@ async def root():
         }
     }
 
+# =============================================================================
+# REALTIME VOICE ENDPOINTS
+# =============================================================================
+
+@app.post("/api/realtime/token", response_model=RealtimeTokenResponse)
+async def get_realtime_token():
+    """Получение токена для OpenAI Realtime API"""
+    try:
+        openai_key = config.EMERGENT_LLM_KEY
+        if not openai_key:
+            raise HTTPException(status_code=500, detail="OpenAI API key не настроен")
+        
+        expires_at = int(time.time()) + 3600  # 1 час
+        
+        return RealtimeTokenResponse(
+            token=openai_key,
+            expires_at=expires_at
+        )
+    except Exception as e:
+        logger.error(f"Ошибка получения Realtime токена: {e}")
+        raise HTTPException(status_code=500, detail=f"Realtime token error: {str(e)}")
+
+@app.websocket("/ws/realtime")
+async def websocket_realtime(websocket: WebSocket):
+    """WebSocket прокси для OpenAI Realtime API"""
+    await websocket.accept()
+    logger.info("WebSocket соединение принято")
+    
+    try:
+        openai_key = config.EMERGENT_LLM_KEY
+        if not openai_key:
+            await websocket.close(code=1011, reason="API ключ не настроен")
+            return
+        
+        # OpenAI Realtime API WebSocket URL
+        openai_ws_uri = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
+        headers = {
+            "Authorization": f"Bearer {openai_key}",
+            "OpenAI-Beta": "realtime=v1"
+        }
+        
+        async with websockets.connect(
+            openai_ws_uri,
+            extra_headers=headers,
+            ping_interval=20,
+            ping_timeout=10,
+            close_timeout=10
+        ) as openai_ws:
+            
+            # Отправляем конфигурацию сессии
+            session_config = {
+                "type": "session.update",
+                "session": {
+                    "modalities": ["text", "audio"],
+                    "instructions": """Ты - голосовой AI помощник VasDom AudioBot для клининговой компании. 
+                    
+Отвечай дружелюбно и профессионально на русском языке. Помогай с:
+- Вопросами об услугах клининга
+- Планированием уборки  
+- Консультациями по ценам
+- Назначением встреч
+- Решением проблем клиентов
+
+Говори естественно, как живой человек. Будь полезным и отзывчивым.""",
+                    "voice": "alloy",
+                    "input_audio_format": "pcm16",
+                    "output_audio_format": "pcm16",
+                    "input_audio_transcription": {
+                        "model": "whisper-1"
+                    },
+                    "turn_detection": {
+                        "type": "server_vad",
+                        "threshold": 0.5,
+                        "prefix_padding_ms": 300,
+                        "silence_duration_ms": 500
+                    },
+                    "tools": [],
+                    "tool_choice": "none",
+                    "temperature": 0.8,
+                }
+            }
+            await openai_ws.send(json.dumps(session_config))
+            
+            # Создаем прокси для двунаправленной связи
+            async def client_to_openai():
+                """Пересылка сообщений от клиента к OpenAI"""
+                try:
+                    async for message in websocket.iter_text():
+                        await openai_ws.send(message)
+                except WebSocketDisconnect:
+                    logger.info("Клиент отключился")
+                except Exception as e:
+                    logger.error(f"Ошибка client_to_openai: {e}")
+            
+            async def openai_to_client():
+                """Пересылка сообщений от OpenAI к клиенту"""
+                try:
+                    async for message in openai_ws:
+                        await websocket.send_text(message)
+                except Exception as e:
+                    logger.error(f"Ошибка openai_to_client: {e}")
+            
+            # Запуск прокси
+            await asyncio.gather(
+                client_to_openai(),
+                openai_to_client(),
+                return_exceptions=True
+            )
+            
+    except websockets.exceptions.ConnectionClosed:
+        logger.info("WebSocket соединение закрыто")
+    except Exception as e:
+        logger.error(f"WebSocket ошибка: {e}")
+        try:
+            await websocket.close(code=1011, reason=str(e))
+        except:
+            pass
+
+# =============================================================================
+# MEETINGS ENDPOINTS
+# =============================================================================
+
+@app.post("/api/meetings/analyze", response_model=MeetingAnalysisResponse)
+async def analyze_meeting(request: MeetingAnalysisRequest):
+    """Анализ транскрипции планерки с помощью AI"""
+    try:
+        # Анализируем транскрипцию с помощью AI
+        analysis_prompt = f"""
+Проанализируй транскрипцию планерки и выдели:
+
+1. КРАТКОЕ СОДЕРЖАНИЕ (2-3 предложения)
+2. СПИСОК ЗАДАЧ (с ответственными если указаны)
+3. УЧАСТНИКИ ПЛАНЕРКИ
+
+Транскрипция планерки "{request.meeting_title}" (длительность: {request.duration} сек):
+
+{request.transcription}
+
+Ответь в JSON формате:
+{{
+  "summary": "краткое содержание",
+  "tasks": [
+    {{
+      "title": "название задачи",
+      "assigned_to": "ответственный или 'Не назначено'",
+      "priority": "high/normal/low",
+      "deadline": "срок в формате YYYY-MM-DD или null"
+    }}
+  ],
+  "participants": ["участник1", "участник2"]
+}}
+"""
+
+        # Отправляем запрос к AI
+        ai_response = await ai_service.generate_response(
+            analysis_prompt,
+            session_id=f"meeting_analysis_{uuid.uuid4()}"
+        )
+        
+        # Парсим JSON ответ
+        try:
+            analysis_data = json.loads(ai_response)
+        except json.JSONDecodeError:
+            # Fallback анализ
+            analysis_data = perform_fallback_analysis(request.transcription, request.meeting_title)
+        
+        return MeetingAnalysisResponse(
+            summary=analysis_data.get("summary", "Краткое содержание недоступно"),
+            tasks=analysis_data.get("tasks", []),
+            participants=analysis_data.get("participants", ["Участник не определен"])
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка анализа планерки: {e}")
+        # Fallback анализ при ошибке
+        fallback_data = perform_fallback_analysis(request.transcription, request.meeting_title)
+        return MeetingAnalysisResponse(
+            summary=fallback_data["summary"],
+            tasks=fallback_data["tasks"],
+            participants=fallback_data["participants"]
+        )
+
+def perform_fallback_analysis(transcription: str, meeting_title: str):
+    """Fallback анализ планерки без AI"""
+    # Простой анализ ключевых слов
+    text_lower = transcription.lower()
+    
+    # Поиск задач по ключевым словам
+    task_keywords = ['задача', 'сделать', 'выполнить', 'подготовить', 'проверить', 'отправить', 'связаться', 'нужно']
+    sentences = transcription.split('.')
+    
+    tasks = []
+    for i, sentence in enumerate(sentences):
+        if any(keyword in sentence.lower() for keyword in task_keywords):
+            task_title = sentence.strip()
+            if len(task_title) > 10:  # Минимальная длина задачи
+                tasks.append({
+                    "title": task_title,
+                    "assigned_to": "Не назначено",
+                    "priority": "normal",
+                    "deadline": (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+                })
+    
+    # Поиск участников (имена)
+    participants = ["Участник планерки"]  # По умолчанию
+    
+    summary = f"Краткое содержание планерки '{meeting_title}'. Обсуждались вопросы организации работы. Выявлено {len(tasks)} задач."
+    
+    return {
+        "summary": summary,
+        "tasks": tasks[:10],  # Максимум 10 задач
+        "participants": participants
+    }
+
+@app.post("/api/bitrix/create-tasks")
+async def create_bitrix_tasks(request: BitrixTaskRequest):
+    """Создание задач в Битрикс24"""
+    try:
+        # Здесь должна быть реальная интеграция с Битрикс24 API
+        # Пока возвращаем mock данные
+        
+        created_tasks = []
+        for i, task in enumerate(request.tasks):
+            mock_task_id = 1000 + i
+            created_tasks.append({
+                "id": mock_task_id,
+                "title": task.get("title", "Без названия"),
+                "url": f"https://bitrix24.ru/workgroups/task/view/{mock_task_id}/",
+                "status": "created"
+            })
+            
+        logger.info(f"Создано {len(created_tasks)} задач в Битрикс24 (mock)")
+        
+        return {
+            "success": True,
+            "created_tasks": created_tasks,
+            "meeting_title": request.meeting_title
+        }
+        
+    except Exception as e:
+        logger.error(f"Ошибка создания задач в Битрикс: {e}")
+        raise HTTPException(status_code=500, detail=f"Bitrix error: {str(e)}")
+
+# =============================================================================
+# ОСТАЛЬНЫЕ ENDPOINTS
+# =============================================================================
+
 @app.get("/api/health")
 async def health_check():
     """Расширенная проверка здоровья системы с метриками"""
