@@ -9,7 +9,7 @@ services:
     plan: starter
     buildCommand: |
       pip install --upgrade pip && 
-      pip install -r backend/requirements.txt
+      pip install -r requirements.txt
     startCommand: |
       python main.py
     envVars:
@@ -25,11 +25,3 @@ services:
         value: 3.5
       - key: CORS_ORIGINS
         value: https://audiobot-qci2.onrender.com
-        
-# PostgreSQL (опционально - для production scale)        
-databases:
-  - name: vasdom-audiobot-db
-    databaseName: vasdom_audio
-    user: vasdom_user
-    region: oregon
-    plan: free
