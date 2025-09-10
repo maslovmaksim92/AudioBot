@@ -9,7 +9,11 @@ services:
     plan: starter
     buildCommand: |
       pip install --upgrade pip && 
-      pip install -r backend/requirements.txt
+      pip install -r backend/requirements.txt &&
+      echo "✅ Все зависимости установлены" &&
+      python -c "import torch; print(f'PyTorch: {torch.__version__}')" &&
+      python -c "import sentence_transformers; print('Sentence Transformers: OK')" &&
+      echo "🚀 Build completed successfully"
     startCommand: |
       uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
