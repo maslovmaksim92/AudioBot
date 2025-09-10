@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import os
 import json
-import logging
 import asyncio
 from datetime import datetime, timedelta
 import uuid
@@ -17,9 +16,28 @@ import numpy as np
 from collections import deque
 import io
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Настройка структурированного логирования
+from loguru import logger
+import sys
+
+# Удаляем стандартный handler и добавляем свой
+logger.remove()
+logger.add(
+    sys.stdout,
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    level="INFO",
+    serialize=False
+)
+
+# Также добавляем логирование в файл для production
+logger.add(
+    "/var/log/vasdom_audiobot.log",
+    rotation="10 MB",
+    retention="7 days",
+    level="INFO",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
+    catch=True
+)
 
 # Проверка доступности HTTP клиентов с реальным fallback
 try:
