@@ -88,10 +88,9 @@ async def send_chat_message(request: ChatRequest):
             session_id="chat_session",  # Unique session ID
             system_message=system_message
         )
-        user_message = UserMessage(request.message)  # Simple text parameter
-        
+        # Pass message directly as string
         chat_response = await llm_chat.achat(
-            messages=[user_message],
+            messages=[request.message],
             model="gpt-4o-mini",
             max_tokens=1000,
             temperature=0.7
