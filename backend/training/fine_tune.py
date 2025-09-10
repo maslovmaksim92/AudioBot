@@ -25,6 +25,7 @@ except ImportError:
 from app.config.settings import get_settings
 from app.config.database import SessionLocal
 from app.models.database import TrainingDatasetDB, ModelMetricsDB
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
