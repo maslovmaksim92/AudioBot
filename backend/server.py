@@ -441,8 +441,8 @@ async def root():
         "stats": storage.get_stats(),
         "ai_services": {
             "emergent_llm": bool(ai_service.llm_client),
-            "embeddings": bool(ai_service.embedding_model),
-            "database": DATABASE_AVAILABLE
+            "embeddings": True,  # Всегда доступны fallback эмбеддинги
+            "database": False   # In-memory storage
         }
     }
 
