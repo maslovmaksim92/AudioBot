@@ -788,10 +788,11 @@ async def analyze_meeting(request: MeetingAnalysisRequest):
 """
 
         # Отправляем запрос к AI
-        ai_response = await ai_service.generate_response(
+        ai_result = await ai_service.process_message(
             analysis_prompt,
-            session_id=f"meeting_analysis_{uuid.uuid4()}"
+            f"meeting_analysis_{uuid.uuid4()}"
         )
+        ai_response = ai_result.response
         
         # Парсим JSON ответ
         try:
