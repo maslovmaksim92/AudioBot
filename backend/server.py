@@ -134,6 +134,33 @@ class LearningStats(BaseModel):
     improvement_rate: float
     last_learning_update: Optional[datetime]
 
+class SimilarConversationResponse(BaseModel):
+    log_id: str
+    user_message: str
+    ai_response: str
+    similarity_score: float
+    rating: Optional[int] = None
+
+class RealtimeTokenResponse(BaseModel):
+    token: str
+    expires_at: int
+
+class MeetingAnalysisRequest(BaseModel):
+    transcription: str
+    meeting_title: str
+    duration: int
+
+class MeetingAnalysisResponse(BaseModel):
+    summary: str
+    tasks: List[Dict[str, Any]]
+    participants: List[str]
+
+class BitrixTaskRequest(BaseModel):
+    tasks: List[Dict[str, Any]]
+    meeting_title: str
+    meeting_summary: str
+    participants: List[str]
+
 # =============================================================================
 # АДАПТЕР ХРАНИЛИЩА
 # =============================================================================
