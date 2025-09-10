@@ -172,7 +172,7 @@ async def process_voice(request: VoiceRequest):
             session_id="voice_session",  # Unique session ID
             system_message=system_message
         )
-        user_message = UserMessage(content=request.text)
+        user_message = UserMessage(request.text)  # Simple text parameter
         
         chat_response = await llm_chat.chat_async(
             messages=[user_message],
