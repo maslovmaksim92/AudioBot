@@ -77,7 +77,7 @@ async def get_status_checks():
 async def send_chat_message(request: ChatRequest):
     """Send message to AI and get response"""
     try:
-        openai_key = os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY')
+        openai_key = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY')
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
