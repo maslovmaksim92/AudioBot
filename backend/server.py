@@ -83,18 +83,15 @@ async def send_chat_message(request: ChatRequest):
         
         # Use LlmChat for OpenAI communication
         system_message = "Ты - AI помощник VasDom AudioBot. Отвечай дружелюбно и помогай пользователям. Отвечай на русском языке."
-        llm_chat = LlmChat(
+        chat = LlmChat(
             api_key=openai_key,
-            session_id="chat_session",  # Unique session ID
+            session_id="chat_session",
             system_message=system_message
         )
-        # Pass message directly as string
-        chat_response = await llm_chat.achat(
-            messages=[request.message],
-            model="gpt-4o-mini",
-            max_tokens=1000,
-            temperature=0.7
-        )
+        chat.with_model("openai", "gpt-4o-mini")
+        
+        user_message = UserMessage(text=request.message)
+        chat_response = await chat.send_message(user_message)
         
         # Save to database
         chat_message = ChatMessage(
