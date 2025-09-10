@@ -585,7 +585,48 @@ const AIChat = () => {
         </div>
       </div>
 
-      {/* Live voice connection status with VISUAL FEEDBACK */}
+      {/* Connection Progress Indicator */}
+      {isVoicePage && connectionStatus === "connecting" && (
+        <div className="glass rounded-xl p-6 mb-6 bg-yellow-500/10 border border-yellow-500/20">
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <Loader className="animate-spin text-yellow-400" size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-yellow-400">Подключение к живому голосу...</h3>
+              <p className="text-gray-300">{transcription || "Инициализация соединения..."}</p>
+              
+              {/* Progress dots */}
+              <div className="flex space-x-1 mt-2">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}} />
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Connection Failed Indicator */}
+      {isVoicePage && connectionStatus === "failed" && (
+        <div className="glass rounded-xl p-6 mb-6 bg-red-500/10 border border-red-500/20">
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-red-500/20 rounded-lg">
+              <X className="text-red-400" size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-red-400">Ошибка подключения</h3>
+              <p className="text-gray-300">{transcription || "Не удалось подключиться к живому голосу"}</p>
+              <button
+                onClick={toggleLiveVoice}
+                className="mt-3 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-all duration-300"
+              >
+                Попробовать снова
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isVoicePage && isLiveConnected && (
         <div className="glass rounded-xl p-6 mb-6 bg-green-500/10 border border-green-500/20">
           <div className="space-y-4">
