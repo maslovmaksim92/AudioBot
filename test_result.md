@@ -192,7 +192,7 @@
     file: "backend/app/services/embedding_service.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -200,6 +200,9 @@
       - working: true
         agent: "main"
         comment: "✅ Убран глобальный embedding_service. Добавлена функция get_embedding_service()"
+      - working: true
+        agent: "testing"
+        comment: "✅ ТЕСТ ПРОЙДЕН: Backend запускается быстро, все базовые endpoints отвечают мгновенно. Глобальная инициализация успешно убрана"
 
   - task: "Добавить ML пакеты в requirements.txt"
     implemented: true
