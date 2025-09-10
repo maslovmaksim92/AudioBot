@@ -133,7 +133,7 @@ class SafeInMemoryStorage:
         return False
     
     def get_rated_conversations(self, min_rating: int = 4):
-        return [c for c in self.conversations if c.get("rating", 0) >= min_rating]
+        return [c for c in self.conversations if c.get("rating") is not None and c.get("rating", 0) >= min_rating]
     
     def get_stats(self):
         total = len(self.conversations)
