@@ -385,25 +385,48 @@ const AIChat = () => {
     }
   };
 
-  // Disconnect from live voice
+  // Disconnect from live voice - IMPROVED VERSION
   const disconnectLiveVoice = () => {
+    console.log('🔌 Disconnecting live voice...');
+    
+    // Close WebSocket connection
     if (peerConnectionRef.current && peerConnectionRef.current instanceof WebSocket) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
     
-    // Stop media recorder
+    // Stop microphone and clean up audio resources
     if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => {
+          track.stop();
+          console.log('🎤 Microphone track stopped');
+        });
+      }
+      
+      if (mediaRecorderRef.current.audioContext) {
+        mediaRecorderRef.current.audioContext.close();
+        console.log('🔊 Audio context closed');
+      }
+      
+      if (mediaRecorderRef.current.processor) {
+        mediaRecorderRef.current.processor.disconnect();
+      }
+      
       mediaRecorderRef.current = null;
     }
     
+    // Reset state
     setIsLiveConnected(false);
     setConnectionStatus("disconnected");
     
-    if (audioRef.current) {
-      audioRef.current.srcObject = null;
+    // Clean up audio reference
+    if (audioRef.current && audioRef.current.close) {
+      audioRef.current.close();
+      audioRef.current = null;
     }
+    
+    console.log('✅ Live voice disconnected successfully');
   };
 
   // Toggle live voice connection
