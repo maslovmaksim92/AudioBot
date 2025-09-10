@@ -174,7 +174,7 @@ async def process_voice(request: VoiceRequest):
         )
         user_message = UserMessage(request.text)  # Simple text parameter
         
-        chat_response = await llm_chat.chat_async(
+        chat_response = await llm_chat.achat(
             messages=[user_message],
             model="gpt-4o-mini",
             max_tokens=500,
