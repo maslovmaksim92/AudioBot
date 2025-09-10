@@ -137,7 +137,7 @@ class SafeInMemoryStorage:
     
     def get_stats(self):
         total = len(self.conversations)
-        rated = [c for c in self.conversations if c.get("rating")]
+        rated = [c for c in self.conversations if c.get("rating") is not None]
         avg_rating = sum(c["rating"] for c in rated) / len(rated) if rated else None
         positive = len([c for c in rated if c["rating"] >= 4])
         negative = len([c for c in rated if c["rating"] <= 2])
