@@ -7,6 +7,10 @@ uvicorn==0.25.0
 python-dotenv>=1.0.1
 pydantic>=2.6.4
 
+# HTTP клиенты для AI API
+aiohttp>=3.8.0
+requests>=2.31.0
+
 # Emergent LLM для AI
 emergentintegrations
 
@@ -20,5 +24,4 @@ asyncpg>=0.28.0
 databases>=0.7.0
 
 # Остальное
-requests>=2.31.0
 python-multipart>=0.0.9
