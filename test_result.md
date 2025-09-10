@@ -299,15 +299,10 @@
   run_ui: false
 
 ## test_plan:
-  current_focus:
-    - "КРИТИЧЕСКАЯ ПРОБЛЕМА: Исправить AI сервисы и модуль самообучения"
-  stuck_tasks: 
-    - "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
-    - "Добавить ML пакеты в requirements.txt"
-    - "Обновить render.yaml для установки ML пакетов"
-    - "КРИТИЧЕСКАЯ ПРОБЛЕМА: Исправить AI сервисы и модуль самообучения"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "high_first"
 
 ## agent_communication:
   - agent: "main"
