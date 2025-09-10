@@ -488,6 +488,7 @@ class SuperLearningAI:
             
         except Exception as e:
             logger.error(f"Ошибка обработки сообщения: {e}")
+            AI_RESPONSES.labels(status="error").inc()
             response_time = (datetime.utcnow() - start_time).total_seconds()
             
             return VoiceResponse(
