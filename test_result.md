@@ -152,11 +152,11 @@
 
   - task: "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
     implemented: true
-    working: false
+    working: true
     file: "backend/app/services/embedding_service.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
@@ -167,6 +167,9 @@
       - working: false
         agent: "testing"
         comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: AI сервисы не работают корректно. Voice processing возвращает error response, learning endpoints (stats/export) возвращают 500 ошибки. Возможно проблема с EmbeddingService или AI инициализацией"
+      - working: true
+        agent: "testing"
+        comment: "✅ ИСПРАВЛЕНО: После исправления TypeError с NoneType все learning endpoints работают корректно. GET /api/learning/stats и /api/learning/export возвращают 200 OK. Полный цикл самообучения (сообщение → ответ → рейтинг → статистика) функционирует без ошибок. AI сервисы инициализируются правильно."
 
   - task: "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
     implemented: true
