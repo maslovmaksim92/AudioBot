@@ -692,7 +692,7 @@ async def get_learning_stats():
         c for c in storage.conversations 
         if c["timestamp"] > datetime.utcnow() - timedelta(hours=24)
     ]
-    recent_positive = len([c for c in recent_conversations if c.get("rating", 0) >= 4])
+    recent_positive = len([c for c in recent_conversations if c.get("rating") is not None and c.get("rating", 0) >= 4])
     improvement_rate = recent_positive / len(recent_conversations) if recent_conversations else 0.0
     
     return LearningStats(
