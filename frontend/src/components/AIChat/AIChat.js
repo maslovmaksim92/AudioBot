@@ -317,9 +317,15 @@ const AIChat = () => {
 
   // Disconnect from live voice
   const disconnectLiveVoice = () => {
-    if (peerConnectionRef.current) {
+    if (peerConnectionRef.current && peerConnectionRef.current instanceof WebSocket) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
+    }
+    
+    // Stop media recorder
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
     }
     
     setIsLiveConnected(false);
