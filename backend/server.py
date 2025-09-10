@@ -767,6 +767,9 @@ async def submit_feedback(feedback: FeedbackRequest, background_tasks: Backgroun
     if not success:
         raise HTTPException(status_code=404, detail="Диалог не найден")
     
+    # Записываем метрику обратной связи
+    LEARNING_FEEDBACK.labels(rating=str(feedback.rating)).inc()
+    
     # Запускаем фоновое обучение при получении обратной связи
     background_tasks.add_task(ai_service.continuous_learning)
     
