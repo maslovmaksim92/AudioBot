@@ -115,8 +115,8 @@
 
 ## backend:
   - task: "Исправить DATABASE_URL в render.yaml"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "render.yaml"
     stuck_count: 0
     priority: "high"
@@ -125,10 +125,13 @@
       - working: "NA"
         agent: "main"
         comment: "DATABASE_URL отсутствует в envVars секции render.yaml, хотя код ожидает эту переменную"
+      - working: true
+        agent: "main"
+        comment: "✅ Добавлена переменная DATABASE_URL: ${DATABASE_URL} в envVars секцию render.yaml"
 
   - task: "Согласовать команды запуска в render.yaml и Procfile"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "render.yaml, Procfile"
     stuck_count: 0
     priority: "high"
@@ -137,10 +140,13 @@
       - working: "NA"
         agent: "main"
         comment: "render.yaml: uvicorn main:app vs Procfile: uvicorn app.main:app - несогласованность"
+      - working: true
+        agent: "main"
+        comment: "✅ Обновлен render.yaml startCommand на uvicorn app.main:app для согласования с Procfile"
 
   - task: "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "backend/app/services/embedding_service.py"
     stuck_count: 0
     priority: "high"
@@ -149,10 +155,13 @@
       - working: false
         agent: "main"
         comment: "Использует await db.query() но db.query() синхронный метод. Нужно заменить на db.execute(select())"
+      - working: true
+        agent: "main"
+        comment: "✅ Заменены все db.query() на select() + db.execute(). Добавлена безопасная сериализация через numpy.tobytes()"
 
   - task: "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "backend/deploy/cron_tasks.py"
     stuck_count: 0
     priority: "high"
@@ -161,10 +170,13 @@
       - working: false
         agent: "main"
         comment: "Аналогичная проблема с await db.query() в асинхронных функциях"
+      - working: true
+        agent: "main"
+        comment: "✅ Полностью переписаны все DB вызовы на SQLAlchemy 2.0 async: select(), update(), execute()"
 
   - task: "Убрать глобальную инициализацию EmbeddingService"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "backend/app/services/embedding_service.py"
     stuck_count: 0
     priority: "medium"
@@ -173,10 +185,13 @@
       - working: "NA"
         agent: "main"
         comment: "Глобальный embedding_service инициализируется при импорте, замедляет старт"
+      - working: true
+        agent: "main"
+        comment: "✅ Убран глобальный embedding_service. Добавлена функция get_embedding_service()"
 
   - task: "Добавить ML пакеты в requirements.txt"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "backend/requirements.txt"
     stuck_count: 0
     priority: "medium"
@@ -185,10 +200,13 @@
       - working: "NA"
         agent: "main"
         comment: "Отсутствуют sentence-transformers и другие ML зависимости для самообучения"
+      - working: true
+        agent: "main"
+        comment: "✅ Добавлены ML пакеты: sentence-transformers, scikit-learn, torch, transformers, sqlalchemy, asyncpg"
 
   - task: "Заменить небезопасный pickle на безопасную сериализацию"
-    implemented: false
-    working: false
+    implemented: true
+    working: true
     file: "backend/app/services/embedding_service.py"
     stuck_count: 0
     priority: "high"
@@ -197,6 +215,21 @@
       - working: false
         agent: "main"
         comment: "pickle.dumps() небезопасен. Нужно использовать numpy.tobytes() как в server.py"
+      - working: true
+        agent: "main"
+        comment: "✅ Заменен pickle.dumps() на embedding.astype(np.float32).tobytes() + _load_embedding_safe()"
+
+  - task: "Обновить render.yaml для установки ML пакетов"
+    implemented: true
+    working: true
+    file: "render.yaml"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "✅ Обновлен buildCommand на pip install -r backend/requirements.txt для правильного пути"
 
 ## frontend:
   - task: "Нет изменений frontend"
