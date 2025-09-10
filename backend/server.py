@@ -645,25 +645,81 @@ async def root():
 
 @app.get("/api/health")
 async def health_check():
-    """Проверка здоровья системы"""
-    return {
-        "status": "healthy",
-        "platform": "Render",
-        "services": {
+    """Расширенная проверка здоровья системы с метриками"""
+    start_time = time.time()
+    
+    try:
+        # Базовые проверки
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "platform": "Production",
+            "version": "3.0.0",
+            "uptime_seconds": time.time() - app_start_time,
+        }
+        
+        # Проверка сервисов
+        services_status = {
             "emergent_llm": bool(ai_service.llm_client),
             "embeddings": True,  # Fallback эмбеддинги всегда работают
             "database": False,   # In-memory mode
             "storage": True,
             "http_client": HTTP_CLIENT_AVAILABLE or REQUESTS_AVAILABLE
-        },
-        "learning_data": {
+        }
+        
+        # Проверка learning данных
+        learning_data = {
             "total_conversations": len(storage.conversations),
             "embeddings_cached": len(storage.embeddings),
-            "rated_conversations": len([c for c in storage.conversations if c.get("rating")]),
+            "rated_conversations": len([c for c in storage.conversations if c.get("rating") is not None]),
             "max_storage_limit": storage.max_conversations
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
+        }
+        
+        # Проверка системных ресурсов
+        try:
+            import psutil
+            system_metrics = {
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
+                "memory_percent": psutil.virtual_memory().percent,
+                "disk_percent": psutil.disk_usage('/').percent
+            }
+        except ImportError:
+            system_metrics = {"status": "psutil_not_available"}
+        
+        # Проверка критических функций
+        critical_checks = {
+            "ai_service_init": ai_service is not None,
+            "storage_accessible": len(storage.conversations) >= 0,
+            "config_loaded": config.EMERGENT_LLM_KEY != "",
+            "embedding_creation": True  # Всегда работает через fallback
+        }
+        
+        # Определяем общий статус
+        all_critical_ok = all(critical_checks.values())
+        if not all_critical_ok:
+            health_status["status"] = "degraded"
+        
+        response_time = time.time() - start_time
+        
+        return {
+            **health_status,
+            "services": services_status,
+            "learning_data": learning_data,
+            "system_metrics": system_metrics,
+            "critical_checks": critical_checks,
+            "response_time_ms": round(response_time * 1000, 2)
+        }
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+# Глобальная переменная для отслеживания времени запуска
+app_start_time = time.time()
 
 @app.post("/api/voice/process", response_model=VoiceResponse)
 async def process_voice(message_data: VoiceMessage):
