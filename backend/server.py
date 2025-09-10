@@ -17,6 +17,9 @@ from collections import deque
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 
+# Глобальная переменная для отслеживания времени запуска
+app_start_time = time.time()
+
 # Prometheus метрики
 REQUEST_COUNT = Counter('vasdom_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
 REQUEST_DURATION = Histogram('vasdom_request_duration_seconds', 'Request duration')
