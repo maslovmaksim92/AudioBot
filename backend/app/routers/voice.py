@@ -2,8 +2,8 @@
 Роутер для голосового AI чата с поддержкой самообучения
 Включает обработку сообщений, обратную связь и статистику
 """
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
+from sqlalchemy import select
 from typing import List
 from datetime import datetime
 import logging
