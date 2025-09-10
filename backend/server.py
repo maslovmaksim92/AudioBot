@@ -163,18 +163,15 @@ async def process_voice(request: VoiceRequest):
         
         # Use LlmChat for OpenAI communication
         system_message = "Ты - голосовой AI помощник VasDom AudioBot. Отвечай кратко и по делу. Используй разговорный стиль. Отвечай на русском языке."
-        llm_chat = LlmChat(
+        chat = LlmChat(
             api_key=openai_key,
-            session_id="voice_session",  # Unique session ID
+            session_id="voice_session",
             system_message=system_message
         )
-        # Pass message directly as string
-        chat_response = await llm_chat.achat(
-            messages=[request.text],
-            model="gpt-4o-mini",
-            max_tokens=500,
-            temperature=0.8
-        )
+        chat.with_model("openai", "gpt-4o-mini")
+        
+        user_message = UserMessage(text=request.text)
+        chat_response = await chat.send_message(user_message)
         
         return {"response": chat_response}
         
