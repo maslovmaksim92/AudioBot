@@ -5,6 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from alembic import context
 import os
 import sys
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения
+load_dotenv()
 
 # Добавляем путь к приложению
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -15,6 +19,11 @@ from app.config.settings import get_settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Обновляем URL базы данных из переменных окружения
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
