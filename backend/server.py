@@ -180,6 +180,74 @@ async def process_voice(request: VoiceRequest):
         logging.error(f"Voice processing error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Voice processing error: {str(e)}")
 
+# WebSocket endpoint for Realtime Voice Chat
+@app.websocket("/ws/realtime")
+async def websocket_realtime(websocket: WebSocket):
+    """WebSocket proxy to OpenAI Realtime API"""
+    await websocket.accept()
+    
+    try:
+        openai_key = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY')
+        if not openai_key:
+            await websocket.close(code=1008, reason="OpenAI API key not configured")
+            return
+        
+        # Connect to OpenAI Realtime API
+        openai_ws_uri = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
+        headers = {
+            "Authorization": f"Bearer {openai_key}",
+            "OpenAI-Beta": "realtime=v1"
+        }
+        
+        async with websockets.connect(openai_ws_uri, extra_headers=headers) as openai_ws:
+            # Send initial session configuration
+            session_config = {
+                "type": "session.update",
+                "session": {
+                    "modalities": ["text", "audio"],
+                    "instructions": "Ты - голосовой AI помощник VasDom AudioBot. Говори живым человеческим голосом на русском языке. Отвечай дружелюбно и естественно.",
+                    "voice": "verse",
+                    "input_audio_format": "pcm16",
+                    "output_audio_format": "pcm16",
+                    "input_audio_transcription": {
+                        "model": "whisper-1"
+                    }
+                }
+            }
+            await openai_ws.send(json.dumps(session_config))
+            
+            # Create bidirectional proxy
+            async def client_to_openai():
+                """Forward messages from client to OpenAI"""
+                try:
+                    async for message in websocket.iter_text():
+                        await openai_ws.send(message)
+                except WebSocketDisconnect:
+                    pass
+                except Exception as e:
+                    logging.error(f"Client to OpenAI error: {e}")
+            
+            async def openai_to_client():
+                """Forward messages from OpenAI to client"""
+                try:
+                    async for message in openai_ws:
+                        await websocket.send_text(message)
+                except websockets.exceptions.ConnectionClosed:
+                    pass
+                except Exception as e:
+                    logging.error(f"OpenAI to client error: {e}")
+            
+            # Run both directions concurrently
+            await asyncio.gather(
+                client_to_openai(),
+                openai_to_client(),
+                return_exceptions=True
+            )
+            
+    except Exception as e:
+        logging.error(f"WebSocket realtime error: {e}")
+        await websocket.close(code=1011, reason=f"Internal error: {str(e)}")
+
 # Include the router in the main app
 app.include_router(api_router)
 
