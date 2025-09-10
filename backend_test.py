@@ -330,7 +330,7 @@ def main():
     print("   • Similar conversation search")
     
     # Use the public URL from frontend/.env
-    tester = VasDomAudioBotTester("https://audiobot-qci2.onrender.com")
+    tester = VasDomAudioBotTester("https://smart-audiobot.preview.emergentagent.com")
     
     try:
         return tester.run_comprehensive_test()
