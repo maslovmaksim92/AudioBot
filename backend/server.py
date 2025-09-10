@@ -742,7 +742,7 @@ async def get_learning_stats():
 @app.get("/api/learning/export")
 async def export_learning_data():
     """📤 Экспорт качественных диалогов для дообучения"""
-    high_quality_data = storage.get_rated_conversations(min_rating=config.MIN_RATING_THRESHOLD)
+    high_quality_data = await storage.get_rated_conversations(min_rating=config.MIN_RATING_THRESHOLD)
     
     # Формат для fine-tuning
     training_data = []
