@@ -29,6 +29,9 @@ const AIChat = () => {
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [isListening, setIsListening] = useState(false);
+  const [transcription, setTranscription] = useState("");
+  const [audioLevel, setAudioLevel] = useState(0);
   
   // Refs
   const messagesEndRef = useRef(null);
