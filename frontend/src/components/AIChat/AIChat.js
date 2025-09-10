@@ -181,56 +181,133 @@ const AIChat = () => {
     }
   };
 
-  // Initialize WebRTC connection to OpenAI Realtime API
+  // Initialize WebSocket connection to OpenAI Realtime API
   const initializeRealtimeConnection = async () => {
     try {
       setConnectionStatus("connecting");
       
-      // Get ephemeral token
-      const token = await getRealtimeToken();
+      // Connect to our WebSocket proxy
+      const wsUrl = BACKEND_URL.replace(/^https?/, 'ws') + '/ws/realtime';
+      const ws = new WebSocket(wsUrl);
       
-      // Create peer connection
-      const peerConnection = new RTCPeerConnection();
-      peerConnectionRef.current = peerConnection;
-
-      // Get user media (microphone)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-
-      // Handle incoming audio stream
-      peerConnection.ontrack = (event) => {
-        const [remoteStream] = event.streams;
-        if (audioRef.current) {
-          audioRef.current.srcObject = remoteStream;
-        }
-      };
-
-      // Handle connection state changes
-      peerConnection.onconnectionstatechange = () => {
-        const state = peerConnection.connectionState;
-        setConnectionStatus(state);
-        
-        if (state === "connected") {
-          setIsLiveConnected(true);
-        } else if (state === "disconnected" || state === "failed") {
-          setIsLiveConnected(false);
-        }
-      };
-
-      // Create offer and connect to OpenAI Realtime API
-      // Note: This is a simplified version. In production, you'd need to handle
-      // the WebRTC signaling through OpenAI's Realtime API WebSocket
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-
-      // For now, we'll simulate a successful connection
-      setTimeout(() => {
+      ws.onopen = () => {
+        console.log('Connected to Realtime API');
         setIsLiveConnected(true);
         setConnectionStatus("connected");
-      }, 2000);
-
+        
+        // Get user media (microphone) for audio input
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(stream => {
+            const mediaRecorder = new MediaRecorder(stream, {
+              mimeType: 'audio/webm;codecs=opus'
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+              if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+                // Convert audio data to base64 and send to OpenAI
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const audioData = reader.result.split(',')[1]; // Remove data URL prefix
+                  ws.send(JSON.stringify({
+                    type: "input_audio_buffer.append",
+                    audio: audioData
+                  }));
+                };
+                reader.readAsDataURL(event.data);
+              }
+            };
+            
+            // Start recording continuously
+            mediaRecorder.start(100); // Send data every 100ms
+            mediaRecorderRef.current = mediaRecorder;
+          })
+          .catch(err => {
+            console.error('Error accessing microphone:', err);
+            setConnectionStatus("failed");
+            setIsLiveConnected(false);
+          });
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Received:', data);
+          
+          // Handle different message types
+          switch (data.type) {
+            case "response.audio.delta":
+              // Play incoming audio
+              if (data.delta && audioRef.current) {
+                const audioData = atob(data.delta);
+                const audioArray = new Uint8Array(audioData.length);
+                for (let i = 0; i < audioData.length; i++) {
+                  audioArray[i] = audioData.charCodeAt(i);
+                }
+                
+                // Create audio blob and play
+                const audioBlob = new Blob([audioArray], { type: 'audio/pcm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play().catch(e => console.error('Audio play error:', e));
+              }
+              break;
+              
+            case "response.text.delta":
+              // Display text response in chat
+              if (data.delta) {
+                const aiMessage = {
+                  id: Date.now(),
+                  text: data.delta,
+                  sender: "ai",
+                  timestamp: new Date()
+                };
+                setMessages(prev => [...prev, aiMessage]);
+              }
+              break;
+              
+            case "input_audio_buffer.speech_started":
+              console.log("Speech started");
+              break;
+              
+            case "input_audio_buffer.speech_stopped":
+              console.log("Speech stopped");
+              // Commit the audio buffer
+              ws.send(JSON.stringify({
+                type: "input_audio_buffer.commit"
+              }));
+              break;
+              
+            case "error":
+              console.error("OpenAI Realtime error:", data);
+              setConnectionStatus("failed");
+              break;
+          }
+        } catch (e) {
+          console.error('Error parsing WebSocket message:', e);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus("failed");
+        setIsLiveConnected(false);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket connection closed');
+        setIsLiveConnected(false);
+        setConnectionStatus("disconnected");
+        
+        // Stop media recorder
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop();
+          mediaRecorderRef.current = null;
+        }
+      };
+      
+      // Store WebSocket reference
+      peerConnectionRef.current = ws;
+      
     } catch (error) {
       console.error('Error initializing realtime connection:', error);
       setConnectionStatus("failed");
