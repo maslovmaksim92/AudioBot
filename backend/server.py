@@ -251,14 +251,29 @@ class SuperLearningAI:
             return None
     
     def find_similar_conversations(self, query_text: str, limit: int = 3) -> List[Dict]:
-        """Поиск похожих диалогов для контекста"""
-        if not self.embedding_model:
-            return []
-        
+        """Поиск похожих диалогов для контекста (с fallback алгоритмом)"""
         query_embedding = self.create_embedding(query_text)
         if query_embedding is None:
-            return []
+            # Fallback: простой поиск по ключевым словам
+            query_words = set(query_text.lower().split())
+            similarities = []
+            
+            for conv in storage.conversations:
+                if conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
+                    conv_words = set(conv["user_message"].lower().split())
+                    # Jaccard similarity (пересечение / объединение)
+                    intersection = len(query_words & conv_words)
+                    union = len(query_words | conv_words)
+                    similarity = intersection / union if union > 0 else 0
+                    
+                    if similarity > 0.1:  # Минимальное сходство
+                        similarities.append((similarity, conv))
+            
+            # Сортируем по убыванию сходства
+            similarities.sort(key=lambda x: x[0], reverse=True)
+            return [conv for _, conv in similarities[:limit]]
         
+        # Обычный векторный поиск если эмбеддинги доступны
         similarities = []
         for conv in storage.conversations:
             if conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
