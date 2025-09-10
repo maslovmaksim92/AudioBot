@@ -731,12 +731,16 @@ async def get_learning_stats():
     stats = await storage.get_stats()
     
     # Расчет скорости улучшения
-    recent_conversations = [
-        c for c in storage.conversations 
-        if c["timestamp"] > datetime.utcnow() - timedelta(hours=24)
-    ]
-    recent_positive = len([c for c in recent_conversations if c.get("rating") is not None and c.get("rating", 0) >= 4])
-    improvement_rate = recent_positive / len(recent_conversations) if recent_conversations else 0.0
+    if hasattr(storage, 'conversations'):
+        recent_conversations = [
+            c for c in storage.conversations 
+            if c["timestamp"] > datetime.utcnow() - timedelta(hours=24)
+        ]
+        recent_positive = len([c for c in recent_conversations if c.get("rating") is not None and c.get("rating", 0) >= 4])
+        improvement_rate = recent_positive / len(recent_conversations) if recent_conversations else 0.0
+    else:
+        # Для PostgreSQL используем основную статистику
+        improvement_rate = stats["positive_ratings"] / stats["rated_interactions"] if stats["rated_interactions"] > 0 else 0.0
     
     return LearningStats(
         total_interactions=stats["total_interactions"],
