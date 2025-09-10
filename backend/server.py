@@ -14,6 +14,10 @@ import uuid
 import hashlib
 import numpy as np
 from collections import deque
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 
