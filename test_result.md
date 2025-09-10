@@ -222,7 +222,7 @@
     file: "backend/app/services/embedding_service.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
@@ -230,6 +230,9 @@
       - working: true
         agent: "main"
         comment: "✅ Заменен pickle.dumps() на embedding.astype(np.float32).tobytes() + _load_embedding_safe()"
+      - working: true
+        agent: "testing"
+        comment: "✅ БЕЗОПАСНОСТЬ ПОДТВЕРЖДЕНА: Embedding система использует numpy.tobytes() сериализацию. Тест показал: эмбеддинги создаются и сохраняются безопасно (3 эмбеддинга в кэше), поиск похожих диалогов работает. Никаких pickle уязвимостей не обнаружено"
 
   - task: "Обновить render.yaml для установки ML пакетов"
     implemented: true
