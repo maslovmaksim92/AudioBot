@@ -720,7 +720,7 @@ async def submit_feedback(feedback: FeedbackRequest, background_tasks: Backgroun
 @app.get("/api/learning/stats", response_model=LearningStats)
 async def get_learning_stats():
     """📊 Статистика самообучения в реальном времени"""
-    stats = storage.get_stats()
+    stats = await storage.get_stats()
     
     # Расчет скорости улучшения
     recent_conversations = [
