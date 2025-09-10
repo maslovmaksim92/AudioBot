@@ -164,24 +164,18 @@ class SuperLearningAI:
     
     def init_services(self):
         """Инициализация AI сервисов"""
-        # Emergent LLM - прямая интеграция
+        # Emergent LLM - прямая HTTP интеграция (без библиотеки)
         if config.EMERGENT_LLM_KEY:
             try:
-                # Попытка 1: через emergentintegrations
-                if EMERGENT_AVAILABLE:
-                    self.llm_client = EmergentLLM(api_key=config.EMERGENT_LLM_KEY)
-                    logger.info("✅ Emergent LLM через библиотеку инициализирован")
-                else:
-                    # Попытка 2: прямые HTTP запросы
-                    import requests
+                # Создаем прямой HTTP клиент для Emergent API
+                class DirectEmergentLLM:
+                    def __init__(self, api_key):
+                        self.api_key = api_key
+                        self.base_url = "https://api.emergent.ai/v1"
                     
-                    class DirectEmergentLLM:
-                        def __init__(self, api_key):
-                            self.api_key = api_key
-                            self.base_url = "https://api.emergent.ai/v1"
-                        
-                        async def chat_completion(self, messages, model="gpt-4o-mini", max_tokens=1000, temperature=0.7):
-                            import aiohttp
+                    async def chat_completion(self, messages, model="gpt-4o-mini", max_tokens=1000, temperature=0.7):
+                        import aiohttp
+                        try:
                             async with aiohttp.ClientSession() as session:
                                 headers = {
                                     "Authorization": f"Bearer {self.api_key}",
@@ -195,7 +189,7 @@ class SuperLearningAI:
                                 }
                                 
                                 async with session.post(f"{self.base_url}/chat/completions", 
-                                                       headers=headers, json=data) as resp:
+                                                       headers=headers, json=data, timeout=30) as resp:
                                     if resp.status == 200:
                                         result = await resp.json()
                                         # Эмуляция структуры ответа
@@ -209,23 +203,23 @@ class SuperLearningAI:
                                         
                                         return Response(result['choices'][0]['message']['content'])
                                     else:
-                                        raise Exception(f"API error: {resp.status}")
-                    
-                    self.llm_client = DirectEmergentLLM(config.EMERGENT_LLM_KEY)
-                    logger.info("✅ Emergent LLM через прямой API инициализирован")
+                                        error_text = await resp.text()
+                                        raise Exception(f"Emergent API error {resp.status}: {error_text}")
+                        except Exception as e:
+                            logger.error(f"Emergent API request failed: {e}")
+                            raise e
+                
+                self.llm_client = DirectEmergentLLM(config.EMERGENT_LLM_KEY)
+                logger.info("✅ Emergent LLM через прямой HTTP API инициализирован")
                     
             except Exception as e:
                 logger.error(f"❌ Ошибка Emergent LLM: {e}")
-                logger.info("🔄 Работаем в режиме умного fallback")
+                logger.info("🔄 Работаем в режиме умного fallback без внешних LLM")
+        else:
+            logger.info("🔄 EMERGENT_LLM_KEY не настроен - используем fallback режим")
         
-        # Embedding модель
-        if EMBEDDINGS_AVAILABLE:
-            try:
-                self.embedding_model = SentenceTransformer(config.EMBEDDING_MODEL)
-                logger.info("✅ Embedding модель загружена")
-            except Exception as e:
-                logger.error(f"❌ Ошибка embedding модели: {e}")
-                logger.info("🔄 Используем fallback эмбеддинги")
+        # Embedding модель - теперь только fallback (без sentence-transformers)
+        logger.info("🧠 Используем fallback TF-IDF эмбеддинги для максимальной надежности")
     
     def create_embedding(self, text: str) -> Optional[np.ndarray]:
         """Создание эмбеддинга для текста (с fallback на простой хеш)"""
