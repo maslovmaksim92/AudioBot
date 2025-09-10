@@ -101,3 +101,133 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: |
+  Пользователь обнаружил критические ошибки в модуле самообучения VasDom AudioBot:
+  1. DATABASE_URL отсутствует в render.yaml конфигурации
+  2. Несогласованность команд запуска между render.yaml и Procfile  
+  3. EmbeddingService использует синхронный API SQLAlchemy с асинхронными сессиями
+  4. Аналогичные проблемы в cron_tasks.py с синхронными вызовами
+  5. Глобальная инициализация EmbeddingService замедляет запуск
+  6. render.yaml не устанавливает ML-пакеты для самообучения
+  7. Небезопасное использование pickle для сериализации эмбеддингов
+  8. Файлы без перевода строки в конце (нарушение PEP 8)
+
+## backend:
+  - task: "Исправить DATABASE_URL в render.yaml"
+    implemented: false
+    working: "NA"
+    file: "render.yaml"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DATABASE_URL отсутствует в envVars секции render.yaml, хотя код ожидает эту переменную"
+
+  - task: "Согласовать команды запуска в render.yaml и Procfile"
+    implemented: false
+    working: "NA"
+    file: "render.yaml, Procfile"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "render.yaml: uvicorn main:app vs Procfile: uvicorn app.main:app - несогласованность"
+
+  - task: "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
+    implemented: false
+    working: false
+    file: "backend/app/services/embedding_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Использует await db.query() но db.query() синхронный метод. Нужно заменить на db.execute(select())"
+
+  - task: "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
+    implemented: false
+    working: false
+    file: "backend/deploy/cron_tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Аналогичная проблема с await db.query() в асинхронных функциях"
+
+  - task: "Убрать глобальную инициализацию EmbeddingService"
+    implemented: false
+    working: "NA"
+    file: "backend/app/services/embedding_service.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Глобальный embedding_service инициализируется при импорте, замедляет старт"
+
+  - task: "Добавить ML пакеты в requirements.txt"
+    implemented: false
+    working: "NA"
+    file: "backend/requirements.txt"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Отсутствуют sentence-transformers и другие ML зависимости для самообучения"
+
+  - task: "Заменить небезопасный pickle на безопасную сериализацию"
+    implemented: false
+    working: false
+    file: "backend/app/services/embedding_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "pickle.dumps() небезопасен. Нужно использовать numpy.tobytes() как в server.py"
+
+## frontend:
+  - task: "Нет изменений frontend"
+    implemented: true
+    working: true
+    file: "N/A"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Frontend изменения не требуются для исправления backend проблем"
+
+## metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+## test_plan:
+  current_focus:
+    - "Исправить DATABASE_URL в render.yaml"
+    - "Согласовать команды запуска в render.yaml и Procfile"
+    - "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
+    - "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
+    - "Заменить небезопасный pickle на безопасную сериализацию"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+## agent_communication:
+  - agent: "main"
+    message: "Выявлены критические проблемы в архитектуре самообучения. Начинаю систематическое исправление всех проблем перед тестированием."
