@@ -340,7 +340,7 @@ class SuperLearningAI:
         # Векторный поиск с безопасными эмбеддингами
         similarities = []
         for conv in storage.conversations:
-            if conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
+            if conv.get("rating") is not None and conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
                 # Создаем эмбеддинг если его нет
                 conv_id = conv["log_id"]
                 conv_embedding = storage.load_embedding_safe(conv_id)
