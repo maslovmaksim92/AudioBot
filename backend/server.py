@@ -43,14 +43,14 @@ logger.add(
 try:
     import aiohttp
     HTTP_CLIENT_AVAILABLE = True
-    logger.info("✅ aiohttp доступен для HTTP API")
+    logger.success("✅ aiohttp доступен для HTTP API")
 except ImportError:
     HTTP_CLIENT_AVAILABLE = False
     logger.warning("❌ aiohttp недоступен - используем requests fallback")
     try:
         import requests
         REQUESTS_AVAILABLE = True
-        logger.info("✅ requests fallback доступен")
+        logger.success("✅ requests fallback доступен")
     except ImportError:
         REQUESTS_AVAILABLE = False
         logger.error("❌ Никаких HTTP клиентов недостно!")
