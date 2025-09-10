@@ -11,10 +11,12 @@ services:
       pip install --upgrade pip && 
       pip install -r requirements.txt
     startCommand: |
-      uvicorn main:app --host 0.0.0.0 --port $PORT
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
       - key: EMERGENT_LLM_KEY
         value: sk-emergent-0A408AfAeF26aCd5aB
       - key: EMBEDDING_MODEL
