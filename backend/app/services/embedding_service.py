@@ -3,10 +3,10 @@
 Использует sentence-transformers для векторного представления текста
 """
 import numpy as np
-import pickle
 from typing import List, Tuple, Optional, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
 try:
@@ -75,7 +75,7 @@ class EmbeddingService:
     
     async def store_embedding(self, log_id: int, user_message: str) -> bool:
         """
-        Сохранение эмбеддинга в базу данных
+        Сохранение эмбеддинга в базу данных (исправлено - асинхронные вызовы)
         
         Args:
             log_id: ID лога взаимодействия
@@ -90,14 +90,14 @@ class EmbeddingService:
             if embedding is None:
                 return False
             
-            # Сериализуем numpy array
-            embedding_bytes = pickle.dumps(embedding)
+            # Безопасная сериализация без pickle
+            embedding_bytes = embedding.astype(np.float32).tobytes()
             
             async with SessionLocal() as db:
-                # Проверяем, есть ли уже эмбеддинг для этого лога
-                existing = await db.query(VoiceEmbeddingDB).filter(
-                    VoiceEmbeddingDB.log_id == log_id
-                ).first()
+                # Исправлено: используем select() вместо db.query()
+                stmt = select(VoiceEmbeddingDB).where(VoiceEmbeddingDB.log_id == log_id)
+                result = await db.execute(stmt)
+                existing = result.scalar_one_or_none()
                 
                 if existing:
                     # Обновляем существующий
@@ -119,6 +119,15 @@ class EmbeddingService:
         except Exception as e:
             logger.error(f"Ошибка сохранения эмбеддинга: {str(e)}")
             return False
+    
+    def _load_embedding_safe(self, embedding_bytes: bytes, shape: tuple) -> Optional[np.ndarray]:
+        """Безопасная загрузка эмбеддинга без pickle"""
+        try:
+            embedding = np.frombuffer(embedding_bytes, dtype=np.float32)
+            return embedding.reshape(shape)
+        except Exception as e:
+            logger.error(f"Ошибка загрузки эмбеддинга: {e}")
+            return None
     
     def cosine_similarity(self, a: np.ndarray, b: np.ndarray) -> float:
         """Вычисление косинусного сходства между векторами"""
@@ -145,7 +154,7 @@ class EmbeddingService:
         exclude_log_id: Optional[int] = None
     ) -> List[SimilarResponse]:
         """
-        Поиск похожих вопросов и ответов
+        Поиск похожих вопросов и ответов (исправлено - асинхронные вызовы)
         
         Args:
             query_text: Текст запроса для поиска
@@ -169,30 +178,35 @@ class EmbeddingService:
             similar_responses = []
             
             async with SessionLocal() as db:
-                # Получаем все эмбеддинги с логами
-                query = db.query(VoiceEmbeddingDB, VoiceLogDB).join(
+                # Исправлено: используем select() и join()
+                stmt = select(VoiceEmbeddingDB, VoiceLogDB).join(
                     VoiceLogDB, VoiceEmbeddingDB.log_id == VoiceLogDB.id
-                ).filter(
+                ).where(
                     VoiceLogDB.ai_response.isnot(None)
                 )
                 
                 if exclude_log_id:
-                    query = query.filter(VoiceLogDB.id != exclude_log_id)
+                    stmt = stmt.where(VoiceLogDB.id != exclude_log_id)
                 
-                results = await query.all()
+                result = await db.execute(stmt)
+                results = result.all()
                 
                 # Вычисляем сходство для каждого эмбеддинга
                 similarities = []
                 for embedding_record, log_record in results:
                     try:
-                        # Десериализуем эмбеддинг
-                        stored_embedding = pickle.loads(embedding_record.vector)
+                        # Безопасная десериализация без pickle
+                        stored_embedding = self._load_embedding_safe(
+                            embedding_record.vector, 
+                            query_embedding.shape  # Используем форму запроса как референс
+                        )
                         
-                        # Вычисляем сходство
-                        similarity = self.cosine_similarity(query_embedding, stored_embedding)
-                        
-                        if similarity >= similarity_threshold:
-                            similarities.append((similarity, log_record))
+                        if stored_embedding is not None:
+                            # Вычисляем сходство
+                            similarity = self.cosine_similarity(query_embedding, stored_embedding)
+                            
+                            if similarity >= similarity_threshold:
+                                similarities.append((similarity, log_record))
                     
                     except Exception as e:
                         logger.debug(f"Ошибка обработки эмбеддинга {embedding_record.id}: {str(e)}")
@@ -222,7 +236,7 @@ class EmbeddingService:
     
     async def update_embeddings_batch(self, batch_size: int = 100) -> Dict:
         """
-        Массовое обновление эмбеддингов для логов без векторных представлений
+        Массовое обновление эмбеддингов для логов без векторных представлений (исправлено)
         
         Args:
             batch_size: Размер батча для обработки
@@ -238,13 +252,16 @@ class EmbeddingService:
             errors = 0
             
             async with SessionLocal() as db:
-                # Находим логи без эмбеддингов
-                logs_without_embeddings = await db.query(VoiceLogDB).outerjoin(
+                # Исправлено: используем select() с outerjoin
+                stmt = select(VoiceLogDB).outerjoin(
                     VoiceEmbeddingDB, VoiceLogDB.id == VoiceEmbeddingDB.log_id
-                ).filter(
+                ).where(
                     VoiceEmbeddingDB.id.is_(None),
                     VoiceLogDB.user_message.isnot(None)
-                ).limit(batch_size).all()
+                ).limit(batch_size)
+                
+                result = await db.execute(stmt)
+                logs_without_embeddings = result.scalars().all()
                 
                 for log in logs_without_embeddings:
                     success = await self.store_embedding(log.id, log.user_message)
@@ -264,5 +281,7 @@ class EmbeddingService:
             logger.error(f"Ошибка массового обновления эмбеддингов: {str(e)}")
             return {"success": False, "error": str(e)}
 
-# Глобальный экземпляр сервиса
-embedding_service = EmbeddingService()
+# Функция для создания сервиса по требованию (убираем глобальную инициализацию)
+def get_embedding_service() -> EmbeddingService:
+    """Получить экземпляр сервиса эмбеддингов"""
+    return EmbeddingService()
