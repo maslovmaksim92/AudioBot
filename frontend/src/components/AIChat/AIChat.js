@@ -715,55 +715,73 @@ const AIChat = () => {
           </div>
         </div>
       )}
+      {/* HUGE VISUAL FEEDBACK PANEL - Make it impossible to miss */}
       {isVoicePage && isLiveConnected && (
-        <div className="glass rounded-xl p-6 mb-6 bg-green-500/10 border border-green-500/20">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-4 h-4 bg-green-400 rounded-full live-indicator" />
-                <div>
-                  <h3 className="text-lg font-bold text-green-400">Живое соединение активно</h3>
-                  <p className="text-gray-300">Говорите естественно, AI будет отвечать человеческим голосом</p>
-                </div>
+        <div className="glass rounded-xl p-8 mb-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50">
+          <div className="space-y-6">
+            {/* Connection Status Header */}
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <div className="w-6 h-6 bg-green-400 rounded-full animate-pulse" />
+                <h2 className="text-3xl font-bold text-green-400">🎙️ ЖИВОЙ ГОЛОС АКТИВЕН</h2>
+                <div className="w-6 h-6 bg-green-400 rounded-full animate-pulse" />
               </div>
-              
-              {/* Audio Level Indicator */}
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-400">Уровень:</span>
-                <div className="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-100"
-                    style={{ width: `${audioLevel}%` }}
-                  />
-                </div>
-                <span className="text-sm text-green-400">{Math.round(audioLevel)}%</span>
+              <p className="text-xl text-gray-300">AI слушает и отвечает человеческим голосом</p>
+            </div>
+            
+            {/* MASSIVE Audio Level Indicator */}
+            <div className="bg-black/30 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-lg font-medium text-white">🔊 Уровень микрофона</span>
+                <span className="text-2xl font-bold text-green-400">{Math.round(audioLevel)}%</span>
+              </div>
+              <div className="w-full h-8 bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100"
+                  style={{ width: `${Math.max(5, audioLevel)}%` }}
+                />
+              </div>
+              <div className="text-center mt-2 text-sm text-gray-400">
+                {audioLevel > 20 ? '🗣️ Громко говорите!' : audioLevel > 10 ? '🤫 Тихо...' : '🔇 Тишина'}
               </div>
             </div>
             
-            {/* Real-time Transcription Display */}
-            <div className="bg-black/20 rounded-lg p-4 border border-green-500/10">
-              <div className="flex items-start space-x-3">
-                <div className={`p-2 rounded-lg ${isListening ? 'bg-red-500 recording-pulse' : 'bg-blue-500'}`}>
-                  {isListening ? <Mic className="text-white" size={16} /> : <Bot className="text-white" size={16} />}
+            {/* MASSIVE Listening Status */}
+            <div className="bg-black/30 rounded-xl p-6">
+              <div className="flex items-center space-x-4">
+                <div className={`p-4 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}>
+                  {isListening ? <Mic className="text-white" size={32} /> : <Bot className="text-white" size={32} />}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-sm font-medium text-green-400">
-                      {isListening ? '🎤 Слушаю...' : '🤖 AI отвечает'}
-                    </span>
-                    {isListening && (
-                      <div className="flex space-x-1">
-                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" />
-                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}} />
-                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}} />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-white text-sm whitespace-pre-wrap">
-                    {transcription || "Готов к разговору..."}
+                  <h3 className="text-2xl font-bold text-white">
+                    {isListening ? '🎤 СЛУШАЮ ВАШУ РЕЧЬ...' : '🤖 AI ГОТОВ К ОТВЕТУ'}
+                  </h3>
+                  <p className="text-lg text-gray-300 mt-2">
+                    {transcription || 'Говорите что-нибудь, чтобы начать разговор'}
                   </p>
+                  {isListening && (
+                    <div className="flex items-center space-x-2 mt-3">
+                      <span className="text-red-400 font-medium">ЗАПИСЬ:</span>
+                      <div className="flex space-x-1">
+                        {[0, 1, 2, 3, 4].map(i => (
+                          <div 
+                            key={i}
+                            className="w-2 h-6 bg-red-400 rounded animate-pulse"
+                            style={{animationDelay: `${i * 0.1}s`}}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+            
+            {/* Instructions */}
+            <div className="text-center bg-black/20 rounded-lg p-4">
+              <p className="text-lg text-white">
+                💡 <strong>Говорите естественно</strong> - AI услышит и ответит голосом
+              </p>
             </div>
           </div>
         </div>
