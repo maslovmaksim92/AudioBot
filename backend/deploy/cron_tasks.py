@@ -178,16 +178,18 @@ class ModelEvaluator:
         else:
             return "very_poor"
     
-    async def _save_evaluation_metrics(self, db, evaluation_result: Dict):
-        """Сохранение метрик оценки в базу данных"""
+    async def _save_evaluation_metrics(self, db: AsyncSession, evaluation_result: Dict):
+        """Сохранение метрик оценки в базу данных (исправлено - асинхронные вызовы)"""
         try:
             metrics = evaluation_result["metrics"]
             quality = evaluation_result["quality_assessment"]
             
-            # Деактивируем предыдущие метрики
-            await db.query(ModelMetricsDB).filter(
+            # Исправлено: деактивируем предыдущие метрики через update()
+            update_stmt = update(ModelMetricsDB).where(
                 ModelMetricsDB.is_current_model == True
-            ).update({"is_current_model": False})
+            ).values(is_current_model=False)
+            
+            await db.execute(update_stmt)
             
             # Создаем новую запись метрик
             new_metrics = ModelMetricsDB(
