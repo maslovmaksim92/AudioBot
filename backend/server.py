@@ -181,13 +181,32 @@ class SuperLearningAI:
                 logger.error(f"❌ Ошибка embedding модели: {e}")
     
     def create_embedding(self, text: str) -> Optional[np.ndarray]:
-        """Создание эмбеддинга для текста"""
-        if not self.embedding_model:
-            return None
+        """Создание эмбеддинга для текста (с fallback на простой хеш)"""
+        if self.embedding_model:
+            try:
+                return self.embedding_model.encode(text)
+            except Exception as e:
+                logger.error(f"Ошибка sentence-transformers: {e}")
+        
+        # Fallback: простое векторное представление на основе TF-IDF подобия
         try:
-            return self.embedding_model.encode(text)
+            import hashlib
+            # Создаем псевдо-эмбеддинг на основе слов и их позиций
+            words = text.lower().split()
+            vector = np.zeros(384)  # Стандартный размер
+            
+            for i, word in enumerate(words[:50]):  # Берем первые 50 слов
+                word_hash = int(hashlib.md5(word.encode()).hexdigest(), 16)
+                vector[word_hash % 384] += 1.0 / (i + 1)  # Вес зависит от позиции
+            
+            # Нормализация
+            norm = np.linalg.norm(vector)
+            if norm > 0:
+                vector = vector / norm
+                
+            return vector
         except Exception as e:
-            logger.error(f"Ошибка создания эмбеддинга: {e}")
+            logger.error(f"Ошибка fallback эмбеддинга: {e}")
             return None
     
     def find_similar_conversations(self, query_text: str, limit: int = 3) -> List[Dict]:
