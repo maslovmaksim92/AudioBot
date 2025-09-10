@@ -14,7 +14,14 @@ import uuid
 import hashlib
 import numpy as np
 from collections import deque
-import io
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+import time
+
+# Prometheus метрики
+REQUEST_COUNT = Counter('vasdom_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
+REQUEST_DURATION = Histogram('vasdom_request_duration_seconds', 'Request duration')
+AI_RESPONSES = Counter('vasdom_ai_responses_total', 'AI responses generated', ['status'])
+LEARNING_FEEDBACK = Counter('vasdom_learning_feedback_total', 'Learning feedback received', ['rating'])
 
 # Настройка структурированного логирования
 from loguru import logger
