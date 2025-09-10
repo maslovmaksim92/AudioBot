@@ -793,10 +793,11 @@ async def get_similar_conversations(log_id: str, limit: int = 5):
     """🔍 Показать какие диалоги были найдены как похожие"""
     # Найдем исходный диалог
     original = None
-    for conv in storage.conversations:
-        if conv["log_id"] == log_id:
-            original = conv
-            break
+    if hasattr(storage, 'conversations'):
+        for conv in storage.conversations:
+            if conv["log_id"] == log_id:
+                original = conv
+                break
     
     if not original:
         raise HTTPException(status_code=404, detail="Диалог не найден")
