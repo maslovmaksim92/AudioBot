@@ -1,5 +1,5 @@
 # VasDom AudioBot - Production Dependencies for Render
-# Максимально обучаемый AI
+# Максимально обучаемый AI - БЕЗ внешних зависимостей!
 
 # Core FastAPI
 fastapi==0.110.1
@@ -7,21 +7,12 @@ uvicorn==0.25.0
 python-dotenv>=1.0.1
 pydantic>=2.6.4
 
-# HTTP клиенты для AI API
+# HTTP клиенты для AI API (прямая интеграция)
 aiohttp>=3.8.0
 requests>=2.31.0
 
-# Emergent LLM для AI
-emergentintegrations
-
-# ML для самообучения  
-sentence-transformers>=2.2.0
+# ML для самообучения (опционально - с fallback)  
 numpy>=1.24.0
-scikit-learn>=1.3.0
 
-# PostgreSQL (опционально)
-asyncpg>=0.28.0
-databases>=0.7.0
-
-# Остальное
+# Базовые утилиты
 python-multipart>=0.0.9
