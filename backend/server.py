@@ -278,49 +278,57 @@ class SuperLearningAI:
         query_embedding = self.create_embedding(query_text)
         
         if query_embedding is None:
-            # Fallback: простой поиск по ключевым словам
-            query_words = set(query_text.lower().split())
+            # Fallback: простой поиск по ключевым словам в in-memory storage
+            if hasattr(storage, 'conversations'):
+                query_words = set(query_text.lower().split())
+                similarities = []
+                
+                for conv in storage.conversations:
+                    if conv.get("rating") is not None and conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
+                        conv_words = set(conv["user_message"].lower().split())
+                        # Jaccard similarity (пересечение / объединение)
+                        intersection = len(query_words & conv_words)
+                        union = len(query_words | conv_words)
+                        similarity = intersection / union if union > 0 else 0
+                        
+                        if similarity > 0.1:  # Минимальное сходство
+                            similarities.append((similarity, conv))
+                
+                # Сортируем по убыванию сходства
+                similarities.sort(key=lambda x: x[0], reverse=True)
+                return [conv for _, conv in similarities[:limit]]
+            else:
+                # Для PostgreSQL режима пока возвращаем пустой список
+                return []
+        
+        # Векторный поиск с безопасными эмбеддингами (только для in-memory)
+        if hasattr(storage, 'conversations'):
             similarities = []
-            
             for conv in storage.conversations:
                 if conv.get("rating") is not None and conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
-                    conv_words = set(conv["user_message"].lower().split())
-                    # Jaccard similarity (пересечение / объединение)
-                    intersection = len(query_words & conv_words)
-                    union = len(query_words | conv_words)
-                    similarity = intersection / union if union > 0 else 0
+                    # Создаем эмбеддинг если его нет
+                    conv_id = conv["log_id"]
+                    conv_embedding = storage.load_embedding_safe(conv_id) if hasattr(storage, 'load_embedding_safe') else None
                     
-                    if similarity > 0.1:  # Минимальное сходство
+                    if conv_embedding is None:
+                        # Создаем и сохраняем новый эмбеддинг
+                        conv_embedding = self.create_embedding(conv["user_message"])
+                        if conv_embedding is not None and hasattr(storage, 'store_embedding_safe'):
+                            storage.store_embedding_safe(conv_id, conv_embedding)
+                    
+                    if conv_embedding is not None:
+                        # Вычисляем косинусное сходство
+                        similarity = np.dot(query_embedding, conv_embedding) / (
+                            np.linalg.norm(query_embedding) * np.linalg.norm(conv_embedding)
+                        )
                         similarities.append((similarity, conv))
             
             # Сортируем по убыванию сходства
             similarities.sort(key=lambda x: x[0], reverse=True)
             return [conv for _, conv in similarities[:limit]]
-        
-        # Векторный поиск с безопасными эмбеддингами
-        similarities = []
-        for conv in storage.conversations:
-            if conv.get("rating") is not None and conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
-                # Создаем эмбеддинг если его нет
-                conv_id = conv["log_id"]
-                conv_embedding = storage.load_embedding_safe(conv_id)
-                
-                if conv_embedding is None:
-                    # Создаем и сохраняем новый эмбеддинг
-                    conv_embedding = self.create_embedding(conv["user_message"])
-                    if conv_embedding is not None:
-                        storage.store_embedding_safe(conv_id, conv_embedding)
-                
-                if conv_embedding is not None:
-                    # Вычисляем косинусное сходство
-                    similarity = np.dot(query_embedding, conv_embedding) / (
-                        np.linalg.norm(query_embedding) * np.linalg.norm(conv_embedding)
-                    )
-                    similarities.append((similarity, conv))
-        
-        # Сортируем по убыванию сходства
-        similarities.sort(key=lambda x: x[0], reverse=True)
-        return [conv for _, conv in similarities[:limit]]
+        else:
+            # Для PostgreSQL режима пока возвращаем пустой список
+            return []
     
     def build_learning_prompt(self, user_message: str, similar_convs: List[Dict]) -> str:
         """Построение промпта с контекстом из похожих диалогов"""
