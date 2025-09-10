@@ -35,7 +35,7 @@ class VoiceEmbeddingDB(Base):
     __tablename__ = "voice_embeddings"
     
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("voice_logs.id"), nullable=False)
+    log_id = Column(String, ForeignKey("voice_logs.id"), nullable=False)
     
     # Векторное представление (сериализованный numpy array)
     vector = Column(LargeBinary, nullable=False)
