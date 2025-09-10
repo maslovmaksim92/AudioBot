@@ -90,7 +90,7 @@ async def send_chat_message(request: ChatRequest):
         )
         user_message = UserMessage(request.message)  # Simple text parameter
         
-        chat_response = await llm_chat.chat_async(
+        chat_response = await llm_chat.achat(
             messages=[user_message],
             model="gpt-4o-mini",
             max_tokens=1000,
