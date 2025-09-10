@@ -559,12 +559,17 @@ const AIChat = () => {
     console.log('✅ Live voice disconnected successfully');
   };
 
-  // Toggle live voice connection
+  // Toggle live voice with fallback to simulation
   const toggleLiveVoice = () => {
     if (isLiveConnected) {
       disconnectLiveVoice();
     } else {
-      initializeRealtimeConnection();
+      // Try WebSocket first, then fallback to simulation
+      console.log("🎯 Attempting WebSocket connection first...");
+      initializeRealtimeConnection().catch(error => {
+        console.log("⚠️ WebSocket failed, falling back to voice simulation...");
+        startVoiceSimulation();
+      });
     }
   };
 
