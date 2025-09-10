@@ -323,7 +323,7 @@ class SuperLearningAI:
             similarities = []
             
             for conv in storage.conversations:
-                if conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
+                if conv.get("rating") is not None and conv.get("rating", 0) >= config.MIN_RATING_THRESHOLD:
                     conv_words = set(conv["user_message"].lower().split())
                     # Jaccard similarity (пересечение / объединение)
                     intersection = len(query_words & conv_words)
