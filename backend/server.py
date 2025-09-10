@@ -161,29 +161,20 @@ async def process_voice(request: VoiceRequest):
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": "Ты - голосовой AI помощник VasDom AudioBot. Отвечай кратко и по делу. Используй разговорный стиль. Отвечай на русском языке."},
-                        {"role": "user", "content": request.text}
-                    ],
-                    "max_tokens": 500,
-                    "temperature": 0.8
-                }
-            )
+        # Use LlmChat for OpenAI communication
+        llm_chat = LlmChat(api_key=openai_key)
+        system_message = "Ты - голосовой AI помощник VasDom AudioBot. Отвечай кратко и по делу. Используй разговорный стиль. Отвечай на русском языке."
+        user_message = UserMessage(content=request.text)
         
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Error processing voice request")
+        chat_response = await llm_chat.chat_async(
+            messages=[user_message],
+            system_message=system_message,
+            model="gpt-4o-mini",
+            max_tokens=500,
+            temperature=0.8
+        )
         
-        ai_response = response.json()
-        return {"response": ai_response["choices"][0]["message"]["content"]}
+        return {"response": chat_response}
         
     except Exception as e:
         logging.error(f"Voice processing error: {str(e)}")
