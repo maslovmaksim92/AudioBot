@@ -398,7 +398,7 @@ class SuperLearningAI:
                         ai_response = f"По вопросу '{message}' обратитесь к нашим специалистам. VasDom - клининговая компания с опытом работы в 348 домах Калуги."
             
             # 4. Сохранение диалога
-            storage.add_conversation(log_id, message, ai_response, session_id)
+            await storage.add_conversation(log_id, message, ai_response, session_id)
             
             # 5. Создание эмбеддинга для будущего обучения
             embedding = self.create_embedding(message)
