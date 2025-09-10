@@ -152,9 +152,9 @@
 
   - task: "Исправить синхронные SQLAlchemy вызовы в EmbeddingService"
     implemented: true
-    working: true
+    working: false
     file: "backend/app/services/embedding_service.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
@@ -164,6 +164,9 @@
       - working: true
         agent: "main"
         comment: "✅ Заменены все db.query() на select() + db.execute(). Добавлена безопасная сериализация через numpy.tobytes()"
+      - working: false
+        agent: "testing"
+        comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: AI сервисы не работают корректно. Voice processing возвращает error response, learning endpoints (stats/export) возвращают 500 ошибки. Возможно проблема с EmbeddingService или AI инициализацией"
 
   - task: "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
     implemented: true
