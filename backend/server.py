@@ -133,95 +133,13 @@ class LearningStats(BaseModel):
     last_learning_update: Optional[datetime]
 
 # =============================================================================
-# БЕЗОПАСНОЕ IN-MEMORY ХРАНИЛИЩЕ
+# АДАПТЕР ХРАНИЛИЩА
 # =============================================================================
 
-class SafeInMemoryStorage:
-    def __init__(self):
-        self.conversations = []  # Все диалоги
-        self.embeddings = {}     # ID -> эмбеддинг (безопасно сериализованный)
-        self.learning_data = {}  # Данные для обучения
-        self.max_conversations = 10000  # Лимит для предотвращения утечки памяти
-        
-    def add_conversation(self, log_id: str, user_msg: str, ai_response: str, session_id: str):
-        conv = {
-            "log_id": log_id,
-            "user_message": user_msg,
-            "ai_response": ai_response,
-            "session_id": session_id,
-            "timestamp": datetime.utcnow(),
-            "rating": None,
-            "feedback": None,
-            "model_used": "gpt-4o-mini"
-        }
-        
-        self.conversations.append(conv)
-        
-        # Ограничиваем размер для предотвращения утечки памяти
-        if len(self.conversations) > self.max_conversations:
-            # Удаляем старые неоцененные диалоги
-            self.conversations = [c for c in self.conversations if c.get("rating") is not None][-self.max_conversations//2:]
-            logger.info(f"Очищено старых диалогов, осталось: {len(self.conversations)}")
-        
-        return conv
-    
-    def update_rating(self, log_id: str, rating: int, feedback: str = None):
-        for conv in self.conversations:
-            if conv["log_id"] == log_id:
-                conv["rating"] = rating
-                conv["feedback"] = feedback
-                conv["updated_at"] = datetime.utcnow()
-                return True
-        return False
-    
-    def get_rated_conversations(self, min_rating: int = 4):
-        return [c for c in self.conversations if c.get("rating") is not None and c.get("rating", 0) >= min_rating]
-    
-    def get_stats(self):
-        total = len(self.conversations)
-        rated = [c for c in self.conversations if c.get("rating") is not None]
-        avg_rating = sum(c["rating"] for c in rated) / len(rated) if rated else None
-        positive = len([c for c in rated if c["rating"] >= 4])
-        negative = len([c for c in rated if c["rating"] <= 2])
-        
-        return {
-            "total_interactions": total,
-            "avg_rating": avg_rating,
-            "positive_ratings": positive,
-            "negative_ratings": negative,
-            "rated_interactions": len(rated)
-        }
-    
-    def store_embedding_safe(self, log_id: str, embedding: np.ndarray):
-        """Безопасное сохранение эмбеддинга без pickle"""
-        try:
-            # Используем безопасную сериализацию через bytes
-            embedding_bytes = embedding.astype(np.float32).tobytes()
-            self.embeddings[log_id] = {
-                "data": embedding_bytes,
-                "shape": embedding.shape,
-                "dtype": str(embedding.dtype)
-            }
-            return True
-        except Exception as e:
-            logger.error(f"Ошибка сохранения эмбеддинга: {e}")
-            return False
-    
-    def load_embedding_safe(self, log_id: str) -> Optional[np.ndarray]:
-        """Безопасная загрузка эмбеддинга без pickle"""
-        try:
-            if log_id not in self.embeddings:
-                return None
-            
-            emb_data = self.embeddings[log_id]
-            embedding = np.frombuffer(emb_data["data"], dtype=np.float32)
-            return embedding.reshape(emb_data["shape"])
-        except Exception as e:
-            logger.error(f"Ошибка загрузки эмбеддинга: {e}")
-            return None
+from storage_adapter import StorageAdapter
 
-# Глобальное хранилище
-storage = SafeInMemoryStorage()
+# Инициализируем адаптер хранилища (автоматически выберет PostgreSQL или in-memory)
+storage = StorageAdapter()
 
 # =============================================================================
 # AI СЕРВИС С РЕАЛЬНЫМ САМООБУЧЕНИЕМ
