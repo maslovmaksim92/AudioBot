@@ -2,7 +2,7 @@
 VasDom AudioBot - Самообучающийся AI для клининговой компанией
 Production-ready версия для Render с исправленными критическими проблемами
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
