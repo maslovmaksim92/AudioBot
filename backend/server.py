@@ -88,7 +88,7 @@ async def send_chat_message(request: ChatRequest):
             session_id="chat_session",  # Unique session ID
             system_message=system_message
         )
-        user_message = UserMessage(content=request.message)
+        user_message = UserMessage(request.message)  # Simple text parameter
         
         chat_response = await llm_chat.chat_async(
             messages=[user_message],
