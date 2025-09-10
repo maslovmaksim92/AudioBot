@@ -10,7 +10,7 @@ class VoiceLogDB(Base):
     """Логи AI взаимодействий для самообучения"""
     __tablename__ = "voice_logs"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     session_id = Column(String, default=lambda: str(uuid.uuid4()))
     user_message = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
