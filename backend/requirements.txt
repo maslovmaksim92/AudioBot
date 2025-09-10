@@ -31,6 +31,6 @@ python-multipart==0.0.17
 python-jose[cryptography]==3.3.0
 
 # Мониторинг и логирование
-loguru==0.7.3
-structlog==25.1.0
-prometheus-client==0.21.6
+loguru==0.7.2
+structlog==24.4.0
+prometheus-client==0.21.1
