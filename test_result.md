@@ -170,11 +170,11 @@
 
   - task: "Исправить синхронные SQLAlchemy вызовы в cron_tasks.py"
     implemented: true
-    working: true
+    working: "NA"
     file: "backend/deploy/cron_tasks.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
@@ -182,6 +182,9 @@
       - working: true
         agent: "main"
         comment: "✅ Полностью переписаны все DB вызовы на SQLAlchemy 2.0 async: select(), update(), execute()"
+      - working: "NA"
+        agent: "testing"
+        comment: "✅ НЕ ТЕСТИРУЕТСЯ: cron_tasks.py не активны в текущем deployment. Backend использует in-memory storage, поэтому cron задачи не выполняются"
 
   - task: "Убрать глобальную инициализацию EmbeddingService"
     implemented: true
