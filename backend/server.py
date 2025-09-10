@@ -613,6 +613,7 @@ status_checks = deque(maxlen=10)  # Исправлено: ограничивае
 @app.get("/")
 async def root():
     """Главная страница"""
+    stats = await storage.get_stats()
     return {
         "name": "VasDom AudioBot",
         "version": "3.0.0",
@@ -625,7 +626,7 @@ async def root():
             "🔒 Безопасная сериализация эмбеддингов",
             "🚀 Production-ready для Render"
         ],
-        "stats": storage.get_stats(),
+        "stats": stats,
         "ai_services": {
             "emergent_llm": bool(ai_service.llm_client),
             "embeddings": True,  # Всегда доступны fallback эмбеддинги
