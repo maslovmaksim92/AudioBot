@@ -117,36 +117,23 @@ async def get_chat_messages():
         logging.error(f"Error fetching messages: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error fetching messages: {str(e)}")
 
-# OpenAI Realtime API endpoints
+# OpenAI Realtime API endpoints - SIMPLIFIED APPROACH
 @api_router.post("/realtime/token", response_model=RealtimeTokenResponse)
 async def get_realtime_token():
-    """Get ephemeral token for OpenAI Realtime API"""
+    """Get session info for OpenAI Realtime API - Direct WebSocket approach"""
     try:
         openai_key = os.environ.get('EMERGENT_LLM_KEY') or os.environ.get('OPENAI_API_KEY') or os.environ.get('OPENAI_KEY')
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.openai.com/v1/realtime/sessions",
-                headers={
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "gpt-4o-realtime-preview-2024-12-17",
-                    "voice": "verse"
-                }
-            )
+        # For Realtime API, we just return the key info for direct WebSocket connection
+        # The actual session is created via WebSocket, not HTTP
+        import time
+        expires_at = int(time.time()) + 3600  # 1 hour from now
         
-        if response.status_code != 200:
-            logging.error(f"OpenAI Realtime error: {response.text}")
-            raise HTTPException(status_code=500, detail="Error creating realtime session")
-        
-        session_data = response.json()
         return RealtimeTokenResponse(
-            token=session_data["client_secret"]["value"],
-            expires_at=session_data["expires_at"]
+            token=openai_key,  # Return the API key for WebSocket auth
+            expires_at=expires_at
         )
         
     except Exception as e:
