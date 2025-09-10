@@ -585,14 +585,56 @@ const AIChat = () => {
         </div>
       </div>
 
-      {/* Live voice connection status */}
+      {/* Live voice connection status with VISUAL FEEDBACK */}
       {isVoicePage && isLiveConnected && (
         <div className="glass rounded-xl p-6 mb-6 bg-green-500/10 border border-green-500/20">
-          <div className="flex items-center space-x-4">
-            <div className="w-4 h-4 bg-green-400 rounded-full live-indicator" />
-            <div>
-              <h3 className="text-lg font-bold text-green-400">Живое соединение активно</h3>
-              <p className="text-gray-300">Говорите естественно, AI будет отвечать человеческим голосом</p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-4 h-4 bg-green-400 rounded-full live-indicator" />
+                <div>
+                  <h3 className="text-lg font-bold text-green-400">Живое соединение активно</h3>
+                  <p className="text-gray-300">Говорите естественно, AI будет отвечать человеческим голосом</p>
+                </div>
+              </div>
+              
+              {/* Audio Level Indicator */}
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-400">Уровень:</span>
+                <div className="w-32 h-3 bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-100"
+                    style={{ width: `${audioLevel}%` }}
+                  />
+                </div>
+                <span className="text-sm text-green-400">{Math.round(audioLevel)}%</span>
+              </div>
+            </div>
+            
+            {/* Real-time Transcription Display */}
+            <div className="bg-black/20 rounded-lg p-4 border border-green-500/10">
+              <div className="flex items-start space-x-3">
+                <div className={`p-2 rounded-lg ${isListening ? 'bg-red-500 recording-pulse' : 'bg-blue-500'}`}>
+                  {isListening ? <Mic className="text-white" size={16} /> : <Bot className="text-white" size={16} />}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-sm font-medium text-green-400">
+                      {isListening ? '🎤 Слушаю...' : '🤖 AI отвечает'}
+                    </span>
+                    {isListening && (
+                      <div className="flex space-x-1">
+                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" />
+                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}} />
+                        <div className="w-1 h-1 bg-red-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}} />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-white text-sm whitespace-pre-wrap">
+                    {transcription || "Готов к разговору..."}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
