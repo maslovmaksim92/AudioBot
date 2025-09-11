@@ -144,40 +144,50 @@ async def realtime_voice_websocket(websocket: WebSocket):
                         # Формируем системный промпт с контекстом
                         system_prompt = assistant.create_system_prompt()
                         
-                        # Отправляем в GPT-4o Realtime (через emergentintegrations)
+                        # Отправляем в GPT-4o (текстовый режим с человечными ответами)
                         try:
-                            response = await chat_realtime.chat_completion_request(
+                            # Формируем системный промпт с контекстом
+                            system_prompt = assistant.create_system_prompt()
+                            full_context = f"{system_prompt}\n\nКонтекст данных: {bitrix_context}"
+                            
+                            # Используем OpenAIChat для текстовых ответов
+                            response = await openai_chat.chat(
                                 messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "assistant", "content": f"Контекст данных: {bitrix_context}"},
+                                    {"role": "system", "content": full_context},
                                     {"role": "user", "content": user_message}
                                 ],
-                                model="gpt-4o-realtime-preview",
-                                temperature=0.7,
-                                max_tokens=200
+                                model="gpt-4o-mini",  # Быстрая и качественная модель
+                                temperature=0.8,  # Более творческие ответы
+                                max_tokens=300
                             )
                             
-                            ai_response = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+                            ai_response = response.strip()
                             
                             # Отправляем ответ клиенту
                             await websocket.send_text(json.dumps({
                                 "type": "assistant_message",
                                 "message": ai_response,
                                 "bitrix_data": bitrix_context,
+                                "model": "GPT-4o mini + Bitrix24",
                                 "timestamp": "2024-01-01T00:00:00Z"
                             }, ensure_ascii=False))
                             
-                            logger.info(f"🤖 Realtime AI response sent")
+                            logger.info(f"🤖 GPT-4o text response sent: {ai_response[:50]}...")
                             
                         except Exception as ai_error:
-                            logger.error(f"❌ GPT-4o Realtime error: {ai_error}")
+                            logger.error(f"❌ GPT-4o text error: {ai_error}")
                             
-                            # Fallback ответ с данными Bitrix24
-                            fallback_response = f"Понимаю ваш вопрос! {bitrix_context}"
+                            # Улучшенный fallback с данными Bitrix24
+                            fallback_response = f"Конечно! {bitrix_context}"
+                            if "дом" in user_message.lower():
+                                fallback_response = f"По домам у нас такая информация: {bitrix_context}"
+                            elif "бригад" in user_message.lower():
+                                fallback_response = "У нас работает 6 отличных бригад в разных районах Калуги. Хотите узнать подробнее о какой-то конкретной?"
                             
                             await websocket.send_text(json.dumps({
                                 "type": "assistant_message",
                                 "message": fallback_response,
+                                "bitrix_data": bitrix_context,
                                 "is_fallback": True,
                                 "timestamp": "2024-01-01T00:00:00Z"
                             }, ensure_ascii=False))
