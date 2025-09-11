@@ -1,53 +1,63 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { AppProvider, useApp } from './context/AppContext';
+import { Layout } from './components/Layout';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Page Components
+import Dashboard from './components/Dashboard/Dashboard';
+import AIChat from './components/AIChat/AIChat';
+import Meetings from './components/Meetings/Meetings';
+import Works from './components/Works/Works';
+import Employees from './components/Employees/Employees';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
+import './App.css';
+
+// Console logging for debugging
+console.log('🔗 VasDom AudioBot Frontend (Modular) initialized');
+console.log('🔗 Backend URL:', process.env.REACT_APP_BACKEND_URL);
+
+// Main App Router Component
+const AppRouter = () => {
+  const { state } = useApp();
+  const { currentSection } = state;
+
+  // Section to component mapping
+  const sectionComponents = {
+    'general': Dashboard,
+    'voice': AIChat,
+    'meetings': Meetings,
+    'works': Works,
+    'employees': Employees,
+    'ai-tasks': React.lazy(() => import('./components/AITasks/AITasks')),
+    'training': React.lazy(() => import('./components/Training/Training')),
+    'logs': React.lazy(() => import('./components/Logs/Logs'))
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const CurrentComponent = sectionComponents[currentSection] || Dashboard;
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+    <Layout>
+      <React.Suspense 
+        fallback={
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-gray-600">Загрузка...</span>
+          </div>
+        }
+      >
+        <CurrentComponent />
+      </React.Suspense>
+    </Layout>
   );
 };
 
+// Main App Component
 function App() {
+  console.log('🚀 VasDom AudioBot App (Modular Architecture) starting...');
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <AppProvider>
+      <AppRouter />
+    </AppProvider>
   );
 }
 
