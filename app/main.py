@@ -13,7 +13,7 @@ from .config.database import init_database, close_database
 
 # Import routers
 from .routers import dashboard, voice, telegram, meetings, cleaning, logs
-from .routers import websocket
+from .routers import websocket, realtime_voice
 
 logger = logging.getLogger(__name__)
 
