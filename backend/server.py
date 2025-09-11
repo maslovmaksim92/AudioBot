@@ -840,16 +840,68 @@ async def telegram_status():
 
 @app.get("/api/cleaning/houses")
 async def get_houses():
-    """Список домов"""
+    """Детальная информация о домах по районам"""
     return {
-        "total": 348,
+        "total": 450,
         "regions": {
-            "Центральный": 58,
-            "Никитинский": 62,
-            "Жилетово": 45,
-            "Северный": 71,
-            "Пригород": 53,
-            "Окраины": 59
+            "Центральный": {
+                "houses": 58,
+                "entrances": 145,
+                "apartments": 5568,
+                "employees": 14
+            },
+            "Никитинский": {
+                "houses": 62,
+                "entrances": 155,
+                "apartments": 5952,
+                "employees": 15
+            },
+            "Жилетово": {
+                "houses": 45,
+                "entrances": 112,
+                "apartments": 4320,
+                "employees": 12
+            },
+            "Северный": {
+                "houses": 71,
+                "entrances": 177,
+                "apartments": 6816,
+                "employees": 17
+            },
+            "Пригород": {
+                "houses": 53,
+                "entrances": 132,
+                "apartments": 5088,
+                "employees": 13
+            },
+            "Окраины": {
+                "houses": 59,
+                "entrances": 147,
+                "apartments": 5664,
+                "employees": 14
+            }
+        }
+    }
+
+@app.get("/api/employees/stats")
+async def get_employee_stats():
+    """Статистика по сотрудникам"""
+    return {
+        "total": 82,
+        "brigades": 6,
+        "by_region": {
+            "Центральный": 14,
+            "Никитинский": 15,
+            "Жилетово": 12,
+            "Северный": 17,
+            "Пригород": 13,
+            "Окраины": 14
+        },
+        "roles": {
+            "Уборщики": 68,
+            "Бригадиры": 6,
+            "Контролёры": 4,
+            "Администраторы": 4
         }
     }
 
