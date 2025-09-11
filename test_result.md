@@ -454,7 +454,17 @@ test_plan:
     - "House Cards Display"
     - "Management Companies Section"
     - "Responsive Design and Performance"
-  stuck_tasks: []
+  stuck_tasks:
+    - "Houses Section Navigation"
+    - "Dashboard Statistics Cards"
+    - "Filters and Search System"
+    - "House Creation Modal"
+    - "Export CSV Functionality"
+    - "Cleaning Calendar"
+    - "Pagination System"
+    - "House Cards Display"
+    - "Management Companies Section"
+    - "Responsive Design and Performance"
   test_all: true
   test_priority: "high_first"
 
