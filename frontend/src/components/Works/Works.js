@@ -264,15 +264,23 @@ const Works = () => {
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">👥 Бригада:</span>
-            <span className="font-medium">{house.brigade || 'Не назначена'}</span>
+            <span className="font-medium text-xs">{house.brigade || 'Не назначена'}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">🏢 УК:</span>
-            <span className="font-medium text-xs">{house.management_company || 'Не указана'}</span>
+            <span className="font-medium text-xs" title={house.management_company}>
+              {house.management_company ? 
+                (house.management_company.length > 25 ? 
+                  house.management_company.substring(0, 25) + '...' : 
+                  house.management_company
+                ) : 
+                'Не указана'
+              }
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">💰 Цена:</span>
-            <span className="font-medium">{house.tariff || 'Не указана'}</span>
+            <span className="text-gray-600">💰 Тариф:</span>
+            <span className="font-medium text-green-600">{house.tariff || 'Не указан'}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">📋 Статус:</span>
@@ -284,31 +292,42 @@ const Works = () => {
               {house.status_text || 'В работе'}
             </span>
           </div>
+          {/* Дополнительно из CRM */}
+          {house.assigned_user && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">👤 Ответственный:</span>
+              <span className="font-medium text-xs">{house.assigned_user}</span>
+            </div>
+          )}
+          {house.region && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">🗺️ Район:</span>
+              <span className="font-medium text-blue-600">{house.region}</span>
+            </div>
+          )}
         </div>
 
-        {/* График уборки на сентябрь */}
-        {cleaningSchedule[house.deal_id] && (
-          <div className="mb-4 p-3 bg-indigo-50 rounded-lg">
+        {/* График уборки на сентябрь - улучшенный */}
+        {(house.cleaning_frequency || house.next_cleaning) && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
             <div className="flex items-center space-x-2 mb-2">
               <span className="text-indigo-600">📅</span>
-              <span className="font-medium text-indigo-800">График уборки (сентябрь)</span>
+              <span className="font-medium text-indigo-800">График уборки</span>
             </div>
-            <div className="text-sm text-indigo-700">
-              {cleaningSchedule[house.deal_id].schedule ? (
-                <div className="grid grid-cols-7 gap-1">
-                  {cleaningSchedule[house.deal_id].schedule.map((day, dayIndex) => (
-                    <div 
-                      key={dayIndex} 
-                      className={`text-center py-1 rounded ${
-                        day.cleaning ? 'bg-indigo-200 text-indigo-900 font-bold' : 'bg-gray-100'
-                      }`}
-                    >
-                      {day.date}
-                    </div>
-                  ))}
+            <div className="text-sm space-y-1">
+              {house.cleaning_frequency && (
+                <div className="flex items-center justify-between">
+                  <span className="text-indigo-600">Частота:</span>
+                  <span className="font-medium text-indigo-800">{house.cleaning_frequency}</span>
                 </div>
-              ) : (
-                <span>Расписание: {cleaningSchedule[house.deal_id].frequency}</span>
+              )}
+              {house.next_cleaning && (
+                <div className="flex items-center justify-between">
+                  <span className="text-indigo-600">Следующая:</span>
+                  <span className="font-medium text-indigo-800">
+                    {new Date(house.next_cleaning).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
               )}
             </div>
           </div>
