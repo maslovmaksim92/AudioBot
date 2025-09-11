@@ -180,24 +180,42 @@ async def realistic_voice_websocket(websocket: WebSocket):
         logger.error(f"❌ Realistic Voice WebSocket error: {e}")
 
 async def generate_realistic_voice(text: str, voice: str = "nova") -> str:
-    """Генерирует реальный человеческий голос через OpenAI TTS"""
+    """Генерирует реальный человеческий голос через OpenAI TTS API"""
     try:
+        import httpx
+        
         # Оптимизируем текст для русского языка
         optimized_text = optimize_russian_text(text)
         
-        # Генерируем аудио через OpenAI TTS
-        response = openai_client.audio.speech.create(
-            model="tts-1-hd",  # Высокое качество
-            voice=voice,       # nova - женский голос, очень естественный
-            input=optimized_text,
-            response_format="mp3"
-        )
+        # Используем emergent LLM key для OpenAI TTS через HTTP API
+        headers = {
+            "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
+            "Content-Type": "application/json"
+        }
         
-        # Конвертируем в base64 для передачи через WebSocket
-        audio_base64 = base64.b64encode(response.content).decode('utf-8')
+        payload = {
+            "model": "tts-1-hd",
+            "voice": voice,
+            "input": optimized_text,
+            "response_format": "mp3"
+        }
         
-        logger.info(f"🎤 Generated realistic voice: {len(response.content)} bytes")
-        return audio_base64
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                # Конвертируем в base64 для передачи через WebSocket
+                audio_base64 = base64.b64encode(response.content).decode('utf-8')
+                logger.info(f"🎤 Generated realistic voice: {len(response.content)} bytes")
+                return audio_base64
+            else:
+                logger.error(f"❌ OpenAI TTS API error: {response.status_code} - {response.text}")
+                return ""
         
     except Exception as e:
         logger.error(f"❌ Voice generation error: {e}")
