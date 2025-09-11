@@ -8,8 +8,18 @@ services:
     region: oregon
     plan: starter
     buildCommand: |
+      # Install Python dependencies
       pip install --upgrade pip && 
-      pip install -r requirements.txt
+      pip install -r requirements.txt &&
+      # Install Node.js and Yarn for frontend build
+      curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&
+      apt-get install -y nodejs &&
+      npm install -g yarn &&
+      # Build React frontend
+      cd frontend &&
+      yarn install &&
+      yarn build &&
+      echo "✅ Frontend build completed"
     startCommand: |
       uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
