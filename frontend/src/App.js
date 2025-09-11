@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 // Page Components
 import Dashboard from './components/Dashboard/Dashboard';
 import AIChat from './components/AIChat/AIChat';
+import LiveChat from './components/LiveChat/LiveChat';
 import Meetings from './components/Meetings/Meetings';
 import Works from './components/Works/Works';
 import Employees from './components/Employees/Employees';
