@@ -45,10 +45,24 @@ const Dashboard = () => {
       subtitle: 'домов в районе'
     },
     {
+      title: 'Пригород',
+      value: 53,
+      icon: '🏘️',
+      color: 'gray',
+      subtitle: 'домов в районе'
+    },
+    {
+      title: 'Окраины',
+      value: 59,
+      icon: '🏘️',
+      color: 'blue',
+      subtitle: 'домов в районе'
+    },
+    {
       title: 'Планерок',
       value: dashboardStats.meetings || 0,
       icon: '🎤',
-      color: 'gray',
+      color: 'purple',
       subtitle: 'Записано'
     }
   ];
