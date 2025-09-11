@@ -120,7 +120,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"❌ WebSocket error: {e}")
 
-@router.get("/live-chat/status")
+@router.get("/api/live-chat/status")
 async def websocket_status():
     """Статус WebSocket соединений"""
     return {
