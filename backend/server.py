@@ -954,8 +954,141 @@ async def get_all_houses_no_limit():
         logger.error(f"❌ Error getting all houses: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки всех домов: {str(e)}")
 
-@app.get("/api/cleaning/stats")
-async def get_real_cleaning_stats():
+@app.get("/api/cleaning/pipeline/stats")
+async def get_entrance_cleaning_pipeline_stats():
+    """Подробная статистика воронки 'Уборка подъездов'"""
+    try:
+        async with BitrixService() as bitrix:
+            # Загружаем все дома для полной статистики
+            houses = await bitrix.get_deals_optimized(limit=None, use_cache=True)
+            
+            # Подсчет статистики
+            total_houses = len(houses)
+            total_apartments = sum(house.get('apartments_count', 0) for house in houses)
+            total_entrances = sum(house.get('entrances_count', 0) for house in houses)
+            total_floors = sum(house.get('floors_count', 0) for house in houses)
+            
+            # Статистика по регионам
+            regions_stats = {}
+            brigades_stats = {}
+            management_companies_stats = {}
+            
+            for house in houses:
+                # По регионам
+                region = house.get('region', 'Неизвестно')
+                if region not in regions_stats:
+                    regions_stats[region] = {'houses': 0, 'apartments': 0, 'entrances': 0}
+                regions_stats[region]['houses'] += 1
+                regions_stats[region]['apartments'] += house.get('apartments_count', 0)
+                regions_stats[region]['entrances'] += house.get('entrances_count', 0)
+                
+                # По бригадам
+                brigade = house.get('brigade', 'Не назначена')
+                if brigade not in brigades_stats:
+                    brigades_stats[brigade] = {'houses': 0, 'apartments': 0}
+                brigades_stats[brigade]['houses'] += 1
+                brigades_stats[brigade]['apartments'] += house.get('apartments_count', 0)
+                
+                # По УК
+                uk = house.get('management_company', 'Не указана')
+                if uk not in management_companies_stats:
+                    management_companies_stats[uk] = 0
+                management_companies_stats[uk] += 1
+            
+            # Топ УК
+            top_management_companies = sorted(
+                management_companies_stats.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:10]
+            
+            return {
+                "pipeline_name": "Уборка подъездов",
+                "total_stats": {
+                    "houses": total_houses,
+                    "apartments": total_apartments,
+                    "entrances": total_entrances,
+                    "floors": total_floors,
+                    "avg_apartments_per_house": round(total_apartments / total_houses, 1) if total_houses > 0 else 0,
+                    "avg_entrances_per_house": round(total_entrances / total_houses, 1) if total_houses > 0 else 0,
+                    "avg_floors_per_house": round(total_floors / total_houses, 1) if total_houses > 0 else 0
+                },
+                "regions": regions_stats,
+                "brigades": brigades_stats,
+                "management_companies": {
+                    "total": len(management_companies_stats),
+                    "top_10": dict(top_management_companies),
+                    "all": management_companies_stats
+                },
+                "generated_at": datetime.now().isoformat(),
+                "cache_status": "active" if bitrix._is_cache_valid() else "expired"
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Error getting pipeline stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения статистики воронки: {str(e)}")
+
+@app.get("/api/cleaning/houses/search")
+async def search_houses_in_pipeline(
+    query: str = "", 
+    region: str = "", 
+    brigade: str = "",
+    management_company: str = "",
+    min_apartments: int = 0,
+    max_apartments: int = 1000
+):
+    """Поиск домов в воронке 'Уборка подъездов' по различным критериям"""
+    try:
+        async with BitrixService() as bitrix:
+            # Загружаем все дома
+            all_houses = await bitrix.get_deals_optimized(limit=None, use_cache=True)
+            
+            # Применяем фильтры
+            filtered_houses = []
+            
+            for house in all_houses:
+                # Поиск по тексту (адрес, название УК)
+                if query:
+                    search_text = f"{house.get('address', '')} {house.get('house_address', '')} {house.get('management_company', '')}".lower()
+                    if query.lower() not in search_text:
+                        continue
+                
+                # Фильтр по региону
+                if region and house.get('region') != region:
+                    continue
+                
+                # Фильтр по бригаде
+                if brigade and house.get('brigade') != brigade:
+                    continue
+                
+                # Фильтр по УК
+                if management_company and house.get('management_company') != management_company:
+                    continue
+                
+                # Фильтр по количеству квартир
+                apartments = house.get('apartments_count', 0)
+                if apartments < min_apartments or apartments > max_apartments:
+                    continue
+                
+                filtered_houses.append(house)
+            
+            return {
+                "houses": filtered_houses,
+                "total_found": len(filtered_houses),
+                "total_in_pipeline": len(all_houses),
+                "filters_applied": {
+                    "query": query,
+                    "region": region,
+                    "brigade": brigade,
+                    "management_company": management_company,
+                    "apartments_range": f"{min_apartments}-{max_apartments}"
+                },
+                "search_completed_at": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Error searching houses: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка поиска домов: {str(e)}")
     """Реальная статистика по домам из Bitrix24"""
     try:
         async with BitrixService() as bitrix:
