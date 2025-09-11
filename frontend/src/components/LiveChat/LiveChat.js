@@ -224,7 +224,7 @@ const LiveChat = () => {
       // Fallback сообщение
       setMessages(prev => [...prev, {
         type: 'system',
-        text: '⚠️ WebSocket недоступен. Используйте обычный AI Чат для общения.',
+        text: '⚠️ Голосовая связь временно недоступна. Используйте текстовый чат.',
         timestamp: new Date()
       }]);
     }
