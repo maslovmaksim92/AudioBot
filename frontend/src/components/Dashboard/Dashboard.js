@@ -91,12 +91,31 @@ const Dashboard = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Общий обзор</h1>
-          <p className="text-gray-600">VasDom AI - Система управления клинингом</p>
-          <p className="text-sm text-gray-500">
-            Обновлено: {new Date().toLocaleString('ru-RU')}
-          </p>
+        <div className="flex items-center space-x-4">
+          <div className="bg-blue-50 p-3 rounded-2xl">
+            <img
+              src="/logo.png"
+              alt="VasDom Logo"
+              className="h-10 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
+            />
+            <span 
+              className="text-xl font-bold text-blue-600"
+              style={{display: 'none'}}
+            >
+              VasDom
+            </span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Общий обзор</h1>
+            <p className="text-gray-600">VasDom AI - Система управления клинингом в Калуге</p>
+            <p className="text-sm text-gray-500">
+              490 домов • 29 УК • Обновлено: {new Date().toLocaleString('ru-RU')}
+            </p>
+          </div>
         </div>
         <Button
           onClick={handleRefresh}
