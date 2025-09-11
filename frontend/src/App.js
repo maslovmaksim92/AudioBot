@@ -27,6 +27,7 @@ const AppRouter = () => {
     'general': Dashboard,
     'voice': AIChat,
     'live-chat': LiveChat,
+    'realtime-voice': RealtimeVoiceChat,
     'meetings': Meetings,
     'works': Works,
     'employees': Employees,
