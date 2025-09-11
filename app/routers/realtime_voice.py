@@ -2,7 +2,7 @@ import logging
 import json
 import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from emergentintegrations.llm.openai import OpenAIChatRealtime
+from emergentintegrations.llm.openai import OpenAIChatRealtime, OpenAIChat
 from ..services.bitrix_service import BitrixService
 from ..config.settings import EMERGENT_LLM_KEY, BITRIX24_WEBHOOK_URL
 
@@ -11,9 +11,10 @@ router = APIRouter(prefix="/api", tags=["realtime-voice"])
 
 # Initialize services
 chat_realtime = OpenAIChatRealtime(api_key=EMERGENT_LLM_KEY)
+openai_chat = OpenAIChat(api_key=EMERGENT_LLM_KEY)  # For text responses
 bitrix_service = BitrixService(BITRIX24_WEBHOOK_URL) if BITRIX24_WEBHOOK_URL else None
 
-# Register GPT-4o Realtime router
+# Register GPT-4o Realtime router for WebRTC
 OpenAIChatRealtime.register_openai_realtime_router(router, chat_realtime)
 
 class VasDomRealtimeAssistant:
