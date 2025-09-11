@@ -17,32 +17,32 @@ const Dashboard = () => {
       subtitle: 'В 6 бригадах'
     },
     {
-      title: 'Домов в CRM',
-      value: dashboardStats.houses || 0,
-      icon: '🏠',
+      title: 'Центральный',
+      value: 58,
+      icon: '🏘️',
       color: 'green',
-      subtitle: 'Из Bitrix24'
+      subtitle: 'домов в районе'
     },
     {
-      title: 'Подъездов',
-      value: dashboardStats.entrances || 0,
-      icon: '🚪',
+      title: 'Никитинский',
+      value: 62,
+      icon: '🏘️',
       color: 'purple',
-      subtitle: '~3 на дом'
+      subtitle: 'домов в районе'
     },
     {
-      title: 'Квартир',
-      value: dashboardStats.apartments || 0,
-      icon: '🏠',
+      title: 'Жилетово',
+      value: 45,
+      icon: '🏘️',
       color: 'yellow',
-      subtitle: '~75 на дом'
+      subtitle: 'домов в районе'
     },
     {
-      title: 'Этажей',
-      value: dashboardStats.floors || 0,
-      icon: '📊',
+      title: 'Северный',
+      value: 71,
+      icon: '🏘️',
       color: 'red',
-      subtitle: '~5 на дом'
+      subtitle: 'домов в районе'
     },
     {
       title: 'Планерок',
