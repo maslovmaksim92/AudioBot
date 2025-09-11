@@ -141,45 +141,69 @@ const Works = () => {
   const renderDashboardCards = () => {
     const cards = [
       {
-        title: 'Всего домов',
-        value: dashboardStats.total_houses || 450,
+        title: 'Домов всего',
+        value: dashboardStats.total_houses || 490,
         icon: '🏠',
         gradient: 'from-green-400 to-green-600',
-        subtitle: 'из Bitrix24'
+        subtitle: 'из Bitrix24 CRM',
+        glow: 'from-green-400 via-emerald-500 to-green-600'
       },
       {
         title: 'Квартир',
-        value: dashboardStats.total_apartments || 43308,
+        value: dashboardStats.total_apartments || 36750,
         icon: '🏢',
         gradient: 'from-blue-400 to-blue-600',
-        subtitle: 'Среднее: 96 на дом'
+        subtitle: 'Среднее: 75 на дом',
+        glow: 'from-blue-400 via-cyan-500 to-blue-600'
       },
       {
         title: 'Подъездов',
-        value: dashboardStats.total_entrances || 1123,
+        value: dashboardStats.total_entrances || 1470,
         icon: '🚪',
         gradient: 'from-purple-400 to-purple-600',
-        subtitle: 'Среднее: 2.5 на дом'
+        subtitle: 'Среднее: 3 на дом',
+        glow: 'from-purple-400 via-pink-500 to-purple-600'
       },
       {
         title: 'Этажей',
-        value: dashboardStats.total_floors || 3372,
+        value: dashboardStats.total_floors || 2450,
         icon: '📊',
         gradient: 'from-orange-400 to-orange-600',
-        subtitle: 'Среднее: 7.5 этажей'
+        subtitle: 'Среднее: 5 этажей',
+        glow: 'from-orange-400 via-red-500 to-orange-600'
+      },
+      {
+        title: 'Управляющих компаний',
+        value: dashboardStats.management_companies || 29,
+        icon: '🏢',
+        gradient: 'from-indigo-400 to-indigo-600',
+        subtitle: 'реальных УК',
+        glow: 'from-indigo-400 via-purple-500 to-indigo-600'
+      },
+      {
+        title: 'Бригад',
+        value: dashboardStats.active_brigades || 7,
+        icon: '👥',
+        gradient: 'from-red-400 to-red-600',
+        subtitle: 'по районам Калуги',
+        glow: 'from-red-400 via-pink-500 to-red-600'
       }
     ];
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         {cards.map((card, index) => (
           <div key={index} className="group relative">
-            <div className={`absolute -inset-0.5 bg-gradient-to-r ${card.gradient} rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500`}></div>
-            <div className={`relative bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-3xl">{card.icon}</div>
+            {/* Переливающийся glow эффект */}
+            <div className={`absolute -inset-0.5 bg-gradient-to-r ${card.glow} rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500 animate-pulse`}></div>
+            
+            <div className={`relative bg-gradient-to-br ${card.gradient} text-white p-4 rounded-2xl shadow-xl transform transition-transform duration-300 hover:scale-105`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-2xl transform transition-transform duration-300 group-hover:scale-110">
+                  {card.icon}
+                </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">{card.value.toLocaleString('ru-RU')}</div>
+                  <div className="text-xl font-bold">{card.value.toLocaleString('ru-RU')}</div>
                   <div className="text-xs opacity-80">{card.title}</div>
                 </div>
               </div>
