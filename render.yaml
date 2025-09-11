@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: audiobot
+    env: python
+    buildCommand: |
+      # Install Python dependencies
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      
+      # Try to install emergentintegrations
+      pip install emergentintegrations --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ || echo "⚠️ emergentintegrations not available, using fallback"
+      
+      # Install Node.js dependencies and build frontend
+      cd frontend && yarn install && yarn build
+    startCommand: uvicorn main:app --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vasdom-audiobot-db
+          property: connectionString
+      - key: BITRIX24_WEBHOOK_URL
+        value: https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/
+      - key: EMERGENT_LLM_KEY
+        value: sk-emergent-0A408AfAeF26aCd5aB
+      - key: BOT_TOKEN
+        value: 7860360375:AAEVEQCbsqCnP-aHJOlqOCHaTwginuLNe0E
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8327964029:AAHBMITlIY8ZWLn34mpg82d1-Cb-8RXTSmQ
+      - key: TELEGRAM_WEBHOOK_URL
+        value: https://audiobot-qci2.onrender.com/api/telegram/webhook
+      - key: OPENROUTER_API_KEY
+        value: sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: PIP_EXTRA_INDEX_URL
+        value: https://d33sy5i8bnduwe.cloudfront.net/simple/
+
+databases:
+  - name: vasdom-audiobot-db
+    databaseName: vasdom_audiobot
+    user: vasdom_user
