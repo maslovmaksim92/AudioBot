@@ -25,6 +25,7 @@ const AppRouter = () => {
   const sectionComponents = {
     'general': Dashboard,
     'voice': AIChat,
+    'live-chat': LiveChat,
     'meetings': Meetings,
     'works': Works,
     'employees': Employees,
