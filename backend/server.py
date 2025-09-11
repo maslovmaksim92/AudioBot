@@ -970,3 +970,21 @@ logger.info("🎯 VasDom AudioBot запущен в режиме максима�
 logger.info(f"🧠 AI сервисы: LLM={bool(ai_service.llm_client)}, HTTP={HTTP_CLIENT_AVAILABLE or REQUESTS_AVAILABLE}")
 logger.info(f"💾 Хранилище: In-Memory с безопасной сериализацией")
 logger.info(f"🔒 Безопасность: Исправлены все критические проблемы")
+
+# Fallback для React Router - все неизвестные пути отдаем React
+@app.get("/{path_name:path}")
+async def catch_all(path_name: str):
+    """Fallback для React Router"""
+    frontend_build_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'build')
+    index_file = os.path.join(frontend_build_path, 'index.html')
+    
+    # Если путь начинается с /api, это API запрос - не обрабатываем
+    if path_name.startswith('api/'):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # Если есть сборка React, отдаем index.html для всех остальных путей
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    
+    # Иначе 404
+    raise HTTPException(status_code=404, detail="Page not found")
