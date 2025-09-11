@@ -267,11 +267,17 @@ const LiveChat = () => {
         const data = await response.json();
         
         if (data && data.response) {
-          setMessages(prev => [...prev, {
+          const aiMessage = {
             type: 'ai',
             text: data.response,
             timestamp: new Date()
-          }]);
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          
+          // Озвучиваем ответ AI
+          if (voiceEnabled) {
+            speakText(data.response);
+          }
         }
       } catch (error) {
         console.error('❌ Fallback API error:', error);
