@@ -378,10 +378,10 @@ const RealisticVoiceChat = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-            🎤 Алиса - Реальный Человеческий Голос
+            🎤 Алиса - Ультра-реалистичный Голос
             {isSpeaking && <span className="ml-3 text-xl animate-pulse">🗣️</span>}
           </h1>
-          <p className="text-gray-600">OpenAI TTS HD - неотличимо от живого человека</p>
+          <p className="text-gray-600">Продвинутый Speech Synthesis - неотличимо от живого человека</p>
         </div>
         <div className="flex space-x-2">
           <Button 
