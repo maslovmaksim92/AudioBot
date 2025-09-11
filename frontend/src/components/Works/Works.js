@@ -521,19 +521,6 @@ const Works = () => {
     );
   };
 
-  if (loading && houses.length === 0) {
-    return (
-      <div className="p-6 flex justify-center items-center min-h-96">
-        <LoadingSpinner size="lg" text="Загрузка домов из Bitrix24..." />
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {renderHeader()}
-      {renderDashboardCards()}
-
   const renderFiltersSection = () => (
     <Card title="🔍 Фильтры и поиск" className="mb-8">
       <div className="space-y-6">
@@ -687,6 +674,85 @@ const Works = () => {
       </div>
     </Card>
   );
+
+  const renderPagination = () => {
+    const totalPages = Math.ceil(filteredHouses.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, filteredHouses.length);
+
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center items-center space-x-2 mt-8">
+        <Button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          variant="ghost"
+          size="sm"
+        >
+          ← Предыдущая
+        </Button>
+        
+        <div className="flex space-x-1">
+          {[...Array(totalPages)].map((_, index) => {
+            const page = index + 1;
+            if (totalPages > 7 && Math.abs(page - currentPage) > 2 && page !== 1 && page !== totalPages) {
+              return page === currentPage - 3 || page === currentPage + 3 ? (
+                <span key={page} className="px-2 py-1 text-gray-500">...</span>
+              ) : null;
+            }
+            
+            return (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                  page === currentPage
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {page}
+              </button>
+            );
+          })}
+        </div>
+        
+        <Button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          variant="ghost"
+          size="sm"
+        >
+          Следующая →
+        </Button>
+        
+        <span className="text-sm text-gray-600 ml-4">
+          {startIndex + 1}-{endIndex} из {filteredHouses.length}
+        </span>
+      </div>
+    );
+  };
+
+  if (loading && houses.length === 0) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-96">
+        <LoadingSpinner size="lg" text="Загрузка домов из Bitrix24..." />
+      </div>
+    );
+  }
+
+  // Пагинация данных
+  const paginatedHouses = filteredHouses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {renderHeader()}
+      {renderDashboardCards()}
+      {renderFiltersSection()}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <label className="font-medium text-gray-700">Месяц:</label>
