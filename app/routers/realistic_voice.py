@@ -245,15 +245,30 @@ def optimize_russian_text(text: str) -> str:
 async def realistic_voice_status():
     """Статус системы реального голоса"""
     try:
-        # Проверяем доступность OpenAI TTS
-        test_response = openai_client.audio.speech.create(
-            model="tts-1",
-            voice="nova",
-            input="тест",
-            response_format="mp3"
-        )
+        import httpx
         
-        openai_status = "active" if len(test_response.content) > 0 else "error"
+        # Проверяем доступность OpenAI TTS через HTTP API
+        headers = {
+            "Authorization": f"Bearer {EMERGENT_LLM_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "tts-1",
+            "voice": "nova",
+            "input": "тест",
+            "response_format": "mp3"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers=headers,
+                json=payload,
+                timeout=10.0
+            )
+            
+            openai_status = "active" if response.status_code == 200 else "error"
         
         # Проверяем Bitrix24
         bitrix_status = "connected" if bitrix_service else "unavailable"
