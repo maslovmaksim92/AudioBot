@@ -862,111 +862,97 @@ async def telegram_status():
     }
 
 @app.get("/api/cleaning/houses")
-async def get_real_houses_from_bitrix24():
-    """Получить реальные дома из Bitrix24 CRM (490 домов всего, показываем 50)"""
+async def get_all_houses_from_entrance_cleaning_pipeline():
+    """Получить ВСЕ реальные дома из воронки 'Уборка подъездов' Bitrix24 CRM"""
     try:
         async with BitrixService() as bitrix:
-            # Загружаем дома с оптимизацией (кэш 5 минут)
-            houses = await bitrix.get_deals_optimized(limit=50, use_cache=True)
+            # Загружаем ВСЕ дома из воронки уборки подъездов
+            houses = await bitrix.get_deals_optimized(limit=None, use_cache=True)  # None = все дома
             stats = await bitrix.get_statistics()
             
-            logger.info(f"🏠 Loaded {len(houses)} houses from Bitrix24 CRM")
-            logger.info(f"📊 Total in system: {stats['total_houses']} houses")
+            logger.info(f"🏠 Loaded {len(houses)} houses from 'Уборка подъездов' pipeline")
+            logger.info(f"📊 Total entrance cleaning deals found: {len(houses)}")
+            
+            # Группировка по районам для статистики
+            region_stats = {}
+            for house in houses:
+                region = house.get('region', 'Неизвестно')
+                if region not in region_stats:
+                    region_stats[region] = {'count': 0, 'apartments': 0}
+                region_stats[region]['count'] += 1
+                region_stats[region]['apartments'] += house.get('apartments_count', 0)
             
             return {
                 "houses": houses,
-                "total_shown": len(houses),
-                "total_in_system": stats['total_houses'],
+                "total_loaded": len(houses),
+                "total_in_pipeline": len(houses),
+                "pipeline_name": "Уборка подъездов",
+                "region_distribution": region_stats,
                 "stats": stats,
-                "message": "Реальные дома из Bitrix24 CRM VasDom",
+                "message": f"Все {len(houses)} домов из воронки 'Уборка подъездов' Bitrix24 CRM",
                 "last_sync": datetime.now().isoformat(),
-                "source": "Bitrix24 CRM API",
+                "source": "Bitrix24 CRM API - Entrance Cleaning Pipeline",
                 "webhook_url": "https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/",
-                "performance": "6x оптимизация с кэшированием"
+                "performance": "6x оптимизация + batch loading активна",
+                "cache_status": "enabled",
+                "filters_applied": "entrance cleaning keywords, house validation"
             }
             
     except Exception as e:
-        logger.error(f"❌ Error getting houses from Bitrix24: {str(e)}")
-        # Fallback к демо данным при ошибке
-        return await get_demo_houses_fallback()
+        logger.error(f"❌ Error getting houses from entrance cleaning pipeline: {str(e)}")
+        # Fallback к демонстрационным данным домов Калуги
+        return await get_fallback_entrance_cleaning_houses()
 
-async def get_demo_houses_fallback():
-    """Fallback демо данные при недоступности Bitrix24"""
-    demo_houses = [
-        {
-            "deal_id": "demo_1234",
-            "address": "Пролетарская 125 к1", 
-            "house_address": "г. Калуга, ул. Пролетарская, д. 125, к. 1",
-            "apartments_count": 156,
-            "floors_count": 12,
-            "entrances_count": 5,
-            "brigade": "1 бригада - Центральный район",
-            "management_company": "ООО \"РИЦ ЖРЭУ\"",
-            "status_text": "В работе",
-            "status_color": "green",
-            "tariff": "22,000 руб/мес",
-            "region": "Центральный",
-            "assigned_user": "Иванов И.И.",
-            "cleaning_schedule": {
-                "september": [
-                    {"date": "2025-09-02", "type": "Основная уборка"},
-                    {"date": "2025-09-04", "type": "Подметание"},
-                    {"date": "2025-09-06", "type": "Основная уборка"}
-                ]
-            }
-        },
-        {
-            "deal_id": "demo_1235",
-            "address": "Чижевского 14А",
-            "house_address": "г. Калуга, ул. Чижевского, д. 14А",
-            "apartments_count": 119,
-            "floors_count": 14,
-            "entrances_count": 1,
-            "brigade": "2 бригада - Никитинский район",
-            "management_company": "УК ГУП Калуги",
-            "status_text": "В работе",
-            "status_color": "green",
-            "tariff": "18,500 руб/мес",
-            "region": "Никитинский",
-            "assigned_user": "Петров П.П.",
-            "cleaning_schedule": {
-                "september": [
-                    {"date": "2025-09-01", "type": "Основная уборка"},
-                    {"date": "2025-09-03", "type": "Основная уборка"},
-                    {"date": "2025-09-05", "type": "Основная уборка"}
-                ]
-            }
-        },
-        {
-            "deal_id": "demo_1236",
-            "address": "Молодежная 76",
-            "house_address": "г. Калуга, ул. Молодежная, д. 76",
-            "apartments_count": 78,
-            "floors_count": 4,
-            "entrances_count": 3,
-            "brigade": "3 бригада - Жилетово",
-            "management_company": "ООО \"УК Новый город\"",
-            "status_text": "В работе",
-            "status_color": "green",
-            "tariff": "12,000 руб/мес",
-            "region": "Жилетово",
-            "assigned_user": "Сидоров С.С.",
-            "cleaning_schedule": {
-                "september": [
-                    {"date": "2025-09-04", "type": "Основная уборка"}
-                ]
-            }
-        }
-    ]
+async def get_fallback_entrance_cleaning_houses():
+    """Fallback дома Калуги для демонстрации воронки уборки подъездов"""
+    
+    # Используем fallback данные из BitrixService
+    async with BitrixService() as bitrix:
+        fallback_houses = bitrix._get_fallback_houses()
+    
+    # Группировка по районам
+    region_stats = {}
+    for house in fallback_houses:
+        region = house.get('region', 'Неизвестно')
+        if region not in region_stats:
+            region_stats[region] = {'count': 0, 'apartments': 0}
+        region_stats[region]['count'] += 1
+        region_stats[region]['apartments'] += house.get('apartments_count', 0)
     
     return {
-        "houses": demo_houses,
-        "total_shown": len(demo_houses),
-        "total_in_system": 490,
-        "message": "⚠️ Демо данные (Bitrix24 недоступен)",
+        "houses": fallback_houses,
+        "total_loaded": len(fallback_houses),
+        "total_in_pipeline": len(fallback_houses),
+        "pipeline_name": "Уборка подъездов (DEMO)",
+        "region_distribution": region_stats,
+        "message": f"⚠️ DEMO: {len(fallback_houses)} домов Калуги (Bitrix24 недоступен)",
         "last_sync": datetime.now().isoformat(),
-        "source": "Demo fallback data"
+        "source": "Fallback Demo Data - Kaluga Houses",
+        "performance": "Fallback mode active",
+        "filters_applied": "Kaluga streets, entrance cleaning simulation"
     }
+
+@app.get("/api/cleaning/houses/all")
+async def get_all_houses_no_limit():
+    """Получить ВСЕ дома без ограничений (для экспорта и анализа)"""
+    try:
+        async with BitrixService() as bitrix:
+            # Загружаем абсолютно все дома
+            all_houses = await bitrix.get_deals_optimized(limit=None, use_cache=False)  # Без кэша и лимитов
+            
+            logger.info(f"📈 Export/Analysis: loaded {len(all_houses)} total houses")
+            
+            return {
+                "houses": all_houses,
+                "total": len(all_houses),
+                "export_ready": True,
+                "timestamp": datetime.now().isoformat(),
+                "message": f"Полный экспорт: {len(all_houses)} домов для анализа"
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Error getting all houses: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки всех домов: {str(e)}")
 
 @app.get("/api/cleaning/stats")
 async def get_real_cleaning_stats():
