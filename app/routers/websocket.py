@@ -130,7 +130,7 @@ async def websocket_status():
         "ai_service_status": "active"
     }
 
-@router.post("/live-chat/broadcast")
+@router.post("/api/live-chat/broadcast")
 async def broadcast_message(message: dict):
     """Отправить сообщение всем подключенным клиентам"""
     await manager.broadcast({
