@@ -16,10 +16,11 @@ const RealisticVoiceChat = () => {
   useEffect(() => {
     console.log('🎤 Realistic Voice Chat mounted');
     initRealisticWebSocket();
+    initUltraRealisticVoices();
     
     setMessages([{
       type: 'system',
-      text: '🎤 Подключаюсь к системе реального человеческого голоса OpenAI TTS...',
+      text: '🎤 Подключаюсь к системе ультра-реалистичного человеческого голоса...',
       timestamp: new Date()
     }]);
 
@@ -29,6 +30,9 @@ const RealisticVoiceChat = () => {
       }
       if (currentAudio) {
         currentAudio.pause();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
     };
   }, []);
