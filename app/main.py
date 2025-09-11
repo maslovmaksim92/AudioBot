@@ -82,8 +82,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     user_message = message_data.get("message", "")
                     
                     if user_message.strip():
-                        # Простой ответ AI (можно подключить реальный AI позже)
-                        ai_response = f"AI ответ на: '{user_message}'. Это живой разговор с VasDom AI!"
+                        try:
+                            # Используем реальный AI сервис
+                            from .services.ai_service import AIService
+                            ai_service = AIService()
+                            ai_response = await ai_service.process_message(user_message, "live_chat_user")
+                        except Exception as ai_error:
+                            logger.error(f"❌ AI service error: {ai_error}")
+                            ai_response = f"AI ответ на: '{user_message}'. Это живой разговор с VasDom AI! (Fallback режим)"
                         
                         # Отправляем ответ AI клиенту
                         await websocket.send_text(json.dumps({
