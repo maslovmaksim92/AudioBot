@@ -816,8 +816,285 @@ const Works = () => {
       </Card>
 
       <NotificationBar />
+      
+      {/* Модальное окно создания дома */}
+      {showCreateModal && (
+        <CreateHouseModal
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateHouse}
+          filters={filters}
+        />
+      )}
     </div>
   );
+};
+
+// Модальное окно создания дома
+const CreateHouseModal = ({ onClose, onSubmit, filters }) => {
+  const [formData, setFormData] = useState({
+    address: '',
+    house_address: '',
+    apartments_count: '',
+    floors_count: '',
+    entrances_count: '',
+    tariff: '',
+    brigade: '',
+    management_company: '',
+    region: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error creating house:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-500 to-blue-600 rounded-2xl blur opacity-20 animate-pulse"></div>
+          <div className="relative">
+            <h2 className="text-2xl font-bold mb-2">➕ Создать новый дом</h2>
+            <p className="text-blue-100">Добавление дома в Bitrix24 CRM</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 text-white hover:text-gray-200 text-2xl"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Основная информация */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+              🏠 Основная информация
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Краткий адрес *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Пролетарская 125 к1"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  value={formData.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Полный адрес
+                </label>
+                <input
+                  type="text"
+                  placeholder="г. Калуга, ул. Пролетарская, д. 125, к. 1"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  value={formData.house_address}
+                  onChange={(e) => handleChange('house_address', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Характеристики */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+              📊 Характеристики дома
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Квартир
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="156"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.apartments_count}
+                  onChange={(e) => handleChange('apartments_count', e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Этажей
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="12"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  value={formData.floors_count}
+                  onChange={(e) => handleChange('floors_count', e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Подъездов
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="5"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  value={formData.entrances_count}
+                  onChange={(e) => handleChange('entrances_count', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Управление */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+              👥 Управление и обслуживание
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Бригада
+                </label>
+                <select
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.brigade}
+                  onChange={(e) => handleChange('brigade', e.target.value)}
+                >
+                  <option value="">Выберите бригаду</option>
+                  {filters.brigades?.map((brigade, index) => (
+                    <option key={index} value={brigade}>{brigade}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Управляющая компания
+                </label>
+                <select
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  value={formData.management_company}
+                  onChange={(e) => handleChange('management_company', e.target.value)}
+                >
+                  <option value="">Выберите УК</option>
+                  {filters.management_companies?.map((company, index) => (
+                    <option key={index} value={company}>{company}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Тариф/месяц
+                </label>
+                <input
+                  type="text"
+                  placeholder="22,000 руб/мес"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                  value={formData.tariff}
+                  onChange={(e) => handleChange('tariff', e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Район
+                </label>
+                <select
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  value={formData.region}
+                  onChange={(e) => handleChange('region', e.target.value)}
+                >
+                  <option value="">Выберите район</option>
+                  {filters.regions?.map((region, index) => (
+                    <option key={index} value={region}>{region}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="ghost"
+              className="px-6 py-3"
+            >
+              Отмена
+            </Button>
+            
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 via-cyan-500 to-blue-600 rounded-lg blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
+              <Button
+                type="submit"
+                disabled={loading || !formData.address}
+                loading={loading}
+                className="relative px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {loading ? 'Создание...' : '🏠 Создать дом'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const handleCreateHouse = async (formData) => {
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+  
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      showNotification(`✅ Дом "${formData.address}" создан в Bitrix24!`, 'success');
+      fetchInitialData(); // Refresh data
+      return data;
+    } else {
+      throw new Error('Ошибка создания дома');
+    }
+  } catch (error) {
+    showNotification(`❌ Ошибка: ${error.message}`, 'error');
+    throw error;
+  }
+};
 };
 
 export default Works;
