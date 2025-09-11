@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Проверить работу VasDom AudioBot Dashboard API: убедиться, что все API endpoints дашборда работают корректно для полноценного использования интерфейса. Тестировать основные endpoints дашборда, AI функционал с самообучением, и дополнительные API интеграции."
+user_problem_statement: "Протестировать новые API endpoints для управления домами в VasDom AudioBot: GET /api/cleaning/houses, GET /api/cleaning/stats, GET /api/cleaning/schedule/september, POST /api/cleaning/houses. Проверить корректность данных и соответствие ожидаемым результатам."
 
 backend:
   - task: "Dashboard Statistics API"
