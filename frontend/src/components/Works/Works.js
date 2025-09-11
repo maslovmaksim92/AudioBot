@@ -766,11 +766,27 @@ const Works = () => {
     );
   }
 
-  // Пагинация данных
-  const paginatedHouses = filteredHouses.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Пагинация данных с мемоизацией
+  const paginatedHouses = useMemo(() => {
+    return filteredHouses.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredHouses, currentPage, itemsPerPage]);
+
+  // Мемоизация статистики фильтров
+  const filterStats = useMemo(() => {
+    return {
+      totalHouses: houses.length,
+      filteredHouses: filteredHouses.length,
+      hasActiveFilters: Boolean(
+        activeFilters.search || 
+        activeFilters.brigade || 
+        activeFilters.management_company || 
+        activeFilters.region
+      )
+    };
+  }, [houses.length, filteredHouses.length, activeFilters]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
