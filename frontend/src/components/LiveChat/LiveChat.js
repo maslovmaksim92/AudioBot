@@ -91,6 +91,31 @@ const LiveChat = () => {
   const initSpeechSynthesis = () => {
     if ('speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
+      
+      // Загружаем голоса при инициализации
+      const loadVoices = () => {
+        const voices = synthRef.current.getVoices();
+        console.log('🎤 Доступные голоса:', voices.map(v => `${v.name} (${v.lang})`));
+        
+        // Ищем лучший русский женский голос
+        const bestVoice = voices.find(voice => 
+          voice.lang.includes('ru') && 
+          (voice.name.toLowerCase().includes('anna') || 
+           voice.name.toLowerCase().includes('irina') ||
+           voice.name.toLowerCase().includes('elena'))
+        );
+        
+        if (bestVoice) {
+          console.log(`✅ Найден качественный голос: ${bestVoice.name}`);
+        }
+      };
+      
+      // Загружаем голоса при готовности
+      if (synthRef.current.getVoices().length > 0) {
+        loadVoices();
+      } else {
+        synthRef.current.onvoiceschanged = loadVoices;
+      }
     }
   };
 
