@@ -378,7 +378,7 @@ const LiveChat = () => {
                   <div
                     className={`px-4 py-3 rounded-2xl shadow-sm ${
                       message.type === 'user'
-                        ? 'bg-blue-500 text-white max-w-xs lg:max-w-md'
+                        ? 'bg-blue-600 text-white max-w-xs lg:max-w-md shadow-lg font-medium'
                         : message.type === 'system'
                         ? 'bg-yellow-50 text-yellow-700 border border-yellow-200 max-w-md text-center rounded-full'
                         : message.isError
