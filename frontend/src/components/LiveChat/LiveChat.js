@@ -295,9 +295,13 @@ const LiveChat = () => {
   };
 
   const clearChat = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
     setMessages([{
       type: 'system',
-      text: 'Чат очищен. Продолжаем живое общение!',
+      text: '🧹 Чат очищен. Продолжаем наше общение!',
       timestamp: new Date()
     }]);
   };
@@ -306,7 +310,19 @@ const LiveChat = () => {
     if (wsConnection) {
       wsConnection.close();
     }
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
     initWebSocket();
+  };
+
+  const toggleVoice = () => {
+    setVoiceEnabled(!voiceEnabled);
+    if (!voiceEnabled && synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
   };
 
   return (
