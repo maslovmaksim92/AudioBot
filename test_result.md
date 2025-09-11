@@ -413,9 +413,19 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Houses Section Navigation"
+    - "Dashboard Statistics Cards"
+    - "Filters and Search System"
+    - "House Creation Modal"
+    - "Export CSV Functionality"
+    - "Cleaning Calendar"
+    - "Pagination System"
+    - "House Cards Display"
+    - "Management Companies Section"
+    - "Responsive Design and Performance"
   stuck_tasks: []
-  test_all: false
+  test_all: true
   test_priority: "high_first"
 
 agent_communication:
