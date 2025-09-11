@@ -4,8 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-ROOT_DIR = Path(__file__).parent.parent.parent  # Go up to backend/ directory
-load_dotenv(ROOT_DIR / '.env')
+ROOT_DIR = Path(__file__).parent.parent.parent  # Go up to /app/ directory
+load_dotenv(ROOT_DIR / 'backend' / '.env')  # Load from /app/backend/.env
 
 # Cloud-friendly logging
 log_handlers = [logging.StreamHandler()]
