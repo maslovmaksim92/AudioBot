@@ -100,23 +100,42 @@ const LiveChat = () => {
       
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ru-RU';
-      utterance.rate = 0.85; // Немного медленнее для естественности
-      utterance.pitch = 1.1; // Чуть выше для дружелюбности
-      utterance.volume = 0.9;
+      utterance.rate = 0.9; // Естественная скорость речи
+      utterance.pitch = 1.0; // Нормальная высота тона
+      utterance.volume = 0.8;
       
-      // Попытаться выбрать женский голос
+      // Выбираем лучший русский женский голос
       const voices = synthRef.current.getVoices();
-      const russianVoice = voices.find(voice => 
-        voice.lang.includes('ru') && voice.name.toLowerCase().includes('woman')
+      
+      // Поиск наиболее человечного голоса
+      const bestVoice = voices.find(voice => 
+        voice.lang.includes('ru') && 
+        (voice.name.toLowerCase().includes('anna') || 
+         voice.name.toLowerCase().includes('irina') ||
+         voice.name.toLowerCase().includes('elena') ||
+         voice.name.toLowerCase().includes('female') ||
+         voice.name.toLowerCase().includes('woman'))
+      ) || voices.find(voice => 
+        voice.lang.includes('ru') && !voice.name.toLowerCase().includes('male')
       ) || voices.find(voice => voice.lang.includes('ru'));
       
-      if (russianVoice) {
-        utterance.voice = russianVoice;
+      if (bestVoice) {
+        utterance.voice = bestVoice;
+        console.log(`🎤 Using voice: ${bestVoice.name} (${bestVoice.lang})`);
       }
       
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        console.log('🗣️ Алиса начала говорить');
+      };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        console.log('🤐 Алиса закончила говорить');
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        console.log('❌ Ошибка озвучивания');
+      };
       
       synthRef.current.speak(utterance);
     }
