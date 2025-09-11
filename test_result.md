@@ -237,6 +237,54 @@ backend:
           agent: "testing"
           comment: "GET /api/bitrix24/test endpoint working correctly. Returns connected status with working integration. Provides meaningful business data: 348 deals, 82 employees, 29 companies. Integration properly configured and operational."
 
+  - task: "Cleaning Houses List API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/cleaning/houses endpoint working correctly. Returns detailed house information with all required fields: deal_id, address, house_address, apartments_count, floors_count, entrances_count, brigade, management_company, status_text, status_color, tariff, region. Successfully returns expected houses: Тестовая улица д. 123, Аллейная 6 п.1, Чичерина 14, and others. Total 6 sample houses with complete data structure."
+
+  - task: "Cleaning Statistics API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/cleaning/stats endpoint working correctly. Returns exact expected metrics: total_houses: 450, total_apartments: 43308, total_entrances: 1123, total_floors: 3372. Includes proper regional statistics for all 6 districts: Центральный, Никитинский, Жилетово, Северный, Пригород, Окраины with house and apartment counts per region."
+
+  - task: "Cleaning Schedule API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "GET /api/cleaning/schedule/september endpoint working correctly. Returns comprehensive cleaning schedule for September 2025 with proper frequency patterns: '2 раза в неделю (ПН, ЧТ)', '3 раза в неделю (ПН, СР, ПТ)', '1 раз в неделю (СР)', 'Ежедневно (кроме ВС)'. Each house entry includes house_address, frequency, next_cleaning date, and assigned brigade."
+
+  - task: "Create House API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "POST /api/cleaning/houses endpoint working correctly. Successfully creates new house in Bitrix24 with all provided data preserved. Returns success status, generated deal_id, confirmation message in Russian, and complete house object with status 'Создан' and yellow status_color. Proper integration with Bitrix24 CRM simulation."
+
 frontend:
   # No frontend testing requested in the review
 
