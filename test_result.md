@@ -286,7 +286,125 @@ backend:
           comment: "POST /api/cleaning/houses endpoint working correctly. Successfully creates new house in Bitrix24 with all provided data preserved. Returns success status, generated deal_id, confirmation message in Russian, and complete house object with status 'Создан' and yellow status_color. Proper integration with Bitrix24 CRM simulation."
 
 frontend:
-  # No frontend testing requested in the review
+  - task: "Houses Section Navigation"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test navigation to Houses section from main menu, logo display, header information, and Bitrix24 connection status"
+
+  - task: "Dashboard Statistics Cards"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test 6 statistics cards (490 houses, 36,750 apartments, 1,470 entrances, 2,450 floors, 29 УК, 7 brigades) with glow effects on hover and proper gradients"
+
+  - task: "Filters and Search System"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test search by addresses (Пролетарская), filter by brigades (7 brigades), filter by УК (29 companies), filter by regions (7 regions), sorting functionality, counter display, and clear filters button"
+
+  - task: "House Creation Modal"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test Create House button with glow effect, modal opening/closing, form filling (address, apartments, floors, entrances), dropdown selections (brigade, УК, tariff, region), and form submission"
+
+  - task: "Export CSV Functionality"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test CSV export button with glow effect and verify CSV file download (vasdom_houses_*.csv)"
+
+  - task: "Cleaning Calendar"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test cleaning calendar for September 2025, color-coded days (green 1-4 houses, yellow 5-9, orange 10-14, red 15+), day click details, legend display, and month selector"
+
+  - task: "Pagination System"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test 20 houses per page display, Previous/Next buttons, clickable page numbers, and counter display (1-20 из X домов)"
+
+  - task: "House Cards Display"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test house cards with real addresses (Пролетарская 125 к1, Чижевского 14А, Молодежная 76), statistics display, brigade/УК/tariff/status/responsible/region info, cleaning schedule with frequency, Calendar and Details buttons, and Google Maps links"
+
+  - task: "Management Companies Section"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test Management Companies section showing 12 real УК and counter display (Показано 12 из 29 управляющих компаний)"
+
+  - task: "Responsive Design and Performance"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Works/Works.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Need to test responsive design on different screen sizes, hover effects and animations, glow effects, and data loading without console errors"
 
 metadata:
   created_by: "testing_agent"
