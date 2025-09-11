@@ -1094,30 +1094,4 @@ const CreateHouseModal = ({ onClose, onSubmit, filters }) => {
   );
 };
 
-const handleCreateHouse = async (formData) => {
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
-  
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      showNotification(`✅ Дом "${formData.address}" создан в Bitrix24!`, 'success');
-      fetchInitialData(); // Refresh data
-      return data;
-    } else {
-      throw new Error('Ошибка создания дома');
-    }
-  } catch (error) {
-    showNotification(`❌ Ошибка: ${error.message}`, 'error');
-    throw error;
-  }
-};
-
 export default Works;
