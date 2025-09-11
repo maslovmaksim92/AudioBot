@@ -50,6 +50,7 @@ async def dashboard_redirect():
 app.include_router(dashboard.router)
 app.include_router(voice.router)
 app.include_router(websocket.router)
+app.include_router(realtime_voice.router)
 app.include_router(telegram.router)
 app.include_router(meetings.router)
 app.include_router(cleaning.router)
