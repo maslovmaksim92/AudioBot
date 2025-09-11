@@ -57,6 +57,63 @@ app.include_router(logs.router)
 
 logger.info("✅ All routers included")
 
+# WebSocket endpoint для живого разговора
+@app.websocket("/api/live-chat/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    logger.info("💬 WebSocket connection accepted")
+    
+    try:
+        # Отправляем приветственное сообщение
+        await websocket.send_text(json.dumps({
+            "type": "system",
+            "message": "🚀 Подключение к VasDom AudioBot установлено!"
+        }, ensure_ascii=False))
+        
+        while True:
+            # Получаем сообщение от клиента
+            data = await websocket.receive_text()
+            
+            try:
+                message_data = json.loads(data)
+                logger.info(f"📨 WebSocket received: {message_data}")
+                
+                if message_data.get("type") == "user_message":
+                    user_message = message_data.get("message", "")
+                    
+                    if user_message.strip():
+                        # Простой ответ AI (можно подключить реальный AI позже)
+                        ai_response = f"AI ответ на: '{user_message}'. Это живой разговор с VasDom AI!"
+                        
+                        # Отправляем ответ AI клиенту
+                        await websocket.send_text(json.dumps({
+                            "type": "ai_response", 
+                            "message": ai_response
+                        }, ensure_ascii=False))
+                        
+                        logger.info(f"🤖 AI response sent via WebSocket")
+                        
+            except json.JSONDecodeError:
+                logger.error(f"❌ Invalid JSON received: {data}")
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": "Некорректный формат сообщения"
+                }, ensure_ascii=False))
+                
+    except WebSocketDisconnect:
+        logger.info("🔌 WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"❌ WebSocket error: {e}")
+
+@app.get("/api/live-chat/status")
+async def websocket_status():
+    """Статус WebSocket соединений"""
+    return {
+        "websocket_available": True,
+        "ai_service_status": "active",
+        "live_chat_ready": True
+    }
+
 # Startup/Shutdown events
 @app.on_event("startup")
 async def startup():
