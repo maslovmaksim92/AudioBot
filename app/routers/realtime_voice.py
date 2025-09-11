@@ -4,14 +4,14 @@ import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from emergentintegrations.llm.openai import OpenAIChatRealtime
 from ..services.bitrix_service import BitrixService
-from ..config.settings import EMERGENT_LLM_KEY, BITRIX_WEBHOOK_URL
+from ..config.settings import EMERGENT_LLM_KEY, BITRIX24_WEBHOOK_URL
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["realtime-voice"])
 
 # Initialize services
 chat_realtime = OpenAIChatRealtime(api_key=EMERGENT_LLM_KEY)
-bitrix_service = BitrixService(BITRIX_WEBHOOK_URL) if BITRIX_WEBHOOK_URL else None
+bitrix_service = BitrixService(BITRIX24_WEBHOOK_URL) if BITRIX24_WEBHOOK_URL else None
 
 # Register GPT-4o Realtime router
 OpenAIChatRealtime.register_openai_realtime_router(router, chat_realtime)
