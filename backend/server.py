@@ -606,7 +606,15 @@ status_checks = deque(maxlen=10)  # Исправлено: ограничивае
 
 @app.get("/")
 async def root():
-    """Главная страница"""
+    """Главная страница - React приложение или API информация"""
+    frontend_build_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'build')
+    index_file = os.path.join(frontend_build_path, 'index.html')
+    
+    # Если есть сборка React, отдаем её
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    
+    # Иначе отдаем API информацию
     return {
         "name": "VasDom AudioBot",
         "version": "3.0.0",
@@ -625,7 +633,9 @@ async def root():
             "embeddings": True,  # Всегда доступны fallback эмбеддинги
             "database": False,   # In-memory storage
             "http_client": HTTP_CLIENT_AVAILABLE or REQUESTS_AVAILABLE
-        }
+        },
+        "frontend_status": "react_build_not_found" if not os.path.exists(index_file) else "react_app_available",
+        "message": "Для работы с дашбордом соберите React приложение командой: cd frontend && yarn build"
     }
 
 @app.get("/api/health")
