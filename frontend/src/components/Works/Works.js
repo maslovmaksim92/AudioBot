@@ -776,10 +776,27 @@ const Works = () => {
       )}
 
       {/* Список домов */}
-      <Card title={`🏠 Дома (${houses.length})`}>
-        {houses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {houses.map((house, index) => renderHouseCard(house, index))}
+      <Card title={`🏠 Дома (${filteredHouses.length} из ${houses.length})`}>
+        {filteredHouses.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedHouses.map((house, index) => renderHouseCard(house, index))}
+            </div>
+            {renderPagination()}
+          </>
+        ) : houses.length > 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Ничего не найдено</h3>
+            <p className="text-gray-500">
+              Попробуйте изменить параметры поиска или очистить фильтры
+            </p>
+            <Button
+              onClick={clearFilters}
+              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
+            >
+              ✕ Очистить фильтры
+            </Button>
           </div>
         ) : (
           <div className="text-center py-12">
