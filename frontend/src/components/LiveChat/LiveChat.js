@@ -174,11 +174,18 @@ const LiveChat = () => {
           console.log('📨 WebSocket message received:', data);
           
           if (data.type === 'ai_response') {
-            setMessages(prev => [...prev, {
+            const aiMessage = {
               type: 'ai',
               text: data.message,
               timestamp: new Date()
-            }]);
+            };
+            setMessages(prev => [...prev, aiMessage]);
+            
+            // Озвучиваем ответ AI человеческим голосом
+            if (voiceEnabled) {
+              speakText(data.message);
+            }
+            
             setIsProcessing(false);
           }
         } catch (error) {
