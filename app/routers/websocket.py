@@ -56,15 +56,17 @@ manager = ConnectionManager()
 
 @router.websocket("/live-chat/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    user_id = "live_chat_user"  # Можно получить из query params или headers
-    await manager.connect(websocket, user_id)
+    await websocket.accept()
+    user_id = "live_chat_user"
     
     try:
+        logger.info("💬 WebSocket connection accepted")
+        
         # Отправляем приветственное сообщение
-        await manager.send_message(websocket, {
+        await websocket.send_text(json.dumps({
             "type": "system",
             "message": "🚀 Подключение к VasDom AudioBot установлено!"
-        })
+        }, ensure_ascii=False))
         
         while True:
             # Получаем сообщение от клиента
@@ -84,41 +86,39 @@ async def websocket_endpoint(websocket: WebSocket):
                             ai_response = await ai_service.process_message(user_message, user_id)
                             
                             # Отправляем ответ AI клиенту
-                            await manager.send_message(websocket, {
+                            await websocket.send_text(json.dumps({
                                 "type": "ai_response",
                                 "message": ai_response
-                            })
+                            }, ensure_ascii=False))
                             
                             logger.info(f"🤖 AI response sent via WebSocket")
                             
                         except Exception as ai_error:
                             logger.error(f"❌ AI processing error: {ai_error}")
-                            await manager.send_message(websocket, {
+                            await websocket.send_text(json.dumps({
                                 "type": "ai_response",
                                 "message": "Извините, произошла ошибка при обработке вашего сообщения. Попробуйте еще раз.",
                                 "error": True
-                            })
+                            }, ensure_ascii=False))
                 
                 elif message_data.get("type") == "ping":
                     # Пинг для поддержания соединения
-                    await manager.send_message(websocket, {
+                    await websocket.send_text(json.dumps({
                         "type": "pong",
                         "timestamp": message_data.get("timestamp")
-                    })
+                    }, ensure_ascii=False))
                     
             except json.JSONDecodeError:
                 logger.error(f"❌ Invalid JSON received: {data}")
-                await manager.send_message(websocket, {
+                await websocket.send_text(json.dumps({
                     "type": "error",
                     "message": "Некорректный формат сообщения"
-                })
+                }, ensure_ascii=False))
                 
     except WebSocketDisconnect:
         logger.info("🔌 WebSocket client disconnected")
-        manager.disconnect(websocket, user_id)
     except Exception as e:
         logger.error(f"❌ WebSocket error: {e}")
-        manager.disconnect(websocket, user_id)
 
 @router.get("/live-chat/status")
 async def websocket_status():
