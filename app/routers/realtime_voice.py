@@ -2,7 +2,8 @@ import logging
 import json
 import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from emergentintegrations.llm.openai import OpenAIChatRealtime, OpenAIChat
+from emergentintegrations.llm.openai import OpenAIChatRealtime
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 from ..services.bitrix_service import BitrixService
 from ..config.settings import EMERGENT_LLM_KEY, BITRIX24_WEBHOOK_URL
 
@@ -11,7 +12,11 @@ router = APIRouter(prefix="/api", tags=["realtime-voice"])
 
 # Initialize services
 chat_realtime = OpenAIChatRealtime(api_key=EMERGENT_LLM_KEY)
-openai_chat = OpenAIChat(api_key=EMERGENT_LLM_KEY)  # For text responses
+llm_chat = LlmChat(
+    api_key=EMERGENT_LLM_KEY,
+    session_id="vasdom_realtime",
+    system_message="Вы - Алиса, голосовой помощник VasDom"
+).with_model("openai", "gpt-4o-mini")  # For text responses
 bitrix_service = BitrixService(BITRIX24_WEBHOOK_URL) if BITRIX24_WEBHOOK_URL else None
 
 # Register GPT-4o Realtime router for WebRTC
@@ -150,16 +155,9 @@ async def realtime_voice_websocket(websocket: WebSocket):
                             system_prompt = assistant.create_system_prompt()
                             full_context = f"{system_prompt}\n\nКонтекст данных: {bitrix_context}"
                             
-                            # Используем OpenAIChat для текстовых ответов
-                            response = await openai_chat.chat(
-                                messages=[
-                                    {"role": "system", "content": full_context},
-                                    {"role": "user", "content": user_message}
-                                ],
-                                model="gpt-4o-mini",  # Быстрая и качественная модель
-                                temperature=0.8,  # Более творческие ответы
-                                max_tokens=300
-                            )
+                            # Используем LlmChat для текстовых ответов
+                            user_msg = UserMessage(text=user_message)
+                            response = await llm_chat.send_message(user_msg)
                             
                             ai_response = response.strip()
                             
