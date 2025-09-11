@@ -10,6 +10,7 @@ const Sidebar = () => {
     { id: 'general', name: 'Обзор', icon: '📊', description: 'Главная панель' },
     { id: 'voice', name: 'AI Чат', icon: '🤖', description: 'Голосовой помощник' },
     { id: 'live-chat', name: 'Живое общение', icon: '👋', description: 'Чат с Алисой в реальном времени' },
+    { id: 'realtime-voice', name: 'GPT-4o Голос', icon: '🎤', description: 'Реальный человеческий голос + Bitrix24' },
     { id: 'meetings', name: 'Планерки', icon: '🎤', description: 'Записи совещаний' },
     { id: 'works', name: 'Дома', icon: '🏠', description: 'Управление домами' },
     { id: 'ai-tasks', name: 'AI Задачи', icon: '🧠', description: 'Умные задачи' },
