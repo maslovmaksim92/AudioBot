@@ -817,7 +817,10 @@ class VasDomAPITester:
         print("   - Правильные количественные данные")
         print("=" * 80)
         
-        # 1. Тест полей Bitrix24 - Main Focus
+        # 1. Test Live Chat WebSocket Status - Main Focus for review
+        self.test_live_chat_websocket_status()
+        
+        # 2. Тест полей Bitrix24 - Main Focus
         self.test_bitrix24_house_fields()
         
         # 2. Тест фильтров
