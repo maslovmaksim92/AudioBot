@@ -534,8 +534,159 @@ const Works = () => {
       {renderHeader()}
       {renderDashboardCards()}
 
-      {/* Фильтр по месяцам */}
-      <Card title="📅 График уборки" className="mb-8">
+  const renderFiltersSection = () => (
+    <Card title="🔍 Фильтры и поиск" className="mb-8">
+      <div className="space-y-6">
+        {/* Поиск */}
+        <div className="relative">
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-blue-500">🔎</span>
+            <label className="font-medium text-gray-700">Поиск по адресу</label>
+            {activeFilters.search && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                Найдено: {filteredHouses.length}
+              </span>
+            )}
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Введите адрес дома..."
+              className="w-full p-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              value={activeFilters.search}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, search: e.target.value }))}
+            />
+            <div className="absolute left-3 top-3 text-gray-400">🏠</div>
+          </div>
+        </div>
+
+        {/* Фильтры в строку */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Бригады */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-green-500">👥</span>
+              <label className="font-medium text-gray-700">Бригада</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              value={activeFilters.brigade}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, brigade: e.target.value }))}
+            >
+              <option value="">Все бригады ({filters.brigades?.length || 0})</option>
+              {filters.brigades?.map((brigade, index) => (
+                <option key={index} value={brigade}>{brigade}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* УК */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-purple-500">🏢</span>
+              <label className="font-medium text-gray-700">Управляющая компания</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              value={activeFilters.management_company}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, management_company: e.target.value }))}
+            >
+              <option value="">Все УК ({filters.management_companies?.length || 0})</option>
+              {filters.management_companies?.map((company, index) => (
+                <option key={index} value={company}>{company}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Районы */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-orange-500">🗺️</span>
+              <label className="font-medium text-gray-700">Район</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+              value={activeFilters.region}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, region: e.target.value }))}
+            >
+              <option value="">Все районы ({filters.regions?.length || 0})</option>
+              {filters.regions?.map((region, index) => (
+                <option key={index} value={region}>{region}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Сортировка */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-indigo-500">📊</span>
+              <label className="font-medium text-gray-700">Сортировка</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              value={`${sortBy}_${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('_');
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+            >
+              <option value="address_asc">По адресу (А-Я)</option>
+              <option value="address_desc">По адресу (Я-А)</option>
+              <option value="apartments_count_desc">По квартирам (убыв.)</option>
+              <option value="apartments_count_asc">По квартирам (возр.)</option>
+              <option value="region_asc">По району (А-Я)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Активные фильтры и действия */}
+        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700">
+              Показано: {filteredHouses.length} из {houses.length} домов
+            </span>
+            {(activeFilters.search || activeFilters.brigade || activeFilters.management_company || activeFilters.region) && (
+              <Button
+                onClick={clearFilters}
+                variant="ghost"
+                size="sm"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                ✕ Очистить фильтры
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex space-x-2">
+            {/* Экспорт CSV */}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 rounded-lg blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
+              <Button
+                onClick={exportToCSV}
+                variant="secondary"
+                className="relative bg-white hover:bg-gray-50"
+              >
+                📤 Экспорт CSV
+              </Button>
+            </div>
+
+            {/* Создать дом */}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 via-cyan-500 to-blue-600 rounded-lg blur opacity-20 group-hover:opacity-50 transition duration-500 animate-pulse"></div>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                variant="primary"
+                className="relative"
+              >
+                ➕ Создать дом
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <label className="font-medium text-gray-700">Месяц:</label>
