@@ -123,46 +123,120 @@ const RealisticVoiceChat = () => {
     }
   };
 
-  const playRealisticVoice = (audioBase64, text) => {
+  const playRealisticVoice = (audioData, text) => {
     try {
-      // Останавливаем предыдущее аудио
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
+      // Проверяем, это ли маркер для Speech Synthesis
+      if (audioData && audioData.startsWith('SPEECH_SYNTHESIS:')) {
+        const textToSpeak = audioData.replace('SPEECH_SYNTHESIS:', '');
+        playUltraRealisticSpeech(textToSpeak);
+        return;
       }
 
-      // Создаем новое аудио из base64
-      const audioBlob = base64ToBlob(audioBase64, 'audio/mp3');
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      // Если это настоящий base64 аудио (в будущем от OpenAI TTS)
+      if (audioData && !audioData.startsWith('SPEECH_SYNTHESIS:')) {
+        // Останавливаем предыдущее аудио
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+
+        const audioBlob = base64ToBlob(audioData, 'audio/mp3');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        audio.onloadstart = () => {
+          setIsSpeaking(true);
+          console.log('🎤 Воспроизвожу OpenAI TTS голос');
+        };
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          console.log('🎤 OpenAI TTS закончен');
+        };
+        
+        setCurrentAudio(audio);
+        audio.play();
+      }
+    } catch (error) {
+      console.error('❌ Ошибка воспроизведения:', error);
+      // Fallback к Speech Synthesis
+      playUltraRealisticSpeech(text);
+    }
+  };
+
+  const playUltraRealisticSpeech = (text) => {
+    try {
+      if (!('speechSynthesis' in window)) {
+        console.error('Speech Synthesis не поддерживается');
+        return;
+      }
+
+      // Останавливаем предыдущий синтез
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
       
-      audio.onloadstart = () => {
+      // Максимально реалистичные настройки для русского языка
+      utterance.lang = 'ru-RU';
+      utterance.rate = 0.85;     // Чуть медленнее для естественности
+      utterance.pitch = 0.95;    // Немного ниже для серьезности
+      utterance.volume = 0.9;    // Чуть тише для комфорта
+      
+      // Находим лучший женский русский голос
+      const voices = window.speechSynthesis.getVoices();
+      console.log('🎤 Доступные голоса:', voices.map(v => `${v.name} (${v.lang})`));
+      
+      // Ищем самый качественный русский женский голос
+      const premiumVoice = voices.find(voice => 
+        voice.lang.includes('ru') && 
+        (voice.name.toLowerCase().includes('милена') ||
+         voice.name.toLowerCase().includes('irina') ||
+         voice.name.toLowerCase().includes('anna') ||
+         voice.name.toLowerCase().includes('elena') ||
+         voice.name.toLowerCase().includes('premium') ||
+         voice.name.toLowerCase().includes('enhanced'))
+      );
+      
+      const qualityVoice = premiumVoice || voices.find(voice => 
+        voice.lang.includes('ru') && 
+        (voice.name.toLowerCase().includes('female') ||
+         voice.name.toLowerCase().includes('woman') ||
+         !voice.name.toLowerCase().includes('male'))
+      );
+      
+      const russianVoice = qualityVoice || voices.find(voice => voice.lang.includes('ru'));
+      
+      if (russianVoice) {
+        utterance.voice = russianVoice;
+        console.log(`🎤 Используем голос: ${russianVoice.name} (${russianVoice.lang})`);
+      } else {
+        console.log('🎤 Используем голос по умолчанию');
+      }
+      
+      utterance.onstart = () => {
         setIsSpeaking(true);
-        console.log('🎤 Начинаю воспроизводить реальный голос Алисы');
+        console.log('🗣️ Алиса начала говорить реалистичным голосом');
       };
       
-      audio.onended = () => {
+      utterance.onend = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
-        console.log('🎤 Закончила говорить');
+        console.log('🤐 Алиса закончила говорить');
       };
       
-      audio.onerror = (error) => {
+      utterance.onerror = (event) => {
         setIsSpeaking(false);
-        console.error('❌ Ошибка воспроизведения голоса:', error);
+        console.error('❌ Ошибка синтеза речи:', event.error);
       };
       
-      setCurrentAudio(audio);
-      audio.play().catch(error => {
-        console.error('❌ Ошибка автовоспроизведения:', error);
-        actions.addNotification({
-          type: 'info',
-          message: 'Кликните для воспроизведения голоса Алисы'
-        });
-      });
+      // Небольшая задержка для лучшей загрузки голосов
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 100);
       
     } catch (error) {
-      console.error('❌ Ошибка создания аудио:', error);
+      console.error('❌ Ошибка реалистичного синтеза:', error);
+      setIsSpeaking(false);
     }
   };
 
