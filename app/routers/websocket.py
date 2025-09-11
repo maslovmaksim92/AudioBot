@@ -5,7 +5,7 @@ from typing import Dict, Set
 from ..services.ai_service import AIService
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["websocket"])
+router = APIRouter(tags=["websocket"])
 
 # Initialize AI service
 ai_service = AIService()
