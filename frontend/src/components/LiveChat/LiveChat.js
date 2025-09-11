@@ -20,17 +20,22 @@ const LiveChat = () => {
   useEffect(() => {
     console.log('💬 Live Chat mounted');
     initWebSocket();
+    initSpeechRecognition();
+    initSpeechSynthesis();
     
     // Приветственное сообщение
     setMessages([{
       type: 'system',
-      text: '🚀 Добро пожаловать в Живой разговор с VasDom AI! Подключаемся к real-time серверу...',
+      text: '👋 Привет! Я ваш персональный помощник VasDom. Подключаюсь...',
       timestamp: new Date()
     }]);
 
     return () => {
       if (wsConnection) {
         wsConnection.close();
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel();
       }
     };
   }, []);
