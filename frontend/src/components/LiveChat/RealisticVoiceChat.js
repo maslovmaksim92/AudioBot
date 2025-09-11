@@ -45,6 +45,39 @@ const RealisticVoiceChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const initUltraRealisticVoices = () => {
+    if ('speechSynthesis' in window) {
+      // Загружаем голоса заранее
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        console.log('🎤 Инициализация голосов:', voices.length, 'доступно');
+        
+        const russianVoices = voices.filter(voice => voice.lang.includes('ru'));
+        console.log('🇷🇺 Русские голоса:', russianVoices.map(v => v.name));
+        
+        const premiumVoices = russianVoices.filter(voice => 
+          voice.name.toLowerCase().includes('милена') ||
+          voice.name.toLowerCase().includes('irina') ||
+          voice.name.toLowerCase().includes('anna') ||
+          voice.name.toLowerCase().includes('elena') ||
+          voice.name.toLowerCase().includes('premium') ||
+          voice.name.toLowerCase().includes('enhanced')
+        );
+        
+        if (premiumVoices.length > 0) {
+          console.log('✨ Найдены премиум голоса:', premiumVoices.map(v => v.name));
+        }
+      };
+      
+      // Загружаем голоса при готовности
+      if (window.speechSynthesis.getVoices().length > 0) {
+        loadVoices();
+      } else {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+  };
+
   const initRealisticWebSocket = () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
