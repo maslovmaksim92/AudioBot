@@ -321,6 +321,28 @@ class VasDomAPITester:
             self.log_test("Bitrix24 CRM-Only Houses (348)", False, str(e))
             return False
 
+    def test_live_chat_websocket_status(self):
+        """Test live chat WebSocket status endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/live-chat/status", timeout=10)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("websocket_available") == True and 
+                          data.get("ai_service_status") == "active" and
+                          data.get("live_chat_ready") == True)
+                print(f"   💬 WebSocket available: {data.get('websocket_available')}")
+                print(f"   💬 AI service status: {data.get('ai_service_status')}")
+                print(f"   💬 Live chat ready: {data.get('live_chat_ready')}")
+                
+            self.log_test("Live Chat WebSocket Status (/api/live-chat/status)", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("Live Chat WebSocket Status (/api/live-chat/status)", False, str(e))
+            return False
+
     def test_voice_ai_processing(self):
         """Test AI voice processing with GPT-4 mini через Emergent LLM - должен упоминать 348 домов из CRM"""
         try:
