@@ -92,8 +92,20 @@ const Works = () => {
       <div className="relative flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-            <span className="text-2xl font-bold bg-white/20 rounded-lg px-3 py-1">
-              🏠 VasDom
+            <img
+              src="/logo.png"
+              alt="VasDom Logo"
+              className="h-12 w-auto object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
+            />
+            <span 
+              className="text-2xl font-bold bg-white/20 rounded-lg px-3 py-1"
+              style={{display: 'none'}}
+            >
+              VasDom
             </span>
           </div>
           <div>
@@ -101,16 +113,25 @@ const Works = () => {
               Управление домами
             </h1>
             <p className="text-blue-100 text-lg">
-              Интеграция с Bitrix24 CRM • График уборки • Калуга
+              490 домов • 29 УК • 7 бригад • Bitrix24 CRM • Калуга
             </p>
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="bg-green-500/20 px-2 py-1 rounded-full flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-200">Bitrix24 подключен</span>
+              </div>
+              <div className="text-xs text-blue-200">
+                Webhook: vas-dom.bitrix24.ru
+              </div>
+            </div>
           </div>
         </div>
         
         <div className="text-right">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-            <div className="text-sm text-blue-100">Подключено к</div>
-            <div className="text-lg font-bold">Bitrix24 CRM</div>
-            <div className="text-xs text-blue-200">🟢 Активно</div>
+            <div className="text-sm text-blue-100">Всего домов</div>
+            <div className="text-3xl font-bold">490</div>
+            <div className="text-xs text-blue-200">из Bitrix24 CRM</div>
           </div>
         </div>
       </div>
