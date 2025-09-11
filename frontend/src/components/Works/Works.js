@@ -1095,6 +1095,5 @@ const handleCreateHouse = async (formData) => {
     throw error;
   }
 };
-};
 
 export default Works;
