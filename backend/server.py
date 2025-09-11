@@ -1089,6 +1089,9 @@ async def search_houses_in_pipeline(
     except Exception as e:
         logger.error(f"❌ Error searching houses: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка поиска домов: {str(e)}")
+
+@app.get("/api/cleaning/stats")
+async def get_real_cleaning_stats():
     """Реальная статистика по домам из Bitrix24"""
     try:
         async with BitrixService() as bitrix:
