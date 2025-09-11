@@ -589,6 +589,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Статические файлы React (если сборка существует)
+frontend_build_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'build')
+if os.path.exists(frontend_build_path):
+    app.mount("/static", StaticFiles(directory=f"{frontend_build_path}/static"), name="static")
+    logger.info(f"✅ Статические файлы подключены: {frontend_build_path}")
+else:
+    logger.info("⚠️ Frontend build не найден - работаем в режиме API-only")
+
 # Безопасное хранилище для status_checks с ограничением размера
 status_checks = deque(maxlen=10)  # Исправлено: ограничиваем размер
 
