@@ -48,6 +48,94 @@ const LiveChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const initSpeechRecognition = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'ru-RU';
+      
+      recognition.onresult = (event) => {
+        let transcript = '';
+        let interim = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcript = event.results[i][0].transcript;
+            console.log('🎤 Voice input:', transcript);
+            handleMessage(transcript);
+            setCurrentMessage('');
+          } else {
+            interim = event.results[i][0].transcript;
+          }
+        }
+        
+        setCurrentMessage(interim);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+        setCurrentMessage('');
+      };
+      
+      recognition.onerror = (event) => {
+        console.error('❌ Speech recognition error:', event.error);
+        setIsListening(false);
+        setCurrentMessage('');
+      };
+      
+      recognitionRef.current = recognition;
+    }
+  };
+
+  const initSpeechSynthesis = () => {
+    if ('speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+  };
+
+  const speakText = (text) => {
+    if (synthRef.current && text && voiceEnabled) {
+      synthRef.current.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.rate = 0.85; // Немного медленнее для естественности
+      utterance.pitch = 1.1; // Чуть выше для дружелюбности
+      utterance.volume = 0.9;
+      
+      // Попытаться выбрать женский голос
+      const voices = synthRef.current.getVoices();
+      const russianVoice = voices.find(voice => 
+        voice.lang.includes('ru') && voice.name.toLowerCase().includes('woman')
+      ) || voices.find(voice => voice.lang.includes('ru'));
+      
+      if (russianVoice) {
+        utterance.voice = russianVoice;
+      }
+      
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      
+      synthRef.current.speak(utterance);
+    }
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      setIsListening(true);
+      setCurrentMessage('');
+      recognitionRef.current.start();
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+    }
+  };
+
   const initWebSocket = () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
