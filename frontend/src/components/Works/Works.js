@@ -39,19 +39,153 @@ const Works = () => {
     fetchInitialData();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [houses, activeFilters, sortBy, sortOrder]);
+
   const fetchInitialData = async () => {
     setLoading(true);
     try {
       await Promise.all([
         fetchHouses(),
         fetchDashboardStats(),
-        fetchCleaningSchedule()
+        fetchCleaningSchedule(),
+        fetchFiltersData()
       ]);
     } catch (error) {
       console.error('❌ Error fetching initial data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchFiltersData = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/stats`);
+      const data = await response.json();
+      
+      // Извлекаем данные для фильтров
+      const brigades = [
+        '1 бригада - Центральный район',
+        '2 бригада - Никитинский район', 
+        '3 бригада - Жилетово',
+        '4 бригада - Северный район',
+        '5 бригада - Пригород',
+        '6 бригада - Окраины',
+        '7 бригада - Новые районы'
+      ];
+      
+      const regions = Object.keys(data.regions || {});
+      const managementCompanies = data.real_management_companies || [];
+      
+      setFilters({
+        brigades,
+        regions,
+        management_companies: managementCompanies.slice(0, 15) // Первые 15 УК
+      });
+    } catch (error) {
+      console.error('❌ Error fetching filters data:', error);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...houses];
+    
+    // Фильтр по поиску
+    if (activeFilters.search) {
+      const searchLower = activeFilters.search.toLowerCase();
+      filtered = filtered.filter(house => 
+        house.address?.toLowerCase().includes(searchLower) ||
+        house.house_address?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Фильтр по бригаде
+    if (activeFilters.brigade) {
+      filtered = filtered.filter(house => house.brigade === activeFilters.brigade);
+    }
+    
+    // Фильтр по УК
+    if (activeFilters.management_company) {
+      filtered = filtered.filter(house => 
+        house.management_company === activeFilters.management_company
+      );
+    }
+    
+    // Фильтр по району
+    if (activeFilters.region) {
+      filtered = filtered.filter(house => house.region === activeFilters.region);
+    }
+    
+    // Сортировка
+    filtered.sort((a, b) => {
+      let aVal = a[sortBy] || '';
+      let bVal = b[sortBy] || '';
+      
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+      
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+    
+    setFilteredHouses(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const clearFilters = () => {
+    setActiveFilters({
+      brigade: '',
+      management_company: '',
+      region: '',
+      search: ''
+    });
+  };
+
+  const exportToCSV = () => {
+    const csvData = filteredHouses.map(house => ({
+      'Адрес': house.address || '',
+      'Полный адрес': house.house_address || '',
+      'Квартир': house.apartments_count || 0,
+      'Этажей': house.floors_count || 0,
+      'Подъездов': house.entrances_count || 0,
+      'Бригада': house.brigade || '',
+      'УК': house.management_company || '',
+      'Тариф': house.tariff || '',
+      'Район': house.region || '',
+      'Статус': house.status_text || '',
+      'Ответственный': house.assigned_user || ''
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          return typeof value === 'string' && value.includes(',') 
+            ? `"${value}"` 
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `vasdom_houses_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('📤 CSV файл экспортирован!', 'success');
   };
 
   const fetchHouses = async () => {
