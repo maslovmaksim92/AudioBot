@@ -734,6 +734,30 @@ const Works = () => {
     );
   };
 
+  const handleCreateHouse = async (formData) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showNotification(`✅ Дом "${formData.address}" создан в Bitrix24!`, 'success');
+        fetchInitialData(); // Refresh data
+        return data;
+      } else {
+        throw new Error('Ошибка создания дома');
+      }
+    } catch (error) {
+      showNotification(`❌ Ошибка: ${error.message}`, 'error');
+      throw error;
+    }
+  };
+
   if (loading && houses.length === 0) {
     return (
       <div className="p-6 flex justify-center items-center min-h-96">
