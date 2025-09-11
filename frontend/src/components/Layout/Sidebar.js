@@ -9,7 +9,7 @@ const Sidebar = () => {
   const menuItems = [
     { id: 'general', name: 'Обзор', icon: '📊', description: 'Главная панель' },
     { id: 'voice', name: 'AI Чат', icon: '🤖', description: 'Голосовой помощник' },
-    { id: 'live-chat', name: 'Живой разговор', icon: '💬', description: 'Real-time чат с AI' },
+    { id: 'live-chat', name: 'Живое общение', icon: '👋', description: 'Чат с Алисой в реальном времени' },
     { id: 'meetings', name: 'Планерки', icon: '🎤', description: 'Записи совещаний' },
     { id: 'works', name: 'Дома', icon: '🏠', description: 'Управление домами' },
     { id: 'ai-tasks', name: 'AI Задачи', icon: '🧠', description: 'Умные задачи' },
