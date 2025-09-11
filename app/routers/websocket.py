@@ -54,7 +54,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@router.websocket("/live-chat/ws")
+@router.websocket("/api/live-chat/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     user_id = "live_chat_user"
