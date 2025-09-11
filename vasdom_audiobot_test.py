@@ -495,8 +495,8 @@ def main():
     print("   • Telegram bot and Bitrix24 integrations")
     print("   • Complete learning cycle: message → processing → rating → training")
     
-    # Use the backend URL from the review request
-    tester = VasDomAudioBotDashboardTester("https://audiobot-qci2.onrender.com")
+    # Use the backend URL from frontend/.env
+    tester = VasDomAudioBotDashboardTester("https://autobot-learning.preview.emergentagent.com")
     
     try:
         return tester.run_comprehensive_test()
