@@ -7,11 +7,31 @@ const Works = () => {
   
   // State
   const [houses, setHouses] = useState([]);
+  const [filteredHouses, setFilteredHouses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dashboardStats, setDashboardStats] = useState({});
   const [selectedMonth, setSelectedMonth] = useState('september');
   const [notification, setNotification] = useState(null);
   const [cleaningSchedule, setCleaningSchedule] = useState({});
+  
+  // Новые состояния для фильтров и пагинации
+  const [filters, setFilters] = useState({
+    brigades: [],
+    management_companies: [],
+    regions: [],
+    search: ''
+  });
+  const [activeFilters, setActiveFilters] = useState({
+    brigade: '',
+    management_company: '',
+    region: '',
+    search: ''
+  });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const [sortBy, setSortBy] = useState('address');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
 
