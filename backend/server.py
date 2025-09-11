@@ -19,6 +19,9 @@ import numpy as np
 from collections import deque
 import io
 
+# Импорт нового BitrixService
+from bitrix_service import BitrixService
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
