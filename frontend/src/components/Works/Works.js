@@ -1140,4 +1140,315 @@ const CreateHouseModal = ({ onClose, onSubmit, filters }) => {
   );
 };
 
+// Компонент календаря уборки
+const CleaningCalendar = ({ month, houses, cleaningSchedule }) => {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [calendarData, setCalendarData] = useState({});
+
+  useEffect(() => {
+    generateCalendarData();
+  }, [month, houses, cleaningSchedule]);
+
+  const generateCalendarData = () => {
+    const currentDate = new Date(2025, getMonthNumber(month), 1);
+    const daysInMonth = new Date(2025, getMonthNumber(month) + 1, 0).getDate();
+    const firstDayOfWeek = currentDate.getDay();
+    
+    const calendar = {};
+    
+    // Генерируем данные для каждого дня
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayData = {
+        date: day,
+        cleanings: [],
+        totalHouses: 0,
+        brigades: new Set()
+      };
+      
+      // Проверяем каждый дом на уборку в этот день
+      houses.forEach(house => {
+        const houseSchedule = cleaningSchedule[house.deal_id];
+        if (houseSchedule && houseSchedule.schedule_details) {
+          houseSchedule.schedule_details.forEach(cleaning => {
+            const cleaningDate = new Date(cleaning.date);
+            if (cleaningDate.getDate() === day && cleaningDate.getMonth() === getMonthNumber(month)) {
+              dayData.cleanings.push({
+                house: house.address,
+                type: cleaning.type,
+                brigade: house.brigade
+              });
+              dayData.totalHouses++;
+              dayData.brigades.add(house.brigade);
+            }
+          });
+        }
+        
+        // Добавляем регулярные уборки на основе частоты
+        if (house.cleaning_frequency) {
+          const shouldCleanToday = shouldHouseBeCleaned(house, day, month);
+          if (shouldCleanToday) {
+            dayData.cleanings.push({
+              house: house.address,
+              type: 'Регулярная уборка',
+              brigade: house.brigade
+            });
+            dayData.totalHouses++;
+            dayData.brigades.add(house.brigade);
+          }
+        }
+      });
+      
+      calendar[day] = dayData;
+    }
+    
+    setCalendarData({ calendar, daysInMonth, firstDayOfWeek });
+  };
+
+  const getMonthNumber = (monthName) => {
+    const months = {
+      'september': 8,   // Сентябрь (0-based)
+      'october': 9,     // Октябрь  
+      'november': 10,   // Ноябрь
+      'december': 11    // Декабрь
+    };
+    return months[monthName] || 8;
+  };
+
+  const shouldHouseBeCleaned = (house, day, month) => {
+    if (!house.cleaning_frequency) return false;
+    
+    const frequency = house.cleaning_frequency.toLowerCase();
+    const currentDate = new Date(2025, getMonthNumber(month), day);
+    const dayOfWeek = currentDate.getDay(); // 0 = Воскресенье
+    
+    // Ежедневно (кроме ВС)
+    if (frequency.includes('ежедневно') && frequency.includes('кроме вс')) {
+      return dayOfWeek !== 0;
+    }
+    
+    // Ежедневно
+    if (frequency.includes('ежедневно') && !frequency.includes('кроме')) {
+      return true;
+    }
+    
+    // 3 раза в неделю (ПН, СР, ПТ)
+    if (frequency.includes('3 раза') || frequency.includes('пн,ср, пт')) {
+      return dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5;
+    }
+    
+    // 2 раза в неделю (ПН, ЧТ)
+    if (frequency.includes('2 раза') && frequency.includes('пн, чт')) {
+      return dayOfWeek === 1 || dayOfWeek === 4;
+    }
+    
+    // 2 раза в неделю (ВТ, ПТ)  
+    if (frequency.includes('2 раза') && frequency.includes('вт, пт')) {
+      return dayOfWeek === 2 || dayOfWeek === 5;
+    }
+    
+    // 1 раз в неделю (СР)
+    if (frequency.includes('1 раз') && frequency.includes('ср')) {
+      return dayOfWeek === 3;
+    }
+    
+    // 1 раз в неделю (ЧТ)
+    if (frequency.includes('1 раз') && frequency.includes('чт')) {
+      return dayOfWeek === 4;
+    }
+    
+    // 1 раз в неделю (ПТ)
+    if (frequency.includes('1 раз') && frequency.includes('пт')) {
+      return dayOfWeek === 5;
+    }
+    
+    return false;
+  };
+
+  const getDayIntensity = (dayData) => {
+    if (dayData.totalHouses === 0) return 'bg-gray-50';
+    if (dayData.totalHouses >= 15) return 'bg-red-100 border-red-300';
+    if (dayData.totalHouses >= 10) return 'bg-orange-100 border-orange-300';
+    if (dayData.totalHouses >= 5) return 'bg-yellow-100 border-yellow-300';
+    return 'bg-green-100 border-green-300';
+  };
+
+  const renderCalendarDay = (day) => {
+    const dayData = calendarData.calendar[day];
+    const isToday = day === new Date().getDate() && getMonthNumber(month) === new Date().getMonth();
+    const isSelected = selectedDate === day;
+    
+    return (
+      <div
+        key={day}
+        onClick={() => setSelectedDate(selectedDate === day ? null : day)}
+        className={`
+          relative p-2 min-h-[80px] border rounded-lg cursor-pointer transition-all duration-200
+          ${getDayIntensity(dayData)}
+          ${isToday ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}
+          ${isSelected ? 'scale-105 shadow-lg z-10' : 'hover:scale-102 hover:shadow-md'}
+        `}
+      >
+        <div className="flex justify-between items-start mb-1">
+          <span className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+            {day}
+          </span>
+          {dayData.totalHouses > 0 && (
+            <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
+              {dayData.totalHouses}
+            </span>
+          )}
+        </div>
+        
+        {dayData.cleanings.slice(0, 2).map((cleaning, idx) => (
+          <div key={idx} className="text-xs mb-1 truncate">
+            <div className="text-gray-600">{cleaning.house}</div>
+            <div className="text-blue-600 font-medium">{cleaning.type}</div>
+          </div>
+        ))}
+        
+        {dayData.cleanings.length > 2 && (
+          <div className="text-xs text-gray-500">
+            +{dayData.cleanings.length - 2} еще
+          </div>
+        )}
+        
+        {dayData.brigades.size > 0 && (
+          <div className="absolute bottom-1 right-1 flex space-x-1">
+            {Array.from(dayData.brigades).slice(0, 3).map((brigade, idx) => (
+              <div 
+                key={idx}
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: getBrigadeColor(brigade)
+                }}
+                title={brigade}
+              ></div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getBrigadeColor = (brigade) => {
+    if (!brigade) return '#6B7280';
+    if (brigade.includes('Центральный')) return '#EF4444';
+    if (brigade.includes('Никитинский')) return '#10B981';
+    if (brigade.includes('Жилетово')) return '#8B5CF6';
+    if (brigade.includes('Северный')) return '#F59E0B';
+    if (brigade.includes('Пригород')) return '#06B6D4';
+    if (brigade.includes('Окраины')) return '#84CC16';
+    return '#6B7280';
+  };
+
+  const renderSelectedDayDetails = () => {
+    if (!selectedDate || !calendarData.calendar) return null;
+    
+    const dayData = calendarData.calendar[selectedDate];
+    
+    return (
+      <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+        <h3 className="font-medium text-blue-900 mb-3">
+          📅 {selectedDate} {getMonthName(month)} 2025 - Детали уборки
+        </h3>
+        
+        {dayData.cleanings.length > 0 ? (
+          <div className="space-y-2">
+            <div className="text-sm text-blue-800 mb-2">
+              Всего домов: {dayData.totalHouses} • Бригад: {dayData.brigades.size}
+            </div>
+            
+            {dayData.cleanings.map((cleaning, idx) => (
+              <div key={idx} className="flex items-center justify-between bg-white p-2 rounded-lg">
+                <div>
+                  <div className="font-medium text-gray-900">{cleaning.house}</div>
+                  <div className="text-sm text-blue-600">{cleaning.type}</div>
+                </div>
+                <div className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {cleaning.brigade}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-gray-500">
+            В этот день уборки не запланированы
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getMonthName = (monthKey) => {
+    const names = {
+      'september': 'сентября',
+      'october': 'октября', 
+      'november': 'ноября',
+      'december': 'декабря'
+    };
+    return names[monthKey] || 'сентября';
+  };
+
+  if (!calendarData.calendar) {
+    return <div className="text-center py-8">Загрузка календаря...</div>;
+  }
+
+  const weekDays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+  return (
+    <div>
+      {/* Легенда */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-4 text-sm">
+          <div className="flex items-center space-x-1">
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
+            <span>1-4 дома</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded"></div>
+            <span>5-9 домов</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded"></div>
+            <span>10-14 домов</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded"></div>
+            <span>15+ домов</span>
+          </div>
+        </div>
+        
+        <div className="text-sm text-gray-600">
+          Кликните на день для подробностей
+        </div>
+      </div>
+      
+      {/* Заголовки дней недели */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {weekDays.map(day => (
+          <div key={day} className="text-center font-medium text-gray-600 p-2">
+            {day}
+          </div>
+        ))}
+      </div>
+      
+      {/* Календарная сетка */}
+      <div className="grid grid-cols-7 gap-1">
+        {/* Пустые ячейки для выравнивания первого дня */}
+        {Array.from({ length: calendarData.firstDayOfWeek }, (_, i) => (
+          <div key={`empty-${i}`} className="h-20"></div>
+        ))}
+        
+        {/* Дни месяца */}
+        {Array.from({ length: calendarData.daysInMonth }, (_, i) => 
+          renderCalendarDay(i + 1)
+        )}
+      </div>
+      
+      {/* Детали выбранного дня */}
+      {renderSelectedDayDetails()}
+    </div>
+  );
+};
+
 export default Works;
