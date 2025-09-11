@@ -3,6 +3,12 @@
 # This file now serves as compatibility layer and imports the main app
 
 import_error = None
+import sys
+from pathlib import Path
+
+# Add parent directory to Python path so we can import from app/
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
 
 try:
     from app.main import app
