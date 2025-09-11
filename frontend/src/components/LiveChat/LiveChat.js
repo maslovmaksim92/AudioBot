@@ -457,62 +457,119 @@ const LiveChat = () => {
 
         {/* Status Panel */}
         <div className="space-y-4">
-          <Card title="🔗 Статус соединения">
+          <Card title="💫 Статус Алисы" className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm">WebSocket:</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${
+                <span className="text-sm font-medium">Соединение:</span>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                   isConnected 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-red-100 text-red-700'
                 }`}>
-                  {isConnected ? '✅ Активен' : '❌ Отключен'}
+                  {isConnected ? '✨ На связи' : '😴 Не активна'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm">Режим:</span>
-                <span className="text-xs text-blue-600 font-semibold">
-                  Real-time
+                <span className="text-sm font-medium">Голос:</span>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                  voiceEnabled 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {voiceEnabled ? '🔊 Включен' : '🔇 Выключен'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm">AI Модель:</span>
-                <span className="text-xs text-purple-600">
-                  GPT-4 mini
+                <span className="text-sm font-medium">Режим:</span>
+                <span className="text-xs text-purple-600 font-semibold px-3 py-1 bg-purple-100 rounded-full">
+                  💬 Живое общение
                 </span>
+              </div>
+              
+              {isSpeaking && (
+                <div className="flex items-center justify-center p-2 bg-blue-50 rounded-lg">
+                  <span className="text-sm text-blue-700 animate-pulse">🗣️ Алиса говорит...</span>
+                </div>
+              )}
+              
+              {isListening && (
+                <div className="flex items-center justify-center p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-green-700 animate-pulse">👂 Слушаю вас...</span>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card title="🎤 Голосовое управление" className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
+            <div className="space-y-3">
+              <Button
+                onClick={isListening ? stopListening : startListening}
+                variant={isListening ? 'danger' : 'primary'}
+                size="lg"
+                className="w-full"
+                disabled={isProcessing}
+              >
+                {isListening ? '⏹️ Перестать говорить' : '🎤 Начать говорить'}
+              </Button>
+              
+              {!('webkitSpeechRecognition' in window) && (
+                <p className="text-sm text-red-600 text-center">
+                  Голосовое распознавание не поддерживается
+                </p>
+              )}
+              
+              <div className="text-xs text-gray-500 text-center">
+                Нажмите и говорите с Алисой естественно
               </div>
             </div>
           </Card>
 
-          <Card title="💡 Возможности">
+          <Card title="💡 Подсказки для общения" className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
             <div className="space-y-2 text-sm text-gray-600">
-              <p>• <strong>Мгновенные ответы</strong> от AI</p>
-              <p>• <strong>Постоянное подключение</strong></p>
-              <p>• <strong>Автопереподключение</strong></p>
-              <p>• <strong>История разговоров</strong></p>
+              <p>💬 "Алиса, как дела с нашими домами?"</p>
+              <p>🏢 "Покажи статистику по бригадам"</p>
+              <p>📊 "Какие дома требуют внимания?"</p>
+              <p>📅 "Как прошли последние планерки?"</p>
+              <p>👥 "Расскажи о наших сотрудниках"</p>
             </div>
           </Card>
 
-          <Card title="🏢 Контекст VasDom">
+          <Card title="🏢 О компании VasDom" className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
             <div className="space-y-2 text-sm text-gray-600">
-              <p>• 348 домов в управлении</p>
-              <p>• 6 рабочих бригад Калуги</p>
-              <p>• Интеграция с Bitrix24</p>
-              <p>• Telegram уведомления</p>
+              <div className="flex justify-between">
+                <span>🏠 Домов в управлении:</span>
+                <span className="font-semibold text-blue-600">348</span>
+              </div>
+              <div className="flex justify-between">
+                <span>👥 Сотрудников:</span>
+                <span className="font-semibold text-green-600">82</span>
+              </div>
+              <div className="flex justify-between">
+                <span>🚛 Рабочих бригад:</span>
+                <span className="font-semibold text-purple-600">6</span>
+              </div>
+              <div className="flex justify-between">
+                <span>📍 Город:</span>
+                <span className="font-semibold text-orange-600">Калуга</span>
+              </div>
             </div>
           </Card>
 
-          <Card title="📊 Статистика чата">
+          <Card title="📊 Статистика беседы" className="bg-white/80 backdrop-blur-sm shadow-xl border-0">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Сообщений:</span>
-                <span className="font-semibold">{messages.length}</span>
+                <span className="font-semibold text-blue-600">{messages.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Помощник:</span>
+                <span className="text-green-600 font-medium">👋 Алиса</span>
               </div>
               <div className="flex justify-between">
                 <span>Тип чата:</span>
-                <span className="text-green-600">💬 Живой</span>
+                <span className="text-purple-600 font-medium">💬 Живой</span>
               </div>
             </div>
           </Card>
