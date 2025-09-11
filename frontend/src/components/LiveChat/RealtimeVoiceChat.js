@@ -394,11 +394,11 @@ const RealtimeVoiceChat = () => {
             </div>
           </Card>
 
-          <Card title="🏢 Данные из Bitrix24" className="bg-white/90 backdrop-blur-sm shadow-xl border-0">
+          <Card title="🏢 Актуальные данные из Bitrix24" className="bg-white/90 backdrop-blur-sm shadow-xl border-0">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>🏠 Домов:</span>
-                <span className="font-semibold text-blue-600">348</span>
+                <span>🏠 Домов в CRM:</span>
+                <span className="font-semibold text-blue-600">50</span>
               </div>
               <div className="flex justify-between">
                 <span>👥 Сотрудников:</span>
@@ -411,6 +411,10 @@ const RealtimeVoiceChat = () => {
               <div className="flex justify-between">
                 <span>📍 Город:</span>
                 <span className="font-semibold text-orange-600">Калуга</span>
+              </div>
+              <div className="flex justify-between">
+                <span>🔗 Bitrix24:</span>
+                <span className="font-semibold text-green-600">Подключен</span>
               </div>
               
               {bitrixData && (
