@@ -758,14 +758,6 @@ const Works = () => {
     }
   };
 
-  if (loading && houses.length === 0) {
-    return (
-      <div className="p-6 flex justify-center items-center min-h-96">
-        <LoadingSpinner size="lg" text="Загрузка домов из Bitrix24..." />
-      </div>
-    );
-  }
-
   // Пагинация данных с мемоизацией
   const paginatedHouses = useMemo(() => {
     return filteredHouses.slice(
@@ -787,6 +779,15 @@ const Works = () => {
       )
     };
   }, [houses.length, filteredHouses.length, activeFilters]);
+
+  // Ранний return ТОЛЬКО после всех hooks
+  if (loading && houses.length === 0) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-96">
+        <LoadingSpinner size="lg" text="Загрузка домов из Bitrix24..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
