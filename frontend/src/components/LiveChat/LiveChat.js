@@ -326,31 +326,41 @@ const LiveChat = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Живой разговор</h1>
-          <p className="text-gray-600">Real-time общение с VasDom AI через WebSocket</p>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+            👋 Живое общение с Алисой
+            {isSpeaking && <span className="ml-3 text-xl animate-pulse">🗣️</span>}
+          </h1>
+          <p className="text-gray-600">Ваш персональный помощник VasDom всегда готов помочь</p>
         </div>
         <div className="flex space-x-2">
+          <Button 
+            variant="secondary" 
+            onClick={toggleVoice}
+            className={voiceEnabled ? "bg-green-100 text-green-700" : "bg-gray-100"}
+          >
+            {voiceEnabled ? '🔊 Голос вкл' : '🔇 Голос выкл'}
+          </Button>
           <Button variant="secondary" onClick={clearChat}>
-            🗑️ Очистить
+            🧹 Очистить
           </Button>
           <Button 
             variant={isConnected ? "success" : "warning"} 
             onClick={reconnectWebSocket}
             disabled={isConnected}
           >
-            {isConnected ? '✅ Подключено' : '🔄 Переподключить'}
+            {isConnected ? '✨ На связи' : '🔄 Подключить'}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Chat Messages */}
-        <div className="lg:col-span-3">
-          <Card className="h-96 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="xl:col-span-3">
+          <Card className="h-96 flex flex-col bg-white/80 backdrop-blur-sm shadow-xl border-0">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -360,28 +370,50 @@ const LiveChat = () => {
                   }`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-4 py-3 rounded-2xl shadow-sm ${
                       message.type === 'user'
-                        ? 'bg-blue-600 text-white max-w-xs lg:max-w-md'
+                        ? 'bg-blue-500 text-white max-w-xs lg:max-w-md'
                         : message.type === 'system'
-                        ? 'bg-yellow-100 text-yellow-800 border border-yellow-200 max-w-md text-center'
+                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-200 max-w-md text-center rounded-full'
                         : message.isError
-                        ? 'bg-red-100 text-red-800 border border-red-200 max-w-xs lg:max-w-md'
-                        : 'bg-green-100 text-green-800 border border-green-200 max-w-xs lg:max-w-md'
+                        ? 'bg-red-50 text-red-700 border border-red-200 max-w-xs lg:max-w-md'
+                        : 'bg-gradient-to-r from-green-50 to-emerald-50 text-gray-800 border border-green-200 max-w-xs lg:max-w-md'
                     }`}
                   >
-                    <p className="text-sm">{message.text}</p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString('ru-RU')}
-                    </p>
+                    <div className="flex items-start space-x-2">
+                      {message.type === 'ai' && <span className="text-sm">🤖</span>}
+                      <div>
+                        <p className="text-sm leading-relaxed">{message.text}</p>
+                        <p className="text-xs opacity-60 mt-1">
+                          {message.timestamp.toLocaleTimeString('ru-RU')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
               
+              {currentMessage && (
+                <div className="flex justify-end">
+                  <div className="bg-blue-200 text-blue-800 px-4 py-3 rounded-2xl max-w-xs lg:max-w-md shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <span className="animate-pulse">🎤</span>
+                      <div>
+                        <p className="text-sm">{currentMessage}</p>
+                        <p className="text-xs opacity-70">Слушаю вас...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {isProcessing && (
                 <div className="flex justify-start">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <LoadingSpinner size="sm" text="AI отвечает в реальном времени..." />
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                      <span className="text-sm text-gray-600">Алиса думает...</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -389,25 +421,36 @@ const LiveChat = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Text Input */}
-            <div className="border-t p-4">
-              <form onSubmit={handleTextSubmit} className="flex space-x-2">
-                <input
-                  type="text"
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="Введите сообщение для живого разговора..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            {/* Input Area */}
+            <div className="border-t bg-gray-50/50 p-4 rounded-b-lg">
+              <div className="flex space-x-3">
+                <Button
+                  onClick={isListening ? stopListening : startListening}
+                  variant={isListening ? 'danger' : 'primary'}
                   disabled={isProcessing}
-                />
-                <Button 
-                  type="submit" 
-                  disabled={!textInput.trim() || isProcessing}
-                  variant="success"
+                  className="flex-shrink-0"
                 >
-                  ⚡ Отправить
+                  {isListening ? '⏹️ Стоп' : '🎤 Говорить'}
                 </Button>
-              </form>
+                <form onSubmit={handleTextSubmit} className="flex-1 flex space-x-2">
+                  <input
+                    type="text"
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Напишите сообщение Алисе..."
+                    className="flex-1 px-4 py-2 bg-white rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    disabled={isProcessing}
+                  />
+                  <Button 
+                    type="submit" 
+                    disabled={!textInput.trim() || isProcessing}
+                    variant="success"
+                    className="rounded-full"
+                  >
+                    💬 Отправить
+                  </Button>
+                </form>
+              </div>
             </div>
           </Card>
         </div>
