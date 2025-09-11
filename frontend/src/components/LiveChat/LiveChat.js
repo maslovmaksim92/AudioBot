@@ -332,7 +332,7 @@ const LiveChat = () => {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center">
