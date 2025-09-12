@@ -540,12 +540,12 @@ const WorksEnhanced = () => {
               onChange={(e) => setActiveFilters(prev => ({ ...prev, management_company: e.target.value }))}
             >
               <option value="">Все УК</option>
-              <option value="ООО \"ГородУК\"">ООО "ГородУК"</option>
-              <option value="ООО \"ДомУслуги\"">ООО "ДомУслуги"</option>
-              <option value="ООО \"Жилкомсервис\"">ООО "Жилкомсервис"</option>
-              <option value="ООО \"КомфортСервис\"">ООО "КомфортСервис"</option>
-              <option value="ООО \"Мастер-УК\"">ООО "Мастер-УК"</option>
-              <option value="ООО \"РЯДОМ-Комфорт\"">ООО "РЯДОМ-Комфорт"</option>
+              <option value='ООО "ГородУК"'>ООО "ГородУК"</option>
+              <option value='ООО "ДомУслуги"'>ООО "ДомУслуги"</option>
+              <option value='ООО "Жилкомсервис"'>ООО "Жилкомсервис"</option>
+              <option value='ООО "КомфортСервис"'>ООО "КомфортСервис"</option>
+              <option value='ООО "Мастер-УК"'>ООО "Мастер-УК"</option>
+              <option value='ООО "РЯДОМ-Комфорт"'>ООО "РЯДОМ-Комфорт"</option>
             </select>
           </div>
 
