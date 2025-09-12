@@ -404,3 +404,41 @@ async def get_cleaning_calendar():
             "status": "error",
             "message": f"Calendar error: {str(e)}"
         }
+
+@router.get("/analytics-v2")
+async def get_analytics_v2():
+    """Аналитика через dashboard router"""
+    try:
+        logger.info("📊 Loading analytics via dashboard router...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=500)
+        
+        if not deals:
+            return {"status": "error", "message": "No deals data"}
+        
+        # Быстрая аналитика по бригадам
+        brigade_stats = {}
+        for deal in deals:
+            brigade = deal.get('brigade', 'Не назначена')
+            if brigade not in brigade_stats:
+                brigade_stats[brigade] = {"houses": 0, "apartments": 0, "scheduled": 0}
+            
+            brigade_stats[brigade]["houses"] += 1
+            brigade_stats[brigade]["apartments"] += deal.get('apartments_count', 0)
+            
+            if deal.get('september_schedule', {}).get('has_schedule'):
+                brigade_stats[brigade]["scheduled"] += 1
+        
+        return {
+            "status": "success",
+            "data": {
+                "total_houses": len(deals),
+                "brigade_stats": brigade_stats,
+                "generated_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Analytics v2 error: {e}")
+        return {"status": "error", "message": str(e)}
