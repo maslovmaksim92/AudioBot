@@ -18,6 +18,13 @@ const WorksEnhanced = () => {
   const [dashboardStats, setDashboardStats] = useState({});
   const [loading, setLoading] = useState(false);
   
+  // Progress state для UX улучшений
+  const [loadingProgress, setLoadingProgress] = useState({
+    stage: '',
+    message: '',
+    progress: 0
+  });
+  
   // Активные фильтры
   const [activeFilters, setActiveFilters] = useState({
     brigade: '',
