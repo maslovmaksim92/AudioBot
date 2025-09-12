@@ -65,6 +65,11 @@ const WorksEnhanced = () => {
     fetchInitialData();
   }, []);
 
+  // Эффект для применения фильтров и сортировки
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [houses, activeFilters, sortConfig]);
+
   // API calls
   const fetchInitialData = async () => {
     setLoading(true);
