@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://vasdom-clean.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
+user_problem_statement: "Анализ продакшена https://audiobot-qci2.onrender.com и GitHub веток (main + conflict_120925_1651). Довести раздел 'дома' до идеального состояния - загрузка 490 домов, корректные УК, фильтры, подготовка к продакшену. Синхронизация кода и полная функциональность."
 
 backend:
   - task: "VasDom AudioBot Houses Section - 490 Houses Loading"
