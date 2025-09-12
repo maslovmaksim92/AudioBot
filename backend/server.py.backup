@@ -73,20 +73,20 @@ class TelegramUpdate(BaseModel):
         return True
 
 # CORS settings - читаем из переменных окружения (УЛУЧШЕНИЕ 1)
-CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://crm-connector-2.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
+CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://audio-management.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
 CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(',') if origin.strip()]
 
 # Безопасные дефолтные origins если переменная пустая
 if not CORS_ORIGINS:
     CORS_ORIGINS = [
-        "https://crm-connector-2.preview.emergentagent.com", 
+        "https://audio-management.preview.emergentagent.com", 
         "https://audiobot-qci2.onrender.com"
     ]
 
 # Frontend redirect URLs - вынос в конфигурацию (УЛУЧШЕНИЕ 7)  
 FRONTEND_DASHBOARD_URL = os.environ.get(
     'FRONTEND_DASHBOARD_URL', 
-    'https://crm-connector-2.preview.emergentagent.com'
+    'https://audio-management.preview.emergentagent.com'
 )
 
 # Security settings (УЛУЧШЕНИЕ 3)
@@ -876,7 +876,7 @@ async def dashboard_page():
                 <a href="/api/" class="btn">🔗 API Документация</a>
                 <a href="/api/logs" class="btn">📋 Логи самообучения</a>
                 <a href="/api/self-learning/status" class="btn">🧠 Статус AI</a>
-                <a href="https://crm-connector-2.preview.emergentagent.com" class="btn">🎛️ Полный Dashboard</a>
+                <a href="https://audio-management.preview.emergentagent.com" class="btn">🎛️ Полный Dashboard</a>
             </div>
         </div>
     </div>
