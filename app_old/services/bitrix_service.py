@@ -404,55 +404,78 @@ class BitrixService:
             return []
 
     async def _enrich_with_management_companies(self, deals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Обогащение данных управляющими компаниями"""
+        """Обогащение данных РЕАЛЬНЫМИ управляющими компаниями из Bitrix24"""
         try:
             # Собираем уникальные ID компаний
             company_ids = set()
             for deal in deals:
                 company_id = deal.get('COMPANY_ID')
-                if company_id:
-                    company_ids.add(company_id)
+                if company_id and str(company_id).isdigit():
+                    company_ids.add(str(company_id))
+            
+            logger.info(f"🏢 Found {len(company_ids)} unique company IDs: {list(company_ids)[:10]}...")
             
             if not company_ids:
-                logger.info("📋 No company IDs found, using fallback УК")
+                logger.warning("📋 No valid company IDs found in deals")
                 for deal in deals:
-                    deal['management_company'] = self._get_fallback_management_company()
+                    deal['management_company'] = "УК не указана"
                 return deals
             
-            # Получаем данные компаний из Bitrix24
+            # Получаем данные компаний из Bitrix24 ПАКЕТНО для быстроты
             companies_data = {}
-            for company_id in list(company_ids)[:20]:  # Лимит на первые 20 компаний
+            for company_id in list(company_ids)[:50]:  # Лимит на первые 50 компаний
                 try:
-                    url = f"{self.webhook_url}crm.company.get.json?id={company_id}"
+                    params = {
+                        'id': company_id,
+                        'select[0]': 'TITLE',
+                        'select[1]': 'COMPANY_TYPE', 
+                        'select[2]': 'INDUSTRY'
+                    }
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{self.webhook_url}crm.company.get.json?{query_string}"
+                    
                     async with httpx.AsyncClient() as client:
-                        response = await client.get(url, timeout=10)
+                        response = await client.get(url, timeout=15)
                         if response.status_code == 200:
                             data = response.json()
                             if data.get('result'):
-                                company_name = data['result'].get('TITLE', '')
-                                if company_name:
-                                    companies_data[company_id] = company_name
-                                    logger.info(f"✅ Company info loaded: {company_name}")
+                                company_title = data['result'].get('TITLE', '')
+                                if company_title:
+                                    companies_data[company_id] = company_title
+                                    logger.info(f"✅ Company {company_id}: {company_title}")
+                                else:
+                                    logger.warning(f"⚠️ Company {company_id}: no TITLE found")
+                            else:
+                                logger.warning(f"⚠️ Company {company_id}: empty result from Bitrix24")
+                        else:
+                            logger.error(f"❌ Company {company_id}: HTTP {response.status_code}")
+                            
+                    await asyncio.sleep(0.1)  # Небольшая задержка между запросами
+                    
                 except Exception as e:
                     logger.error(f"❌ Error loading company {company_id}: {e}")
                     continue
             
             # Обогащаем сделки данными компаний
+            enriched_count = 0
             for deal in deals:
-                company_id = deal.get('COMPANY_ID')
+                company_id = str(deal.get('COMPANY_ID', ''))
                 if company_id and company_id in companies_data:
                     deal['management_company'] = companies_data[company_id]
+                    enriched_count += 1
                 else:
-                    deal['management_company'] = self._get_fallback_management_company()
+                    # Если УК не найдена в Bitrix24, указываем это явно
+                    deal['management_company'] = f"УК не найдена (ID: {company_id})" if company_id and company_id != '0' else "УК не указана"
             
-            logger.info(f"✅ Enriched with {len(companies_data)} management companies")
+            logger.info(f"✅ Enriched {enriched_count}/{len(deals)} deals with REAL management companies from Bitrix24")
+            logger.info(f"🏢 Loaded companies: {list(companies_data.values())[:5]}...")
             return deals
             
         except Exception as e:
             logger.error(f"❌ Error enriching with companies: {e}")
-            # Fallback: используем фиктивные УК
+            # Fallback: указываем что УК не загружены
             for deal in deals:
-                deal['management_company'] = self._get_fallback_management_company()
+                deal['management_company'] = "Ошибка загрузки УК"
             return deals
 
     def _get_fallback_management_company(self) -> str:
