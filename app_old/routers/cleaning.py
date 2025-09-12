@@ -320,6 +320,58 @@ async def get_brigades():
         "total_brigades": 6
     }
 
+@router.get("/cleaning/debug-company")
+async def debug_company_data():
+    """Debug для анализа данных УК"""
+    try:
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=3)  # Берем 3 сделки
+        
+        if deals and len(deals) > 0:
+            analysis = []
+            for deal in deals[:3]:
+                company_id = deal.get('COMPANY_ID', 'NO_COMPANY_ID')
+                
+                # Если есть company_id, пытаемся получить данные компании
+                company_name = "NOT_LOADED"
+                if company_id and str(company_id).isdigit():
+                    try:
+                        import httpx
+                        import urllib.parse
+                        
+                        params = {'id': company_id}
+                        query_string = urllib.parse.urlencode(params)
+                        url = f"{BITRIX24_WEBHOOK_URL}crm.company.get.json?{query_string}"
+                        
+                        async with httpx.AsyncClient() as client:
+                            response = await client.get(url, timeout=10)
+                            if response.status_code == 200:
+                                company_data = response.json()
+                                if company_data.get('result'):
+                                    company_name = company_data['result'].get('TITLE', 'NO_TITLE')
+                    except Exception as e:
+                        company_name = f"ERROR: {str(e)}"
+                
+                analysis.append({
+                    "deal_id": deal.get('ID'),
+                    "deal_title": deal.get('TITLE', 'NO_TITLE'),
+                    "company_id": company_id,
+                    "company_name": company_name,
+                    "cleaning_type_1": deal.get('UF_CRM_1741592855565', 'NO_TYPE1'),
+                    "apartments": deal.get('UF_CRM_1669704529022', 'NO_APARTMENTS')
+                })
+            
+            return {
+                "status": "success",
+                "analysis": analysis,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            return {"status": "error", "message": "No deals found"}
+            
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/stats")
 async def get_cleaning_stats():
     """Статистика по уборке"""
