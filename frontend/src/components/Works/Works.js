@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, Button, LoadingSpinner } from '../UI';
+import { apiService } from '../../services/apiService';
 
 const WorksEnhanced = () => {
   const { actions } = useApp();
