@@ -53,16 +53,19 @@ const WorksEnhanced = () => {
   // API calls
   const fetchInitialData = async () => {
     setLoading(true);
+    console.log('🔄 Starting initial data load...');
     try {
       await Promise.all([
         fetchFilters(),
         fetchHouses(),
         fetchDashboardStats()
       ]);
+      console.log('✅ Initial data load completed');
     } catch (error) {
       console.error('❌ Error fetching initial data:', error);
     } finally {
       setLoading(false);
+      console.log('🔄 Loading state set to false');
     }
   };
 
