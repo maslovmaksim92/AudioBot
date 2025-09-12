@@ -53,7 +53,7 @@ class BitrixService:
                                 
                             start += batch_size
                             
-                            if len(all_deals) >= 600:
+                            if len(all_deals) >= 1000:
                                 logger.info(f"🛑 Loaded {len(all_deals)} houses limit reached")
                                 break
                                 
