@@ -69,6 +69,25 @@ const WorksEnhanced = () => {
 
   useEffect(() => {
     fetchInitialData();
+    
+    // Детекция мобильных устройств и размера экрана
+    const checkDeviceType = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Автоматическая настройка элементов на страницу
+      if (window.innerWidth < 768) {
+        setItemsPerPage(6); // Меньше на мобильных
+        setViewDensity('compact');
+      } else if (window.innerWidth < 1200) {
+        setItemsPerPage(9); // Средне на планшетах
+      } else {
+        setItemsPerPage(12); // Больше на десктопе
+      }
+    };
+    
+    checkDeviceType();
+    window.addEventListener('resize', checkDeviceType);
+    
+    return () => window.removeEventListener('resize', checkDeviceType);
   }, []);
 
   // Эффект для применения фильтров и сортировки
