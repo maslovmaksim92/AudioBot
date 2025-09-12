@@ -565,6 +565,18 @@ def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Opti
         'cleaning_type_2': cleaning_type_2
     }
 
+def _parse_september_schedule(deal: dict) -> Optional[dict]:
+    """Парсинг графика уборки для сентября из Bitrix24 полей"""
+    # Поля для сентября в Bitrix24
+    september_fields = {
+        'date_1': 'UF_CRM_1741592774017',
+        'type_1': 'UF_CRM_1741592774018', 
+        'date_2': 'UF_CRM_1741592892232',
+        'type_2': 'UF_CRM_1741592892233'
+    }
+    
+    return _parse_monthly_schedule(deal, 'september', september_fields)
+
 def _extract_weeks(dates: List[str]) -> List[int]:
     """Извлечение номеров недель из дат (поддерживает ISO и DD.MM.YYYY форматы)"""
     weeks = set()
