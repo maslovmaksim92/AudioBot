@@ -1222,6 +1222,200 @@ class VasDomAPITester:
             self.log_test("Bitrix24 Tasks Users - GET /api/tasks/users", False, str(e))
             return False
 
+    def test_production_debug_endpoint(self):
+        """НОВЫЙ ТЕСТ: Проверка диагностики версии кода - GET /api/cleaning/production-debug"""
+        try:
+            print("\n🔍 ТЕСТИРОВАНИЕ PRODUCTION DEBUG ENDPOINT:")
+            print("   Новый API: GET /api/cleaning/production-debug - диагностика версии кода и проблем")
+            print("   Ожидается: has_optimized_loading: true, has_enrichment_method: true")
+            
+            response = requests.get(f"{self.api_url}/cleaning/production-debug", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "code_version_check" in data)
+                
+                if success:
+                    code_check = data.get("code_version_check", {})
+                    has_optimized = code_check.get("has_optimized_loading", False)
+                    has_enrichment = code_check.get("has_enrichment_method", False)
+                    has_cache = code_check.get("has_cache_methods", False)
+                    
+                    print(f"   🔍 Версия кода:")
+                    print(f"      - has_optimized_loading: {has_optimized}")
+                    print(f"      - has_enrichment_method: {has_enrichment}")
+                    print(f"      - has_cache_methods: {has_cache}")
+                    
+                    # Проверяем что новые методы присутствуют
+                    if has_optimized and has_enrichment:
+                        print(f"   ✅ Новая версия кода с оптимизациями развернута")
+                        success = True
+                    else:
+                        print(f"   ❌ Старая версия кода без оптимизаций")
+                        success = False
+                    
+                    # Показываем рекомендации если есть
+                    recommendations = data.get("recommendations", [])
+                    if recommendations:
+                        print(f"   ⚠️ Рекомендации:")
+                        for rec in recommendations[:3]:  # Показываем первые 3
+                            print(f"      - {rec}")
+                    
+                    # Показываем анализ сделки
+                    sample_analysis = data.get("sample_deal_analysis")
+                    if sample_analysis:
+                        print(f"   📊 Анализ сделки:")
+                        print(f"      - Deal ID: {sample_analysis.get('deal_id')}")
+                        print(f"      - Has COMPANY_ID: {sample_analysis.get('has_company_id')}")
+                        print(f"      - Has ASSIGNED_BY_ID: {sample_analysis.get('has_assigned_by_id')}")
+                        print(f"      - Has COMPANY_TITLE: {sample_analysis.get('has_company_title')}")
+                        print(f"      - Has ASSIGNED_NAME: {sample_analysis.get('has_assigned_name')}")
+                
+            self.log_test("Production Debug Endpoint", success, 
+                         f"Status: {response.status_code}, Optimized: {has_optimized if 'has_optimized' in locals() else False}, Enrichment: {has_enrichment if 'has_enrichment' in locals() else False}")
+            return success
+        except Exception as e:
+            self.log_test("Production Debug Endpoint", False, str(e))
+            return False
+
+    def test_fix_management_companies_endpoint(self):
+        """НОВЫЙ ТЕСТ: Проверка исправления данных УК - GET /api/cleaning/fix-management-companies"""
+        try:
+            print("\n🔧 ТЕСТИРОВАНИЕ FIX MANAGEMENT COMPANIES ENDPOINT:")
+            print("   Новый API: GET /api/cleaning/fix-management-companies - исправление данных УК на продакшене")
+            print("   Ожидается: Реальные названия УК из Bitrix24")
+            
+            response = requests.get(f"{self.api_url}/cleaning/fix-management-companies", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "fixed_houses" in data)
+                
+                if success:
+                    fixed_houses = data.get("fixed_houses", [])
+                    processed_count = len(fixed_houses)
+                    
+                    print(f"   🔧 Обработано домов: {processed_count}")
+                    print(f"   🔧 Bitrix24 соединение: {data.get('bitrix_connection', 'Unknown')}")
+                    
+                    # Проверяем что УК исправлены
+                    real_companies_count = 0
+                    real_brigades_count = 0
+                    
+                    for house in fixed_houses[:3]:  # Проверяем первые 3
+                        management_company = house.get("fixed_management_company", "")
+                        brigade = house.get("fixed_brigade", "")
+                        
+                        print(f"   🏠 Дом: {house.get('address', 'Без адреса')}")
+                        print(f"      - УК: {management_company}")
+                        print(f"      - Бригада: {brigade}")
+                        
+                        # Проверяем что это реальные УК (не "Не определена")
+                        if management_company and management_company != "Не определена":
+                            real_companies_count += 1
+                            
+                        # Проверяем что это реальные бригады (не "Бригада не определена")
+                        if brigade and brigade != "Бригада не определена":
+                            real_brigades_count += 1
+                    
+                    print(f"   📊 Домов с реальными УК: {real_companies_count}/{min(3, processed_count)}")
+                    print(f"   📊 Домов с реальными бригадами: {real_brigades_count}/{min(3, processed_count)}")
+                    
+                    # Успех если хотя бы половина домов имеет реальные данные
+                    if real_companies_count > 0 and real_brigades_count > 0:
+                        print(f"   ✅ Исправление УК и бригад работает")
+                        success = True
+                    else:
+                        print(f"   ❌ УК и бригады все еще не исправлены")
+                        success = False
+                
+            self.log_test("Fix Management Companies Endpoint", success, 
+                         f"Status: {response.status_code}, Processed: {processed_count if 'processed_count' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Fix Management Companies Endpoint", False, str(e))
+            return False
+
+    def test_houses_fixed_endpoint(self):
+        """НОВЫЙ ТЕСТ: Проверка домов с принудительным обогащением - GET /api/cleaning/houses-fixed"""
+        try:
+            print("\n🏠 ТЕСТИРОВАНИЕ HOUSES FIXED ENDPOINT:")
+            print("   Новый API: GET /api/cleaning/houses-fixed - дома с принудительным обогащением данных УК и бригад")
+            print("   Ожидается: Дома с заполненными полями management_company и brigade")
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses-fixed?limit=5", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list))
+                
+                if success:
+                    houses = data.get("houses", [])
+                    total = data.get("total", 0)
+                    source = data.get("source", "Unknown")
+                    
+                    print(f"   🏠 Загружено домов: {len(houses)}")
+                    print(f"   🏠 Общее количество: {total}")
+                    print(f"   🏠 Источник: {source}")
+                    
+                    # Проверяем что поля management_company и brigade заполнены
+                    filled_companies = 0
+                    filled_brigades = 0
+                    null_companies = 0
+                    null_brigades = 0
+                    
+                    for house in houses:
+                        management_company = house.get("management_company")
+                        brigade = house.get("brigade")
+                        
+                        print(f"   🏠 Дом: {house.get('address', 'Без адреса')}")
+                        print(f"      - УК: {management_company}")
+                        print(f"      - Бригада: {brigade}")
+                        
+                        # Считаем заполненные поля
+                        if management_company and management_company not in [None, "null", "", "Не определена"]:
+                            filled_companies += 1
+                        else:
+                            null_companies += 1
+                            
+                        if brigade and brigade not in [None, "null", "", "Бригада не определена"]:
+                            filled_brigades += 1
+                        else:
+                            null_brigades += 1
+                    
+                    print(f"   📊 УК заполнены: {filled_companies}/{len(houses)}")
+                    print(f"   📊 УК null/пустые: {null_companies}/{len(houses)}")
+                    print(f"   📊 Бригады заполнены: {filled_brigades}/{len(houses)}")
+                    print(f"   📊 Бригады null/пустые: {null_brigades}/{len(houses)}")
+                    
+                    # Успех если большинство полей заполнено
+                    if filled_companies > null_companies and filled_brigades > null_brigades:
+                        print(f"   ✅ Принудительное обогащение работает - поля больше не null")
+                        success = True
+                    else:
+                        print(f"   ❌ Принудительное обогащение не работает - много null значений")
+                        success = False
+                        
+                    # Проверяем что используется FORCED ENRICHMENT
+                    if "FORCED ENRICHMENT" in source:
+                        print(f"   ✅ Используется принудительное обогащение")
+                    else:
+                        print(f"   ⚠️ Источник не указывает на принудительное обогащение")
+                
+            self.log_test("Houses Fixed Endpoint (Forced Enrichment)", success, 
+                         f"Status: {response.status_code}, Houses: {len(houses) if 'houses' in locals() else 0}, Filled companies: {filled_companies if 'filled_companies' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("Houses Fixed Endpoint (Forced Enrichment)", False, str(e))
+            return False
+
     def test_bitrix24_create_task(self):
         """НОВЫЙ ТЕСТ: Проверка создания задач - POST /api/tasks"""
         try:
