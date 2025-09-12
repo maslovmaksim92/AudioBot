@@ -1022,17 +1022,29 @@ const WorksEnhanced = () => {
 
     return (
       <div className="mt-8">
-        {/* Счетчик домов */}
+        {/* Улучшенный счетчик домов */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <h2 className="text-2xl font-bold text-gray-900">
-              📋 Список домов ({houses.length} из 490)
+              📋 Список домов ({filteredHouses.length} из {houses.length})
             </h2>
-            {houses.length < 490 && (
-              <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                ⚠️ Загружено не все дома
-              </div>
-            )}
+            <div className="flex space-x-2">
+              {filteredHouses.length !== houses.length && (
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  🔍 Применены фильтры
+                </div>
+              )}
+              {houses.length < 490 && (
+                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                  ⚠️ Загружено {houses.length} из 490
+                </div>
+              )}
+              {houses.length === 490 && (
+                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                  ✅ Все дома загружены
+                </div>
+              )}
+            </div>
           </div>
           
           <Button
