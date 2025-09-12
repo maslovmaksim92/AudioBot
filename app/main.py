@@ -11,7 +11,14 @@ from .config.settings import (
 from .config.database import init_database, close_database
 
 # Import routers
-from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics, realistic_voice, realtime_voice, websocket, learning
+from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics, learning
+# Новые voice роутеры
+try:
+    from .routers import realistic_voice, realtime_voice, websocket
+    VOICE_MODULES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Advanced voice modules not available: {e}")
+    VOICE_MODULES_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
