@@ -55,6 +55,12 @@ app.include_router(analytics.router)
 
 logger.info("✅ All routers included")
 
+# Test analytics endpoint directly in main.py
+@app.get("/api/analytics-test")
+async def analytics_test():
+    """Test analytics endpoint"""
+    return {"status": "success", "message": "Analytics endpoint working!"}
+
 # Startup/Shutdown events
 @app.on_event("startup")
 async def startup():
