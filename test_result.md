@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
+user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://vasdom-clean.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
   - task: "Render Production Issues Fix - COMPLETED LOCALLY"
@@ -208,7 +208,7 @@ backend:
     status_history:
         - working: true
           agent: "main"
-          comment: "✅ ИСПРАВЛЕНО: Изменен REACT_APP_BACKEND_URL в frontend/.env с https://audio-management.preview.emergentagent.com на https://audiobot-qci2.onrender.com для соответствия реальному URL продакшена на Render."
+          comment: "✅ ИСПРАВЛЕНО: Изменен REACT_APP_BACKEND_URL в frontend/.env с https://vasdom-clean.preview.emergentagent.com на https://audiobot-qci2.onrender.com для соответствия реальному URL продакшена на Render."
 
   - task: "Code Quality Fix - X-API-Key Header Validation"
     implemented: true

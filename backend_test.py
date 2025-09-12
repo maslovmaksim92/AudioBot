@@ -12,7 +12,7 @@ from datetime import datetime
 from io import BytesIO
 
 class VasDomAPITester:
-    def __init__(self, base_url="https://housing-tracker.preview.emergentagent.com"):
+    def __init__(self, base_url="https://vasdom-clean.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
