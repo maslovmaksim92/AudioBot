@@ -1059,7 +1059,7 @@ const WorksEnhanced = () => {
 
         {viewMode === 'cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {houses.map((house, index) => renderHouseCard(house, index))}
+            {filteredHouses.map((house, index) => renderHouseCard(house, index))}
           </div>
         ) : (
           <Card title="📋 Таблица домов">
