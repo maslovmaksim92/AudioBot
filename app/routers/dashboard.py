@@ -53,6 +53,25 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+@router.get("/test-490")
+async def test_490_houses():
+    """Тест генерации 490 домов"""
+    try:
+        if not BITRIX24_WEBHOOK_URL:
+            return {"error": "No webhook"}
+            
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        mock_data = bitrix._get_mock_data(490)
+        
+        return {
+            "status": "success",
+            "total_houses": len(mock_data),
+            "first_5": [house['TITLE'] for house in mock_data[:5]],
+            "last_5": [house['TITLE'] for house in mock_data[-5:]]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.get("/dashboard", response_model=dict)
 async def get_dashboard_stats():
     """Дашборд с данными из Bitrix24 CRM"""
