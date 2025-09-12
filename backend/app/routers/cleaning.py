@@ -9,6 +9,80 @@ from ..config.settings import BITRIX24_WEBHOOK_URL
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["cleaning"])
 
+@router.get("/cleaning/production-debug")
+async def production_debug():
+    """Специальный endpoint для диагностики проблем на продакшене"""
+    try:
+        logger.info("🔍 PRODUCTION DEBUG: Analyzing issues...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Проверяем, какую версию кода мы используем
+        has_optimized_method = hasattr(bitrix, 'get_deals_optimized')
+        has_enrich_method = hasattr(bitrix, '_enrich_deal_with_external_data')
+        has_cache_methods = hasattr(bitrix, 'clear_cache')
+        
+        # Получаем одну сделку для анализа
+        deals = await bitrix.get_deals(limit=1)
+        first_deal = deals[0] if deals else None
+        
+        debug_info = {
+            "status": "success",
+            "production_url": "https://audiobot-qci2.onrender.com",
+            "bitrix_webhook": BITRIX24_WEBHOOK_URL[:50] + "..." if BITRIX24_WEBHOOK_URL else "NOT_SET",
+            "code_version_check": {
+                "has_optimized_loading": has_optimized_method,
+                "has_enrichment_method": has_enrich_method,
+                "has_cache_methods": has_cache_methods,
+                "bitrix_service_methods": [method for method in dir(bitrix) if not method.startswith('_')]
+            },
+            "sample_deal_analysis": None,
+            "recommendations": []
+        }
+        
+        if first_deal:
+            debug_info["sample_deal_analysis"] = {
+                "deal_id": first_deal.get('ID'),
+                "title": first_deal.get('TITLE'),
+                "has_company_id": 'COMPANY_ID' in first_deal and first_deal.get('COMPANY_ID'),
+                "has_assigned_by_id": 'ASSIGNED_BY_ID' in first_deal and first_deal.get('ASSIGNED_BY_ID'),
+                "has_company_title": 'COMPANY_TITLE' in first_deal and first_deal.get('COMPANY_TITLE'),
+                "has_assigned_name": 'ASSIGNED_BY_NAME' in first_deal and first_deal.get('ASSIGNED_BY_NAME'),
+                "company_id_value": first_deal.get('COMPANY_ID'),
+                "assigned_by_id_value": first_deal.get('ASSIGNED_BY_ID'),
+                "all_fields_count": len(first_deal.keys())
+            }
+            
+            # Анализируем проблемы
+            if not first_deal.get('COMPANY_ID'):
+                debug_info["recommendations"].append("COMPANY_ID is null - deals may not have linked companies in Bitrix24")
+            
+            if not first_deal.get('ASSIGNED_BY_ID'):
+                debug_info["recommendations"].append("ASSIGNED_BY_ID is null - deals may not have assigned users in Bitrix24")
+            
+            if not first_deal.get('COMPANY_TITLE'):
+                debug_info["recommendations"].append("COMPANY_TITLE is missing - need separate crm.company.get API calls")
+                
+            if not first_deal.get('ASSIGNED_BY_NAME'):
+                debug_info["recommendations"].append("ASSIGNED_BY_NAME is missing - need separate user.get API calls")
+        
+        if not has_optimized_method:
+            debug_info["recommendations"].append("⚠️ OLD CODE VERSION: Missing optimized loading methods - need to redeploy latest code")
+        
+        if not has_enrich_method:
+            debug_info["recommendations"].append("⚠️ OLD CODE VERSION: Missing enrichment methods - need to redeploy latest code")
+        
+        logger.info(f"✅ Production debug completed: {len(debug_info['recommendations'])} issues found")
+        return debug_info
+        
+    except Exception as e:
+        logger.error(f"❌ Production debug error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @router.get("/cleaning/houses/test", response_model=dict)
 async def get_test_houses():
     """Быстрый тест нескольких домов с полной интеграцией"""
