@@ -82,7 +82,7 @@ const WorksEnhanced = () => {
       // Используем обновленный apiService для загрузки 490 домов
       console.log('🏠 Fetching houses using apiService (490 houses)...');
       
-      const data = await actions.api.getCleaningHouses(activeFilters);
+      const data = await apiService.getCleaningHouses(activeFilters);
       console.log('🏠 Houses data received:', data);
       
       const housesData = data.houses || data || [];
