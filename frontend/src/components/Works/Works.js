@@ -19,7 +19,29 @@ const WorksEnhanced = () => {
   const [loading, setLoading] = useState(false);
   
   // PRODUCTION: Динамические списки для фильтров
-  const [availableCompanies, setAvailableCompanies] = useState([]);
+  const [availableCompanies, setAvailableCompanies] = useState([
+    // FALLBACK список реальных УК на случай проблем с динамической загрузкой
+    'ООО "Жилкомсервис"',
+    'ООО "РЯДОМ-Плюс"', 
+    'ООО "Мастер-УК"',
+    'ООО "Стандарт-УК"',
+    'ООО "СовершенствоУК"',
+    'ООО "Управдом"',
+    'ООО "РЯДОМ-Сервис"',
+    'ООО "ГородУК"',
+    'ООО "ДомУслуги"',
+    'ООО "КомфортСервис"',
+    'ООО "Элит-Сервис"',
+    'ООО "РЯДОМ-Комфорт"',
+    'ООО "ТехноДом"',
+    'ООО "ЖЭК-Сервис"',
+    'ООО "Премиум-УК"',
+    'ООО "Домоуправление"',
+    'ООО "УК Центр"',
+    'ООО "УК Победа"',
+    'ООО "УК Жилетово"',
+    'ООО "НовоСтрой-УК"'
+  ]);
   const [availableBrigades, setAvailableBrigades] = useState([]);
   
   // Progress state для UX улучшений
