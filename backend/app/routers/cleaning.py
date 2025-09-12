@@ -9,6 +9,107 @@ from ..config.settings import BITRIX24_WEBHOOK_URL
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["cleaning"])
 
+@router.get("/cleaning/fix-management-companies")
+async def fix_management_companies_on_production():
+    """Специальный endpoint для исправления данных УК на продакшене"""
+    try:
+        logger.info("🔧 PRODUCTION FIX: Fixing management companies data...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Получаем сделки со всеми необходимыми полями
+        deals = await bitrix.get_deals(limit=10)  # Тестируем на первых 10
+        
+        fixed_houses = []
+        for deal in deals:
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            
+            # Получаем исходные данные
+            original_company_id = deal.get('COMPANY_ID')
+            original_assigned_by_id = deal.get('ASSIGNED_BY_ID')
+            
+            # Пытаемся получить данные компании и пользователя вручную
+            company_title = "Не определена"
+            assigned_name = "Не назначен"
+            
+            if original_company_id and str(original_company_id) != '0':
+                try:
+                    # Прямой вызов API компании
+                    import urllib.parse
+                    import httpx
+                    
+                    params = {'id': str(original_company_id)}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{BITRIX24_WEBHOOK_URL}crm.company.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            if result:
+                                company_title = result.get('TITLE', 'Название не найдено')
+                except Exception as e:
+                    logger.warning(f"⚠️ Company API error for {original_company_id}: {e}")
+            
+            if original_assigned_by_id and str(original_assigned_by_id) != '0':
+                try:
+                    # Прямой вызов API пользователя
+                    params = {'ID': str(original_assigned_by_id)}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{BITRIX24_WEBHOOK_URL}user.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            if result and isinstance(result, list) and len(result) > 0:
+                                user = result[0]
+                                assigned_name = f"{user.get('NAME', '')} {user.get('LAST_NAME', '')}".strip()
+                except Exception as e:
+                    logger.warning(f"⚠️ User API error for {original_assigned_by_id}: {e}")
+            
+            # Fallback для УК по адресу если API не вернул данные
+            if company_title == "Не определена":
+                company_title = _get_management_company(address)
+            
+            # Fallback для бригады по имени или адресу
+            if assigned_name == "Не назначен":
+                brigade_info = bitrix.analyze_house_brigade(address)
+            else:
+                brigade_info = _get_brigade_by_responsible_name(assigned_name.split()[0] if assigned_name else "")
+            
+            fixed_house = {
+                "address": address,
+                "deal_id": deal_id,
+                "original_company_id": original_company_id,
+                "original_assigned_by_id": original_assigned_by_id,
+                "fixed_management_company": company_title,
+                "fixed_brigade": brigade_info,
+                "fixed_assigned_name": assigned_name
+            }
+            
+            fixed_houses.append(fixed_house)
+        
+        logger.info(f"✅ Production fix completed: {len(fixed_houses)} houses processed")
+        return {
+            "status": "success",
+            "message": f"Обработано {len(fixed_houses)} домов",
+            "fixed_houses": fixed_houses,
+            "bitrix_connection": "✅ Connected",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Production fix error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
 @router.get("/cleaning/production-debug")
 async def production_debug():
     """Специальный endpoint для диагностики проблем на продакшене"""
