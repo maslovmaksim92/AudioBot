@@ -506,8 +506,8 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Остальные фильтры */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Основные фильтры */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Бригады */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
@@ -519,46 +519,11 @@ const WorksEnhanced = () => {
               value={activeFilters.brigade}
               onChange={(e) => setActiveFilters(prev => ({ ...prev, brigade: e.target.value }))}
             >
-              <option value="">Все бригады (0)</option>
-              {filters.brigades?.map((brigade, index) => (
-                <option key={index} value={brigade}>{brigade}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Недели уборки */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="text-orange-500">📅</span>
-              <label className="font-medium text-gray-700">Неделя уборки</label>
-            </div>
-            <select
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-              value={activeFilters.cleaning_week}
-              onChange={(e) => setActiveFilters(prev => ({ ...prev, cleaning_week: e.target.value }))}
-            >
-              <option value="">Все недели</option>
-              {filters.cleaning_weeks?.map((week, index) => (
-                <option key={index} value={week}>Неделя {week}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Месяцы */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="text-purple-500">🗓️</span>
-              <label className="font-medium text-gray-700">Месяц</label>
-            </div>
-            <select
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              value={activeFilters.month}
-              onChange={(e) => setActiveFilters(prev => ({ ...prev, month: e.target.value }))}
-            >
-              <option value="">Все месяцы</option>
-              {filters.months?.map((month, index) => (
-                <option key={index} value={month}>{month}</option>
-              ))}
+              <option value="">Все бригады</option>
+              <option value="1 бригада - Центральный район">1 бригада - Центральный</option>
+              <option value="4 бригада - Северный район">4 бригада - Северный</option>
+              <option value="5 бригада - Пригород">5 бригада - Пригород</option>
+              <option value="6 бригада - Окраины">6 бригада - Окраины</option>
             </select>
           </div>
 
@@ -573,29 +538,77 @@ const WorksEnhanced = () => {
               value={activeFilters.management_company}
               onChange={(e) => setActiveFilters(prev => ({ ...prev, management_company: e.target.value }))}
             >
-              <option value="">Все УК (0)</option>
-              {filters.management_companies?.map((company, index) => (
-                <option key={index} value={company}>{company}</option>
-              ))}
+              <option value="">Все УК</option>
+              <option value="ООО \"ГородУК\"">ООО "ГородУК"</option>
+              <option value="ООО \"ДомУслуги\"">ООО "ДомУслуги"</option>
+              <option value="ООО \"Жилкомсервис\"">ООО "Жилкомсервис"</option>
+              <option value="ООО \"КомфортСервис\"">ООО "КомфортСервис"</option>
+              <option value="ООО \"Мастер-УК\"">ООО "Мастер-УК"</option>
+              <option value="ООО \"РЯДОМ-Комфорт\"">ООО "РЯДОМ-Комфорт"</option>
             </select>
           </div>
 
-          {/* Показать график */}
+          {/* Статус */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
-              <span className="text-indigo-500">📊</span>
-              <label className="font-medium text-gray-700">Показать график</label>
+              <span className="text-purple-500">📊</span>
+              <label className="font-medium text-gray-700">Статус</label>
+            </div>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              value={activeFilters.status}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, status: e.target.value }))}
+            >
+              <option value="">Все статусы</option>
+              <option value="🏠 Активный">🏠 Активный</option>
+              <option value="⚠️ Проблемный">⚠️ Проблемный</option>
+              <option value="🔄 В работе">🔄 В работе</option>
+            </select>
+          </div>
+
+          {/* Месяц графика */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-indigo-500">📅</span>
+              <label className="font-medium text-gray-700">Месяц графика</label>
             </div>
             <select
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              value={activeFilters.month}
+              onChange={(e) => setActiveFilters(prev => ({ ...prev, month: e.target.value }))}
             >
-              <option value="september">Сентябрь</option>
-              <option value="october">Октябрь</option>
-              <option value="november">Ноябрь</option>
-              <option value="december">Декабрь</option>
+              <option value="september">Сентябрь 2025</option>
+              <option value="october">Октябрь 2025</option>
+              <option value="november">Ноябрь 2025</option>
+              <option value="december">Декабрь 2025</option>
             </select>
+          </div>
+        </div>
+
+        {/* Дополнительные фильтры */}
+        <div className="border-t pt-4">
+          <h4 className="font-medium text-gray-700 mb-3">🏠 Фильтр по количеству квартир</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">От</label>
+              <input
+                type="number"
+                placeholder="Мин. квартир"
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={activeFilters.apartments_min}
+                onChange={(e) => setActiveFilters(prev => ({ ...prev, apartments_min: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">До</label>
+              <input
+                type="number"
+                placeholder="Макс. квартир"
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={activeFilters.apartments_max}
+                onChange={(e) => setActiveFilters(prev => ({ ...prev, apartments_max: e.target.value }))}
+              />
+            </div>
           </div>
         </div>
 
