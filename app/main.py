@@ -11,7 +11,8 @@ from .config.settings import (
 from .config.database import init_database, close_database
 
 # Import routers
-from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics, learning
+from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics
+from .routers import learning_simple as learning
 # Новые voice роутеры
 try:
     from .routers import realistic_voice, realtime_voice, websocket
