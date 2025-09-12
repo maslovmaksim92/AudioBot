@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 
 // Page Components
 import Dashboard from './components/Dashboard/Dashboard';
+import HousesStatistics from './components/Dashboard/HousesStatistics';
 import AIChat from './components/AIChat/AIChat';
 import LiveChat from './components/LiveChat/LiveChat';
 import RealtimeVoiceChat from './components/LiveChat/RealtimeVoiceChat';
