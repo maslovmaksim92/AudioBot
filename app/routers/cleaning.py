@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+from fastapi import APIRouter
 from ..models.schemas import House
 from ..services.bitrix_service import BitrixService
 from ..config.settings import BITRIX24_WEBHOOK_URL
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["cleaning"])
 async def get_cleaning_houses(limit: Optional[int] = None):
     """Все дома из Bitrix24 (старая категория - 348 домов)"""
     try:
-        logger.info(f"🏠 Loading houses from CRM (old category)...")
+        logger.info("🏠 Loading houses from CRM (old category)...")
         
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         deals = await bitrix.get_deals(limit=limit)
@@ -60,7 +60,7 @@ async def get_cleaning_houses(limit: Optional[int] = None):
 async def get_cleaning_houses_490():
     """Новый endpoint - 490 домов из правильной категории Bitrix24"""
     try:
-        logger.info(f"🏠 Loading 490 houses from CRM (Category 34)...")
+        logger.info("🏠 Loading 490 houses from CRM (Category 34)...")
         
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         deals = await bitrix.get_deals(limit=500)  # Загружаем все 490+ домов
@@ -108,7 +108,7 @@ async def get_cleaning_houses_490():
 async def force_houses_490():
     """Принудительная загрузка 490 домов"""
     try:
-        logger.info(f"🔄 FORCE loading 490 houses...")
+        logger.info("🔄 FORCE loading 490 houses...")
         
         # Сначала проверяем подключение к Bitrix24
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
@@ -143,7 +143,7 @@ async def force_houses_490():
 async def debug_houses():
     """Отладочный endpoint для диагностики"""
     try:
-        logger.info(f"🔧 Debug houses endpoint called...")
+        logger.info("🔧 Debug houses endpoint called...")
         
         debug_info = {
             "status": "success",
