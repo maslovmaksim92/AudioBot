@@ -1122,11 +1122,7 @@ const WorksEnhanced = () => {
     if (loading && houses.length === 0) {
       return (
         <div className="mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <SkeletonHouseCard key={i} />
-            ))}
-          </div>
+          {renderSkeletonCards()}
         </div>
       );
     }
