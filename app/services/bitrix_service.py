@@ -69,7 +69,7 @@ class BitrixService:
                 return all_deals
             else:
                 logger.warning("⚠️ No deals from Bitrix24, using fallback")
-                return self._get_mock_data(limit or 50)
+                return self._get_mock_data(limit or 490)
             
         except Exception as e:
             logger.error(f"❌ Bitrix24 load error: {e}")
