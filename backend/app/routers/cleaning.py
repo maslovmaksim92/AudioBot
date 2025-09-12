@@ -570,12 +570,12 @@ def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Opti
 
 def _parse_september_schedule(deal: dict) -> Optional[dict]:
     """Парсинг графика уборки для сентября из Bitrix24 полей"""
-    # Поля для сентября в Bitrix24
+    # Поля для сентября в Bitrix24 согласно предоставленным данным пользователем
     september_fields = {
-        'date_1': 'UF_CRM_1741592774017',
-        'type_1': 'UF_CRM_1741592774018', 
-        'date_2': 'UF_CRM_1741592892232',
-        'type_2': 'UF_CRM_1741592892233'
+        'date_1': 'UF_CRM_1741592774017',    # Дата уборки 1 Сентябрь 2025
+        'type_1': 'UF_CRM_1741592855565',    # Тип уборки 1 Сентябрь 2025
+        'date_2': 'UF_CRM_1741592892232',    # Дата уборки 2 Сентябрь 2025
+        'type_2': 'UF_CRM_1741592945060'     # Тип уборки 2 Сентябрь 2025
     }
     
     return _parse_monthly_schedule(deal, 'september', september_fields)
