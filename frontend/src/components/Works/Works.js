@@ -341,10 +341,10 @@ const WorksEnhanced = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `houses_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `houses_filtered_${filteredHouses.length}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     
-    showNotification('📤 CSV файл скачан!', 'success');
+    showNotification(`📤 Экспортировано ${filteredHouses.length} домов в CSV!`, 'success');
     setShowExportModal(false);
   };
 
