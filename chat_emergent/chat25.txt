@@ -1,0 +1,144 @@
+Home
+
+The core product, VasDom AudioBot, is a comprehensive system for a cleaning company, featuring a FastAPI backend, React frontend, and integrations with Bitrix24 CRM, Emergent LLM (GPT-4 mini), and Telegram Bot. The application manages house data (490 houses, cleaning schedules, brigades, management companies), processes voice, and provides dashboard analytics. The primary problem to solve is to make the existing bot self-learning. This entails implementing: 1. **Export and Fine-tuning:** A mechanism to export `user_message`/`ai_response` pairs (filtered by positive ratings) and use them to fine-tune a local LLM (e.g., Llama). The AI service should dynamically switch between the external LLM and the local model. 2. **Retrieval from Logs (RAG):** An embedding service to compute and store message embeddings. Before calling the LLM, the system should retrieve similar past `ai_response` from logs based on cosine similarity and inject them into the system prompt. 3. **User Feedback Collection:** Add a `rating` field (1-5 stars) to `voice_logs` and an API endpoint (`POST /api/voice/feedback`) for users to submit feedback, with `log_id` included in the API response for client-side mapping. 4. **Periodic Re-evaluation and Retraining:** A cron job (`evaluate_model`) to compare the current model against benchmarks, log metrics, and automatically trigger `fine_tune.py` if performance drops below a threshold. All implementations must be production-ready, deployed on Render, and leverage real user data for continuous learning, with a strong emphasis on robustness and safety during deployment. The latest request is to integrate CRM call transcription for self-learning data.
+
+Проанализируй ветки https://github.com/maslovmaksim92/AudioBot - у нас рабоает приложение. Сделай по него анализ каждого файла из структуру пришли отчет по каждому файлв в сводной таблице
+
+Проанализируй ветки https://github.com/maslovmaksim92/AudioBot - у нас рабоает пр# **Анализ проекта VasDom AudioBot - Сводный отчет** ## **🚀 Общая характеристика проекта** **VasDom AudioBot** — это комплексная AI-система управления клининговой компанией в Калуге, которая автоматизирует управление 348 многоквартирными домами, 82 сотрудниками в 6 бригадах. --- ## **📊 Сводная таблица анализа файлов** | **Файл** | **Назначение** | **Основные функции** | **Технологии** | **Интеграции** | |----------|----------------|----------------------|----------------|----------------| | **🔧 КОНФИГУРАЦИОННЫЕ ФАЙЛЫ** | | `render.yaml` | Конфигурация деплоя | Настройки Render.com, переменные окружения, сборка frontend+backend | Python, Node.js | PostgreSQL, Bitrix24, Telegram, Emergent LLM | | `requirements.txt` | Python зависимости | 29 библиотек: FastAPI, SQLAlchemy, httpx, emergentintegrations | Python 3.9+ | Async HTTP, PostgreSQL, JWT | | `Procfile` | Команда запуска | Uvicorn сервер для production | Uvicorn | Render deployment | | **📁 ГЛАВНЫЕ ТОЧКИ ВХОДА** | | `main.py` | Главная точка входа | Импорт и запуск приложения для Render | Python | vasdom_app.py | | `vasdom_app.py` | Legacy/Fallback приложение | Совместимость с модульной структурой | FastAPI | app/main.py | | **🛠️ BACKEND АРХИТЕКТУРА** | | `app/main.py` | Основное FastAPI приложение | CORS, роутинг, startup/shutdown события | FastAPI 0.110.1 | PostgreSQL, всех роутеров | | `app/config/settings.py` | Настройки приложения | Переменные окружения, CORS, API ключи | Python dotenv | Bitrix24, Telegram, Emergent | | `app/config/database.py` | База данных | PostgreSQL подключение, Alembic миграции | SQLAlchemy, asyncpg | PostgreSQL async | | **📋 МОДЕЛИ ДАННЫХ** | | `app/models/schemas.py` | Pydantic схемы | API модели: VoiceMessage, Meeting, AITask, House | Pydantic 2.6+ | FastAPI validation | | **🔀 API РОУТЕРЫ** | | `app/routers/dashboard.py` | Дашборд API | Статистика CRM, health check, метрики домов | FastAPI | Bitrix24 CRM | | `app/routers/voice.py` | Голосовой AI | Обработка голосовых сообщений, самообучение | FastAPI | Emergent LLM, PostgreSQL | | **🤖 AI СЕРВИСЫ** | | `app/services/ai_service.py` | AI обработка | GPT-4 mini через Emergent LLM, fallback AI | emergentintegrations | OpenAI GPT-4 mini | | `app/services/bitrix_service.py` | Bitrix24 интеграция | Загрузка домов, создание задач, CRM операции | httpx async | Bitrix24 REST API | | `app/services/telegram_service.py` | Telegram бот | Отправка сообщений, webhook обработка | httpx | Telegram Bot API | | **⚡ LEGACY/BACKUP** | | `backend/server.py` | Legacy сервер | Совместимость, fallback на монолитную структуру | FastAPI | app/main.py | | **🎨 FRONTEND** | | `frontend/package.json` | Node.js зависимости | React 19.0, Radix UI, Tailwind, 86 пакетов | React, Tailwind CSS | Backend API | | `frontend/src/App.js` | Главный React компонент | Роутинг, Layout, lazy loading компонентов | React 19, React Router | AppContext | | **📝 ДОКУМЕНТАЦИЯ** | | `README.md` | Полная документация | 326 строк: архитектура, API, настройка, деплой | Markdown | Все компоненты | --- ## **🏗️ Архитектурный анализ** ### **Backend (FastAPI + PostgreSQL)** - **Модульная архитектура**: разделение на config, models, routers, services - **Async/await**: полная асинхронность для производительности - **Database**: PostgreSQL с Alembic миграциями - **API**: RESTful с Pydantic validation ### **Frontend (React + Tailwind)** - **React 19.0**: новейшая версия с улучшениями - **Radix UI**: 30+ компонентов для UI - **Lazy loading**: динамическая загрузка компонентов - **Context API**: глобальное состояние приложения ### **Интеграции** - **Bitrix24 CRM**: 348 домов, batch загрузка - **Telegram Bot**: уведомления сотрудникам - **Emergent LLM**: GPT-4 mini для AI - **PostgreSQL**: самообучение AI, логи, планерки --- ## **📈 Ключевые показатели проекта** - **🏠 Домов**: 348 (из CRM Bitrix24) - **👥 Сотрудников**: 82 в 6 бригадах - **📍 География**: Калуга, 6 районов - **🤖 AI модель**: GPT-4 mini через Emergent LLM - **📊 Статус**: Production Ready (развернуто на https://audiobot-qci2.onrender.com) --- ## **✅ Особенности реализации** ### **Надежность** - Fallback системы на каждом уровне - Graceful degradation при недоступности сервисов - Extensive error handling и logging ### **Производительность** - Async операции - Кеширование CRM данных - Batch API вызовы - Lazy loading frontend ### **Безопасность** - Environment variables для секретов - CORS настройки - API аутентификация - Валидация данных через Pydantic . ///// Приложение уже в продакшене, настриваем вкладку дашблорка "живой разгово
+
+The "VasDom AudioBot" is an AI-powered business management application for a cleaning and construction company, primarily focused on integrating with Bitrix24 CRM to manage multi-apartment buildings and cleaning brigades. The application features a FastAPI backend, React frontend, PostgreSQL, voice capabilities, and AI (Emergent LLM). Initial requirements centered on enhancing "Houses Management" by loading 490 houses from Bitrix24 (Category ID 34) with detailed information (apartments, floors, addresses, tariffs, multi-month cleaning schedules). The "Houses Management" (Works) page needed a visually appealing "РЯДОМ" logo, gradient designs, a calendar, CSV export, sorting, and view toggling. Specific user requests included making addresses clickable to open Google Maps, and adding a "Create House" button that creates an entry in Bitrix24, with "address" as the sole mandatory field. Subsequent critical feedback highlighted incorrect management company and assigned personnel data from Bitrix24, necessitating the system to correctly map Bitrix24's `CompanyTitle`, `AssignedName`, and derive brigade names. Finally, the user requested a new "Задачи" (Tasks) tab, enabling creation, viewing, and synchronization of tasks with Bitrix24, including statistics and responsible personnel assignment, along with additional UI "glow" effects. The `README.md` also required comprehensive updates.
+
+The "VasDom AudioBot" is an AI-powered business management application for a cleaning and construction company, integrated with Bitrix24 CRM to manage multi-apartment buildings and cleaning brigades. The user's primary goal was to enhance "Houses Management" by correctly loading 490 houses, 29 management companies, and detailed house information from Bitrix24, including multi-month cleaning schedules. Recent explicit requests included: 1. Making "Houses Management" visually engaging ("ВАУ функционал"), integrating a user-provided logo, and making addresses clickable to Google Maps. 2. Adding a "Create House" button that creates an entry in Bitrix24 with address as the mandatory field. 3. Correcting management company (УК) and assigned personnel data from Bitrix24, specifically mapping `CompanyTitle`, `AssignedName`, `AssignedSecondName`, `AssignedLastName`, and deriving brigade names. 4. Adding a new "Tasks" tab to synchronize with Bitrix24, allowing task creation and viewing with statistics and filtering. 5. Updating `README.md` to reflect the current application state (structure, functions, links, keys). 6. Implementing glowing/gradient visual effects ("переливание") on UI elements.
+
+📋 ПОЛНАЯ ТЕХНИЧЕСКАЯ ДОКУМЕНТАЦИЯ VasDom AudioBot 🌐 ОСНОВНЫЕ ССЫЛКИ: Продакшн URLs: Render App: https://audiobot-qci2.onrender.com GitHub Repo: https://github.com/maslovmaksim92/AudioBot Bitrix24 Portal: https://vas-dom.bitrix24.ru API Endpoints: Base URL: https://audiobot-qci2.onrender.com/api # Основные endpoints GET /api/health - Health check GET /api/dashboard - Dashboard статистика GET /api/cleaning/houses - Список домов (старый, 348 домов) GET /api/cleaning/houses-490 - Новый endpoint (490 домов) ✅ GET /api/force-houses-490 - Принудительная загрузка ✅ GET /api/debug-houses - Отладочный endpoint ✅ GET /api/version-check - Проверка версии кода ✅ # Задачи GET /api/tasks - Список задач Bitrix24 POST /api/tasks - Создание задачи GET /api/tasks/stats - Статистика задач GET /api/tasks/users - Пользователи для назначения # Телеграм POST /telegram/webhook - Webhook для Telegram бота 🔗 BITRIX24 ИНТЕГРАЦИЯ: Webhook URL: https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/ Категории сделок: ❌ Старая категория: CATEGORY_ID=2 (348 домов) ✅ Правильная категория: CATEGORY_ID=34 (490 домов) Основные API методы Bitrix24: # Сделки (дома) GET {webhook}/crm.deal.list.json?filter[CATEGORY_ID]=34 # Пользователи GET {webhook}/user.get.json?ID={user_id} # Компании GET {webhook}/crm.company.get.json?id={company_id} # Задачи GET {webhook}/tasks.task.list.json POST {webhook}/tasks.task.add.json GET {webhook}/user.get.json 🏠 ПОЛЯ ДОМОВ В BITRIX24: Основные поля сделок: 'ID' - ID сделки 'TITLE' - Адрес дома 'STAGE_ID' - Статус сделки 'DATE_CREATE' - Дата создания 'OPPORTUNITY' - Сумма сделки 'CATEGORY_ID' - Категория (должна быть 34) 'ASSIGNED_BY_ID' - Ответственный пользователь 'COMPANY_ID' - Связанная компания Пользовательские поля домов: 'UF_CRM_1669561599956' - Адрес многоквартирного дома 'UF_CRM_1669704529022' - Количество квартир 'UF_CRM_1669705507390' - Количество подъездов 'UF_CRM_1669704631166' - Количество этажей 'UF_CRM_1669706387893' - Тариф/периодичность Графики уборки по месяцам: СЕНТЯБРЬ 2025: 'UF_CRM_1741592774017' - Дата уборки 1 | Сентябрь 2025 'UF_CRM_1741592855565' - Тип уборки 1 | Сентябрь 2025 'UF_CRM_1741592892232' - Дата уборки 2 | Сентябрь 2025 'UF_CRM_1741592945060' - Тип уборки 2 | Сентябрь 2025 ОКТЯБРЬ 2025: 'UF_CRM_1741593004888' - Дата уборки 1 | Октябрь 2025 'UF_CRM_1741593047994' - Тип уборки 1 | Октябрь 2025 'UF_CRM_1741593067418' - Дата уборки 2 | Октябрь 2025 'UF_CRM_1741593115407' - Тип уборки 2 | Октябрь 2025 НОЯБРЬ 2025: 'UF_CRM_1741593156926' - Дата уборки 1 | Ноябрь 2025 'UF_CRM_1741593210242' - Тип уборки 1 | Ноябрь 2025 'UF_CRM_1741593231558' - Дата уборки 2 | Ноябрь 2025 'UF_CRM_1741593285121' - Тип уборки 2 | Ноябрь 2025 ДЕКАБРЬ 2025: 'UF_CRM_1741593340713' - Дата уборки 1 | Декабрь 2025 'UF_CRM_1741593387667' - Тип уборки 1 | Декабрь 2025 'UF_CRM_1741593408621' - Дата уборки 2 | Декабрь 2025 'UF_CRM_1741593452062' - Тип уборки 2 | Декабрь 2025 ⚙️ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ: Backend (.env): # Bitrix24 BITRIX24_WEBHOOK_URL="https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/" # Telegram BOT_TOKEN="7860360375:AAEVEQCbsqCnP-aHJOlqOCHaTwginuLNe0E" TELEGRAM_BOT_TOKEN="8327964029:AAHBMITlIY8ZWLn34mpg92d1-Cb-8RXTSmQ" TELEGRAM_WEBHOOK_URL="https://audiobot-qci2.onrender.com/telegram/webhook" # AI EMERGENT_LLM_KEY="sk-emergent-0A408AfAeF26aCd5aB" OPENROUTER_API_KEY="sk-or-v1-d1f50246cd027109960ldfb432d72441ea00c99d49a96729a78125c61ac4dd" # CORS CORS_ORIGINS="https://audiobot-qci2.onrender.com,*" Frontend (.env): REACT_APP_BACKEND_URL=https://audiobot-qci2.onrender.com WDS_SOCKET_PORT=443 🏗️ АРХИТЕКТУРА ПРОЕКТА: /app/ ├── backend/ │ ├── app/ │ │ ├── main.py - FastAPI приложение │ │ ├── config/ │ │ │ ├── settings.py - Настройки │ │ │ └── database.py - База данных │ │ ├── services/ │ │ │ ├── bitrix_service.py - Bitrix24 API │ │ │ ├── ai_service.py - AI сервис │ │ │ └── telegram_service.py - Telegram бот │ │ ├── routers/ │ │ │ ├── cleaning.py - API домов │ │ │ ├── tasks.py - API задач │ │ │ ├── dashboard.py - Dashboard │ │ │ └── telegram.py - Telegram webhook │ │ └── models/ │ │ └── schemas.py - Pydantic модели │ ├── .env - Environment variables │ └── requirements.txt - Python зависимости ├── frontend/ │ ├── src/ │ │ ├── App.js - Главный компонент │ │ ├── components/ │ │ │ ├── Dashboard/Dashboard.js - Dashboard UI │ │ │ ├── Works/Works.js - Управление домами │ │ │ └── Tasks/Tasks.js - Управление задачами │ │ └── context/ │ │ └── apiService.js - API клиент │ ├── .env - Frontend variables │ └── package.json - Node.js зависимости /// проанилизируй приложение. Сейчас в продакшене кароточки домов не загружаются информация по домам не рпогружается
+
+The user's primary goal is to manage cleaning services for residential properties using a "VasDom AudioBot" application. The core problem at the start was that house cards were not loading, and house information was incomplete or incorrect. This led to a series of requirements: 1. **Correct House Data Loading**: The application must load 490 houses from Bitrix24 using `CATEGORY_ID=34` (not the old `CATEGORY_ID=2` for 348 houses). 2. **API Endpoints**: Implement and use `/api/cleaning/houses-490`, `/api/force-houses-490`, `/api/debug-houses`, `/api/dashboard`, `/api/health`, `/api/tasks`, `/api/tasks/stats`, `/api/tasks/users`, `/telegram/webhook`. 3. **Environment Configuration**: Correctly set `BITRIX24_WEBHOOK_URL`, `BOT_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_URL`, `EMERGENT_LLM_KEY`, `OPENROUTER_API_KEY`, `CORS_ORIGINS` in backend, and `REACT_APP_BACKEND_URL` in frontend. 4. **UX Improvements (Phase 1)**: Implement a progress bar and skeleton loading for house data. 5. **Functional Enhancements (Phase 2)**: Add search, filtering (by brigades, statuses, cleaning dates), and sorting (by address, brigades, apartments, last cleaning date, problem status) for houses. Enhance house cards with detailed information like cleaning schedules, apartment/entrance/floor counts, management company, contact info, and interactive buttons. 6. **UI/UX Improvements (Phase 3)**: Ensure responsiveness for mobile, virtualization, and pagination for large datasets. Correctly display management company (УК) names and complete cleaning schedules for all relevant months. 7. **Analytics and Reports (Phase 4)**: Integrate a dashboard with KPIs (houses, apartments, floors, entrances, employees), brigade performance analysis, a cleaning calendar, and management company reports. 8. **Production Readiness**: Ensure all fixes and features are production-ready, specifically addressing correct УК data and accurate cleaning type descriptions. The current stage is debugging the backend to correctly retrieve and display cleaning types, which are currently showing as numerical IDs ("Тип 2468") instead of descriptive text.
+
+Balance Coin
+587,43
+
+
+User Avatar
+
+info
+
+code
+Code
+
+preview
+Preview
+
+Deploy
+Deploy
+Robot
+Понял! Мне нужно проанализировать продакшен приложение и GitHub репозитории, чтобы довести до ума раздел "дома" и сделать полностью рабочую версию.
+
+Давайте начнем с анализа:
+
+Crawling webpage https://audiobot-qci2.onrender.co...
+Sep 12, 04:59 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Теперь давайте проанализируем основную ветку и ветку с конфликтами на GitHub:
+
+Crawling webpage https://github.com/maslovmaksim92...
+Sep 12, 05:00 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Теперь давайте проанализируем ветку с конфликтами:
+
+Crawling webpage https://github.com/maslovmaksim92...
+Sep 12, 05:00 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Анализируя продакшен приложение и GitHub репозитор...
+Sep 12, 05:00 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Понял ситуацию! Я проанализировал продакшен приложение и обе ветки GitHub.
+
+**Текущее состояние:**
+
+- **Продакшен**: https://audiobot-qci2.onrender.com работает, показывает 490 домов, полную статистику
+
+- **Main ветка**: 617 коммитов, v3.0.0 с полной функциональностью
+
+- **Conflict ветка**: 90 коммитов вперед, 617 позади - содержит незавершенные изменения раздела "дома"
+
+Сейчас мне нужно:
+
+1. Проанализировать текущее состояние локального проекта `/app`
+
+2. Понять какие изменения из conflict ветки нужно интегрировать в main
+
+3. Довести раздел "дома" до полной работоспособности
+
+4. Обновить продакшен
+
+Viewed
+/app
+Sep 12, 05:00 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Я вижу, что локальный проект имеет структуру FastAPI + React. Давайте посмотрим на текущее состояние и тестовые результаты:
+
+Viewed
+/app/test_result.md
+Sep 12, 05:01 PM
+
+Rollback
+Rollback
+
+Copy
+Robot
+Отлично! Теперь я вижу полную картину. Из test_result.md видно что:
+
+1. **Локально все исправления работают** - проблемы management_company=null решены, новые endpoints созданы
+
+2. **На продакшене старя версия** - endpoints возвращают 404, management_company всё еще null
+
+3. **Основная проблема**: не развернута новая версия кода на Render с исправлениями
+
+Давайте сначала проверим какая версия сейчас в нашем локальном проекте:
+
+Viewed
+/app/app
+Sep 12, 05:01 PM
+
+Rollback
+Rollback
+
+Copy
+Scroll to bottom
+Agent is waiting...
+Message Neo
+Attach
+GitHub
+Save to GitHub
+Fork
+Fork
+
+Ultra
+
+
+send
