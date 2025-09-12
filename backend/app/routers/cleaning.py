@@ -9,6 +9,176 @@ from ..config.settings import BITRIX24_WEBHOOK_URL
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["cleaning"])
 
+@router.get("/cleaning/houses-fixed")
+async def get_cleaning_houses_with_forced_enrichment(
+    limit: Optional[int] = None,
+    brigade: Optional[str] = None,
+    cleaning_week: Optional[int] = None,
+    month: Optional[str] = None,
+    management_company: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """Дома с принудительным обогащением данными УК и бригад для продакшена"""
+    try:
+        logger.info(f"🏠 Loading houses WITH FORCED ENRICHMENT...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Получаем базовые данные
+        deals = await bitrix.get_deals(limit=limit or 50)
+        
+        houses = []
+        for deal in deals:
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            stage_id = deal.get('STAGE_ID', '')
+            
+            # ПРИНУДИТЕЛЬНОЕ ОБОГАЩЕНИЕ УК
+            company_id = deal.get('COMPANY_ID')
+            management_company_name = "Не определена"
+            
+            if company_id and str(company_id) != '0':
+                try:
+                    # Прямой API вызов для получения данных компании
+                    import urllib.parse
+                    import httpx
+                    
+                    params = {'id': str(company_id)}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{BITRIX24_WEBHOOK_URL}crm.company.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            if result and result.get('TITLE'):
+                                management_company_name = result.get('TITLE')
+                                logger.debug(f"✅ Company API: {management_company_name}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Company API failed: {e}")
+            
+            # Fallback по адресу если API не сработал
+            if management_company_name == "Не определена":
+                management_company_name = _get_management_company(address)
+                logger.debug(f"🏢 Fallback УК для {address}: {management_company_name}")
+            
+            # ПРИНУДИТЕЛЬНОЕ ОБОГАЩЕНИЕ БРИГАД
+            assigned_by_id = deal.get('ASSIGNED_BY_ID')
+            brigade_info = "Бригада не определена"
+            assigned_name = ""
+            
+            if assigned_by_id and str(assigned_by_id) != '0':
+                try:
+                    # Прямой API вызов для получения данных пользователя
+                    params = {'ID': str(assigned_by_id)}
+                    query_string = urllib.parse.urlencode(params)
+                    url = f"{BITRIX24_WEBHOOK_URL}user.get.json?{query_string}"
+                    
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            result = data.get('result')
+                            if result and isinstance(result, list) and len(result) > 0:
+                                user = result[0]
+                                assigned_name = f"{user.get('NAME', '')} {user.get('LAST_NAME', '')}".strip()
+                                # Определяем бригаду по имени
+                                if assigned_name:
+                                    brigade_info = _get_brigade_by_responsible_name(assigned_name.split()[0])
+                                logger.debug(f"✅ User API: {assigned_name} -> {brigade_info}")
+                except Exception as e:
+                    logger.warning(f"⚠️ User API failed: {e}")
+            
+            # Fallback по адресу если API не сработал
+            if brigade_info == "Бригада не определена":
+                brigade_info = bitrix.analyze_house_brigade(address)
+                logger.debug(f"👥 Fallback бригада для {address}: {brigade_info}")
+            
+            status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            # Основные данные дома
+            house_address = deal.get('UF_CRM_1669561599956', '') or address
+            apartments_count = _parse_int(deal.get('UF_CRM_1669704529022'))
+            entrances_count = _parse_int(deal.get('UF_CRM_1669705507390'))
+            floors_count = _parse_int(deal.get('UF_CRM_1669704631166'))
+            tariff = deal.get('UF_CRM_1669706387893', '')
+            
+            # Упрощенные графики
+            cleaning_weeks = [1, 2, 3] if apartments_count and apartments_count > 50 else [1, 2]
+            cleaning_days = ['Понедельник', 'Среда'] if apartments_count and apartments_count > 100 else ['Вторник']
+            
+            house_data = {
+                'address': address,
+                'house_address': house_address,
+                'deal_id': deal_id,
+                'stage': stage_id,
+                'brigade': brigade_info,
+                'status_text': status_text,
+                'status_color': status_color,
+                'created_date': deal.get('DATE_CREATE'),
+                'opportunity': deal.get('OPPORTUNITY'),
+                'last_sync': datetime.utcnow().isoformat(),
+                
+                # Основные данные
+                'apartments_count': apartments_count,
+                'floors_count': floors_count,
+                'entrances_count': entrances_count,
+                'tariff': tariff,
+                'assigned_by_id': assigned_by_id,
+                'company_id': company_id,
+                
+                # ИСПРАВЛЕННЫЕ ПОЛЯ
+                'management_company': management_company_name,
+                'assigned_name': assigned_name,
+                
+                # Упрощенные графики
+                'september_schedule': None,
+                'october_schedule': None,
+                'november_schedule': None,
+                'december_schedule': None,
+                
+                # Поля для фильтрации
+                'cleaning_weeks': cleaning_weeks,
+                'cleaning_days': cleaning_days
+            }
+            
+            # Применяем фильтры
+            if brigade and brigade.lower() not in brigade_info.lower():
+                continue
+                
+            if cleaning_week and cleaning_week not in cleaning_weeks:
+                continue
+                
+            if management_company and management_company.lower() not in management_company_name.lower():
+                continue
+                
+            if search and search.lower() not in address.lower() and search.lower() not in deal_id.lower():
+                continue
+            
+            houses.append(house_data)
+        
+        logger.info(f"✅ FORCED ENRICHMENT houses loaded: {len(houses)} houses")
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "filters": {
+                "brigade": brigade,
+                "cleaning_week": cleaning_week,
+                "month": month,
+                "management_company": management_company,
+                "search": search
+            },
+            "source": "🚀 Bitrix24 CRM with FORCED ENRICHMENT",
+            "sync_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Forced enrichment houses error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/fix-management-companies")
 async def fix_management_companies_on_production():
     """Специальный endpoint для исправления данных УК на продакшене"""
