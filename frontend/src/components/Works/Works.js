@@ -746,27 +746,67 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Дополнительная информация */}
+        {/* Расширенная информация */}
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">👥 Бригада:</span>
-            <span className="font-medium">{house.brigade}</span>
+            <span className="font-medium text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded">
+              {house.brigade?.split(' - ')[0] || 'Не назначена'}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">🏢 УК:</span>
-            <span className="font-medium text-xs">{house.management_company || 'Не указана'}</span>
+            <span className="font-medium text-xs bg-gray-50 px-2 py-1 rounded max-w-32 truncate">
+              {house.management_company?.replace('ООО "', '').replace('"', '') || 'Не указана'}
+            </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">📋 Статус:</span>
             <span className={`px-2 py-1 rounded text-xs font-medium ${
-              house.status_color === 'green' ? 'bg-green-100 text-green-800' :
-              house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+              house.status_color === 'success' ? 'bg-green-100 text-green-800' :
+              house.status_color === 'warning' ? 'bg-yellow-100 text-yellow-800' :
               'bg-gray-100 text-gray-800'
             }`}>
               {house.status_text}
             </span>
           </div>
         </div>
+
+        {/* График уборки на текущий месяц */}
+        {house.september_schedule && house.september_schedule.has_schedule && (
+          <div className="bg-green-50 p-3 rounded-lg mb-4">
+            <div className="text-sm font-medium text-green-800 mb-2">
+              📅 График на сентябрь 2025
+            </div>
+            <div className="space-y-2">
+              {house.september_schedule.cleaning_date_1 && 
+               house.september_schedule.cleaning_date_1.length > 0 && (
+                <div className="text-xs text-green-700">
+                  <div className="flex items-center space-x-2">
+                    <span>🗓️</span>
+                    <span>
+                      {house.september_schedule.cleaning_date_1.map(date => 
+                        new Date(date).toLocaleDateString('ru-RU', { 
+                          day: '2-digit', 
+                          month: '2-digit' 
+                        })
+                      ).join(', ')}
+                    </span>
+                  </div>
+                  <div className="text-gray-600 ml-6">
+                    {house.september_schedule.cleaning_type_1}
+                  </div>
+                </div>
+              )}
+              {!house.september_schedule.cleaning_date_1 || 
+               house.september_schedule.cleaning_date_1.length === 0 && (
+                <div className="text-xs text-gray-500">
+                  График не назначен
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Кнопки действий */}
         <div className="flex space-x-2">
