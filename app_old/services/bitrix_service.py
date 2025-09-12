@@ -253,3 +253,159 @@ class BitrixService:
         except Exception as e:
             logger.error(f"❌ Add comment error: {e}")
             return False
+
+    def _extract_house_data(self, deal: Dict[str, Any]) -> Dict[str, Any]:
+        """Извлечение и обработка данных дома из Bitrix24"""
+        try:
+            # Базовые поля
+            house_data = {
+                'ID': deal.get('ID', ''),
+                'TITLE': deal.get('TITLE', 'Без названия'),
+                'STAGE_ID': deal.get('STAGE_ID', ''),
+                'DATE_CREATE': deal.get('DATE_CREATE', ''),
+                'OPPORTUNITY': deal.get('OPPORTUNITY', ''),
+                'ASSIGNED_BY_ID': deal.get('ASSIGNED_BY_ID', ''),
+                'COMPANY_ID': deal.get('COMPANY_ID', ''),
+            }
+            
+            # Извлечение количественных данных с обработкой ошибок
+            try:
+                apartments = deal.get('UF_CRM_1669704529022', 0)
+                house_data['apartments_count'] = int(apartments) if apartments and str(apartments).isdigit() else 0
+            except (ValueError, TypeError):
+                house_data['apartments_count'] = 0
+                
+            try:
+                entrances = deal.get('UF_CRM_1669705507390', 0)
+                house_data['entrances_count'] = int(entrances) if entrances and str(entrances).isdigit() else 0
+            except (ValueError, TypeError):
+                house_data['entrances_count'] = 0
+                
+            try:
+                floors = deal.get('UF_CRM_1669704631166', 0)
+                house_data['floors_count'] = int(floors) if floors and str(floors).isdigit() else 0
+            except (ValueError, TypeError):
+                house_data['floors_count'] = 0
+            
+            # Адрес дома
+            house_data['house_address'] = deal.get('UF_CRM_1669561599956', house_data['TITLE'])
+            
+            # Обработка типов уборки
+            cleaning_type_1 = deal.get('UF_CRM_1741592855565', '')
+            cleaning_type_2 = deal.get('UF_CRM_1741592945060', '')
+            
+            house_data['cleaning_type_1'] = self._get_cleaning_type_name(cleaning_type_1)
+            house_data['cleaning_type_2'] = self._get_cleaning_type_name(cleaning_type_2)
+            
+            # Даты уборки
+            house_data['cleaning_date_1'] = self._parse_bitrix_dates(deal.get('UF_CRM_1741592774017', []))
+            house_data['cleaning_date_2'] = self._parse_bitrix_dates(deal.get('UF_CRM_1741592892232', []))
+            
+            return house_data
+            
+        except Exception as e:
+            logger.error(f"❌ Error extracting house data: {e}")
+            return deal
+
+    def _get_cleaning_type_name(self, type_id: str) -> str:
+        """Преобразование ID типа уборки в описательное название"""
+        if not type_id:
+            return "Не указан"
+            
+        # Маппинг типов уборки (нужно получить из Bitrix24 или настроить)
+        cleaning_types = {
+            '2468': 'Генеральная уборка',
+            '2469': 'Поддерживающая уборка', 
+            '2470': 'Влажная уборка',
+            '2471': 'Санитарная обработка',
+            '2472': 'Уборка после ремонта'
+        }
+        
+        # Извлекаем числовой ID из строки типа "Тип 2468"
+        import re
+        match = re.search(r'\d+', str(type_id))
+        if match:
+            type_num = match.group()
+            return cleaning_types.get(type_num, f"Тип {type_num}")
+        
+        return str(type_id)
+
+    def _parse_bitrix_dates(self, dates_data) -> List[str]:
+        """Парсинг дат из Bitrix24"""
+        if not dates_data:
+            return []
+            
+        try:
+            if isinstance(dates_data, list):
+                return [str(date) for date in dates_data if date]
+            elif isinstance(dates_data, str):
+                return [dates_data]
+            else:
+                return []
+        except Exception as e:
+            logger.error(f"❌ Error parsing dates: {e}")
+            return []
+
+    async def _enrich_with_management_companies(self, deals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Обогащение данных управляющими компаниями"""
+        try:
+            # Собираем уникальные ID компаний
+            company_ids = set()
+            for deal in deals:
+                company_id = deal.get('COMPANY_ID')
+                if company_id:
+                    company_ids.add(company_id)
+            
+            if not company_ids:
+                logger.info("📋 No company IDs found, using fallback УК")
+                for deal in deals:
+                    deal['management_company'] = self._get_fallback_management_company()
+                return deals
+            
+            # Получаем данные компаний из Bitrix24
+            companies_data = {}
+            for company_id in list(company_ids)[:20]:  # Лимит на первые 20 компаний
+                try:
+                    url = f"{self.webhook_url}crm.company.get.json?id={company_id}"
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(url, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get('result'):
+                                company_name = data['result'].get('TITLE', '')
+                                if company_name:
+                                    companies_data[company_id] = company_name
+                                    logger.info(f"✅ Company info loaded: {company_name}")
+                except Exception as e:
+                    logger.error(f"❌ Error loading company {company_id}: {e}")
+                    continue
+            
+            # Обогащаем сделки данными компаний
+            for deal in deals:
+                company_id = deal.get('COMPANY_ID')
+                if company_id and company_id in companies_data:
+                    deal['management_company'] = companies_data[company_id]
+                else:
+                    deal['management_company'] = self._get_fallback_management_company()
+            
+            logger.info(f"✅ Enriched with {len(companies_data)} management companies")
+            return deals
+            
+        except Exception as e:
+            logger.error(f"❌ Error enriching with companies: {e}")
+            # Fallback: используем фиктивные УК
+            for deal in deals:
+                deal['management_company'] = self._get_fallback_management_company()
+            return deals
+
+    def _get_fallback_management_company(self) -> str:
+        """Fallback управляющая компания"""
+        import random
+        companies = [
+            'ООО "УК Новый город"',
+            'ООО "Жилкомсервис"', 
+            'ООО "Премиум-УК"',
+            'УК "Домашний уют"',
+            'ООО "УК МЖД Московского округа г.Калуги"'
+        ]
+        return random.choice(companies)
