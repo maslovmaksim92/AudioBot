@@ -18,6 +18,10 @@ const WorksEnhanced = () => {
   const [dashboardStats, setDashboardStats] = useState({});
   const [loading, setLoading] = useState(false);
   
+  // PRODUCTION: Динамические списки для фильтров
+  const [availableCompanies, setAvailableCompanies] = useState([]);
+  const [availableBrigades, setAvailableBrigades] = useState([]);
+  
   // Progress state для UX улучшений
   const [loadingProgress, setLoadingProgress] = useState({
     stage: '',
