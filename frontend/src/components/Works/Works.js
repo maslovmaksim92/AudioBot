@@ -78,22 +78,10 @@ const WorksEnhanced = () => {
 
   const fetchHouses = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-      const queryParams = new URLSearchParams();
+      // Используем обновленный apiService для загрузки 490 домов
+      console.log('🏠 Fetching houses using apiService (490 houses)...');
       
-      Object.entries(activeFilters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-      
-      const url = `${BACKEND_URL}/api/cleaning/houses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      console.log('🏠 Fetching houses from:', url);
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const data = await actions.api.getCleaningHouses(activeFilters);
       console.log('🏠 Houses data received:', data);
       
       const housesData = data.houses || data || [];
