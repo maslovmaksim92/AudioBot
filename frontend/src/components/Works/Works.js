@@ -548,8 +548,10 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Основные фильтры */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Основные фильтры - адаптивные */}
+        <div className={`grid gap-4 ${
+          isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'
+        }`}>
           {/* Бригады */}
           <div>
             <div className="flex items-center space-x-2 mb-2">
