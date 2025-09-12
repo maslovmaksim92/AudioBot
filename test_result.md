@@ -105,7 +105,34 @@
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
-  - task: "Deployment Production Debug Endpoints"
+  - task: "Production Debug Endpoints for Render Deployment"
+    implemented: true
+    working: false
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Новые production debug endpoints возвращают 404 ошибки на продакшене. Endpoints /api/cleaning/production-debug, /api/cleaning/fix-management-companies, /api/cleaning/houses-fixed не доступны. Это означает что новая версия кода с исправлениями НЕ развернута на Render. Требуется повторный деплой с новыми endpoints."
+
+  - task: "Management Company Null Issue Fix"
+    implemented: true
+    working: false
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 2
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "Пользователь сообщил что поля management_company возвращают null из Bitrix24 API"
+        - working: false
+          agent: "testing"
+          comment: "❌ ПРОБЛЕМА НЕ РЕШЕНА: Тестирование показало что поля management_company все еще возвращают null (0/348 домов имеют заполненные УК). При этом поля brigade работают корректно (348/348 домов имеют корректные названия бригад). Это указывает на то что исправления для получения данных компаний через crm.company.get API не работают на продакшене. Возможные причины: 1) Старая версия кода без исправлений на Render, 2) Проблемы с API вызовами к Bitrix24 для получения данных компаний, 3) Отсутствие связанных компаний в сделках Bitrix24."
+
+  - task: "Brigade Fields Working Correctly"
     implemented: true
     working: true
     file: "backend/app/routers/cleaning.py"
@@ -114,8 +141,20 @@ backend:
     needs_retesting: false
     status_history:
         - working: true
-          agent: "main"
-          comment: "✅ РЕАЛИЗОВАНЫ: Созданы специальные endpoints для диагностики и исправления проблем продакшена: /api/cleaning/production-debug для анализа версии кода и проблем, /api/cleaning/fix-management-companies для ручного исправления данных УК, /api/cleaning/houses-fixed с принудительным обогащением данных через прямые API вызовы к Bitrix24. Endpoint тестирует наличие оптимизированных методов, кэширования и правильность API интеграции."
+          agent: "testing"
+          comment: "✅ УСПЕШНО: Поля brigade работают корректно - все 348 домов имеют правильные названия бригад (1-6 бригады с районами). Система корректно определяет бригады по адресам домов через функцию _get_brigade_by_responsible_name() и fallback логику. Примеры: '4 бригада - Северный район', '6 бригада - Окраины', '1 бригада - Центральный район'."
+
+  - task: "Bitrix24 CRM Integration Working"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ПОДТВЕРЖДЕНО: Интеграция с Bitrix24 CRM работает корректно. API /api/cleaning/houses возвращает 348 домов из реального CRM (не CSV fallback). Данные содержат корректные deal_id, адреса, статусы. Источник данных: '🔥 Bitrix24 CRM'. Базовое подключение к Bitrix24 функционирует."
 
   - task: "Frontend Hardcoded URLs Removal"
     implemented: true
