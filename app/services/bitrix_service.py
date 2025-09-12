@@ -27,6 +27,11 @@ class BitrixService:
                     'select[2]': 'STAGE_ID',
                     'select[3]': 'DATE_CREATE',
                     'select[4]': 'OPPORTUNITY',
+                    # ИСПРАВЛЕНИЕ: Добавляем поля типов уборки из Bitrix24
+                    'select[5]': 'UF_CRM_1741592855565',  # Тип уборки 1 | Сентябрь 2025
+                    'select[6]': 'UF_CRM_1741592945060',  # Тип уборки 2 | Сентябрь 2025
+                    'select[7]': 'UF_CRM_1741592774017',  # Дата уборки 1 | Сентябрь 2025
+                    'select[8]': 'UF_CRM_1741592892232',  # Дата уборки 2 | Сентябрь 2025
                     'filter[CATEGORY_ID]': '34',  # Правильная категория (490 домов)
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
