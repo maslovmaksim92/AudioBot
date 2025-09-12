@@ -967,65 +967,11 @@ const WorksEnhanced = () => {
       {renderDashboardCards()}
       {renderSmartFilters()}
       
-      {/* Список домов */}
-      <div className="mt-8">
-        {viewMode === 'cards' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {houses.map((house, index) => renderHouseCard(house, index))}
-          </div>
-        ) : (
-          <Card title="📋 Таблица домов">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3">Адрес</th>
-                    <th className="text-left p-3">Квартир</th>
-                    <th className="text-left p-3">Этажей</th>
-                    <th className="text-left p-3">Подъездов</th>
-                    <th className="text-left p-3">Бригада</th>
-                    <th className="text-left p-3">УК</th>
-                    <th className="text-left p-3">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {houses.map((house, index) => (
-                    <tr key={house.deal_id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium">{house.address}</div>
-                          {house.house_address && (
-                            <button
-                              onClick={() => openGoogleMaps(house.house_address)}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs"
-                            >
-                              📍 {house.house_address}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3">{house.apartments_count || 0}</td>
-                      <td className="p-3">{house.floors_count || 0}</td>
-                      <td className="p-3">{house.entrances_count || 0}</td>
-                      <td className="p-3">{house.brigade}</td>
-                      <td className="p-3 text-xs">{house.management_company || '-'}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          house.status_color === 'green' ? 'bg-green-100 text-green-800' :
-                          house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {house.status_text}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-      </div>
+      {/* Прогресс-бар загрузки */}
+      <LoadingProgressBar />
+      
+      {/* Список домов с улучшенным UX */}
+      {renderHousesSection()}
 
       <CreateHouseModal />
       <NotificationBar />
