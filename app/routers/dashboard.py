@@ -63,6 +63,11 @@ async def get_dashboard_stats():
         houses_data = await bitrix.get_deals(limit=None)  
         total_houses = len(houses_data)
         
+        logger.info(f"🔍 DEBUG: get_deals returned {total_houses} houses")
+        if total_houses > 0:
+            logger.info(f"🔍 DEBUG: First house: {houses_data[0]}")
+            logger.info(f"🔍 DEBUG: Last house: {houses_data[-1]}")
+        
         # Подсчет статистики
         total_entrances = 0
         total_apartments = 0
