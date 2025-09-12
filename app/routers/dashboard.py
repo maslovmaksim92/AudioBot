@@ -53,6 +53,53 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+@router.get("/houses-statistics")
+async def get_houses_statistics():
+    """Получить детальную статистику по домам с графиками (490 домов)"""
+    try:
+        logger.info("📊 Loading detailed houses statistics...")
+        
+        if not BITRIX24_WEBHOOK_URL:
+            return {
+                "status": "error",
+                "message": "Bitrix24 service not available"
+            }
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        statistics = await bitrix.get_houses_statistics()
+        
+        response = {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "statistics": statistics,
+            "charts": {
+                "entrances": statistics['chart_data']['entrances_chart'],
+                "floors": statistics['chart_data']['floors_chart'], 
+                "apartments": statistics['chart_data']['apartments_chart'],
+                "districts": statistics['chart_data']['districts_chart']
+            },
+            "summary": {
+                "total_houses": statistics['total_houses'],
+                "total_entrances": statistics['total_entrances'],
+                "total_floors": statistics['total_floors'],
+                "total_apartments": statistics['total_apartments'],
+                "avg_entrances": statistics['averages']['entrances_per_house'],
+                "avg_floors": statistics['averages']['floors_per_house'],
+                "avg_apartments": statistics['averages']['apartments_per_house']
+            }
+        }
+        
+        logger.info(f"📊 Statistics response: {statistics['total_houses']} houses analyzed")
+        return response
+        
+    except Exception as e:
+        logger.error(f"❌ Houses statistics error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 @router.get("/dashboard", response_model=dict)
 async def get_dashboard_stats():
     """Дашборд с данными из Bitrix24 CRM"""
