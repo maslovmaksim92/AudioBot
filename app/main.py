@@ -51,6 +51,7 @@ app.include_router(telegram.router)
 app.include_router(meetings.router)
 app.include_router(cleaning.router)
 app.include_router(logs.router)
+app.include_router(analytics.router)
 
 logger.info("✅ All routers included")
 
