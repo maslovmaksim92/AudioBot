@@ -5,8 +5,8 @@
 import_error = None
 
 try:
-    from app.main import app
-    print("✅ VasDom AudioBot loaded from modular structure (backend/app/)")
+    from app_old.main import app
+    print("✅ VasDom AudioBot loaded from consolidated structure (app_old/)")
 except ImportError as e:
     import_error = e
     print(f"❌ Failed to import modular app: {e}")
