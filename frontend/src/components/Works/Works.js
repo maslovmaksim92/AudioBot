@@ -455,24 +455,35 @@ const WorksEnhanced = () => {
   };
 
   const renderSmartFilters = () => (
-    <Card title="🔍 Фильтры поиска" className="mb-8">
-      <div className="space-y-4">
-        {/* Умный поиск */}
+    <Card title="🔍 Расширенные фильтры поиска" className="mb-8">
+      <div className="space-y-6">
+        {/* Умный поиск - улучшенный */}
         <div className="relative">
-          <div className="flex items-center space-x-2">
-            <span className="text-red-500">📍</span>
-            <label className="font-medium text-gray-700">Поиск по адресу</label>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-red-500">🔍</span>
+              <label className="font-medium text-gray-700">Поиск по адресу или УК</label>
+            </div>
+            <div className="text-sm text-gray-500">
+              Найдено: {filteredHouses.length} из {houses.length}
+            </div>
           </div>
-          <div className="relative mt-2">
+          <div className="relative">
             <input
               ref={searchRef}
               type="text"
-              placeholder="Введите адрес для поиска..."
-              className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              placeholder="Введите адрес дома или название УК..."
+              className="w-full p-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               value={activeFilters.search}
-              onChange={(e) => handleSmartSearch(e.target.value)}
+              onChange={(e) => {
+                setActiveFilters(prev => ({ ...prev, search: e.target.value }));
+                handleSmartSearch(e.target.value);
+              }}
               onFocus={() => setShowSuggestions(searchSuggestions.length > 0)}
             />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              🔍
+            </div>
             
             {/* Умные подсказки */}
             {showSuggestions && searchSuggestions.length > 0 && (
