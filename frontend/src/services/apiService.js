@@ -51,40 +51,60 @@ const apiService = {
     return response.json();
   },
 
-  // Houses and cleaning - ОБНОВЛЕНО для загрузки 490 домов
-  getCleaningHouses: async (filters = {}) => {
-    // Используем новый endpoint для 490 домов из правильной категории Bitrix24
+  // Houses and cleaning - УНИФИЦИРОВАННЫЙ для загрузки 490 домов
+  getCleaningHouses: async (filters = {}, onProgress = null) => {
     const url = `${BACKEND_URL}/api/cleaning/houses-490`;
-    console.log('🏠 Fetching houses from:', url);
+    console.log('🏠 Fetching 490 houses from:', url);
+    
+    // Прогресс-бар callback
+    if (onProgress) onProgress({ stage: 'connecting', message: 'Подключение к серверу...', progress: 10 });
     
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        timeout: 30000 // 30 seconds timeout
+      });
+      
+      if (onProgress) onProgress({ stage: 'receiving', message: 'Получение данных от Bitrix24...', progress: 50 });
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
       const data = await response.json();
-      console.log('✅ Houses data received:', data);
+      console.log('✅ Houses data received:', {
+        status: data.status,
+        total: data.total,
+        houses_count: data.houses?.length || 0,
+        source: data.source
+      });
+      
+      if (onProgress) onProgress({ stage: 'processing', message: `Обработка ${data.houses?.length || 0} домов...`, progress: 90 });
+      
+      // Проверяем корректность данных
+      if (!data.houses || !Array.isArray(data.houses)) {
+        throw new Error('Invalid data format: houses array not found');
+      }
+      
+      if (onProgress) onProgress({ stage: 'complete', message: `✅ Загружено ${data.houses.length} домов из 490`, progress: 100 });
+      
       return data;
     } catch (error) {
       console.error('❌ Houses API error:', error);
-      // Fallback к принудительной загрузки
-      try {
-        console.log('🔄 Trying force houses endpoint...');
-        const forceResponse = await fetch(`${BACKEND_URL}/api/force-houses-490`);
-        const forceData = await forceResponse.json();
-        console.log('🔥 Force houses result:', forceData);
-        
-        // Если принудительная загрузка успешна, повторяем основной запрос
-        if (forceData.status === '✅ FORCE SUCCESS') {
-          const retryResponse = await fetch(`${BACKEND_URL}/api/cleaning/houses-490`);
-          return retryResponse.json();
-        }
-        
-        return { status: 'error', message: 'Failed to load houses', houses: [] };
-      } catch (fallbackError) {
-        console.error('❌ Fallback failed:', fallbackError);
-        return { status: 'error', message: 'All endpoints failed', houses: [] };
-      }
+      if (onProgress) onProgress({ stage: 'error', message: `❌ Ошибка: ${error.message}`, progress: 0 });
+      
+      // Возвращаем структурированную ошибку
+      return { 
+        status: 'error', 
+        message: error.message, 
+        houses: [],
+        total: 0,
+        error_details: error.toString()
+      };
     }
   },
 
