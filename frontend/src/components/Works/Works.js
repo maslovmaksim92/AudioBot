@@ -638,10 +638,10 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Дополнительные фильтры */}
+        {/* Дополнительные фильтры - адаптивные */}
         <div className="border-t pt-4">
           <h4 className="font-medium text-gray-700 mb-3">🏠 Фильтр по количеству квартир</h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
             <div>
               <label className="block text-sm text-gray-600 mb-1">От</label>
               <input
