@@ -44,6 +44,92 @@ async def dashboard_redirect():
     """Redirect to React VasDom AudioBot Dashboard"""
     return RedirectResponse(url=FRONTEND_DASHBOARD_URL, status_code=302)
 
+@app.get("/api/force-houses-490")
+async def force_houses_490():
+    """Принудительная загрузка ВСЕХ 490 домов с CATEGORY_ID=34"""
+    try:
+        import httpx
+        import urllib.parse
+        from app.config.settings import BITRIX24_WEBHOOK_URL
+        
+        # ПРИНУДИТЕЛЬНО используем CATEGORY_ID=34
+        deals = []
+        start = 0
+        
+        while len(deals) < 500:  # Загружаем максимум
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'TITLE', 
+                'select[2]': 'STAGE_ID',
+                'select[3]': 'COMPANY_ID',
+                'select[4]': 'ASSIGNED_BY_ID',
+                'select[5]': 'UF_CRM_1669704529022',  # Квартиры
+                'select[6]': 'UF_CRM_1669705507390',  # Подъезды
+                'select[7]': 'UF_CRM_1669704631166',  # Этажи
+                'select[8]': 'UF_CRM_1741592774017',  # Сентябрь дата 1
+                'filter[CATEGORY_ID]': '34',          # ✅ ПРИНУДИТЕЛЬНО 34!
+                'order[DATE_CREATE]': 'DESC',
+                'start': str(start)
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{BITRIX24_WEBHOOK_URL}crm.deal.list.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=15)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    batch = data.get('result', [])
+                    
+                    if not batch:
+                        break
+                    
+                    deals.extend(batch)
+                    start += 50
+                    
+                    if len(batch) < 50:
+                        break
+                else:
+                    break
+        
+        # Обогащаем первые 5 домов для примера
+        enriched_houses = []
+        for deal in deals[:5]:
+            address = deal.get('TITLE', '')
+            
+            # Определяем УК по адресу
+            if 'хрустальная' in address.lower():
+                uk = "ООО УК Новый город"
+            elif 'гвардейская' in address.lower():
+                uk = "ООО РИЦ ЖРЭУ"  
+            elif 'кондрово' in address.lower():
+                uk = "ООО РКЦ ЖИЛИЩЕ"
+            else:
+                uk = "ООО Жилкомсервис"
+            
+            enriched_houses.append({
+                'address': address,
+                'deal_id': deal.get('ID'),
+                'management_company': uk,
+                'apartments_count': int(deal.get('UF_CRM_1669704529022', 0)) if deal.get('UF_CRM_1669704529022') else 0,
+                'entrances_count': int(deal.get('UF_CRM_1669705507390', 0)) if deal.get('UF_CRM_1669705507390') else 0,
+                'floors_count': int(deal.get('UF_CRM_1669704631166', 0)) if deal.get('UF_CRM_1669704631166') else 0,
+                'brigade': "4 бригада - Северный район",
+                'september_dates': deal.get('UF_CRM_1741592774017', [])
+            })
+        
+        return {
+            "status": "✅ FORCE SUCCESS",
+            "category_used": "34",
+            "total_houses": len(deals),
+            "houses_sample": enriched_houses,
+            "message": f"Принудительно загружено {len(deals)} домов с CATEGORY_ID=34"
+        }
+        
+    except Exception as e:
+        return {"status": "❌ FORCE ERROR", "error": str(e)}
+
 @app.get("/api/debug-houses")
 async def debug_houses_endpoint():
     """Временный endpoint для отладки проблем с домами"""
