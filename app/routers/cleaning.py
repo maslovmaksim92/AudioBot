@@ -1060,10 +1060,13 @@ def _extract_weekdays(dates: List[str]) -> List[str]:
 
 @router.get("/cleaning/filters")
 async def get_cleaning_filters():
-    """Получить доступные фильтры для домов"""
+    """Получить доступные фильтры для домов - ОПТИМИЗИРОВАННАЯ версия"""
     try:
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
-        deals = await bitrix.get_deals(limit=None)
+        
+        # ОПТИМИЗАЦИЯ: используем кешированные данные от основного endpoint
+        # Или загружаем меньше данных для фильтров
+        deals = await bitrix.get_deals_optimized()  # Используем оптимизированный метод
         
         brigades = set()
         cleaning_weeks = set()
@@ -1076,8 +1079,9 @@ async def get_cleaning_filters():
             brigades.add(brigade_info)
             
             # Получаем управляющую компанию
-            management_company = _get_management_company(address)
-            management_companies.add(management_company)
+            management_company = deal.get('COMPANY_TITLE') or _get_management_company(address)
+            if management_company:
+                management_companies.add(management_company)
             
             # Извлекаем недели уборки из всех месяцев
             all_schedules = [
