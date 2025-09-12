@@ -320,15 +320,16 @@ const WorksEnhanced = () => {
   };
 
   const exportToCSV = () => {
-    const csvData = houses.map(house => ({
+    const csvData = filteredHouses.map(house => ({
       'Адрес': house.address,
-      'Реальный адрес': house.house_address || '',
+      'ID Сделки': house.deal_id,
       'Квартир': house.apartments_count || 0,
       'Этажей': house.floors_count || 0,
       'Подъездов': house.entrances_count || 0,
       'Бригада': house.brigade,
       'УК': house.management_company || '',
-      'Статус': house.status_text
+      'Статус': house.status_text,
+      'График сентябрь': house.september_schedule?.cleaning_date_1?.join(', ') || 'Не назначен'
     }));
 
     const csv = [
