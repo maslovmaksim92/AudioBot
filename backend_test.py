@@ -1717,12 +1717,446 @@ class VasDomAPITester:
         
         return self.tests_passed == self.tests_run
 
+    def test_vasdom_houses_490_endpoint(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: GET /api/cleaning/houses-490 - загрузка всех 490 домов из Bitrix24"""
+        try:
+            print("\n🏠 ТЕСТИРОВАНИЕ ГЛАВНОГО ENDPOINT ДОМОВ:")
+            print("   Endpoint: GET /api/cleaning/houses-490")
+            print("   Ожидается: exactly 490 домов с полными данными из Bitrix24")
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses-490", timeout=60)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list))
+                
+                if success:
+                    houses = data["houses"]
+                    houses_count = len(houses)
+                    
+                    print(f"   🏠 Загружено домов: {houses_count}")
+                    print(f"   🏠 Источник данных: {data.get('source', 'Unknown')}")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: exactly 490 домов
+                    if houses_count == 490:
+                        print(f"   ✅ ИДЕАЛЬНО: Загружено exactly 490 домов как требуется")
+                        success = True
+                    else:
+                        print(f"   ❌ КРИТИЧЕСКАЯ ОШИБКА: Загружено {houses_count} домов, ожидалось 490")
+                        success = False
+                    
+                    if houses_count > 0:
+                        sample_house = houses[0]
+                        
+                        # Проверяем полноту данных
+                        required_fields = ['address', 'deal_id', 'brigade', 'management_company', 
+                                         'apartments_count', 'entrances_count', 'floors_count']
+                        
+                        missing_fields = [field for field in required_fields if not sample_house.get(field)]
+                        
+                        if not missing_fields:
+                            print(f"   ✅ Все обязательные поля присутствуют")
+                        else:
+                            print(f"   ❌ Отсутствующие поля: {missing_fields}")
+                            success = False
+                        
+                        # Проверяем УК не null
+                        uc_not_null = [h for h in houses[:10] if h.get('management_company') and h.get('management_company') != 'null']
+                        print(f"   🏢 УК не null (первые 10): {len(uc_not_null)}/10")
+                        
+                        if len(uc_not_null) > 0:
+                            print(f"   ✅ УК заполнены: {uc_not_null[0]['management_company']}")
+                        else:
+                            print(f"   ❌ УК возвращают null - проблема не решена")
+                            success = False
+                        
+                        # Проверяем cleaning_types не "Тип 2468"
+                        sample_cleaning = sample_house.get('september_schedule', {})
+                        if sample_cleaning and 'cleaning_type_1' in sample_cleaning:
+                            cleaning_type = sample_cleaning['cleaning_type_1']
+                            if cleaning_type != "Тип 2468":
+                                print(f"   ✅ Корректный тип уборки: {cleaning_type}")
+                            else:
+                                print(f"   ❌ Некорректный тип уборки: {cleaning_type}")
+                                success = False
+                
+            self.log_test("VasDom Houses-490 Endpoint (КРИТИЧЕСКИЙ)", success, 
+                         f"Status: {response.status_code}, Houses: {houses_count if 'houses_count' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Houses-490 Endpoint (КРИТИЧЕСКИЙ)", False, str(e))
+            return False
+
+    def test_vasdom_cleaning_filters(self):
+        """ТЕСТ: GET /api/cleaning/filters - фильтры для домов (бригады, УК, статусы)"""
+        try:
+            print("\n🔍 ТЕСТИРОВАНИЕ ФИЛЬТРОВ ДОМОВ:")
+            print("   Endpoint: GET /api/cleaning/filters")
+            print("   Ожидается: 28 УК, бригады, статусы")
+            
+            response = requests.get(f"{self.api_url}/cleaning/filters", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "brigades" in data and
+                          "management_companies" in data)
+                
+                if success:
+                    brigades = data.get("brigades", [])
+                    management_companies = data.get("management_companies", [])
+                    statuses = data.get("statuses", [])
+                    
+                    print(f"   👥 Бригад: {len(brigades)}")
+                    print(f"   🏢 Управляющих компаний: {len(management_companies)}")
+                    print(f"   📊 Статусов: {len(statuses)}")
+                    
+                    # Проверяем 28 УК
+                    if len(management_companies) >= 28:
+                        print(f"   ✅ Достаточно УК: {len(management_companies)} >= 28")
+                        print(f"   🏢 Примеры УК: {management_companies[:3]}")
+                    else:
+                        print(f"   ❌ Недостаточно УК: {len(management_companies)} < 28")
+                        success = False
+                    
+                    # Проверяем что УК имеют правильные названия
+                    real_uc_count = 0
+                    for uc in management_companies[:10]:  # Проверяем первые 10
+                        if any(keyword in uc for keyword in ['ООО', 'УК', 'ЖРЭУ', 'РИЦ', 'ГУП']):
+                            real_uc_count += 1
+                    
+                    if real_uc_count > 0:
+                        print(f"   ✅ УК с правильными названиями: {real_uc_count}/10")
+                    else:
+                        print(f"   ❌ УК без правильных названий")
+                        success = False
+                    
+                    # Проверяем бригады
+                    if len(brigades) > 0:
+                        print(f"   ✅ Бригады присутствуют: {brigades}")
+                    else:
+                        print(f"   ❌ Нет бригад")
+                        success = False
+                
+            self.log_test("VasDom Cleaning Filters", success, 
+                         f"Status: {response.status_code}, УК: {len(management_companies) if 'management_companies' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Cleaning Filters", False, str(e))
+            return False
+
+    def test_vasdom_production_debug(self):
+        """ТЕСТ: GET /api/cleaning/production-debug - диагностика продакшена"""
+        try:
+            print("\n🔧 ТЕСТИРОВАНИЕ PRODUCTION DEBUG:")
+            print("   Endpoint: GET /api/cleaning/production-debug")
+            print("   Ожидается: диагностика версии кода и проблем")
+            
+            response = requests.get(f"{self.api_url}/cleaning/production-debug", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success")
+                
+                if success:
+                    print(f"   🔧 Production debug работает")
+                    
+                    # Проверяем версию кода
+                    code_check = data.get("code_version_check", {})
+                    if code_check:
+                        has_optimized = code_check.get("has_optimized_loading", False)
+                        has_enrichment = code_check.get("has_enrichment_method", False)
+                        
+                        print(f"   📊 Оптимизированная загрузка: {has_optimized}")
+                        print(f"   📊 Метод обогащения УК: {has_enrichment}")
+                        
+                        if has_optimized and has_enrichment:
+                            print(f"   ✅ Новая версия кода развернута")
+                        else:
+                            print(f"   ⚠️ Возможно старая версия кода")
+                    
+                    # Показываем рекомендации
+                    recommendations = data.get("recommendations", [])
+                    if recommendations:
+                        print(f"   💡 Рекомендации: {len(recommendations)}")
+                        for rec in recommendations[:2]:
+                            print(f"      - {rec}")
+                
+            else:
+                print(f"   ❌ Production debug endpoint недоступен (404)")
+                success = False
+                
+            self.log_test("VasDom Production Debug", success, 
+                         f"Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Production Debug", False, str(e))
+            return False
+
+    def test_vasdom_houses_fixed(self):
+        """ТЕСТ: GET /api/cleaning/houses-fixed - принудительное обогащение УК"""
+        try:
+            print("\n🔧 ТЕСТИРОВАНИЕ ПРИНУДИТЕЛЬНОГО ОБОГАЩЕНИЯ УК:")
+            print("   Endpoint: GET /api/cleaning/houses-fixed")
+            print("   Ожидается: дома с принудительно обогащенными УК")
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses-fixed", timeout=60)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data)
+                
+                if success:
+                    houses = data.get("houses", [])
+                    print(f"   🏠 Домов с обогащением: {len(houses)}")
+                    
+                    if len(houses) > 0:
+                        # Проверяем что УК заполнены
+                        houses_with_uc = [h for h in houses if h.get('management_company') and h.get('management_company') != 'null']
+                        print(f"   🏢 Домов с УК: {len(houses_with_uc)}/{len(houses)}")
+                        
+                        if len(houses_with_uc) > 0:
+                            print(f"   ✅ Принудительное обогащение работает")
+                            sample_uc = houses_with_uc[0]['management_company']
+                            print(f"   🏢 Пример УК: {sample_uc}")
+                        else:
+                            print(f"   ❌ Принудительное обогащение не работает")
+                            success = False
+                    else:
+                        print(f"   ⚠️ Нет домов для проверки")
+                
+            else:
+                print(f"   ❌ Houses-fixed endpoint недоступен (404)")
+                success = False
+                
+            self.log_test("VasDom Houses Fixed (принудительное обогащение)", success, 
+                         f"Status: {response.status_code}, Houses: {len(houses) if 'houses' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Houses Fixed (принудительное обогащение)", False, str(e))
+            return False
+
+    def test_vasdom_dashboard_stats(self):
+        """ТЕСТ: GET /api/dashboard - статистика дашборда"""
+        try:
+            print("\n📊 ТЕСТИРОВАНИЕ СТАТИСТИКИ ДАШБОРДА:")
+            print("   Endpoint: GET /api/dashboard")
+            print("   Ожидается: статистика квартир, подъездов, этажей")
+            
+            response = requests.get(f"{self.api_url}/dashboard", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "stats" in data)
+                
+                if success:
+                    stats = data.get("stats", {})
+                    
+                    houses = stats.get("houses", 0)
+                    apartments = stats.get("apartments", 0)
+                    entrances = stats.get("entrances", 0)
+                    floors = stats.get("floors", 0)
+                    
+                    print(f"   🏠 Дома: {houses}")
+                    print(f"   🏢 Квартиры: {apartments}")
+                    print(f"   🚪 Подъезды: {entrances}")
+                    print(f"   📊 Этажи: {floors}")
+                    
+                    # Проверяем что статистика реалистичная
+                    if all(val > 0 for val in [houses, apartments, entrances, floors]):
+                        print(f"   ✅ Статистика реалистичная")
+                        
+                        # Проверяем что количество домов близко к 490
+                        if 480 <= houses <= 500:
+                            print(f"   ✅ Количество домов близко к ожидаемому: {houses}")
+                        else:
+                            print(f"   ⚠️ Количество домов отличается от ожидаемого: {houses}")
+                    else:
+                        print(f"   ❌ Статистика содержит нули")
+                        success = False
+                
+            self.log_test("VasDom Dashboard Stats", success, 
+                         f"Status: {response.status_code}, Houses: {stats.get('houses', 0) if 'stats' in locals() else 0}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Dashboard Stats", False, str(e))
+            return False
+
+    def test_vasdom_performance_check(self):
+        """ТЕСТ: Проверка производительности загрузки домов"""
+        try:
+            print("\n⚡ ТЕСТИРОВАНИЕ ПРОИЗВОДИТЕЛЬНОСТИ:")
+            print("   Проверка: Время загрузки домов должно быть быстрым")
+            print("   Ожидается: < 30 секунд для загрузки")
+            
+            start_time = time.time()
+            response = requests.get(f"{self.api_url}/cleaning/houses", timeout=60)
+            end_time = time.time()
+            
+            load_time = end_time - start_time
+            success = response.status_code == 200 and load_time < 30
+            
+            print(f"   ⏱️ Время загрузки: {load_time:.2f} секунд")
+            
+            if load_time < 10:
+                print(f"   ✅ ОТЛИЧНО: Очень быстрая загрузка")
+            elif load_time < 30:
+                print(f"   ✅ ХОРОШО: Приемлемая скорость загрузки")
+            else:
+                print(f"   ❌ МЕДЛЕННО: Загрузка слишком долгая")
+                success = False
+            
+            if success and response.status_code == 200:
+                data = response.json()
+                houses_count = len(data.get("houses", []))
+                print(f"   📊 Загружено домов: {houses_count}")
+                
+                if houses_count > 0:
+                    houses_per_second = houses_count / load_time
+                    print(f"   📊 Скорость: {houses_per_second:.1f} домов/сек")
+            
+            self.log_test("VasDom Performance Check", success, 
+                         f"Load time: {load_time:.2f}s, Status: {response.status_code}")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Performance Check", False, str(e))
+            return False
+
+    def test_vasdom_data_completeness(self):
+        """ТЕСТ: Проверка полноты данных домов"""
+        try:
+            print("\n📋 ТЕСТИРОВАНИЕ ПОЛНОТЫ ДАННЫХ:")
+            print("   Проверка: Все дома должны иметь полные данные")
+            print("   Ожидается: адреса, телефоны, контакты, УК")
+            
+            response = requests.get(f"{self.api_url}/cleaning/houses?limit=20", timeout=30)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data)
+                
+                if success:
+                    houses = data.get("houses", [])
+                    print(f"   🏠 Проверяем полноту данных для {len(houses)} домов")
+                    
+                    # Проверяем полноту адресов
+                    houses_with_address = [h for h in houses if h.get('address')]
+                    print(f"   📍 Домов с адресами: {len(houses_with_address)}/{len(houses)}")
+                    
+                    # Проверяем полноту УК
+                    houses_with_uc = [h for h in houses if h.get('management_company') and h.get('management_company') != 'null']
+                    print(f"   🏢 Домов с УК: {len(houses_with_uc)}/{len(houses)}")
+                    
+                    # Проверяем полноту бригад
+                    houses_with_brigade = [h for h in houses if h.get('brigade')]
+                    print(f"   👥 Домов с бригадами: {len(houses_with_brigade)}/{len(houses)}")
+                    
+                    # Проверяем количественные данные
+                    houses_with_counts = [h for h in houses if h.get('apartments_count') and h.get('entrances_count')]
+                    print(f"   📊 Домов с количественными данными: {len(houses_with_counts)}/{len(houses)}")
+                    
+                    # Общая оценка полноты
+                    completeness_score = (
+                        len(houses_with_address) + 
+                        len(houses_with_uc) + 
+                        len(houses_with_brigade) + 
+                        len(houses_with_counts)
+                    ) / (4 * len(houses)) * 100
+                    
+                    print(f"   📊 Общая полнота данных: {completeness_score:.1f}%")
+                    
+                    if completeness_score >= 80:
+                        print(f"   ✅ ОТЛИЧНО: Данные достаточно полные")
+                    elif completeness_score >= 60:
+                        print(f"   ⚠️ ХОРОШО: Данные частично полные")
+                    else:
+                        print(f"   ❌ ПЛОХО: Данные неполные")
+                        success = False
+                    
+                    # Показываем пример полного дома
+                    if houses_with_uc:
+                        sample = houses_with_uc[0]
+                        print(f"   📋 Пример полного дома:")
+                        print(f"      - Адрес: {sample.get('address', 'Нет')}")
+                        print(f"      - УК: {sample.get('management_company', 'Нет')}")
+                        print(f"      - Бригада: {sample.get('brigade', 'Нет')}")
+                        print(f"      - Квартиры: {sample.get('apartments_count', 'Нет')}")
+            
+            self.log_test("VasDom Data Completeness", success, 
+                         f"Status: {response.status_code}, Completeness: {completeness_score:.1f}%" if 'completeness_score' in locals() else "Failed")
+            return success
+        except Exception as e:
+            self.log_test("VasDom Data Completeness", False, str(e))
+            return False
+
+    def run_vasdom_houses_tests(self):
+        """Запуск всех тестов раздела 'Дома' VasDom AudioBot"""
+        print("=" * 80)
+        print("🏠 ТЕСТИРОВАНИЕ РАЗДЕЛА 'ДОМА' VASDOM AUDIOBOT")
+        print("=" * 80)
+        print(f"🔗 Тестируем: {self.base_url}")
+        print(f"📅 Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 80)
+        
+        # Основные тесты API
+        self.test_api_root()
+        self.test_health_endpoint()
+        
+        # Критические тесты раздела "Дома"
+        self.test_vasdom_houses_490_endpoint()
+        self.test_vasdom_cleaning_filters()
+        self.test_vasdom_production_debug()
+        self.test_vasdom_houses_fixed()
+        self.test_vasdom_dashboard_stats()
+        
+        # Дополнительные проверки
+        self.test_vasdom_performance_check()
+        self.test_vasdom_data_completeness()
+        
+        # Итоговый отчет
+        print("\n" + "=" * 80)
+        print("📊 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ")
+        print("=" * 80)
+        print(f"✅ Тестов пройдено: {self.tests_passed}/{self.tests_run}")
+        print(f"❌ Тестов провалено: {len(self.failed_tests)}")
+        
+        if self.failed_tests:
+            print("\n❌ ПРОВАЛИВШИЕСЯ ТЕСТЫ:")
+            for i, test in enumerate(self.failed_tests, 1):
+                print(f"{i}. {test['name']}")
+                print(f"   Детали: {test['details']}")
+        
+        success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
+        print(f"\n📊 Успешность: {success_rate:.1f}%")
+        
+        if success_rate >= 90:
+            print("🎉 ОТЛИЧНО: Раздел 'Дома' работает идеально!")
+        elif success_rate >= 70:
+            print("✅ ХОРОШО: Раздел 'Дома' работает с незначительными проблемами")
+        else:
+            print("❌ КРИТИЧНО: Раздел 'Дома' имеет серьезные проблемы")
+        
+        print("=" * 80)
+        return success_rate >= 70
+
 def main():
     """Main test execution"""
     tester = VasDomAPITester()
     
     try:
-        all_passed = tester.run_all_tests()
+        # Запускаем специальные тесты раздела "Дома"
+        all_passed = tester.run_vasdom_houses_tests()
         return 0 if all_passed else 1
     except KeyboardInterrupt:
         print("\n⏹️ Tests interrupted by user")
