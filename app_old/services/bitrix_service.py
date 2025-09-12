@@ -407,10 +407,11 @@ class BitrixService:
         match = re.search(r'\d+', str(type_id))
         if match:
             type_num = match.group()
-            description = cleaning_types.get(type_num, f"Тип уборки {type_num}")
-            logger.info(f"🧹 Cleaning type {type_num} -> {description[:50]}...")
+            description = cleaning_types.get(type_num, f"Неизвестный тип {type_num}")
+            logger.info(f"🧹 CLEANING TYPE MAPPING: {type_id} -> {type_num} -> {description[:30]}...")
             return description
         
+        logger.warning(f"⚠️ CLEANING TYPE: не удалось извлечь ID из {type_id}")
         return str(type_id)
 
     def _parse_bitrix_dates(self, dates_data) -> List[str]:
