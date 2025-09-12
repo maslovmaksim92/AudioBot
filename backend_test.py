@@ -1484,32 +1484,37 @@ class VasDomAPITester:
             return False
 
     def run_all_tests(self):
-        """Run all API tests focusing on new Bitrix24 Tasks functionality"""
-        print("🚀 Starting VasDom AudioBot API Tests - Bitrix24 Tasks Integration")
+        """Run all API tests focusing on new Production Debug endpoints for Render deployment fixes"""
+        print("🚀 Starting VasDom AudioBot API Tests - Production Debug Endpoints")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Testing new Bitrix24 Tasks functionality:")
-        print("   НОВАЯ ФУНКЦИОНАЛЬНОСТЬ:")
-        print("   1. GET /api/tasks - получение списка задач из Bitrix24")
-        print("   2. POST /api/tasks - создание задач в Bitrix24")
-        print("   3. GET /api/tasks/stats - статистика по задачам")
-        print("   4. GET /api/tasks/users - список пользователей для назначения")
-        print("   КЛЮЧЕВЫЕ ТЕСТЫ:")
-        print("   1. GET /api/tasks?limit=3 - проверить загрузку задач из Bitrix24")
-        print("   2. GET /api/tasks/stats - проверить статистику (всего задач, по статусам, просрочки)")
-        print("   3. GET /api/tasks/users - проверить список пользователей")
-        print("   4. POST /api/tasks - создать тестовую задачу в Bitrix24")
+        print("📋 Review Requirements - Testing new Production Debug endpoints for Render deployment:")
+        print("   НОВЫЕ ENDPOINTS ДЛЯ ТЕСТИРОВАНИЯ:")
+        print("   1. GET /api/cleaning/production-debug - диагностика версии кода и проблем")
+        print("   2. GET /api/cleaning/fix-management-companies - исправление данных УК на продакшене")
+        print("   3. GET /api/cleaning/houses-fixed - дома с принудительным обогащением данных УК и бригад")
+        print("   ЦЕЛЬ ТЕСТИРОВАНИЯ:")
+        print("   - Убедиться что новые endpoints работают локально")
+        print("   - Проверить что обогащение данными УК и бригадами работает через прямые API вызовы к Bitrix24")
+        print("   - Убедиться что production-debug endpoint правильно анализирует версию кода")
+        print("   ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
+        print("   - production-debug должен показать has_optimized_loading: true, has_enrichment_method: true")
+        print("   - fix-management-companies должен вернуть реальные названия УК из Bitrix24")
+        print("   - houses-fixed должен вернуть дома с заполненными полями management_company и brigade")
         print("=" * 80)
         
-        # НОВЫЕ ТЕСТЫ - Bitrix24 Tasks API
-        self.test_bitrix24_tasks_api()
-        self.test_bitrix24_tasks_stats()
-        self.test_bitrix24_tasks_users()
-        self.test_bitrix24_create_task()
+        # НОВЫЕ ТЕСТЫ - Production Debug Endpoints
+        self.test_production_debug_endpoint()
+        self.test_fix_management_companies_endpoint()
+        self.test_houses_fixed_endpoint()
         
         # Базовые тесты для проверки что система работает
         self.test_api_root()
         self.test_health_endpoint()
         self.test_bitrix24_connection()
+        
+        # Дополнительные тесты для проверки исправления проблем
+        self.test_bitrix24_management_company_fix()
+        self.test_cleaning_houses()
         
         # Print results
         print("=" * 80)
@@ -1523,39 +1528,37 @@ class VasDomAPITester:
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"✅ Success Rate: {success_rate:.1f}%")
         
-        # Bitrix24 Tasks functionality summary
-        print("\n📋 Bitrix24 Tasks Functionality Status:")
+        # Production Debug endpoints summary
+        print("\n🔍 Production Debug Endpoints Status:")
         
-        # Check tasks API tests
-        tasks_api_tests = [test for test in self.failed_tests if "Tasks API" in test["name"]]
-        tasks_api_passed = len(tasks_api_tests) == 0
+        # Check production debug tests
+        debug_tests = [test for test in self.failed_tests if "Production Debug" in test["name"]]
+        debug_passed = len(debug_tests) == 0
         
-        tasks_stats_tests = [test for test in self.failed_tests if "Tasks Stats" in test["name"]]
-        tasks_stats_passed = len(tasks_stats_tests) == 0
+        fix_companies_tests = [test for test in self.failed_tests if "Fix Management Companies" in test["name"]]
+        fix_companies_passed = len(fix_companies_tests) == 0
         
-        tasks_users_tests = [test for test in self.failed_tests if "Tasks Users" in test["name"]]
-        tasks_users_passed = len(tasks_users_tests) == 0
+        houses_fixed_tests = [test for test in self.failed_tests if "Houses Fixed" in test["name"]]
+        houses_fixed_passed = len(houses_fixed_tests) == 0
         
-        create_task_tests = [test for test in self.failed_tests if "Create Task" in test["name"]]
-        create_task_passed = len(create_task_tests) == 0
+        management_fix_tests = [test for test in self.failed_tests if "Management Company & Brigade Fix" in test["name"]]
+        management_fix_passed = len(management_fix_tests) == 0
         
-        print(f"   1. GET /api/tasks - загрузка задач из Bitrix24: {'✅' if tasks_api_passed else '❌'}")
-        print(f"   2. GET /api/tasks/stats - статистика по задачам: {'✅' if tasks_stats_passed else '❌'}")
-        print(f"   3. GET /api/tasks/users - список пользователей: {'✅' if tasks_users_passed else '❌'}")
-        print(f"   4. POST /api/tasks - создание задач в Bitrix24: {'✅' if create_task_passed else '❌'}")
+        print(f"   1. GET /api/cleaning/production-debug - диагностика версии кода: {'✅' if debug_passed else '❌'}")
+        print(f"   2. GET /api/cleaning/fix-management-companies - исправление УК: {'✅' if fix_companies_passed else '❌'}")
+        print(f"   3. GET /api/cleaning/houses-fixed - принудительное обогащение: {'✅' if houses_fixed_passed else '❌'}")
+        print(f"   4. Bitrix24 Management Company Fix - проверка исправления: {'✅' if management_fix_passed else '❌'}")
         
-        # Overall tasks functionality status
-        overall_tasks_success = tasks_api_passed and tasks_stats_passed and tasks_users_passed and create_task_passed
-        print(f"\n🎯 ОБЩИЙ СТАТУС НОВОЙ ФУНКЦИОНАЛЬНОСТИ ЗАДАЧ: {'✅ УСПЕШНО' if overall_tasks_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
+        # Overall production debug success
+        overall_debug_success = debug_passed and fix_companies_passed and houses_fixed_passed and management_fix_passed
+        print(f"\n🎯 ОБЩИЙ СТАТУС ИСПРАВЛЕНИЯ ПРОБЛЕМ ДЕПЛОЯ: {'✅ УСПЕШНО' if overall_debug_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
         
-        if overall_tasks_success:
-            print("   ✅ Новая функциональность вкладки 'Задачи' с интеграцией Bitrix24 работает корректно")
-            print("   ✅ Задачи загружаются из Bitrix24 с полными данными")
-            print("   ✅ Статистика корректно подсчитывается")
-            print("   ✅ Создание задач работает и возвращает ID в Bitrix24")
-            print("   ✅ Интеграция с существующими BitrixService методами работает")
+        # Specific focus on management_company null issue
+        print(f"\n🏢 ФОКУС НА ПРОБЛЕМЕ management_company:")
+        if management_fix_passed:
+            print(f"   ✅ Поля management_company больше НЕ возвращают null после исправлений")
         else:
-            print("   ❌ Новая функциональность задач требует дополнительной отладки")
+            print(f"   ❌ Поля management_company все еще возвращают null - требуется дополнительная работа")
         
         return self.tests_passed == self.tests_run
 
