@@ -51,8 +51,8 @@ class BitrixService:
         try:
             logger.info(f"🏠 Loading houses from Bitrix24 with optimization...")
             
-            # Загружаем базовые данные домов
-            base_deals = await self._load_base_deals_optimized(limit or 50)
+            # Загружаем базовые данные домов - ИСПРАВЛЕНО для Render
+            base_deals = await self._load_base_deals_optimized(limit or 500)  # Увеличено до 500 для получения всех домов
             
             if not base_deals:
                 logger.warning("⚠️ No base deals loaded, using fallback")
