@@ -241,6 +241,84 @@ const WorksEnhanced = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Функция применения фильтров и сортировки
+  const applyFiltersAndSort = () => {
+    let filtered = [...houses];
+    
+    // Применяем фильтры
+    if (activeFilters.search) {
+      const searchTerm = activeFilters.search.toLowerCase();
+      filtered = filtered.filter(house =>
+        house.address?.toLowerCase().includes(searchTerm) ||
+        house.management_company?.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    if (activeFilters.brigade) {
+      filtered = filtered.filter(house => house.brigade === activeFilters.brigade);
+    }
+    
+    if (activeFilters.management_company) {
+      filtered = filtered.filter(house => house.management_company === activeFilters.management_company);
+    }
+    
+    if (activeFilters.status) {
+      filtered = filtered.filter(house => house.status_text === activeFilters.status);
+    }
+    
+    if (activeFilters.apartments_min) {
+      filtered = filtered.filter(house => (house.apartments_count || 0) >= parseInt(activeFilters.apartments_min));
+    }
+    
+    if (activeFilters.apartments_max) {
+      filtered = filtered.filter(house => (house.apartments_count || 0) <= parseInt(activeFilters.apartments_max));
+    }
+    
+    // Применяем сортировку
+    filtered.sort((a, b) => {
+      let aVal = a[sortConfig.field];
+      let bVal = b[sortConfig.field];
+      
+      // Обработка разных типов данных
+      if (sortConfig.field === 'apartments_count' || sortConfig.field === 'floors_count' || sortConfig.field === 'entrances_count') {
+        aVal = aVal || 0;
+        bVal = bVal || 0;
+      } else if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || '').toLowerCase();
+      }
+      
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    setFilteredHouses(filtered);
+  };
+
+  // Функция изменения сортировки
+  const handleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Сброс всех фильтров
+  const resetFilters = () => {
+    setActiveFilters({
+      search: '',
+      brigade: '',
+      management_company: '',
+      status: '',
+      apartments_min: '',
+      apartments_max: '',
+      month: 'september'
+    });
+    setSortConfig({ field: 'address', direction: 'asc' });
+    setShowSuggestions(false);
+  };
+
   const exportToCSV = () => {
     const csvData = houses.map(house => ({
       'Адрес': house.address,
