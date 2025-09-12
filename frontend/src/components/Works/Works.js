@@ -83,9 +83,30 @@ const WorksEnhanced = () => {
       console.log('🏠 Fetching houses using apiService (490 houses)...');
       
       const data = await apiService.getCleaningHouses(activeFilters);
-      console.log('🏠 Houses data received:', data);
+      console.log('🏠 Raw API response:', data);
+      console.log('🏠 Response type:', typeof data);
+      console.log('🏠 Response status:', data?.status);
+      console.log('🏠 Houses array present:', !!data?.houses);
+      console.log('🏠 Houses array length:', data?.houses?.length);
       
-      const housesData = data.houses || data || [];
+      // Исправленная логика извлечения данных
+      let housesData = [];
+      if (data && data.houses && Array.isArray(data.houses)) {
+        housesData = data.houses;
+        console.log('✅ Using data.houses array');
+      } else if (data && Array.isArray(data)) {
+        housesData = data;
+        console.log('✅ Using data as array');
+      } else {
+        console.warn('⚠️ Unexpected data format, using empty array');
+        housesData = [];
+      }
+      
+      console.log(`🏠 Final houses data: ${housesData.length} houses`);
+      if (housesData.length > 0) {
+        console.log('🏠 First house sample:', housesData[0]);
+      }
+      
       setHouses(housesData);
       
       // Анимация появления карточек
@@ -97,7 +118,14 @@ const WorksEnhanced = () => {
         }, index * 50);
       });
       
-      console.log(`✅ Loaded ${housesData.length} houses`);
+      console.log(`✅ Successfully loaded ${housesData.length} houses`);
+      
+      // Показываем уведомление об успехе
+      if (housesData.length > 0) {
+        showNotification(`✅ Загружено ${housesData.length} домов`, 'success');
+      } else {
+        showNotification('⚠️ Дома не найдены', 'warning');
+      }
     } catch (error) {
       console.error('❌ Error fetching houses:', error);
       showNotification('❌ Ошибка загрузки домов', 'error');
