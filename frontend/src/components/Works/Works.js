@@ -1077,7 +1077,7 @@ const WorksEnhanced = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {houses.map((house, index) => (
+                  {filteredHouses.map((house, index) => (
                     <tr key={house.deal_id} className="border-b hover:bg-gray-50">
                       <td className="p-3">
                         <div>
