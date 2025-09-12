@@ -665,10 +665,10 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Панель сортировки */}
+        {/* Панель сортировки - адаптивная */}
         <div className="border-t pt-4">
           <h4 className="font-medium text-gray-700 mb-3">📊 Сортировка</h4>
-          <div className="flex flex-wrap gap-2">
+          <div className={`flex flex-wrap gap-2 ${isMobile ? 'justify-center' : 'justify-start'}`}>
             {[
               { field: 'address', label: '📍 По адресу' },
               { field: 'apartments_count', label: '🏠 По квартирам' },
