@@ -105,7 +105,89 @@
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://vasdom-clean.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
-  - task: "Render Production Issues Fix - COMPLETED LOCALLY"
+  - task: "VasDom AudioBot Houses Section - 490 Houses Loading"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ КРИТИЧЕСКИЙ ТЕСТ ПРОЙДЕН: GET /api/cleaning/houses-490 успешно загружает exactly 490 домов из Bitrix24. Все обязательные поля присутствуют (address, deal_id, brigade, management_company, apartments_count, entrances_count, floors_count). УК заполнены корректно - первые 10 домов имеют УК не null, пример: 'ООО Жилищная компания'. Источник данных: Bitrix24 CRM. Время загрузки приемлемое."
+
+  - task: "VasDom AudioBot Cleaning Filters - 28 Management Companies"
+    implemented: true
+    working: false
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ПРОБЛЕМА ПРОИЗВОДИТЕЛЬНОСТИ: GET /api/cleaning/filters работает корректно (возвращает 28 УК и 6 бригад как требуется), но имеет проблемы с производительностью - timeout через 30 секунд. Endpoint функционален, но медленный. Требуется оптимизация запросов к Bitrix24 для фильтров."
+
+  - task: "VasDom AudioBot Production Debug"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ОТЛИЧНО: GET /api/cleaning/production-debug работает идеально. Возвращает status=success, has_optimized_loading=true, has_enrichment_method=true. Диагностика показывает что новая версия кода с оптимизациями успешно развернута. Endpoint быстрый и информативный."
+
+  - task: "VasDom AudioBot Houses Fixed - Forced Enrichment"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ПРИНУДИТЕЛЬНОЕ ОБОГАЩЕНИЕ РАБОТАЕТ: GET /api/cleaning/houses-fixed успешно возвращает дома с принудительно обогащенными УК. Пример: 'ООО УК Новый город'. Endpoint функционален и быстрый. Принудительное обогащение решает проблему null УК."
+
+  - task: "VasDom AudioBot Dashboard Statistics"
+    implemented: true
+    working: true
+    file: "backend/app/routers/dashboard.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ СТАТИСТИКА ИДЕАЛЬНА: GET /api/dashboard возвращает реалистичную статистику - 490 домов, 52,136 квартир, 1,621 подъезд. Все значения > 0, статистика корректная. Количество домов точно соответствует ожидаемому (490). Endpoint быстрый и надежный."
+
+  - task: "VasDom AudioBot Data Completeness Check"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ПОЛНОТА ДАННЫХ ОТЛИЧНАЯ: Проверка 20 домов показала высокую полноту данных. Адреса: 20/20, УК: 20/20, бригады: 20/20, количественные данные: 20/20. Общая полнота данных: 100%. Все дома имеют полные данные включая адреса, УК, бригады, количество квартир/этажей/подъездов."
+
+  - task: "VasDom AudioBot Performance Check"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ПРОИЗВОДИТЕЛЬНОСТЬ ХОРОШАЯ: Основной endpoint /api/cleaning/houses загружается быстро (< 10 секунд), что является отличным результатом. Скорость загрузки приемлемая для 490 домов. Только endpoint фильтров имеет проблемы с производительностью."
     implemented: true
     working: true
     file: "backend/app/routers/cleaning.py"
