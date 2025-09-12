@@ -346,6 +346,17 @@ class BitrixService:
                 ]
             }
         }
+    
+    def get_status_info(self, stage_id: str) -> tuple[str, str]:
+        """Получение информации о статусе сделки"""
+        if stage_id == 'C2:WON':
+            return "✅ Выполнено", "success"
+        elif 'APOLOGY' in stage_id or 'LOSE' in stage_id:
+            return "❌ Проблемы", "error"
+        elif 'FINAL_INVOICE' in stage_id:
+            return "🧾 Выставлен счет", "info"
+        else:
+            return "🔄 В работе", "processing"
 
     async def create_task(
         self, 
