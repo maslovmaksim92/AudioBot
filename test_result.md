@@ -122,15 +122,30 @@ backend:
 
   - task: "Production Debug Endpoints for Render Deployment"
     implemented: true
-    working: false
+    working: true
     file: "backend/app/routers/cleaning.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
           comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Новые production debug endpoints возвращают 404 ошибки на продакшене. Endpoints /api/cleaning/production-debug, /api/cleaning/fix-management-companies, /api/cleaning/houses-fixed не доступны. Это означает что новая версия кода с исправлениями НЕ развернута на Render. Требуется повторный деплой с новыми endpoints."
+        - working: true
+          agent: "testing"
+          comment: "✅ ЛОКАЛЬНО ВСЕ РАБОТАЕТ: Все новые production debug endpoints работают локально. 1) /api/cleaning/production-debug возвращает has_optimized_loading=true, has_enrichment_method=true. 2) /api/cleaning/fix-management-companies обрабатывает 10 домов с исправлением УК. 3) /api/cleaning/houses-fixed работает с принудительным обогащением. 4) /api/cleaning/houses возвращает 490 домов с management_company='ООО УК Новый город' и september_schedule с реальными датами. ПРОБЛЕМА: На продакшене endpoints возвращают 404 - требуется деплой новой версии кода на Render."
+
+  - task: "Render Production Deployment Status"
+    implemented: true
+    working: false
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА ДЕПЛОЯ: Продакшен (https://audiobot-qci2.onrender.com) все еще использует старую версию кода без исправлений. Новые endpoints /api/cleaning/production-debug, /api/cleaning/houses-fixed, /api/cleaning/fix-management-companies возвращают 404. Основной endpoint /api/cleaning/houses возвращает только 348 домов с management_company=null. Все исправления работают ТОЛЬКО локально. ТРЕБУЕТСЯ: Деплой новой версии кода на Render с новыми endpoints и исправлениями."
 
   - task: "Management Company Null Issue Fix"
     implemented: true
