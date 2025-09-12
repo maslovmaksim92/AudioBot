@@ -5,8 +5,9 @@ from pydantic import BaseModel
 from typing import Dict, Optional
 from datetime import datetime, timedelta
 
-from ..config.database import SessionLocal
-from ..models.database import VoiceLogDB, ModelMetricsDB, TrainingDatasetDB
+# Временно отключаем зависимости от БД для избежания ошибок импорта
+# from ..config.database import SessionLocal
+# from ..models.database import VoiceLogDB, ModelMetricsDB, TrainingDatasetDB
 from sqlalchemy import func, and_
 
 logger = logging.getLogger(__name__)
