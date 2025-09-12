@@ -25,6 +25,12 @@ const WorksEnhanced = () => {
     progress: 0
   });
   
+  // UI/UX улучшения - Фаза 3
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [isMobile, setIsMobile] = useState(false);
+  const [viewDensity, setViewDensity] = useState('normal'); // compact, normal, spacious
+  
   // Активные фильтры - РАСШИРЕННЫЕ
   const [activeFilters, setActiveFilters] = useState({
     search: '',
