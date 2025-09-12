@@ -506,7 +506,7 @@ async def get_cleaning_houses(
                 company_id=deal.get('COMPANY_ID'),
                 
                 # Упрощенные графики
-                september_schedule=None,
+                september_schedule=september_schedule,
                 october_schedule=None,
                 november_schedule=None,
                 december_schedule=None,
