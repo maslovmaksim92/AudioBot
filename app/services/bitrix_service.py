@@ -27,7 +27,7 @@ class BitrixService:
                     'select[2]': 'STAGE_ID',
                     'select[3]': 'DATE_CREATE',
                     'select[4]': 'OPPORTUNITY',
-                    'filter[CATEGORY_ID]': '2',  # Воронка "Уборка подъездов"
+                    'filter[CATEGORY_ID]': '34',  # Правильная категория (490 домов)
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
                 }
