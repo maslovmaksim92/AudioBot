@@ -47,6 +47,14 @@ class MonthlySchedule(BaseModel):
     cleaning_date_2: Optional[List[str]] = None  # Даты второго типа уборки  
     cleaning_type_2: Optional[str] = None        # Тип уборки 2
 
+class CreateHouseRequest(BaseModel):
+    address: str                                 # Адрес дома (обязательное поле)
+    apartments_count: Optional[int] = None       # Количество квартир
+    floors_count: Optional[int] = None           # Количество этажей  
+    entrances_count: Optional[int] = None        # Количество подъездов
+    tariff: Optional[str] = None                 # Тариф/периодичность
+    management_company: Optional[str] = None     # Управляющая компания
+
 class House(BaseModel):
     address: str                             # Название сделки
     house_address: Optional[str] = None      # Реальный адрес дома из поля UF_CRM_1669561599956

@@ -4,12 +4,9 @@ import { Layout } from './components/Layout';
 
 // Page Components
 import Dashboard from './components/Dashboard/Dashboard';
-import HousesStatistics from './components/Dashboard/HousesStatistics';
 import AIChat from './components/AIChat/AIChat';
-import LiveChat from './components/LiveChat/LiveChat';
-import RealtimeVoiceChat from './components/LiveChat/RealtimeVoiceChat';
-import RealisticVoiceChat from './components/LiveChat/RealisticVoiceChat';
 import Meetings from './components/Meetings/Meetings';
+import Tasks from './components/Tasks/Tasks';
 import Works from './components/Works/Works';
 import Employees from './components/Employees/Employees';
 
@@ -27,14 +24,11 @@ const AppRouter = () => {
   // Section to component mapping
   const sectionComponents = {
     'general': Dashboard,
-    'houses-statistics': HousesStatistics,
     'voice': AIChat,
-    'live-chat': LiveChat,
-    'realtime-voice': RealtimeVoiceChat,
-    'realistic-voice': RealisticVoiceChat,
     'meetings': Meetings,
     'works': Works,
     'employees': Employees,
+    'tasks': Tasks,
     'ai-tasks': React.lazy(() => import('./components/AITasks/AITasks')),
     'training': React.lazy(() => import('./components/Training/Training')),
     'logs': React.lazy(() => import('./components/Logs/Logs'))

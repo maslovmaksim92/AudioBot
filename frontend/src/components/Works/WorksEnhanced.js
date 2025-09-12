@@ -52,22 +52,17 @@ const WorksEnhanced = () => {
   // API calls
   const fetchInitialData = async () => {
     setLoading(true);
-    try {
-      await Promise.all([
-        fetchFilters(),
-        fetchHouses(),
-        fetchDashboardStats()
-      ]);
-    } catch (error) {
-      console.error('❌ Error fetching initial data:', error);
-    } finally {
-      setLoading(false);
-    }
+    await Promise.all([
+      fetchFilters(),
+      fetchHouses(),
+      fetchDashboardStats()
+    ]);
+    setLoading(false);
   };
 
   const fetchFilters = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
       const response = await fetch(`${BACKEND_URL}/api/cleaning/filters`);
       const data = await response.json();
       setFilters(data);
@@ -78,7 +73,7 @@ const WorksEnhanced = () => {
 
   const fetchHouses = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
       const queryParams = new URLSearchParams();
       
       Object.entries(activeFilters).forEach(([key, value]) => {
@@ -86,53 +81,27 @@ const WorksEnhanced = () => {
       });
       
       const url = `${BACKEND_URL}/api/cleaning/houses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      console.log('🏠 Fetching houses from:', url);
-      
       const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
       const data = await response.json();
-      console.log('🏠 Houses data received:', data);
       
-      const housesData = data.houses || data || [];
-      setHouses(housesData);
+      setHouses(data.houses || []);
       
       // Анимация появления карточек
       const newAnimated = new Set();
-      housesData.forEach((_, index) => {
+      (data.houses || []).forEach((_, index) => {
         setTimeout(() => {
           newAnimated.add(index);
           setAnimatedCards(new Set(newAnimated));
         }, index * 50);
       });
-      
-      console.log(`✅ Loaded ${housesData.length} houses`);
     } catch (error) {
       console.error('❌ Error fetching houses:', error);
-      showNotification('❌ Ошибка загрузки домов', 'error');
-      // Fallback data for demo
-      setHouses([
-        {
-          deal_id: 'demo_1',
-          address: 'Демо дом 1',
-          house_address: 'ул. Тестовая, д. 1',
-          apartments_count: 100,
-          floors_count: 10,
-          entrances_count: 4,
-          brigade: 'Бригада 1',
-          management_company: 'ООО Демо-УК',
-          status_text: 'Активен',
-          status_color: 'green'
-        }
-      ]);
     }
   };
 
   const fetchDashboardStats = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
       const response = await fetch(`${BACKEND_URL}/api/cleaning/stats`);
       const data = await response.json();
       setDashboardStats(data);
@@ -174,7 +143,7 @@ const WorksEnhanced = () => {
 
   const handleCreateHouse = async (houseData) => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
       const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
         method: 'POST',
         headers: {
@@ -268,17 +237,14 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Переливающаяся кнопка создания дома */}
-        <div className="relative">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 rounded-xl blur opacity-70 animate-pulse"></div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="relative px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all duration-200 flex items-center space-x-2"
-          >
-            <span>🏠</span>
-            <span>Создать дом</span>
-          </button>
-        </div>
+        {/* Кнопка создания */}
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+        >
+          <span className="text-xl">➕</span>
+          <span>Создать дом</span>
+        </Button>
       </div>
     </div>
   );
@@ -318,20 +284,22 @@ const WorksEnhanced = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         {cards.map((card, index) => (
-          <div key={index} className="group relative">
-            <div className={`absolute -inset-0.5 bg-gradient-to-r ${card.gradient} via-${card.gradient.split('-')[1]}-500 rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500 ${index === 0 ? 'animate-pulse' : ''}`}></div>
-            <div className={`relative bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl cursor-pointer`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className={`text-3xl transform transition-transform duration-300 ${hoveredCard === index ? 'scale-110' : ''}`}>
-                  {card.icon}
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
-                  <div className="text-xs opacity-80">{card.title}</div>
-                </div>
+          <div
+            key={index}
+            className={`bg-gradient-to-br ${card.gradient} text-white p-6 rounded-2xl shadow-xl transform hover:scale-105 transition-all duration-300 hover:shadow-2xl cursor-pointer`}
+            onMouseEnter={() => setHoveredCard(index)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`text-3xl transform transition-transform duration-300 ${hoveredCard === index ? 'scale-110' : ''}`}>
+                {card.icon}
               </div>
-              <div className="text-xs opacity-90">{card.subtitle}</div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">{card.value.toLocaleString()}</div>
+                <div className="text-xs opacity-80">{card.title}</div>
+              </div>
             </div>
+            <div className="text-xs opacity-90">{card.subtitle}</div>
           </div>
         ))}
       </div>

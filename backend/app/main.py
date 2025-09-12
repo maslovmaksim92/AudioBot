@@ -11,7 +11,7 @@ from .config.settings import (
 from .config.database import init_database, close_database
 
 # Import routers
-from .routers import dashboard, voice, telegram, meetings, cleaning, logs
+from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ app.include_router(voice.router)
 app.include_router(telegram.router)
 app.include_router(meetings.router)
 app.include_router(cleaning.router)
+app.include_router(tasks.router)
 app.include_router(logs.router)
 
 logger.info("✅ All routers included")
