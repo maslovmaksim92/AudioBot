@@ -8,6 +8,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { id: 'general', name: 'Обзор', icon: '📊', description: 'Главная панель' },
+    { id: 'houses-statistics', name: 'Статистика домов', icon: '📈', description: 'Графики подъездов, этажей, квартир' },
     { id: 'voice', name: 'AI Чат', icon: '🤖', description: 'Голосовой помощник' },
     { id: 'live-chat', name: 'Живое общение', icon: '👋', description: 'Чат с Алисой в реальном времени' },
     { id: 'realtime-voice', name: 'GPT-4o Голос', icon: '🎤', description: 'Реальный человеческий голос + Bitrix24' },
