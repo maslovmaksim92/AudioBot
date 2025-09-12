@@ -238,6 +238,54 @@ async def debug_bitrix_fields():
         logger.error(f"❌ Debug Bitrix fields error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/raw-bitrix-debug")
+async def raw_bitrix_debug():
+    """ПРОСТОЙ debug Bitrix24 данных"""
+    try:
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Получаем 1 deal с расширенными полями
+        import httpx
+        import urllib.parse
+        
+        params = {
+            'select[0]': 'ID',
+            'select[1]': 'TITLE', 
+            'select[2]': 'COMPANY_ID',
+            'select[3]': 'UF_CRM_1669704529022',   # Квартиры
+            'select[4]': 'UF_CRM_1669705507390',   # Подъезды
+            'select[5]': 'UF_CRM_1669704631166',   # Этажи
+            'select[6]': 'UF_CRM_1741592855565',   # Тип уборки 1
+            'select[7]': 'UF_CRM_1741592945060',   # Тип уборки 2
+            'filter[CATEGORY_ID]': '34',
+            'start': '0'
+        }
+        
+        query_string = urllib.parse.urlencode(params)
+        url = f"{BITRIX24_WEBHOOK_URL}crm.deal.list.json?{query_string}"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                first_deal = data['result'][0] if data.get('result') else {}
+                
+                return {
+                    "status": "success",
+                    "raw_deal": first_deal,
+                    "analysis": {
+                        "company_id": first_deal.get('COMPANY_ID', 'NOT_FOUND'),
+                        "apartments": first_deal.get('UF_CRM_1669704529022', 'NOT_FOUND'),
+                        "cleaning_type_1": first_deal.get('UF_CRM_1741592855565', 'NOT_FOUND')
+                    }
+                }
+            else:
+                return {"status": "error", "http_code": response.status_code}
+                
+    except Exception as e:
+        return {"status": "error", "exception": str(e)}
+
 @router.get("/version-check")
 async def version_check():
     """Проверка версии кода"""
