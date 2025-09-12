@@ -264,3 +264,143 @@ async def get_analytics():
             "status": "error",
             "message": f"Analytics error: {str(e)}"
         }
+
+@router.get("/calendar")
+async def get_cleaning_calendar():
+    """Календарь уборок для Фазы 4"""
+    try:
+        logger.info("📅 Loading cleaning calendar...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=500)
+        
+        if not deals:
+            return {
+                "status": "error",
+                "message": "No calendar data available"
+            }
+        
+        calendar_events = []
+        monthly_summary = {}
+        brigade_calendar = {}
+        
+        for deal in deals:
+            address = deal.get('address', 'Неизвестный адрес')
+            brigade = deal.get('brigade', 'Не назначена')
+            deal_id = deal.get('deal_id', '')
+            
+            # Инициализация календаря бригады
+            if brigade not in brigade_calendar:
+                brigade_calendar[brigade] = {
+                    "september": [],
+                    "october": [],
+                    "november": [], 
+                    "december": []
+                }
+            
+            # Обрабатываем сентябрь 2025
+            september = deal.get('september_schedule', {})
+            if september.get('has_schedule'):
+                cleaning_dates_1 = september.get('cleaning_date_1', [])
+                cleaning_type_1 = september.get('cleaning_type_1', '')
+                
+                for date_str in cleaning_dates_1:
+                    try:
+                        date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        
+                        event = {
+                            "id": f"{deal_id}_{date_obj.strftime('%Y%m%d')}_1",
+                            "title": f"Уборка: {address}",
+                            "date": date_obj.strftime('%Y-%m-%d'),
+                            "time": date_obj.strftime('%H:%M'),
+                            "type": cleaning_type_1,
+                            "address": address,
+                            "brigade": brigade,
+                            "deal_id": deal_id,
+                            "month": "september",
+                            "status": "scheduled"
+                        }
+                        
+                        calendar_events.append(event)
+                        brigade_calendar[brigade]["september"].append(event)
+                        
+                        # Суммарная статистика по месяцам
+                        month_key = date_obj.strftime('%Y-%m')
+                        if month_key not in monthly_summary:
+                            monthly_summary[month_key] = {
+                                "total_events": 0,
+                                "brigades": {},
+                                "types": {}
+                            }
+                        
+                        monthly_summary[month_key]["total_events"] += 1
+                        
+                        if brigade not in monthly_summary[month_key]["brigades"]:
+                            monthly_summary[month_key]["brigades"][brigade] = 0
+                        monthly_summary[month_key]["brigades"][brigade] += 1
+                        
+                        if cleaning_type_1 not in monthly_summary[month_key]["types"]:
+                            monthly_summary[month_key]["types"][cleaning_type_1] = 0
+                        monthly_summary[month_key]["types"][cleaning_type_1] += 1
+                        
+                    except Exception as date_error:
+                        logger.warning(f"Date parsing error: {date_error}")
+                
+                # Вторая уборка в сентябре
+                cleaning_dates_2 = september.get('cleaning_date_2', [])
+                cleaning_type_2 = september.get('cleaning_type_2', '')
+                
+                for date_str in cleaning_dates_2:
+                    try:
+                        date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                        
+                        event = {
+                            "id": f"{deal_id}_{date_obj.strftime('%Y%m%d')}_2",
+                            "title": f"Уборка: {address}",
+                            "date": date_obj.strftime('%Y-%m-%d'),
+                            "time": date_obj.strftime('%H:%M'),
+                            "type": cleaning_type_2,
+                            "address": address,
+                            "brigade": brigade,
+                            "deal_id": deal_id,
+                            "month": "september",
+                            "status": "scheduled"
+                        }
+                        
+                        calendar_events.append(event)
+                        brigade_calendar[brigade]["september"].append(event)
+                        
+                    except Exception as date_error:
+                        logger.warning(f"Date parsing error for second cleaning: {date_error}")
+        
+        # Сортируем события по дате
+        calendar_events.sort(key=lambda x: x['date'])
+        
+        # Статистика календаря
+        calendar_stats = {
+            "total_events": len(calendar_events),
+            "houses_with_schedule": len([d for d in deals if d.get('september_schedule', {}).get('has_schedule')]),
+            "brigades_involved": len([b for b in brigade_calendar if brigade_calendar[b]["september"]]),
+            "date_range": {
+                "start": calendar_events[0]['date'] if calendar_events else None,
+                "end": calendar_events[-1]['date'] if calendar_events else None
+            }
+        }
+        
+        return {
+            "status": "success",
+            "data": {
+                "events": calendar_events,
+                "monthly_summary": monthly_summary,
+                "brigade_calendar": brigade_calendar,
+                "statistics": calendar_stats,
+                "generated_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Calendar error: {e}")
+        return {
+            "status": "error",
+            "message": f"Calendar error: {str(e)}"
+        }
