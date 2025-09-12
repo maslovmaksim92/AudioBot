@@ -12,18 +12,15 @@ class BitrixService:
         logger.info(f"🔗 Bitrix24 service initialized")
         
     async def get_deals(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Получить все дома из Bitrix24 CRM"""
+        """Получить ВСЕ дома из Bitrix24 CRM"""
         try:
-            logger.info(f"🏠 Loading houses from Bitrix24 with optimization...")
-            
-            # Если лимит не задан, используем дефолтный большой лимит для полной статистики
-            effective_limit = limit if limit is not None else 490
+            logger.info(f"🏠 Loading houses from Bitrix24 CRM...")
             
             all_deals = []
             start = 0
             batch_size = 50
             
-            while start < effective_limit:
+            while True:
                 params = {
                     'select[0]': 'ID',
                     'select[1]': 'TITLE', 
@@ -35,50 +32,48 @@ class BitrixService:
                     'start': str(start)
                 }
                 
-                # Пробуем загрузить из Bitrix24
-                try:
-                    if not self.webhook_url:
-                        break
+                query_string = urllib.parse.urlencode(params)
+                url = f"{self.webhook_url}crm.deal.list.json?{query_string}"
+                
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, timeout=30)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
                         
-                    async with httpx.AsyncClient() as client:
-                        response = await client.get(
-                            f"{self.webhook_url}crm.deal.list.json",
-                            params=params,
-                            timeout=10.0
-                        )
-                        
-                        if response.status_code == 200:
-                            data = response.json()
-                            batch_deals = data.get('result', [])
-                            
-                            if not batch_deals:
-                                break
-                                
+                        if data.get('result') and len(data['result']) > 0:
+                            batch_deals = data['result']
                             all_deals.extend(batch_deals)
-                            start += batch_size
+                            
+                            logger.info(f"📦 Loaded batch {start//batch_size + 1}: {len(batch_deals)} houses, total: {len(all_deals)}")
                             
                             if len(batch_deals) < batch_size:
+                                logger.info(f"✅ All houses loaded: {len(all_deals)} from Bitrix24")
                                 break
-                            if len(all_deals) >= effective_limit:
+                                
+                            start += batch_size
+                            
+                            if len(all_deals) >= 600:
                                 logger.info(f"🛑 Loaded {len(all_deals)} houses limit reached")
                                 break
+                                
+                            await asyncio.sleep(0.2)
                         else:
-                            logger.error(f"❌ HTTP error: {response.status_code}")
                             break
-                except Exception as e:
-                    logger.error(f"❌ Request error: {e}")
-                    break
+                    else:
+                        logger.error(f"❌ Bitrix24 HTTP error: {response.status_code}")
+                        break
             
             if all_deals:
                 logger.info(f"✅ CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
                 return all_deals
             else:
                 logger.warning("⚠️ No deals from Bitrix24, using fallback")
-                return self._get_mock_data(effective_limit)
+                return self._get_mock_data(limit or 50)
             
         except Exception as e:
             logger.error(f"❌ Bitrix24 load error: {e}")
-            return self._get_mock_data(limit if limit is not None else 490)
+            return self._get_mock_data(limit or 50)
     
     def _get_mock_data(self, limit: int) -> List[Dict[str, Any]]:
         """Реальные данные из CRM для fallback"""
