@@ -808,25 +808,53 @@ const WorksEnhanced = () => {
           </div>
         )}
 
-        {/* Кнопки действий */}
-        <div className="flex space-x-2">
+        {/* Улучшенные кнопки действий */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => {
               setSelectedHouse(house);
               setShowCalendar(true);
             }}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1 transition-all duration-200 hover:scale-105"
           >
             <span>📅</span>
-            <span>Календарь</span>
+            <span>График</span>
           </Button>
           <Button
-            onClick={() => showNotification(`📊 Подробности для ${house.address}`, 'info')}
-            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1"
+            onClick={() => {
+              setSelectedHouse(house);
+              showNotification(`📊 Открываем детали для ${house.address}`, 'info');
+            }}
+            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-1 transition-all duration-200 hover:scale-105"
           >
-            <span>📊</span>
+            <span>🔍</span>
             <span>Детали</span>
           </Button>
+        </div>
+        
+        {/* Дополнительные кнопки для популярных действий */}
+        <div className="grid grid-cols-3 gap-1 mt-2">
+          <button
+            onClick={() => openGoogleMaps(house.address)}
+            className="text-xs text-gray-600 hover:text-blue-600 transition-colors p-1 rounded hover:bg-blue-50"
+            title="Открыть на карте"
+          >
+            🗺️ Карта
+          </button>
+          <button
+            onClick={() => showNotification(`📞 Контакты для ${house.address}`, 'info')}
+            className="text-xs text-gray-600 hover:text-green-600 transition-colors p-1 rounded hover:bg-green-50"
+            title="Контакты"
+          >
+            📞 Связь
+          </button>
+          <button
+            onClick={() => showNotification(`📝 Заметки для ${house.address}`, 'info')}
+            className="text-xs text-gray-600 hover:text-yellow-600 transition-colors p-1 rounded hover:bg-yellow-50"
+            title="Заметки"
+          >
+            📝 Заметки
+          </button>
         </div>
       </div>
     </div>
