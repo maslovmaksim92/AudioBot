@@ -11,6 +11,7 @@ const Sidebar = () => {
     { id: 'voice', name: 'AI Чат', icon: '🤖', description: 'Голосовой помощник' },
     { id: 'meetings', name: 'Планерки', icon: '🎤', description: 'Записи совещаний' },
     { id: 'works', name: 'Дома', icon: '🏠', description: 'Управление домами' },
+    { id: 'analytics', name: 'Аналитика', icon: '📊', description: 'Отчеты и аналитика' },
     { id: 'ai-tasks', name: 'AI Задачи', icon: '🧠', description: 'Умные задачи' },
     { id: 'training', name: 'Обучение', icon: '📚', description: 'База знаний' },
     { id: 'employees', name: 'Сотрудники', icon: '👥', description: 'Управление бригадами' },
