@@ -135,8 +135,8 @@ async def get_cleaning_houses_with_forced_enrichment(
                 'management_company': management_company_name,
                 'assigned_name': assigned_name,
                 
-                # Упрощенные графики
-                'september_schedule': None,
+                # ПРАВИЛЬНЫЕ ГРАФИКИ УБОРКИ
+                'september_schedule': september_schedule,
                 'october_schedule': None,
                 'november_schedule': None,
                 'december_schedule': None,
