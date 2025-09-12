@@ -197,6 +197,47 @@ async def debug_houses():
         logger.error(f"❌ Debug houses error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/debug-bitrix-fields")
+async def debug_bitrix_fields():
+    """Отладка полей, получаемых из Bitrix24"""
+    try:
+        logger.info("🔧 Debug Bitrix24 fields...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=1)  # Берем одну сделку для анализа
+        
+        if deals and len(deals) > 0:
+            first_deal = deals[0]
+            
+            debug_info = {
+                "status": "success",
+                "deal_id": first_deal.get('ID'),
+                "title": first_deal.get('TITLE'),
+                "all_fields": first_deal,
+                "key_fields": {
+                    "COMPANY_ID": first_deal.get('COMPANY_ID', 'NOT_FOUND'),
+                    "ASSIGNED_BY_ID": first_deal.get('ASSIGNED_BY_ID', 'NOT_FOUND'),
+                    "UF_CRM_1669704529022": first_deal.get('UF_CRM_1669704529022', 'NOT_FOUND'),  # Квартиры
+                    "UF_CRM_1669705507390": first_deal.get('UF_CRM_1669705507390', 'NOT_FOUND'),  # Подъезды
+                    "UF_CRM_1669704631166": first_deal.get('UF_CRM_1669704631166', 'NOT_FOUND'),  # Этажи
+                    "UF_CRM_1741592855565": first_deal.get('UF_CRM_1741592855565', 'NOT_FOUND'),  # Тип уборки 1
+                    "UF_CRM_1741592945060": first_deal.get('UF_CRM_1741592945060', 'NOT_FOUND'),  # Тип уборки 2
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            return debug_info
+        else:
+            return {
+                "status": "error",
+                "message": "No deals found",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Debug Bitrix fields error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/version-check")
 async def version_check():
     """Проверка версии кода"""
