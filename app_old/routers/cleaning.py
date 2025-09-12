@@ -320,6 +320,60 @@ async def get_brigades():
         "total_brigades": 6
     }
 
+@router.get("/cleaning/fresh-test-490")
+async def fresh_test_490():
+    """НОВЫЙ TEST endpoint - принудительно с новым кодом"""
+    try:
+        logger.info("🆕 FRESH TEST 490 houses with NEW CODE...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=500)  # Принудительно вызываем новый код
+        
+        houses = []
+        for deal in deals[:5]:  # Берем только первые 5 для быстроты
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            stage_id = deal.get('STAGE_ID', '')
+            
+            # Определяем бригаду и статус
+            brigade = bitrix.analyze_house_brigade(address)
+            status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            # НОВЫЕ ПОЛЯ из исправленного кода
+            house_data = House(
+                address=address,
+                deal_id=deal_id,
+                stage=stage_id,
+                brigade=brigade,
+                status_text=status_text,
+                status_color=status_color,
+                created_date=deal.get('DATE_CREATE'),
+                opportunity=deal.get('OPPORTUNITY'),
+                last_sync=datetime.utcnow().isoformat(),
+                # Количественные поля из нового кода
+                apartments_count=deal.get('apartments_count', 0),
+                entrances_count=deal.get('entrances_count', 0),
+                floors_count=deal.get('floors_count', 0),
+                management_company=deal.get('management_company', 'НЕ ОБОГАЩЕНО'),
+                house_address=deal.get('house_address', address)
+            )
+            
+            houses.append(house_data.dict())
+        
+        logger.info(f"✅ FRESH TEST prepared: {len(houses)} houses")
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "source": "🆕 FRESH TEST with NEW enrichment code",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ FRESH TEST error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/debug-company")
 async def debug_company_data():
     """Debug для анализа данных УК"""
