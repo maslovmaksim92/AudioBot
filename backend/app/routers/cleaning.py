@@ -643,7 +643,7 @@ def _get_management_company(address: str) -> str:
     elif any(street in address_lower for street in ['центральная', 'главная']):
         return 'ООО "УК Центральная"'
     elif any(street in address_lower for street in ['лесная', 'зеленая']):
-        return 'ООО "ЭкоДом-УК"'
+        return 'ООО "Жилкомсервис"'
     elif any(street in address_lower for street in ['речная', 'озерная']):
         return 'ООО "АкваСервис"'
     elif any(street in address_lower for street in ['горная', 'высокая']):
