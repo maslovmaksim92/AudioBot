@@ -418,6 +418,126 @@ async def get_test_houses():
         logger.error(f"❌ Test houses error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/cleaning/houses-490")
+async def get_490_houses_force():
+    """ПРИНУДИТЕЛЬНО загружаем ВСЕ 490 домов с CATEGORY_ID=34"""
+    try:
+        import httpx
+        import urllib.parse
+        
+        logger.info("🚀 FORCE LOADING 490 houses with CATEGORY_ID=34...")
+        
+        deals = []
+        start = 0
+        
+        while len(deals) < 500:
+            params = {
+                'select[0]': 'ID',
+                'select[1]': 'TITLE', 
+                'select[2]': 'STAGE_ID',
+                'select[3]': 'COMPANY_ID',
+                'select[4]': 'ASSIGNED_BY_ID',
+                'select[5]': 'UF_CRM_1669704529022',  # Квартиры
+                'select[6]': 'UF_CRM_1669705507390',  # Подъезды
+                'select[7]': 'UF_CRM_1669704631166',  # Этажи
+                'select[8]': 'UF_CRM_1741592774017',  # Сентябрь дата 1
+                'select[9]': 'UF_CRM_1741592855565',  # Сентябрь тип 1
+                'filter[CATEGORY_ID]': '34',          # ✅ ПРИНУДИТЕЛЬНО 34!
+                'order[DATE_CREATE]': 'DESC',
+                'start': str(start)
+            }
+            
+            query_string = urllib.parse.urlencode(params)
+            url = f"{BITRIX24_WEBHOOK_URL}crm.deal.list.json?{query_string}"
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=15)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    batch = data.get('result', [])
+                    
+                    if not batch:
+                        break
+                    
+                    deals.extend(batch)
+                    start += 50
+                    
+                    if len(batch) < 50:
+                        break
+                else:
+                    break
+        
+        # Формируем houses с полными данными
+        houses = []
+        for deal in deals:
+            address = deal.get('TITLE', '')
+            deal_id = deal.get('ID', '')
+            
+            # УК по адресу
+            management_company = _get_management_company(address)
+            
+            # Бригада по адресу  
+            if 'хрустальная' in address.lower() or 'жукова' in address.lower():
+                brigade = "4 бригада - Северный район"
+            elif 'гвардейская' in address.lower():
+                brigade = "6 бригада - Окраины"
+            elif 'кондрово' in address.lower():
+                brigade = "5 бригада - Пригород"
+            else:
+                brigade = "1 бригада - Центральный район"
+            
+            # Данные дома
+            apartments_count = int(deal.get('UF_CRM_1669704529022', 0)) if deal.get('UF_CRM_1669704529022') else 0
+            entrances_count = int(deal.get('UF_CRM_1669705507390', 0)) if deal.get('UF_CRM_1669705507390') else 0
+            floors_count = int(deal.get('UF_CRM_1669704631166', 0)) if deal.get('UF_CRM_1669704631166') else 0
+            
+            # График сентября
+            september_dates = deal.get('UF_CRM_1741592774017', [])
+            september_type = deal.get('UF_CRM_1741592855565', '')
+            
+            september_schedule = None
+            if september_dates:
+                september_schedule = {
+                    'cleaning_date_1': september_dates if isinstance(september_dates, list) else [september_dates],
+                    'cleaning_type_1': f"Тип {september_type}" if september_type else "Обычная уборка",
+                    'cleaning_date_2': [],
+                    'cleaning_type_2': "",
+                    'has_schedule': True
+                }
+            
+            house = {
+                'address': address,
+                'deal_id': deal_id,
+                'stage': deal.get('STAGE_ID', ''),
+                'brigade': brigade,
+                'status_text': "🏠 Активный",
+                'status_color': "success",
+                'management_company': management_company,
+                'apartments_count': apartments_count,
+                'entrances_count': entrances_count, 
+                'floors_count': floors_count,
+                'september_schedule': september_schedule,
+                'last_sync': datetime.utcnow().isoformat()
+            }
+            
+            houses.append(house)
+        
+        logger.info(f"✅ FORCE loaded {len(houses)} houses from CATEGORY_ID=34")
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "source": "🔥 DIRECT BITRIX24 CATEGORY_ID=34",
+            "category_used": "34",
+            "sync_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Force 490 houses error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/houses-full")
 async def get_cleaning_houses_full_data(
     limit: Optional[int] = None,
