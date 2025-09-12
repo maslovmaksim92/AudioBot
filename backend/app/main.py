@@ -22,10 +22,10 @@ app = FastAPI(
     description=APP_DESCRIPTION
 )
 
-# CORS middleware с обновленной конфигурацией
+# CORS middleware с безопасными настройками для продакшена
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Временно разрешаем все для отладки
+    allow_origins=CORS_ORIGINS,  # Читается из переменных окружения
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
