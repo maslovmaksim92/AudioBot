@@ -174,7 +174,7 @@ const WorksEnhanced = () => {
 
   const handleCreateHouse = async (houseData) => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(`${BACKEND_URL}/api/cleaning/houses`, {
         method: 'POST',
         headers: {
