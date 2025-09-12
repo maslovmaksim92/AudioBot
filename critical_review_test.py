@@ -10,8 +10,8 @@ from datetime import datetime
 
 class CriticalReviewTester:
     def __init__(self):
-        # Используем URL из frontend/.env
-        self.base_url = "https://housing-management.preview.emergentagent.com"
+        # Используем локальный backend
+        self.base_url = "http://localhost:8001"
         self.api_url = f"{self.base_url}/api"
         self.results = {
             "management_companies": {"status": "unknown", "details": []},
