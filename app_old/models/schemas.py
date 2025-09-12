@@ -51,3 +51,12 @@ class House(BaseModel):
     created_date: Optional[str] = None
     opportunity: Optional[str] = None
     last_sync: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    
+    # Количественные данные дома
+    apartments_count: Optional[int] = 0
+    entrances_count: Optional[int] = 0
+    floors_count: Optional[int] = 0
+    
+    # Управляющая компания и дополнительные данные
+    management_company: Optional[str] = None
+    house_address: Optional[str] = None
