@@ -25,13 +25,21 @@ const WorksEnhanced = () => {
     progress: 0
   });
   
-  // Активные фильтры
+  // Активные фильтры - РАСШИРЕННЫЕ
   const [activeFilters, setActiveFilters] = useState({
+    search: '',
     brigade: '',
-    cleaning_week: '',
-    month: '',
     management_company: '',
-    search: ''
+    status: '',
+    apartments_min: '',
+    apartments_max: '',
+    month: 'september'
+  });
+  
+  // Сортировка
+  const [sortConfig, setSortConfig] = useState({
+    field: 'address',
+    direction: 'asc'
   });
 
   // UI состояние - ВАУ функции
