@@ -105,7 +105,7 @@
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
-  - task: "Render Production Issues Fix - COMPLETED"
+  - task: "Render Production Issues Fix - COMPLETED LOCALLY"
     implemented: true
     working: true
     file: "backend/app/routers/cleaning.py"
@@ -116,6 +116,9 @@ backend:
         - working: true
           agent: "main"
           comment: "✅ ВСЕ ПРОБЛЕМЫ RENDER ИСПРАВЛЕНЫ ЛОКАЛЬНО: 1) Исправлен fallback УК - убрана несуществующая 'ООО ЭкоДом-УК', заменена на 'ООО Жилкомсервис'. 2) Увеличен лимит загрузки домов с 50/100 до 500 - теперь загружается 490 домов. 3) Реализованы правильные графики уборки сентября из полей UF_CRM_1741592774017, UF_CRM_1741592855565, UF_CRM_1741592892232, UF_CRM_1741592945060. 4) Создан парсер _parse_bitrix_dates для обработки массивов дат и _get_cleaning_type_name для ID типов уборки. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: management_company='ООО УК Новый город' (больше не null!), september_schedule с реальными датами ['2025-09-16T03:00:00+03:00', '2025-09-29T03:00:00+03:00'], загрузка 490 домов работает. ГОТОВО К ДЕПЛОЮ НА RENDER."
+        - working: true
+          agent: "testing"
+          comment: "✅ ЛОКАЛЬНОЕ ТЕСТИРОВАНИЕ УСПЕШНО: Все исправления Render deployment работают локально. 1) GET /api/cleaning/houses возвращает 490 домов с заполненными management_company='ООО УК Новый город' (НЕ null). 2) september_schedule присутствует с реальными датами из Bitrix24: cleaning_date_1=['2025-09-16T03:00:00+03:00', '2025-09-29T03:00:00+03:00'], cleaning_type_1='Тип 2468'. 3) GET /api/cleaning/houses-fixed работает с принудительным обогащением. 4) GET /api/cleaning/production-debug показывает has_optimized_loading=true, has_enrichment_method=true. 5) GET /api/cleaning/fix-management-companies обрабатывает 10 домов с исправлением УК. ПРОБЛЕМА: На продакшене (https://audiobot-qci2.onrender.com) новые endpoints возвращают 404, что означает старая версия кода без исправлений. ТРЕБУЕТСЯ ДЕПЛОЙ НОВОЙ ВЕРСИИ НА RENDER."
 
   - task: "Production Debug Endpoints for Render Deployment"
     implemented: true
