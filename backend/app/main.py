@@ -46,17 +46,19 @@ async def dashboard_redirect():
 
 @app.get("/api/version-check")
 async def version_check():
-    """Простая проверка версии развернутого кода"""
+    """Простая проверка версии развернутого кода - FORCE UPDATE v2"""
     return {
         "status": "success",
-        "version": "3.0-FIXED",
-        "timestamp": "2025-09-12T09:20:00Z",
+        "version": "3.0-FIXED-FORCE-UPDATE",
+        "build_timestamp": "2025-09-12T09:35:00Z",
         "features": {
             "management_companies_fixed": True,
             "september_schedules": True,
             "490_houses_loading": True,
-            "production_debug_endpoints": True
-        }
+            "production_debug_endpoints": True,
+            "database_independent": True
+        },
+        "deployment_status": "FORCE UPDATED FOR RENDER"
     }
 
 # Include routers
