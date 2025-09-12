@@ -612,39 +612,68 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Кнопки управления */}
+        {/* Панель сортировки */}
+        <div className="border-t pt-4">
+          <h4 className="font-medium text-gray-700 mb-3">📊 Сортировка</h4>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { field: 'address', label: '📍 По адресу' },
+              { field: 'apartments_count', label: '🏠 По квартирам' },
+              { field: 'brigade', label: '👥 По бригадам' },
+              { field: 'management_company', label: '🏢 По УК' },
+              { field: 'floors_count', label: '🏗️ По этажам' }
+            ].map((sort) => (
+              <button
+                key={sort.field}
+                onClick={() => handleSort(sort.field)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  sortConfig.field === sort.field
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {sort.label}
+                {sortConfig.field === sort.field && (
+                  <span className="ml-1">
+                    {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Кнопки управления - обновленные */}
         <div className="flex justify-between items-center pt-4 border-t">
           <div className="flex space-x-2">
             <Button
-              onClick={fetchHouses}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+              onClick={resetFilters}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
             >
-              Применить
+              <span>🔄</span>
+              <span>Сбросить всё</span>
             </Button>
             <Button
-              onClick={() => {
-                setActiveFilters({
-                  brigade: '',
-                  cleaning_week: '',
-                  month: '',
-                  management_company: '',
-                  search: ''
-                });
-                setShowSuggestions(false);
-              }}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+              onClick={fetchHouses}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
             >
-              Сбросить
+              <span>🔄</span>
+              <span>Обновить данные</span>
             </Button>
           </div>
 
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-4">
+            {/* Статистика фильтрации */}
+            <div className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
+              📊 Показано: <span className="font-bold">{filteredHouses.length}</span> из <span className="font-bold">{houses.length}</span>
+            </div>
+            
             <Button
               onClick={() => setShowExportModal(true)}
               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
             >
               <span>📤</span>
-              <span>Экспорт</span>
+              <span>Экспорт ({filteredHouses.length})</span>
             </Button>
             
             <div className="flex bg-gray-200 rounded-lg">
