@@ -44,6 +44,21 @@ async def dashboard_redirect():
     """Redirect to React VasDom AudioBot Dashboard"""
     return RedirectResponse(url=FRONTEND_DASHBOARD_URL, status_code=302)
 
+@app.get("/api/version-check")
+async def version_check():
+    """Простая проверка версии развернутого кода"""
+    return {
+        "status": "success",
+        "version": "3.0-FIXED",
+        "timestamp": "2025-09-12T09:20:00Z",
+        "features": {
+            "management_companies_fixed": True,
+            "september_schedules": True,
+            "490_houses_loading": True,
+            "production_debug_endpoints": True
+        }
+    }
+
 # Include routers
 app.include_router(dashboard.router)
 app.include_router(voice.router)
