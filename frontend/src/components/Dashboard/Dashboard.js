@@ -6,7 +6,7 @@ const Dashboard = () => {
   const { state, actions } = useApp();
   const { dashboardStats, loading, apiStatus } = state;
 
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
 
   const statCards = [
     { 
@@ -165,6 +165,15 @@ const Dashboard = () => {
           >
             <span className="text-xl mb-1">🏠</span>
             <span className="text-xs">Дома</span>
+          </Button>
+          
+          <Button 
+            variant="secondary" 
+            className="flex flex-col items-center p-4 h-20"
+            onClick={() => actions.setCurrentSection('tasks')}
+          >
+            <span className="text-xl mb-1">📋</span>
+            <span className="text-xs">Задачи</span>
           </Button>
           
           <Button 
