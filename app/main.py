@@ -196,6 +196,7 @@ app.include_router(cleaning.router)
 app.include_router(tasks.router)
 app.include_router(logs.router)
 app.include_router(analytics.router)
+app.include_router(learning.router)       # Новый: модуль самообучения
 
 logger.info("✅ All routers included")
 
