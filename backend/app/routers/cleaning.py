@@ -431,7 +431,7 @@ async def get_cleaning_houses(
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         
         # Используем оптимизированную загрузку
-        deals = await bitrix.get_deals_optimized(limit=limit or 100)  # Лимит по умолчанию 100
+        deals = await bitrix.get_deals_optimized(limit=limit or 500)  # Увеличиваем лимит до 500
         
         houses = []
         for deal in deals:
