@@ -1070,231 +1070,50 @@ const WorksEnhanced = () => {
     );
   };
 
-  const NotificationBar = () => {
-    if (!notification) return null;
-
-    const bgColor = notification.type === 'success' ? 'bg-green-500' :
-                   notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-
-    return (
-      <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300`}>
-        {notification.message}
-      </div>
-    );
-  };
-
-  const LoadingProgressBar = () => {
-    if (!loading || !loadingProgress.stage) return null;
-
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-l-4 border-blue-500">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900">🔄 Загрузка домов из Bitrix24</h3>
-          <span className="text-sm text-gray-500">{loadingProgress.progress}%</span>
-        </div>
-        
-        <div className="mb-3">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">{loadingProgress.message}</span>
-            <span className="text-sm text-gray-500">{loadingProgress.stage}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${loadingProgress.progress}%` }}
-            ></div>
-          </div>
-        </div>
-        
-        <div className="text-xs text-gray-500">
-          Загружаем данные из категории 34 (490 домов) - это может занять до 6 секунд
-        </div>
-      </div>
-    );
-  };
-
-  const SkeletonHouseCard = () => (
-    <div className={`bg-white rounded-2xl shadow-lg border-l-4 border-gray-300 animate-pulse ${
-      viewDensity === 'compact' ? 'p-4' : viewDensity === 'spacious' ? 'p-8' : 'p-6'
+  // Компонент skeleton для загрузки
+  const renderSkeletonCards = () => (
+    <div className={`grid gap-6 ${
+      isMobile ? 'grid-cols-1' : 
+      viewDensity === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
+      viewDensity === 'spacious' ? 'grid-cols-1 lg:grid-cols-2' :
+      'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
     }`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-          <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        </div>
-        <div className="h-4 bg-gray-200 rounded w-16"></div>
-      </div>
-      
-      <div className={`grid gap-3 mb-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
-        {[1, 2, 3].slice(0, isMobile ? 2 : 3).map(i => (
-          <div key={i} className="bg-gray-100 p-3 rounded-lg">
-            <div className="h-6 bg-gray-300 rounded mb-1"></div>
-            <div className="h-3 bg-gray-200 rounded"></div>
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className={`bg-white rounded-2xl shadow-lg border-l-4 border-gray-300 animate-pulse ${
+          viewDensity === 'compact' ? 'p-4' : viewDensity === 'spacious' ? 'p-8' : 'p-6'
+        }`}>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+            <div className="h-4 bg-gray-200 rounded w-16"></div>
           </div>
-        ))}
-      </div>
-      
-      <div className="space-y-2 mb-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="flex justify-between">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-          </div>
-        ))}
-      </div>
-      
-      <div className={`${isMobile ? 'space-y-2' : 'flex space-x-2'}`}>
-        <div className="flex-1 h-8 bg-gray-300 rounded-lg"></div>
-        <div className="flex-1 h-8 bg-gray-200 rounded-lg"></div>
-      </div>
-    </div>
-  );
-
-  // Компонент пагинации
-  const PaginationControls = () => (
-    <div className="flex flex-col sm:flex-row items-center justify-between mt-8 p-4 bg-white rounded-2xl shadow-lg">
-      {/* Информация о пагинации */}
-      <div className="text-sm text-gray-600 mb-4 sm:mb-0">
-        Показано <span className="font-bold">{startIndex + 1}</span> - <span className="font-bold">{Math.min(endIndex, filteredHouses.length)}</span> из <span className="font-bold">{filteredHouses.length}</span> домов
-        <div className="text-xs text-gray-500 mt-1">
-          Страница {currentPage} из {totalPages}
-        </div>
-      </div>
-      
-      {/* Элементы управления */}
-      <div className="flex items-center space-x-2">
-        {/* Размер страницы */}
-        <div className="flex items-center space-x-2 mr-4">
-          <span className="text-sm text-gray-600">На странице:</span>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="text-sm border border-gray-300 rounded px-2 py-1"
-          >
-            <option value={6}>6</option>
-            <option value={12}>12</option>
-            <option value={24}>24</option>
-            <option value={48}>48</option>
-          </select>
-        </div>
-        
-        {/* Кнопки навигации */}
-        <button
-          onClick={() => goToPage(1)}
-          disabled={currentPage === 1}
-          className="px-3 py-1 rounded bg-gray-100 text-gray-600 disabled:opacity-50 hover:bg-gray-200"
-        >
-          ⏮️
-        </button>
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 1}
-          className="px-3 py-1 rounded bg-gray-100 text-gray-600 disabled:opacity-50 hover:bg-gray-200"
-        >
-          ◀️
-        </button>
-        
-        {/* Номера страниц */}
-        <div className="flex space-x-1">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-            if (pageNum > totalPages) return null;
-            
-            return (
-              <button
-                key={pageNum}
-                onClick={() => goToPage(pageNum)}
-                className={`px-3 py-1 rounded text-sm ${
-                  pageNum === currentPage
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-        </div>
-        
-        <button
-          onClick={nextPage}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded bg-gray-100 text-gray-600 disabled:opacity-50 hover:bg-gray-200"
-        >
-          ▶️
-        </button>
-        <button
-          onClick={() => goToPage(totalPages)}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 rounded bg-gray-100 text-gray-600 disabled:opacity-50 hover:bg-gray-200"
-        >
-          ⏭️
-        </button>
-      </div>
-    </div>
-  );
-
-  // Компонент настроек отображения
-  const ViewControls = () => (
-    <div className="flex flex-wrap items-center justify-between mb-6 p-4 bg-gray-50 rounded-2xl">
-      <div className="flex items-center space-x-4 mb-2 sm:mb-0">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Плотность:</span>
-          <div className="flex bg-white rounded-lg border">
-            {[
-              { value: 'compact', label: '📱', title: 'Компактно' },
-              { value: 'normal', label: '💻', title: 'Обычно' },
-              { value: 'spacious', label: '🖥️', title: 'Просторно' }
-            ].map((density) => (
-              <button
-                key={density.value}
-                onClick={() => setViewDensity(density.value)}
-                className={`px-3 py-1 text-sm rounded ${
-                  viewDensity === density.value
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                title={density.title}
-              >
-                {density.label}
-              </button>
+          
+          <div className={`grid gap-3 mb-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            {[1, 2, 3].slice(0, isMobile ? 2 : 3).map(j => (
+              <div key={j} className="bg-gray-100 p-3 rounded-lg">
+                <div className="h-6 bg-gray-300 rounded mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded"></div>
+              </div>
             ))}
           </div>
+          
+          <div className="space-y-2 mb-4">
+            {[1, 2, 3].map(k => (
+              <div key={k} className="flex justify-between">
+                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+          
+          <div className={`${isMobile ? 'space-y-2' : 'flex space-x-2'}`}>
+            <div className="flex-1 h-8 bg-gray-300 rounded-lg"></div>
+            <div className="flex-1 h-8 bg-gray-200 rounded-lg"></div>
+          </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">Устройство:</span>
-          <span className="text-sm font-medium text-blue-600">
-            {isMobile ? '📱 Мобильное' : '💻 Десктоп'}
-          </span>
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <div className="flex bg-gray-200 rounded-lg">
-          <button
-            onClick={() => setViewMode('cards')}
-            className={`px-4 py-2 rounded-l-lg flex items-center space-x-1 ${
-              viewMode === 'cards' ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-700'
-            }`}
-          >
-            <span>📊</span>
-            <span className={isMobile ? 'hidden' : 'inline'}>Карточки</span>
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-4 py-2 rounded-r-lg flex items-center space-x-1 ${
-              viewMode === 'table' ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-700'
-            }`}
-          >
-            <span>📋</span>
-            <span className={isMobile ? 'hidden' : 'inline'}>Таблица</span>
-          </button>
-        </div>
-      </div>
+      ))}
     </div>
   );
 
