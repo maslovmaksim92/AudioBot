@@ -25,7 +25,10 @@ async def process_voice_message(
         
     except Exception as e:
         logger.error(f"❌ Voice error: {e}")
-        return ChatResponse(response="Извините, повторите пожалуйста")
+        raise HTTPException(
+            status_code=500,
+            detail="Извините, произошла ошибка при обработке голосового сообщения"
+        )
 
 @router.get("/self-learning/status")
 async def get_self_learning_status():
