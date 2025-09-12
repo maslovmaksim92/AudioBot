@@ -1081,14 +1081,15 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "3.0"
-  test_sequence: 12
+  version: "4.0"
+  test_sequence: 13
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Новая вкладка 'Задачи' - ТЕСТИРОВАНИЕ ЗАВЕРШЕНО"
-  stuck_tasks: []
+    - "VasDom AudioBot Houses Section Testing - COMPLETED"
+  stuck_tasks:
+    - "VasDom AudioBot Cleaning Filters - Performance Issues"
   test_all: false
   test_priority: "high_first"
 
