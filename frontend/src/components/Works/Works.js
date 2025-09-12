@@ -154,7 +154,15 @@ const WorksEnhanced = () => {
         const housesData = data.houses;
         console.log(`✅ Successfully received ${housesData.length} houses`);
         
+        // PRODUCTION: Извлекаем уникальные УК и бригады для фильтров
+        const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))].sort();
+        const brigades = [...new Set(housesData.map(h => h.brigade).filter(Boolean))].sort();
+        
+        setAvailableCompanies(companies);
+        setAvailableBrigades(brigades);
         setHouses(housesData);
+        
+        console.log(`📊 Extracted ${companies.length} companies and ${brigades.length} brigades`);
         
         // Анимация появления карточек (только для первых 50 для производительности)
         const newAnimated = new Set();
