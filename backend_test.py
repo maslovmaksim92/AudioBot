@@ -1656,37 +1656,33 @@ class VasDomAPITester:
             return False
 
     def run_all_tests(self):
-        """Run all API tests focusing on new Production Debug endpoints for Render deployment fixes"""
-        print("🚀 Starting VasDom AudioBot API Tests - Production Debug Endpoints")
+        """Run all API tests focusing on Render deployment fixes"""
+        print("🚀 Starting VasDom AudioBot API Tests - Render Deployment Fixes")
         print(f"🔗 Testing API at: {self.api_url}")
-        print("📋 Review Requirements - Testing new Production Debug endpoints for Render deployment:")
-        print("   НОВЫЕ ENDPOINTS ДЛЯ ТЕСТИРОВАНИЯ:")
-        print("   1. GET /api/cleaning/production-debug - диагностика версии кода и проблем")
-        print("   2. GET /api/cleaning/fix-management-companies - исправление данных УК на продакшене")
-        print("   3. GET /api/cleaning/houses-fixed - дома с принудительным обогащением данных УК и бригад")
-        print("   ЦЕЛЬ ТЕСТИРОВАНИЯ:")
-        print("   - Убедиться что новые endpoints работают локально")
-        print("   - Проверить что обогащение данными УК и бригадами работает через прямые API вызовы к Bitrix24")
-        print("   - Убедиться что production-debug endpoint правильно анализирует версию кода")
+        print("📋 Review Requirements - Testing Render deployment fixes:")
+        print("   ИСПРАВЛЕННЫЕ ПРОБЛЕМЫ ДЛЯ ТЕСТИРОВАНИЯ:")
+        print("   1. УК компании больше не null - поле management_company теперь показывает реальные названия вместо null")
+        print("   2. Увеличена загрузка домов - теперь загружается 490 домов вместо 50")
+        print("   3. Графики сентября - добавлены правильные поля september_schedule из Bitrix24")
+        print("   ENDPOINTS ДЛЯ ТЕСТИРОВАНИЯ:")
+        print("   1. GET /api/cleaning/houses - основной endpoint домов (должен вернуть 490 домов с management_company)")
+        print("   2. GET /api/cleaning/houses-fixed - endpoint с принудительным обогащением данных")
+        print("   3. GET /api/cleaning/production-debug - диагностика версии кода")
+        print("   4. GET /api/cleaning/fix-management-companies - исправление УК данных")
         print("   ОЖИДАЕМЫЕ РЕЗУЛЬТАТЫ:")
-        print("   - production-debug должен показать has_optimized_loading: true, has_enrichment_method: true")
-        print("   - fix-management-companies должен вернуть реальные названия УК из Bitrix24")
-        print("   - houses-fixed должен вернуть дома с заполненными полями management_company и brigade")
+        print("   ✅ management_company: реальные названия УК типа 'ООО УК Новый город', 'ООО Жилкомсервис' (НЕ null)")
+        print("   ✅ total: 490 домов (НЕ 50)")
+        print("   ✅ september_schedule: объект с cleaning_date_1, cleaning_type_1, cleaning_date_2, cleaning_type_2, has_schedule")
+        print("   ✅ production debug endpoints работают локально")
         print("=" * 80)
         
-        # НОВЫЕ ТЕСТЫ - Production Debug Endpoints
-        self.test_production_debug_endpoint()
-        self.test_fix_management_companies_endpoint()
-        self.test_houses_fixed_endpoint()
+        # ОСНОВНОЙ ТЕСТ - Render Deployment Fixes
+        self.test_render_deployment_fixes()
         
         # Базовые тесты для проверки что система работает
         self.test_api_root()
         self.test_health_endpoint()
         self.test_bitrix24_connection()
-        
-        # Дополнительные тесты для проверки исправления проблем
-        self.test_bitrix24_management_company_fix()
-        self.test_cleaning_houses()
         
         # Print results
         print("=" * 80)
@@ -1700,37 +1696,24 @@ class VasDomAPITester:
         success_rate = (self.tests_passed / self.tests_run) * 100 if self.tests_run > 0 else 0
         print(f"✅ Success Rate: {success_rate:.1f}%")
         
-        # Production Debug endpoints summary
-        print("\n🔍 Production Debug Endpoints Status:")
+        # Render deployment fixes summary
+        print("\n🚀 Render Deployment Fixes Status:")
         
-        # Check production debug tests
-        debug_tests = [test for test in self.failed_tests if "Production Debug" in test["name"]]
-        debug_passed = len(debug_tests) == 0
+        # Check render deployment tests
+        render_tests = [test for test in self.failed_tests if "Render Fix" in test["name"] or "Render Deployment" in test["name"]]
+        render_passed = len(render_tests) == 0
         
-        fix_companies_tests = [test for test in self.failed_tests if "Fix Management Companies" in test["name"]]
-        fix_companies_passed = len(fix_companies_tests) == 0
+        print(f"   🚀 Render Deployment Fixes: {'✅ ВСЕ ИСПРАВЛЕНИЯ РАБОТАЮТ ЛОКАЛЬНО' if render_passed else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
         
-        houses_fixed_tests = [test for test in self.failed_tests if "Houses Fixed" in test["name"]]
-        houses_fixed_passed = len(houses_fixed_tests) == 0
-        
-        management_fix_tests = [test for test in self.failed_tests if "Management Company & Brigade Fix" in test["name"]]
-        management_fix_passed = len(management_fix_tests) == 0
-        
-        print(f"   1. GET /api/cleaning/production-debug - диагностика версии кода: {'✅' if debug_passed else '❌'}")
-        print(f"   2. GET /api/cleaning/fix-management-companies - исправление УК: {'✅' if fix_companies_passed else '❌'}")
-        print(f"   3. GET /api/cleaning/houses-fixed - принудительное обогащение: {'✅' if houses_fixed_passed else '❌'}")
-        print(f"   4. Bitrix24 Management Company Fix - проверка исправления: {'✅' if management_fix_passed else '❌'}")
-        
-        # Overall production debug success
-        overall_debug_success = debug_passed and fix_companies_passed and houses_fixed_passed and management_fix_passed
-        print(f"\n🎯 ОБЩИЙ СТАТУС ИСПРАВЛЕНИЯ ПРОБЛЕМ ДЕПЛОЯ: {'✅ УСПЕШНО' if overall_debug_success else '❌ ТРЕБУЕТ ДОРАБОТКИ'}")
-        
-        # Specific focus on management_company null issue
-        print(f"\n🏢 ФОКУС НА ПРОБЛЕМЕ management_company:")
-        if management_fix_passed:
-            print(f"   ✅ Поля management_company больше НЕ возвращают null после исправлений")
+        if render_passed:
+            print(f"   ✅ management_company поля больше НЕ возвращают null")
+            print(f"   ✅ Загружается 490 домов вместо 50")
+            print(f"   ✅ september_schedule поля присутствуют из Bitrix24")
+            print(f"   ✅ Production debug endpoints работают")
+            print(f"   🎯 ГОТОВО К ДЕПЛОЮ НА RENDER")
         else:
-            print(f"   ❌ Поля management_company все еще возвращают null - требуется дополнительная работа")
+            print(f"   ❌ Некоторые исправления не работают - требуется дополнительная работа")
+            print(f"   ⚠️ НЕ ГОТОВО к деплою на Render")
         
         return self.tests_passed == self.tests_run
 
