@@ -781,6 +781,71 @@ const WorksEnhanced = () => {
     );
   };
 
+  const LoadingProgressBar = () => {
+    if (!loading || !loadingProgress.stage) return null;
+
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-l-4 border-blue-500">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900">🔄 Загрузка домов из Bitrix24</h3>
+          <span className="text-sm text-gray-500">{loadingProgress.progress}%</span>
+        </div>
+        
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-700">{loadingProgress.message}</span>
+            <span className="text-sm text-gray-500">{loadingProgress.stage}</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${loadingProgress.progress}%` }}
+            ></div>
+          </div>
+        </div>
+        
+        <div className="text-xs text-gray-500">
+          Загружаем данные из категории 34 (490 домов) - это может занять до 6 секунд
+        </div>
+      </div>
+    );
+  };
+
+  const SkeletonHouseCard = () => (
+    <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-gray-300 animate-pulse">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+          <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div className="h-4 bg-gray-200 rounded w-16"></div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-gray-100 p-3 rounded-lg">
+            <div className="h-6 bg-gray-300 rounded mb-1"></div>
+            <div className="h-3 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="space-y-2 mb-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex justify-between">
+            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="flex space-x-2">
+        <div className="flex-1 h-8 bg-gray-300 rounded-lg"></div>
+        <div className="flex-1 h-8 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+  );
+
   if (loading && houses.length === 0) {
     return (
       <div className="p-6 flex justify-center items-center min-h-96">
