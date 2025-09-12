@@ -886,98 +886,16 @@ const WorksEnhanced = () => {
             </div>
           )}
           
-          {/* Октябрь 2025 */}
-          {house.october_schedule && house.october_schedule.has_schedule && (
-            <div className="bg-orange-50 p-3 rounded-lg">
-              <div className="text-sm font-medium text-orange-800 mb-2 flex items-center space-x-2">
-                <span>🍂</span>
-                <span>Октябрь 2025</span>
-              </div>
-              <div className="space-y-1">
-                {house.october_schedule.cleaning_date_1 && 
-                 house.october_schedule.cleaning_date_1.length > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center space-x-2 text-orange-700">
-                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                      <span>
-                        {house.october_schedule.cleaning_date_1.map(date => 
-                          new Date(date).toLocaleDateString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit' 
-                          })
-                        ).join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 ml-4 text-xs">
-                      {house.october_schedule.cleaning_type_1}
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Заглушка для будущих месяцев */}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="text-sm font-medium text-gray-600 mb-2 flex items-center space-x-2">
+              <span>🗓️</span>
+              <span>Остальные месяцы</span>
             </div>
-          )}
-          
-          {/* Ноябрь 2025 */}
-          {house.november_schedule && house.november_schedule.has_schedule && (
-            <div className="bg-yellow-50 p-3 rounded-lg">
-              <div className="text-sm font-medium text-yellow-800 mb-2 flex items-center space-x-2">
-                <span>🍁</span>
-                <span>Ноябрь 2025</span>
-              </div>
-              <div className="space-y-1">
-                {house.november_schedule.cleaning_date_1 && 
-                 house.november_schedule.cleaning_date_1.length > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center space-x-2 text-yellow-700">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                      <span>
-                        {house.november_schedule.cleaning_date_1.map(date => 
-                          new Date(date).toLocaleDateString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit' 
-                          })
-                        ).join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 ml-4 text-xs">
-                      {house.november_schedule.cleaning_type_1}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="text-xs text-gray-500">
+              Графики на октябрь-декабрь будут добавлены позже
             </div>
-          )}
-          
-          {/* Декабрь 2025 */}
-          {house.december_schedule && house.december_schedule.has_schedule && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="text-sm font-medium text-blue-800 mb-2 flex items-center space-x-2">
-                <span>❄️</span>
-                <span>Декабрь 2025</span>
-              </div>
-              <div className="space-y-1">
-                {house.december_schedule.cleaning_date_1 && 
-                 house.december_schedule.cleaning_date_1.length > 0 && (
-                  <div className="text-xs">
-                    <div className="flex items-center space-x-2 text-blue-700">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      <span>
-                        {house.december_schedule.cleaning_date_1.map(date => 
-                          new Date(date).toLocaleDateString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit' 
-                          })
-                        ).join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 ml-4 text-xs">
-                      {house.december_schedule.cleaning_type_1}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Улучшенные кнопки действий */}
