@@ -51,16 +51,41 @@ const apiService = {
     return response.json();
   },
 
-  // Houses and cleaning
+  // Houses and cleaning - ОБНОВЛЕНО для загрузки 490 домов
   getCleaningHouses: async (filters = {}) => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value);
-    });
+    // Используем новый endpoint для 490 домов из правильной категории Bitrix24
+    const url = `${BACKEND_URL}/api/cleaning/houses-490`;
+    console.log('🏠 Fetching houses from:', url);
     
-    const url = `${BACKEND_URL}/api/cleaning/houses${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await fetch(url);
-    return response.json();
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log('✅ Houses data received:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Houses API error:', error);
+      // Fallback к принудительной загрузки
+      try {
+        console.log('🔄 Trying force houses endpoint...');
+        const forceResponse = await fetch(`${BACKEND_URL}/api/force-houses-490`);
+        const forceData = await forceResponse.json();
+        console.log('🔥 Force houses result:', forceData);
+        
+        // Если принудительная загрузка успешна, повторяем основной запрос
+        if (forceData.status === '✅ FORCE SUCCESS') {
+          const retryResponse = await fetch(`${BACKEND_URL}/api/cleaning/houses-490`);
+          return retryResponse.json();
+        }
+        
+        return { status: 'error', message: 'Failed to load houses', houses: [] };
+      } catch (fallbackError) {
+        console.error('❌ Fallback failed:', fallbackError);
+        return { status: 'error', message: 'All endpoints failed', houses: [] };
+      }
+    }
   },
 
   getBrigades: async () => {
