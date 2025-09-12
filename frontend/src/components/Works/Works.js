@@ -89,71 +89,69 @@ const WorksEnhanced = () => {
 
   const fetchHouses = async () => {
     try {
-      // Используем обновленный apiService для загрузки 490 домов
-      console.log('🏠 Fetching houses using apiService (490 houses)...');
+      // Callback для прогресс-бара
+      const onProgress = (progressData) => {
+        setLoadingProgress(progressData);
+        console.log(`🔄 Progress: ${progressData.stage} - ${progressData.message} (${progressData.progress}%)`);
+      };
       
-      const data = await apiService.getCleaningHouses(activeFilters);
-      console.log('🏠 Raw API response:', data);
-      console.log('🏠 Response type:', typeof data);
-      console.log('🏠 Response status:', data?.status);
-      console.log('🏠 Houses array present:', !!data?.houses);
-      console.log('🏠 Houses array length:', data?.houses?.length);
+      console.log('🏠 Starting unified house loading (490 houses)...');
       
-      // Исправленная логика извлечения данных
-      let housesData = [];
-      if (data && data.houses && Array.isArray(data.houses)) {
-        housesData = data.houses;
-        console.log('✅ Using data.houses array');
-      } else if (data && Array.isArray(data)) {
-        housesData = data;
-        console.log('✅ Using data as array');
-      } else {
-        console.warn('⚠️ Unexpected data format, using empty array');
-        housesData = [];
-      }
+      // Используем унифицированный apiService с прогресс-баром
+      const data = await apiService.getCleaningHouses(activeFilters, onProgress);
       
-      console.log(`🏠 Final houses data: ${housesData.length} houses`);
-      if (housesData.length > 0) {
-        console.log('🏠 First house sample:', housesData[0]);
-      }
-      
-      setHouses(housesData);
-      
-      // Анимация появления карточек
-      const newAnimated = new Set();
-      housesData.forEach((_, index) => {
-        setTimeout(() => {
-          newAnimated.add(index);
-          setAnimatedCards(new Set(newAnimated));
-        }, index * 50);
+      console.log('🏠 API Response Summary:', {
+        status: data?.status,
+        total: data?.total,
+        houses_count: data?.houses?.length || 0,
+        error: data?.message || 'None'
       });
       
-      console.log(`✅ Successfully loaded ${housesData.length} houses`);
-      
-      // Показываем уведомление об успехе
-      if (housesData.length > 0) {
-        showNotification(`✅ Загружено ${housesData.length} домов`, 'success');
-      } else {
-        showNotification('⚠️ Дома не найдены', 'warning');
-      }
-    } catch (error) {
-      console.error('❌ Error fetching houses:', error);
-      showNotification('❌ Ошибка загрузки домов', 'error');
-      // Fallback data for demo
-      setHouses([
-        {
-          deal_id: 'demo_1',
-          address: 'Демо дом 1',
-          house_address: 'ул. Тестовая, д. 1',
-          apartments_count: 100,
-          floors_count: 10,
-          entrances_count: 4,
-          brigade: 'Бригада 1',
-          management_company: 'ООО Демо-УК',
-          status_text: 'Активен',
-          status_color: 'green'
+      // Простая и надежная логика извлечения данных
+      if (data?.status === 'success' && data?.houses && Array.isArray(data.houses)) {
+        const housesData = data.houses;
+        console.log(`✅ Successfully received ${housesData.length} houses`);
+        
+        setHouses(housesData);
+        
+        // Анимация появления карточек (только для первых 50 для производительности)
+        const newAnimated = new Set();
+        const animationCount = Math.min(housesData.length, 50);
+        for (let i = 0; i < animationCount; i++) {
+          setTimeout(() => {
+            newAnimated.add(i);
+            setAnimatedCards(new Set(newAnimated));
+          }, i * 30);
         }
-      ]);
+        // Добавляем остальные карточки без анимации
+        if (housesData.length > 50) {
+          setTimeout(() => {
+            const allAnimated = new Set();
+            for (let i = 0; i < housesData.length; i++) {
+              allAnimated.add(i);
+            }
+            setAnimatedCards(allAnimated);
+          }, 1500);
+        }
+        
+        showNotification(`✅ Загружено ${housesData.length} из 490 домов`, 'success');
+        
+      } else {
+        // Обработка ошибок
+        console.error('❌ Failed to load houses:', data?.message || 'Unknown error');
+        showNotification(`❌ ${data?.message || 'Ошибка загрузки домов'}`, 'error');
+        setHouses([]);
+      }
+      
+    } catch (error) {
+      console.error('❌ Exception during house loading:', error);
+      showNotification('❌ Критическая ошибка загрузки', 'error');
+      setHouses([]);
+    } finally {
+      // Сбрасываем прогресс
+      setTimeout(() => {
+        setLoadingProgress({ stage: '', message: '', progress: 0 });
+      }, 1000);
     }
   };
 
