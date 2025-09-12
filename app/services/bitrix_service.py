@@ -27,6 +27,10 @@ class BitrixService:
                     'select[2]': 'STAGE_ID',
                     'select[3]': 'DATE_CREATE',
                     'select[4]': 'OPPORTUNITY',
+                    'select[5]': 'UF_CRM_1234_ENTRANCES',  # Поле подъездов
+                    'select[6]': 'UF_CRM_1234_FLOORS',     # Поле этажей
+                    'select[7]': 'UF_CRM_1234_APARTMENTS', # Поле квартир
+                    'select[8]': 'COMMENTS',               # Комментарии
                     'filter[CATEGORY_ID]': '2',  # Воронка "Уборка подъездов"
                     'order[DATE_CREATE]': 'DESC',
                     'start': str(start)
