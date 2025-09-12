@@ -144,3 +144,123 @@ async def get_dashboard_stats():
             ).dict(),
             "data_source": "❌ CRM Error - данные недоступны"
         }
+
+@router.get("/analytics")
+async def get_analytics():
+    """Расширенная аналитика для Фазы 4"""
+    try:
+        logger.info("📊 Loading analytics data...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=500)
+        
+        if not deals:
+            return {
+                "status": "error",
+                "message": "No deals data available"
+            }
+        
+        # Аналитика по бригадам
+        brigade_stats = {}
+        company_stats = {}
+        schedule_stats = {
+            "scheduled": 0,
+            "not_scheduled": 0,
+            "total_cleaning_events": 0
+        }
+        
+        apartments_by_brigade = {}
+        problems_by_brigade = {}
+        
+        for deal in deals:
+            # Статистика по бригадам
+            brigade = deal.get('brigade', 'Не назначена')
+            if brigade not in brigade_stats:
+                brigade_stats[brigade] = {
+                    "houses": 0,
+                    "apartments": 0,
+                    "entrances": 0,
+                    "floors": 0,
+                    "scheduled_houses": 0,
+                    "problem_houses": 0
+                }
+            
+            brigade_stats[brigade]["houses"] += 1
+            brigade_stats[brigade]["apartments"] += deal.get('apartments_count', 0)
+            brigade_stats[brigade]["entrances"] += deal.get('entrances_count', 0)
+            brigade_stats[brigade]["floors"] += deal.get('floors_count', 0)
+            
+            # Проверяем график
+            if deal.get('september_schedule', {}).get('has_schedule'):
+                brigade_stats[brigade]["scheduled_houses"] += 1
+                schedule_stats["scheduled"] += 1
+                
+                # Подсчет событий уборки
+                cleaning_dates_1 = deal.get('september_schedule', {}).get('cleaning_date_1', [])
+                cleaning_dates_2 = deal.get('september_schedule', {}).get('cleaning_date_2', [])
+                schedule_stats["total_cleaning_events"] += len(cleaning_dates_1) + len(cleaning_dates_2)
+            else:
+                schedule_stats["not_scheduled"] += 1
+            
+            # Проблемные дома (по статусу)
+            if deal.get('status_color') in ['red', 'yellow']:
+                brigade_stats[brigade]["problem_houses"] += 1
+            
+            # Статистика по УК
+            company = deal.get('management_company', 'Не указана')
+            if company not in company_stats:
+                company_stats[company] = {
+                    "houses": 0,
+                    "apartments": 0,
+                    "avg_apartments": 0
+                }
+            
+            company_stats[company]["houses"] += 1
+            company_stats[company]["apartments"] += deal.get('apartments_count', 0)
+        
+        # Вычисляем средние значения
+        for company in company_stats:
+            if company_stats[company]["houses"] > 0:
+                company_stats[company]["avg_apartments"] = round(
+                    company_stats[company]["apartments"] / company_stats[company]["houses"], 1
+                )
+        
+        # KPI расчеты
+        total_houses = len(deals)
+        coverage_rate = round((schedule_stats["scheduled"] / total_houses * 100), 1) if total_houses > 0 else 0
+        
+        # Эффективность бригад
+        brigade_efficiency = {}
+        for brigade, stats in brigade_stats.items():
+            if stats["houses"] > 0:
+                efficiency = round((stats["scheduled_houses"] / stats["houses"] * 100), 1)
+                brigade_efficiency[brigade] = {
+                    "coverage": efficiency,
+                    "houses_per_brigade": stats["houses"],
+                    "avg_apartments": round(stats["apartments"] / stats["houses"], 1) if stats["houses"] > 0 else 0,
+                    "problem_rate": round((stats["problem_houses"] / stats["houses"] * 100), 1) if stats["houses"] > 0 else 0
+                }
+        
+        return {
+            "status": "success",
+            "data": {
+                "overview": {
+                    "total_houses": total_houses,
+                    "coverage_rate": coverage_rate,
+                    "total_cleaning_events": schedule_stats["total_cleaning_events"],
+                    "avg_events_per_house": round(schedule_stats["total_cleaning_events"] / total_houses, 1) if total_houses > 0 else 0
+                },
+                "brigade_stats": brigade_stats,
+                "brigade_efficiency": brigade_efficiency,
+                "company_stats": dict(sorted(company_stats.items(), key=lambda x: x[1]["houses"], reverse=True)[:15]),
+                "schedule_distribution": schedule_stats,
+                "generated_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Analytics error: {e}")
+        return {
+            "status": "error",
+            "message": f"Analytics error: {str(e)}"
+        }
