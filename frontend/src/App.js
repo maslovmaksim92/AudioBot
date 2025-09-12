@@ -27,6 +27,7 @@ const AppRouter = () => {
   // Section to component mapping
   const sectionComponents = {
     'general': Dashboard,
+    'houses-statistics': HousesStatistics,
     'voice': AIChat,
     'live-chat': LiveChat,
     'realtime-voice': RealtimeVoiceChat,
