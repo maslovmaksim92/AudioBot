@@ -78,7 +78,7 @@ const WorksEnhanced = () => {
 
   const fetchHouses = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
       const queryParams = new URLSearchParams();
       
       Object.entries(activeFilters).forEach(([key, value]) => {
