@@ -1483,6 +1483,178 @@ class VasDomAPITester:
             self.log_test("Bitrix24 Create Task - POST /api/tasks", False, str(e))
             return False
 
+    def test_render_deployment_fixes(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Проверка исправлений проблем Render deployment"""
+        try:
+            print("\n🚀 ТЕСТИРОВАНИЕ ИСПРАВЛЕНИЙ RENDER DEPLOYMENT:")
+            print("   ИСПРАВЛЕННЫЕ ПРОБЛЕМЫ:")
+            print("   1. УК компании больше не null - поле management_company теперь показывает реальные названия")
+            print("   2. Увеличена загрузка домов - теперь загружается 490 домов вместо 50")
+            print("   3. Графики сентября - добавлены правильные поля september_schedule из Bitrix24")
+            
+            # ТЕСТ 1: GET /api/cleaning/houses - основной endpoint домов
+            print("\n   🏠 ТЕСТ 1: GET /api/cleaning/houses")
+            response = requests.get(f"{self.api_url}/cleaning/houses", timeout=30)
+            success = response.status_code == 200
+            
+            houses_count = 0
+            management_companies_filled = 0
+            september_schedules_present = 0
+            
+            if success:
+                data = response.json()
+                success = (data.get("status") == "success" and 
+                          "houses" in data and
+                          isinstance(data["houses"], list))
+                
+                if success:
+                    houses = data["houses"]
+                    houses_count = len(houses)
+                    total_reported = data.get("total", houses_count)
+                    
+                    print(f"      📊 Загружено домов: {houses_count}")
+                    print(f"      📊 Общее количество: {total_reported}")
+                    
+                    # ПРОВЕРКА 1: Количество домов должно быть 490 (НЕ 50)
+                    if houses_count >= 490:
+                        print(f"      ✅ ИСПРАВЛЕНО: Загружается {houses_count} домов (>= 490)")
+                    elif houses_count == 50:
+                        print(f"      ❌ НЕ ИСПРАВЛЕНО: Все еще загружается только 50 домов")
+                        success = False
+                    else:
+                        print(f"      ⚠️ ЧАСТИЧНО: Загружается {houses_count} домов (ожидалось 490)")
+                    
+                    # ПРОВЕРКА 2: management_company НЕ null
+                    for house in houses:
+                        management_company = house.get('management_company')
+                        if management_company and management_company != 'null' and management_company.strip():
+                            management_companies_filled += 1
+                            # Проверяем что это реальные названия УК
+                            if any(keyword in management_company for keyword in ['ООО', 'УК', 'Жилкомсервис', 'Новый город']):
+                                print(f"      ✅ УК найдена: {management_company}")
+                                break
+                        
+                        # ПРОВЕРКА 3: september_schedule присутствует
+                        september_schedule = house.get('september_schedule')
+                        if september_schedule and isinstance(september_schedule, dict):
+                            if september_schedule.get('has_schedule') or september_schedule.get('cleaning_date_1'):
+                                september_schedules_present += 1
+                    
+                    print(f"      📊 УК заполнены: {management_companies_filled}/{houses_count}")
+                    print(f"      📊 Графики сентября: {september_schedules_present}/{houses_count}")
+                    
+                    # РЕЗУЛЬТАТ ПРОВЕРКИ УК
+                    if management_companies_filled > 0:
+                        print(f"      ✅ ИСПРАВЛЕНО: management_company больше не null")
+                    else:
+                        print(f"      ❌ НЕ ИСПРАВЛЕНО: management_company все еще null")
+                        success = False
+                    
+                    # РЕЗУЛЬТАТ ПРОВЕРКИ ГРАФИКОВ
+                    if september_schedules_present > 0:
+                        print(f"      ✅ ИСПРАВЛЕНО: september_schedule присутствует")
+                    else:
+                        print(f"      ❌ НЕ ИСПРАВЛЕНО: september_schedule отсутствует")
+                        success = False
+            
+            self.log_test("Render Fix 1: GET /api/cleaning/houses (490 домов, УК, графики)", success, 
+                         f"Status: {response.status_code}, Houses: {houses_count}, УК: {management_companies_filled}, Графики: {september_schedules_present}")
+            
+            # ТЕСТ 2: GET /api/cleaning/houses-fixed - endpoint с принудительным обогащением
+            print("\n   🔧 ТЕСТ 2: GET /api/cleaning/houses-fixed")
+            response2 = requests.get(f"{self.api_url}/cleaning/houses-fixed", timeout=30)
+            success2 = response2.status_code == 200
+            
+            if success2:
+                data2 = response2.json()
+                success2 = data2.get("status") == "success"
+                
+                if success2:
+                    houses2 = data2.get("houses", [])
+                    print(f"      📊 Принудительное обогащение: {len(houses2)} домов")
+                    print(f"      📊 Источник: {data2.get('source', 'Unknown')}")
+                    
+                    if "FORCED ENRICHMENT" in data2.get('source', ''):
+                        print(f"      ✅ Принудительное обогащение работает")
+                    else:
+                        print(f"      ⚠️ Принудительное обогащение не активно")
+                        success2 = False
+            
+            self.log_test("Render Fix 2: GET /api/cleaning/houses-fixed (принудительное обогащение)", success2, 
+                         f"Status: {response2.status_code}")
+            
+            # ТЕСТ 3: GET /api/cleaning/production-debug - диагностика версии кода
+            print("\n   🔍 ТЕСТ 3: GET /api/cleaning/production-debug")
+            response3 = requests.get(f"{self.api_url}/cleaning/production-debug", timeout=30)
+            success3 = response3.status_code == 200
+            
+            if success3:
+                data3 = response3.json()
+                success3 = data3.get("status") == "success"
+                
+                if success3:
+                    code_check = data3.get("code_version_check", {})
+                    has_optimized = code_check.get("has_optimized_loading", False)
+                    has_enrichment = code_check.get("has_enrichment_method", False)
+                    
+                    print(f"      🔍 has_optimized_loading: {has_optimized}")
+                    print(f"      🔍 has_enrichment_method: {has_enrichment}")
+                    
+                    if has_optimized and has_enrichment:
+                        print(f"      ✅ Новая версия кода развернута")
+                    else:
+                        print(f"      ❌ Старая версия кода без исправлений")
+                        success3 = False
+            
+            self.log_test("Render Fix 3: GET /api/cleaning/production-debug (версия кода)", success3, 
+                         f"Status: {response3.status_code}")
+            
+            # ТЕСТ 4: GET /api/cleaning/fix-management-companies - исправление УК данных
+            print("\n   🏢 ТЕСТ 4: GET /api/cleaning/fix-management-companies")
+            response4 = requests.get(f"{self.api_url}/cleaning/fix-management-companies", timeout=30)
+            success4 = response4.status_code == 200
+            
+            if success4:
+                data4 = response4.json()
+                success4 = data4.get("status") == "success"
+                
+                if success4:
+                    fixed_houses = data4.get("fixed_houses", [])
+                    print(f"      🏢 Обработано домов: {len(fixed_houses)}")
+                    
+                    if len(fixed_houses) > 0:
+                        sample_house = fixed_houses[0]
+                        fixed_company = sample_house.get("fixed_management_company", "")
+                        fixed_brigade = sample_house.get("fixed_brigade", "")
+                        
+                        print(f"      🏢 Пример УК: {fixed_company}")
+                        print(f"      🏢 Пример бригады: {fixed_brigade}")
+                        
+                        if fixed_company and fixed_company != "Не определена":
+                            print(f"      ✅ Исправление УК работает")
+                        else:
+                            print(f"      ❌ Исправление УК не работает")
+                            success4 = False
+            
+            self.log_test("Render Fix 4: GET /api/cleaning/fix-management-companies (исправление УК)", success4, 
+                         f"Status: {response4.status_code}")
+            
+            # ОБЩИЙ РЕЗУЛЬТАТ
+            overall_success = success and success2 and success3 and success4
+            
+            print(f"\n   📋 ОБЩИЙ РЕЗУЛЬТАТ ИСПРАВЛЕНИЙ RENDER:")
+            print(f"      1. Основной endpoint домов: {'✅' if success else '❌'}")
+            print(f"      2. Принудительное обогащение: {'✅' if success2 else '❌'}")
+            print(f"      3. Диагностика версии кода: {'✅' if success3 else '❌'}")
+            print(f"      4. Исправление УК данных: {'✅' if success4 else '❌'}")
+            print(f"      ИТОГО: {'✅ ВСЕ ИСПРАВЛЕНИЯ РАБОТАЮТ' if overall_success else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
+            
+            return overall_success
+            
+        except Exception as e:
+            self.log_test("Render Deployment Fixes", False, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all API tests focusing on new Production Debug endpoints for Render deployment fixes"""
         print("🚀 Starting VasDom AudioBot API Tests - Production Debug Endpoints")
