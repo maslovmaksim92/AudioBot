@@ -757,7 +757,10 @@ const WorksEnhanced = () => {
       onMouseEnter={() => setHoveredCard(index)}
       onMouseLeave={() => setHoveredCard(null)}
     >
-      <div className="p-6">
+      <div className={`${
+        viewDensity === 'compact' ? 'p-4' : 
+        viewDensity === 'spacious' ? 'p-8' : 'p-6'
+      }`}>
         {/* Заголовок карточки */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
