@@ -832,75 +832,90 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Полные графики уборки по всем месяцам */}
-        <div className="space-y-2 mb-4">
-          {/* Сентябрь 2025 */}
-          {house.september_schedule && house.september_schedule.has_schedule && (
-            <div className="bg-green-50 p-3 rounded-lg">
-              <div className="text-sm font-medium text-green-800 mb-2 flex items-center space-x-2">
-                <span>📅</span>
-                <span>Сентябрь 2025</span>
-              </div>
-              <div className="space-y-1">
-                {house.september_schedule.cleaning_date_1 && 
-                 house.september_schedule.cleaning_date_1.length > 0 ? (
-                  <div className="text-xs">
-                    <div className="flex items-center space-x-2 text-green-700">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      <span>
-                        {house.september_schedule.cleaning_date_1.map(date => 
-                          new Date(date).toLocaleDateString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit' 
-                          })
-                        ).join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 ml-4 text-xs">
-                      {house.september_schedule.cleaning_type_1}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-500 ml-4">
-                    График не назначен
-                  </div>
-                )}
-                
-                {/* Вторая уборка в сентябре */}
-                {house.september_schedule.cleaning_date_2 && 
-                 house.september_schedule.cleaning_date_2.length > 0 && (
-                  <div className="text-xs mt-1">
-                    <div className="flex items-center space-x-2 text-green-700">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span>
-                        {house.september_schedule.cleaning_date_2.map(date => 
-                          new Date(date).toLocaleDateString('ru-RU', { 
-                            day: '2-digit', 
-                            month: '2-digit' 
-                          })
-                        ).join(', ')}
-                      </span>
-                    </div>
-                    <div className="text-gray-600 ml-4 text-xs">
-                      {house.september_schedule.cleaning_type_2}
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* PRODUCTION: Корректные графики уборки */}
+        {house.september_schedule && house.september_schedule.has_schedule && (
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-xl mb-4 border border-green-200">
+            <div className="text-sm font-bold text-green-800 mb-3 flex items-center space-x-2">
+              <span>📅</span>
+              <span>График уборки на сентябрь 2025</span>
             </div>
-          )}
-          
-          {/* Заглушка для будущих месяцев */}
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="text-sm font-medium text-gray-600 mb-2 flex items-center space-x-2">
-              <span>🗓️</span>
-              <span>Остальные месяцы</span>
-            </div>
-            <div className="text-xs text-gray-500">
-              Графики на октябрь-декабрь будут добавлены позже
+            
+            {/* Уборка 1 */}
+            {house.september_schedule.cleaning_date_1 && 
+             house.september_schedule.cleaning_date_1.length > 0 && (
+              <div className="mb-3 p-3 bg-white rounded-lg border-l-4 border-green-500">
+                <div className="text-xs font-semibold text-green-700 mb-1">
+                  🗓️ Дата уборки 1 | Сентябрь 2025:
+                </div>
+                <div className="text-xs font-medium text-gray-900 mb-2">
+                  {house.september_schedule.cleaning_date_1.map(date => 
+                    new Date(date).toLocaleDateString('ru-RU', { 
+                      day: '2-digit', 
+                      month: '2-digit',
+                      year: 'numeric'
+                    })
+                  ).join(' и ')}
+                </div>
+                <div className="text-xs font-semibold text-blue-700 mb-1">
+                  🧹 Тип уборки 1 | Сентябрь 2025:
+                </div>
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  {house.september_schedule.cleaning_type_1 || 'Не указан'}
+                </div>
+              </div>
+            )}
+            
+            {/* Уборка 2 */}
+            {house.september_schedule.cleaning_date_2 && 
+             house.september_schedule.cleaning_date_2.length > 0 && (
+              <div className="p-3 bg-white rounded-lg border-l-4 border-blue-500">
+                <div className="text-xs font-semibold text-green-700 mb-1">
+                  🗓️ Дата уборки 2 | Сентябрь 2025:
+                </div>
+                <div className="text-xs font-medium text-gray-900 mb-2">
+                  {house.september_schedule.cleaning_date_2.map(date => 
+                    new Date(date).toLocaleDateString('ru-RU', { 
+                      day: '2-digit', 
+                      month: '2-digit',
+                      year: 'numeric'
+                    })
+                  ).join(' и ')}
+                </div>
+                <div className="text-xs font-semibold text-blue-700 mb-1">
+                  🧹 Тип уборки 2 | Сентябрь 2025:
+                </div>
+                <div className="text-xs text-gray-700 leading-relaxed">
+                  {house.september_schedule.cleaning_type_2 || 'Не указан'}
+                </div>
+              </div>
+            )}
+            
+            {/* Индикатор статуса */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>  
+                <span className="text-xs font-medium text-green-700">
+                  График активен
+                </span>
+              </div>
+              <div className="text-xs text-gray-500">
+                ID: {house.deal_id}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+        
+        {/* Если нет графика */}
+        {(!house.september_schedule || !house.september_schedule.has_schedule) && (
+          <div className="bg-yellow-50 p-3 rounded-lg mb-4 border-l-4 border-yellow-400">
+            <div className="text-sm font-medium text-yellow-800 mb-1">
+              ⚠️ График уборки не назначен
+            </div>
+            <div className="text-xs text-yellow-700">
+              Требуется создание графика в Bitrix24
+            </div>
+          </div>
+        )}
 
         {/* Улучшенные кнопки действий */}
         <div className="grid grid-cols-2 gap-2">
