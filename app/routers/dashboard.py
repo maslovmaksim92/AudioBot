@@ -53,6 +53,60 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+# Initialize bitrix service
+bitrix_service = None
+try:
+    if BITRIX24_WEBHOOK_URL:
+        bitrix_service = BitrixService(BITRIX24_WEBHOOK_URL)
+except Exception as e:
+    logger.warning(f"⚠️ Bitrix service initialization failed: {e}")
+
+@router.get("/houses-statistics")
+async def get_houses_statistics():
+    """Получить детальную статистику по домам с графиками"""
+    try:
+        logger.info("📊 Loading detailed houses statistics...")
+        
+        if not bitrix_service:
+            return {
+                "status": "error",
+                "message": "Bitrix24 service not available"
+            }
+        
+        statistics = await bitrix_service.get_houses_statistics()
+        
+        response = {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "statistics": statistics,
+            "charts": {
+                "entrances": statistics['chart_data']['entrances_chart'],
+                "floors": statistics['chart_data']['floors_chart'], 
+                "apartments": statistics['chart_data']['apartments_chart'],
+                "districts": statistics['chart_data']['districts_chart']
+            },
+            "summary": {
+                "total_houses": statistics['total_houses'],
+                "total_entrances": statistics['total_entrances'],
+                "total_floors": statistics['total_floors'],
+                "total_apartments": statistics['total_apartments'],
+                "avg_entrances": statistics['averages']['entrances_per_house'],
+                "avg_floors": statistics['averages']['floors_per_house'],
+                "avg_apartments": statistics['averages']['apartments_per_house']
+            }
+        }
+        
+        logger.info(f"📊 Statistics response: {statistics['total_houses']} houses analyzed")
+        return response
+        
+    except Exception as e:
+        logger.error(f"❌ Houses statistics error: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 @router.get("/dashboard", response_model=dict)
 async def get_dashboard_stats():
     """Дашборд с данными из Bitrix24 CRM"""
