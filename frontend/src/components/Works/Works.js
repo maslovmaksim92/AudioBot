@@ -158,11 +158,20 @@ const WorksEnhanced = () => {
         const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))].sort();
         const brigades = [...new Set(housesData.map(h => h.brigade).filter(Boolean))].sort();
         
+        console.log('🏢 ОКОНЧАТЕЛЬНАЯ ЗАГРУЗКА УК:');
+        console.log('🏢 Total houses with companies:', housesData.filter(h => h.management_company).length);
+        console.log('🏢 Unique companies extracted:', companies.length);
+        console.log('🏢 Company sample:', companies.slice(0, 5));
+        console.log('🏢 Full companies list:', companies);
+        
         setAvailableCompanies(companies);
         setAvailableBrigades(brigades);
         setHouses(housesData);
         
-        console.log(`📊 Extracted ${companies.length} companies and ${brigades.length} brigades`);
+        console.log(`📊 FINAL: ${companies.length} companies and ${brigades.length} brigades loaded`);
+        
+        // Принудительно показываем что загрузилось
+        showNotification(`✅ УК загружено: ${companies.length}, бригад: ${brigades.length}`, 'info');
         
         // Анимация появления карточек (только для первых 50 для производительности)
         const newAnimated = new Set();
