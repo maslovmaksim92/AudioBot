@@ -342,16 +342,34 @@ class BitrixService:
             # Адрес дома
             house_data['house_address'] = deal.get('UF_CRM_1669561599956', house_data['TITLE'])
             
-            # Обработка типов уборки
-            cleaning_type_1 = deal.get('UF_CRM_1741592855565', '')
-            cleaning_type_2 = deal.get('UF_CRM_1741592945060', '')
+            # Обработка типов уборки с логированием
+            cleaning_type_1_raw = deal.get('UF_CRM_1741592855565', '')
+            cleaning_type_2_raw = deal.get('UF_CRM_1741592945060', '')
             
-            house_data['cleaning_type_1'] = self._get_cleaning_type_name(cleaning_type_1)
-            house_data['cleaning_type_2'] = self._get_cleaning_type_name(cleaning_type_2)
+            cleaning_type_1 = self._get_cleaning_type_name(cleaning_type_1_raw)
+            cleaning_type_2 = self._get_cleaning_type_name(cleaning_type_2_raw)
             
-            # Даты уборки
-            house_data['cleaning_date_1'] = self._parse_bitrix_dates(deal.get('UF_CRM_1741592774017', []))
-            house_data['cleaning_date_2'] = self._parse_bitrix_dates(deal.get('UF_CRM_1741592892232', []))
+            logger.debug(f"🧹 House {house_data['ID']}: Type1 {cleaning_type_1_raw} -> {cleaning_type_1[:30]}...")
+            logger.debug(f"🧹 House {house_data['ID']}: Type2 {cleaning_type_2_raw} -> {cleaning_type_2[:30]}...")
+            
+            # Даты уборки с улучшенным парсингом
+            cleaning_dates_1 = self._parse_bitrix_dates(deal.get('UF_CRM_1741592774017', []))
+            cleaning_dates_2 = self._parse_bitrix_dates(deal.get('UF_CRM_1741592892232', []))
+            
+            # Создаем структуру расписания уборок
+            house_data['september_schedule'] = {
+                'cleaning_type_1': cleaning_type_1,
+                'cleaning_date_1': cleaning_dates_1,
+                'cleaning_type_2': cleaning_type_2,
+                'cleaning_date_2': cleaning_dates_2,
+                'has_schedule': bool(cleaning_dates_1 or cleaning_dates_2)
+            }
+            
+            # Для совместимости
+            house_data['cleaning_type_1'] = cleaning_type_1
+            house_data['cleaning_type_2'] = cleaning_type_2
+            house_data['cleaning_date_1'] = cleaning_dates_1
+            house_data['cleaning_date_2'] = cleaning_dates_2
             
             return house_data
             
