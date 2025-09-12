@@ -592,20 +592,29 @@ def _get_cleaning_type_name(type_id) -> str:
 
 def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Optional[dict]:
     """Парсинг графика уборки для конкретного месяца"""
-    cleaning_date_1_str = deal.get(field_mapping['date_1'], '')
-    cleaning_type_1 = deal.get(field_mapping['type_1'], '')
-    cleaning_date_2_str = deal.get(field_mapping['date_2'], '')
-    cleaning_type_2 = deal.get(field_mapping['type_2'], '')
+    cleaning_date_1_data = deal.get(field_mapping['date_1'])
+    cleaning_type_1_id = deal.get(field_mapping['type_1'])
+    cleaning_date_2_data = deal.get(field_mapping['date_2'])
+    cleaning_type_2_id = deal.get(field_mapping['type_2'])
     
     # Проверяем, есть ли данные
-    if not any([cleaning_date_1_str, cleaning_type_1, cleaning_date_2_str, cleaning_type_2]):
+    if not any([cleaning_date_1_data, cleaning_type_1_id, cleaning_date_2_data, cleaning_type_2_id]):
         return None
     
+    # Парсим даты (могут быть массивами)
+    dates_1 = _parse_bitrix_dates(cleaning_date_1_data) if cleaning_date_1_data else []
+    dates_2 = _parse_bitrix_dates(cleaning_date_2_data) if cleaning_date_2_data else []
+    
+    # Получаем названия типов уборки
+    type_1_name = _get_cleaning_type_name(cleaning_type_1_id) if cleaning_type_1_id else ""
+    type_2_name = _get_cleaning_type_name(cleaning_type_2_id) if cleaning_type_2_id else ""
+    
     return {
-        'cleaning_date_1': _parse_dates(cleaning_date_1_str),
-        'cleaning_type_1': cleaning_type_1,
-        'cleaning_date_2': _parse_dates(cleaning_date_2_str),  
-        'cleaning_type_2': cleaning_type_2
+        'cleaning_date_1': dates_1,
+        'cleaning_type_1': type_1_name,
+        'cleaning_date_2': dates_2,
+        'cleaning_type_2': type_2_name,
+        'has_schedule': bool(dates_1 or dates_2)
     }
 
 def _parse_september_schedule(deal: dict) -> Optional[dict]:
