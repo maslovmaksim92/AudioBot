@@ -426,6 +426,49 @@ async def debug_company_data():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@router.get("/cleaning/test-cleaning-types")
+async def test_cleaning_types():
+    """ТЕСТ ТОЛЬКО типов уборки с принудительной обработкой"""
+    try:
+        logger.info("🧹 TEST CLEANING TYPES - принудительная обработка...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=3)  # Только 3 дома для быстроты
+        
+        test_results = []
+        for i, deal in enumerate(deals[:3], 1):
+            # Принудительно вызываем обработку типов уборки
+            cleaning_type_1_raw = deal.get('UF_CRM_1741592855565', 'НЕТ')
+            cleaning_type_2_raw = deal.get('UF_CRM_1741592945060', 'НЕТ')
+            
+            # Принудительно вызываем функцию маппинга
+            cleaning_type_1_processed = bitrix._get_cleaning_type_name(cleaning_type_1_raw)
+            cleaning_type_2_processed = bitrix._get_cleaning_type_name(cleaning_type_2_raw)
+            
+            test_results.append({
+                "house_num": i,
+                "address": deal.get('TITLE', 'НЕТ'),
+                "deal_id": deal.get('ID', 'НЕТ'),
+                "cleaning_type_1_raw": cleaning_type_1_raw,
+                "cleaning_type_1_processed": cleaning_type_1_processed,
+                "cleaning_type_2_raw": cleaning_type_2_raw,
+                "cleaning_type_2_processed": cleaning_type_2_processed,
+                "all_fields": list(deal.keys())  # Показываем все доступные поля
+            })
+        
+        logger.info(f"✅ TEST CLEANING TYPES completed: {len(test_results)} houses processed")
+        
+        return {
+            "status": "success",
+            "test_results": test_results,
+            "total_tested": len(test_results),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ TEST CLEANING TYPES error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/stats")
 async def get_cleaning_stats():
     """Статистика по уборке"""
