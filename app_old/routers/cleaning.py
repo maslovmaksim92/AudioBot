@@ -90,7 +90,13 @@ async def get_cleaning_houses_490():
                 status_color=status_color,
                 created_date=deal.get('DATE_CREATE'),
                 opportunity=deal.get('OPPORTUNITY'),
-                last_sync=datetime.utcnow().isoformat()
+                last_sync=datetime.utcnow().isoformat(),
+                # Новые количественные поля
+                apartments_count=deal.get('apartments_count', 0),
+                entrances_count=deal.get('entrances_count', 0),
+                floors_count=deal.get('floors_count', 0),
+                management_company=deal.get('management_company'),
+                house_address=deal.get('house_address', address)
             )
             
             houses.append(house_data.dict())
