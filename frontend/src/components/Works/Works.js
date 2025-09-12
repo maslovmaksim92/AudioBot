@@ -782,41 +782,157 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* График уборки на текущий месяц */}
-        {house.september_schedule && house.september_schedule.has_schedule && (
-          <div className="bg-green-50 p-3 rounded-lg mb-4">
-            <div className="text-sm font-medium text-green-800 mb-2">
-              📅 График на сентябрь 2025
-            </div>
-            <div className="space-y-2">
-              {house.september_schedule.cleaning_date_1 && 
-               house.september_schedule.cleaning_date_1.length > 0 && (
-                <div className="text-xs text-green-700">
-                  <div className="flex items-center space-x-2">
-                    <span>🗓️</span>
-                    <span>
-                      {house.september_schedule.cleaning_date_1.map(date => 
-                        new Date(date).toLocaleDateString('ru-RU', { 
-                          day: '2-digit', 
-                          month: '2-digit' 
-                        })
-                      ).join(', ')}
-                    </span>
+        {/* Полные графики уборки по всем месяцам */}
+        <div className="space-y-2 mb-4">
+          {/* Сентябрь 2025 */}
+          {house.september_schedule && house.september_schedule.has_schedule && (
+            <div className="bg-green-50 p-3 rounded-lg">
+              <div className="text-sm font-medium text-green-800 mb-2 flex items-center space-x-2">
+                <span>📅</span>
+                <span>Сентябрь 2025</span>
+              </div>
+              <div className="space-y-1">
+                {house.september_schedule.cleaning_date_1 && 
+                 house.september_schedule.cleaning_date_1.length > 0 ? (
+                  <div className="text-xs">
+                    <div className="flex items-center space-x-2 text-green-700">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span>
+                        {house.september_schedule.cleaning_date_1.map(date => 
+                          new Date(date).toLocaleDateString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        ).join(', ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 ml-4 text-xs">
+                      {house.september_schedule.cleaning_type_1}
+                    </div>
                   </div>
-                  <div className="text-gray-600 ml-6">
-                    {house.september_schedule.cleaning_type_1}
+                ) : (
+                  <div className="text-xs text-gray-500 ml-4">
+                    График не назначен
                   </div>
-                </div>
-              )}
-              {!house.september_schedule.cleaning_date_1 || 
-               house.september_schedule.cleaning_date_1.length === 0 && (
-                <div className="text-xs text-gray-500">
-                  График не назначен
-                </div>
-              )}
+                )}
+                
+                {/* Вторая уборка в сентябре */}
+                {house.september_schedule.cleaning_date_2 && 
+                 house.september_schedule.cleaning_date_2.length > 0 && (
+                  <div className="text-xs mt-1">
+                    <div className="flex items-center space-x-2 text-green-700">
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      <span>
+                        {house.september_schedule.cleaning_date_2.map(date => 
+                          new Date(date).toLocaleDateString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        ).join(', ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 ml-4 text-xs">
+                      {house.september_schedule.cleaning_type_2}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          
+          {/* Октябрь 2025 */}
+          {house.october_schedule && house.october_schedule.has_schedule && (
+            <div className="bg-orange-50 p-3 rounded-lg">
+              <div className="text-sm font-medium text-orange-800 mb-2 flex items-center space-x-2">
+                <span>🍂</span>
+                <span>Октябрь 2025</span>
+              </div>
+              <div className="space-y-1">
+                {house.october_schedule.cleaning_date_1 && 
+                 house.october_schedule.cleaning_date_1.length > 0 && (
+                  <div className="text-xs">
+                    <div className="flex items-center space-x-2 text-orange-700">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                      <span>
+                        {house.october_schedule.cleaning_date_1.map(date => 
+                          new Date(date).toLocaleDateString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        ).join(', ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 ml-4 text-xs">
+                      {house.october_schedule.cleaning_type_1}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Ноябрь 2025 */}
+          {house.november_schedule && house.november_schedule.has_schedule && (
+            <div className="bg-yellow-50 p-3 rounded-lg">
+              <div className="text-sm font-medium text-yellow-800 mb-2 flex items-center space-x-2">
+                <span>🍁</span>
+                <span>Ноябрь 2025</span>
+              </div>
+              <div className="space-y-1">
+                {house.november_schedule.cleaning_date_1 && 
+                 house.november_schedule.cleaning_date_1.length > 0 && (
+                  <div className="text-xs">
+                    <div className="flex items-center space-x-2 text-yellow-700">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                      <span>
+                        {house.november_schedule.cleaning_date_1.map(date => 
+                          new Date(date).toLocaleDateString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        ).join(', ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 ml-4 text-xs">
+                      {house.november_schedule.cleaning_type_1}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Декабрь 2025 */}
+          {house.december_schedule && house.december_schedule.has_schedule && (
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="text-sm font-medium text-blue-800 mb-2 flex items-center space-x-2">
+                <span>❄️</span>
+                <span>Декабрь 2025</span>
+              </div>
+              <div className="space-y-1">
+                {house.december_schedule.cleaning_date_1 && 
+                 house.december_schedule.cleaning_date_1.length > 0 && (
+                  <div className="text-xs">
+                    <div className="flex items-center space-x-2 text-blue-700">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <span>
+                        {house.december_schedule.cleaning_date_1.map(date => 
+                          new Date(date).toLocaleDateString('ru-RU', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        ).join(', ')}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 ml-4 text-xs">
+                      {house.december_schedule.cleaning_type_1}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Улучшенные кнопки действий */}
         <div className="grid grid-cols-2 gap-2">
