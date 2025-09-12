@@ -575,11 +575,12 @@ const WorksEnhanced = () => {
               value={activeFilters.brigade}
               onChange={(e) => setActiveFilters(prev => ({ ...prev, brigade: e.target.value }))}
             >
-              <option value="">Все бригады</option>
-              <option value="1 бригада - Центральный район">1 бригада - Центральный</option>
-              <option value="4 бригада - Северный район">4 бригада - Северный</option>
-              <option value="5 бригада - Пригород">5 бригада - Пригород</option>
-              <option value="6 бригада - Окраины">6 бригада - Окраины</option>
+              <option value="">Все бригады ({availableBrigades.length})</option>
+              {availableBrigades.map((brigade, index) => (
+                <option key={index} value={brigade}>
+                  {brigade}
+                </option>
+              ))}
             </select>
           </div>
 
