@@ -56,7 +56,7 @@ class BitrixService:
             
             if not base_deals:
                 logger.warning("⚠️ No base deals loaded, using fallback")
-                return self._get_mock_data(limit or 50)
+                return self._get_mock_data(limit or 500)  # Увеличено и здесь
             
             # Собираем уникальные ID для batch загрузки
             unique_user_ids = set()
