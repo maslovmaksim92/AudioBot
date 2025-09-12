@@ -1222,6 +1222,197 @@ class VasDomAPITester:
             self.log_test("Bitrix24 Tasks Users - GET /api/tasks/users", False, str(e))
             return False
 
+    def test_critical_bitrix24_raw_data_analysis(self):
+        """🔥 КРИТИЧЕСКИЙ АНАЛИЗ RAW данных из Bitrix24 для исправления УК и типов уборки"""
+        try:
+            print("\n🔥 КРИТИЧЕСКИЙ АНАЛИЗ BITRIX24 RAW DATA:")
+            print("   ЗАДАЧА: Проанализировать RAW данные из Bitrix24 API")
+            print("   1. COMPANY_ID: Какие ID компаний получаем и работает ли crm.company.get")
+            print("   2. Типы уборки: UF_CRM_1741592855565 и UF_CRM_1741592945060")
+            print("   3. Количественные поля: UF_CRM_1669704529022, UF_CRM_1669705507390, UF_CRM_1669704631166")
+            
+            # КРИТИЧЕСКИЙ ТЕСТ 1: GET /api/cleaning/houses-490 - первые 3 дома
+            print("\n🏠 ТЕСТ 1: Анализ первых 3 домов из /api/cleaning/houses-490")
+            response = requests.get(f"{self.api_url}/cleaning/houses-490", timeout=45)
+            success = response.status_code == 200
+            
+            if success:
+                data = response.json()
+                houses = data.get("houses", [])
+                
+                if len(houses) >= 3:
+                    print(f"   ✅ Загружено {len(houses)} домов, анализируем первые 3:")
+                    
+                    for i, house in enumerate(houses[:3], 1):
+                        print(f"\n   🏠 ДОМ {i}:")
+                        print(f"      - Адрес: {house.get('address', 'НЕТ')}")
+                        print(f"      - Deal ID: {house.get('deal_id', 'НЕТ')}")
+                        print(f"      - УК: {house.get('management_company', 'НЕТ')}")
+                        print(f"      - Квартиры: {house.get('apartments_count', 'НЕТ')}")
+                        print(f"      - Подъезды: {house.get('entrances_count', 'НЕТ')}")
+                        print(f"      - Этажи: {house.get('floors_count', 'НЕТ')}")
+                        
+                        # Анализ графика сентября
+                        september_schedule = house.get('september_schedule')
+                        if september_schedule:
+                            print(f"      - Сентябрь график: ДА")
+                            print(f"        * Даты 1: {september_schedule.get('cleaning_date_1', 'НЕТ')}")
+                            print(f"        * Тип 1: {september_schedule.get('cleaning_type_1', 'НЕТ')}")
+                        else:
+                            print(f"      - Сентябрь график: НЕТ")
+                else:
+                    print(f"   ❌ Недостаточно домов для анализа: {len(houses)}")
+                    success = False
+            else:
+                print(f"   ❌ Ошибка загрузки домов: {response.status_code}")
+                success = False
+            
+            # КРИТИЧЕСКИЙ ТЕСТ 2: Прямой запрос к Bitrix24 API для получения RAW данных
+            print("\n🔗 ТЕСТ 2: Прямой запрос к Bitrix24 API crm.deal.list")
+            
+            try:
+                import urllib.parse
+                
+                # Формируем прямой запрос к Bitrix24
+                bitrix_webhook = "https://vas-dom.bitrix24.ru/rest/1/4l8hq1gqgodjt7yo/"
+                params = {
+                    'select[0]': 'ID',
+                    'select[1]': 'TITLE',
+                    'select[2]': 'COMPANY_ID',
+                    'select[3]': 'ASSIGNED_BY_ID',
+                    'select[4]': 'UF_CRM_1669704529022',  # Квартиры
+                    'select[5]': 'UF_CRM_1669705507390',  # Подъезды
+                    'select[6]': 'UF_CRM_1669704631166',  # Этажи
+                    'select[7]': 'UF_CRM_1741592855565',  # Тип уборки 1 Сентябрь
+                    'select[8]': 'UF_CRM_1741592945060',  # Тип уборки 2 Сентябрь
+                    'filter[CATEGORY_ID]': '34',
+                    'start': '0'
+                }
+                
+                query_string = urllib.parse.urlencode(params)
+                bitrix_url = f"{bitrix_webhook}crm.deal.list.json?{query_string}"
+                
+                print(f"   🔗 Запрос: {bitrix_url[:100]}...")
+                
+                bitrix_response = requests.get(bitrix_url, timeout=30)
+                
+                if bitrix_response.status_code == 200:
+                    bitrix_data = bitrix_response.json()
+                    raw_deals = bitrix_data.get('result', [])
+                    
+                    print(f"   ✅ Получено {len(raw_deals)} сделок из Bitrix24")
+                    
+                    if len(raw_deals) >= 3:
+                        print(f"\n   📊 АНАЛИЗ RAW ДАННЫХ первых 3 сделок:")
+                        
+                        company_ids_found = []
+                        cleaning_types_1 = []
+                        cleaning_types_2 = []
+                        quantitative_data = []
+                        
+                        for i, deal in enumerate(raw_deals[:3], 1):
+                            print(f"\n   📋 RAW СДЕЛКА {i}:")
+                            print(f"      - ID: {deal.get('ID')}")
+                            print(f"      - TITLE: {deal.get('TITLE')}")
+                            
+                            # АНАЛИЗ COMPANY_ID
+                            company_id = deal.get('COMPANY_ID')
+                            print(f"      - COMPANY_ID: {company_id}")
+                            if company_id and str(company_id) != '0':
+                                company_ids_found.append(company_id)
+                            
+                            # АНАЛИЗ ТИПОВ УБОРКИ
+                            type_1 = deal.get('UF_CRM_1741592855565')
+                            type_2 = deal.get('UF_CRM_1741592945060')
+                            print(f"      - UF_CRM_1741592855565 (тип 1): {type_1}")
+                            print(f"      - UF_CRM_1741592945060 (тип 2): {type_2}")
+                            
+                            if type_1:
+                                cleaning_types_1.append(type_1)
+                            if type_2:
+                                cleaning_types_2.append(type_2)
+                            
+                            # АНАЛИЗ КОЛИЧЕСТВЕННЫХ ПОЛЕЙ
+                            apartments = deal.get('UF_CRM_1669704529022')
+                            entrances = deal.get('UF_CRM_1669705507390')
+                            floors = deal.get('UF_CRM_1669704631166')
+                            
+                            print(f"      - UF_CRM_1669704529022 (квартиры): {apartments}")
+                            print(f"      - UF_CRM_1669705507390 (подъезды): {entrances}")
+                            print(f"      - UF_CRM_1669704631166 (этажи): {floors}")
+                            
+                            quantitative_data.append({
+                                'apartments': apartments,
+                                'entrances': entrances,
+                                'floors': floors
+                            })
+                        
+                        # КРИТИЧЕСКИЙ ТЕСТ 3: Тестируем crm.company.get API
+                        print(f"\n🏢 ТЕСТ 3: Проверка crm.company.get API")
+                        
+                        if company_ids_found:
+                            test_company_id = company_ids_found[0]
+                            print(f"   🔍 Тестируем COMPANY_ID: {test_company_id}")
+                            
+                            company_params = {'id': str(test_company_id)}
+                            company_query = urllib.parse.urlencode(company_params)
+                            company_url = f"{bitrix_webhook}crm.company.get.json?{company_query}"
+                            
+                            company_response = requests.get(company_url, timeout=15)
+                            
+                            if company_response.status_code == 200:
+                                company_data = company_response.json()
+                                company_result = company_data.get('result')
+                                
+                                if company_result:
+                                    company_title = company_result.get('TITLE', 'НЕТ НАЗВАНИЯ')
+                                    print(f"   ✅ crm.company.get РАБОТАЕТ!")
+                                    print(f"      - Название УК: {company_title}")
+                                    print(f"      - ID: {company_result.get('ID')}")
+                                else:
+                                    print(f"   ❌ crm.company.get вернул пустой result")
+                                    success = False
+                            else:
+                                print(f"   ❌ crm.company.get ошибка: {company_response.status_code}")
+                                success = False
+                        else:
+                            print(f"   ⚠️ Нет COMPANY_ID для тестирования")
+                        
+                        # ИТОГОВЫЙ АНАЛИЗ
+                        print(f"\n📊 ИТОГОВЫЙ АНАЛИЗ:")
+                        print(f"   🏢 COMPANY_ID найдено: {len(company_ids_found)}/3")
+                        print(f"   🧹 Типы уборки 1 найдено: {len(cleaning_types_1)}/3")
+                        print(f"   🧹 Типы уборки 2 найдено: {len(cleaning_types_2)}/3")
+                        
+                        filled_quantitative = sum(1 for data in quantitative_data 
+                                                if data['apartments'] or data['entrances'] or data['floors'])
+                        print(f"   📊 Количественные данные заполнены: {filled_quantitative}/3")
+                        
+                        if len(company_ids_found) > 0 and len(cleaning_types_1) > 0 and filled_quantitative > 0:
+                            print(f"   ✅ КРИТИЧЕСКИЙ АНАЛИЗ УСПЕШЕН")
+                        else:
+                            print(f"   ❌ КРИТИЧЕСКИЕ ПРОБЛЕМЫ ОБНАРУЖЕНЫ")
+                            success = False
+                    else:
+                        print(f"   ❌ Недостаточно сделок для анализа: {len(raw_deals)}")
+                        success = False
+                else:
+                    print(f"   ❌ Ошибка Bitrix24 API: {bitrix_response.status_code}")
+                    print(f"   📄 Ответ: {bitrix_response.text[:200]}")
+                    success = False
+                    
+            except Exception as bitrix_error:
+                print(f"   ❌ Ошибка прямого запроса к Bitrix24: {bitrix_error}")
+                success = False
+            
+            self.log_test("🔥 КРИТИЧЕСКИЙ АНАЛИЗ Bitrix24 RAW Data", success, 
+                         f"Houses: {len(houses) if 'houses' in locals() else 0}, Raw deals: {len(raw_deals) if 'raw_deals' in locals() else 0}")
+            return success
+            
+        except Exception as e:
+            self.log_test("🔥 КРИТИЧЕСКИЙ АНАЛИЗ Bitrix24 RAW Data", False, str(e))
+            return False
+
     def test_production_debug_endpoint(self):
         """НОВЫЙ ТЕСТ: Проверка диагностики версии кода - GET /api/cleaning/production-debug"""
         try:
