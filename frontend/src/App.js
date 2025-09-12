@@ -9,6 +9,7 @@ import Meetings from './components/Meetings/Meetings';
 import Tasks from './components/Tasks/Tasks';
 import Works from './components/Works/Works';
 import Employees from './components/Employees/Employees';
+import Analytics from './components/Analytics/Analytics';
 
 import './App.css';
 
