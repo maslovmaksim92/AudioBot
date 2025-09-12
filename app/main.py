@@ -11,7 +11,7 @@ from .config.settings import (
 from .config.database import init_database, close_database
 
 # Import routers
-from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics, realistic_voice, realtime_voice, websocket
+from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics, realistic_voice, realtime_voice, websocket, learning
 
 logger = logging.getLogger(__name__)
 
