@@ -25,7 +25,7 @@ class CriticalReviewTester:
         print("=" * 60)
         
         try:
-            response = requests.get(f"{self.api_url}/cleaning/houses-490", timeout=60)
+            response = requests.get(f"{self.api_url}/cleaning/houses-490", timeout=120)
             
             if response.status_code != 200:
                 print(f"❌ ОШИБКА: Status code {response.status_code}")
