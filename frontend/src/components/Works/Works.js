@@ -598,6 +598,10 @@ const WorksEnhanced = () => {
               <option value='ООО "Премиум-УК"'>ООО "Премиум-УК"</option>
               <option value='ООО "РЯДОМ-Комфорт"'>ООО "РЯДОМ-Комфорт"</option>
               <option value='ООО "РЯДОМ-Плюс"'>ООО "РЯДОМ-Плюс"</option>
+              <option value='ООО "РЯДОМ-Сервис"'>ООО "РЯДОМ-Сервис"</option>
+              <option value='ООО "СовершенствоУК"'>ООО "СовершенствоУК"</option>
+              <option value='ООО "Стандарт-УК"'>ООО "Стандарт-УК"</option>
+              <option value='ООО "ТехноДом"'>ООО "ТехноДом"</option>
             </select>
           </div>
 
