@@ -104,7 +104,10 @@ async def get_cleaning_houses_with_forced_enrichment(
             floors_count = _parse_int(deal.get('UF_CRM_1669704631166'))
             tariff = deal.get('UF_CRM_1669706387893', '')
             
-            # Упрощенные графики
+            # ПРАВИЛЬНЫЕ ГРАФИКИ УБОРКИ СЕНТЯБРЯ из Bitrix24 полей
+            september_schedule = _parse_september_schedule(deal)
+            
+            # Упрощенные графики для остальных месяцев
             cleaning_weeks = [1, 2, 3] if apartments_count and apartments_count > 50 else [1, 2]
             cleaning_days = ['Понедельник', 'Среда'] if apartments_count and apartments_count > 100 else ['Вторник']
             
