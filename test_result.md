@@ -496,6 +496,18 @@ backend:
           comment: "✅ FIXED: Environment variables loading issue resolved. Added proper dotenv loading in settings.py with correct path resolution (ROOT_DIR = Path(__file__).parent.parent.parent). BITRIX24_WEBHOOK_URL and TELEGRAM_BOT_TOKEN now load correctly. This fix resolved all Bitrix24 and Telegram integration issues."
 
 frontend:
+  - task: "VasDom AudioBot Houses Section - Complete UI Testing"
+    implemented: true
+    working: false
+    file: "frontend/src/components/Works/Works.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА BACKEND URL: Проведено полное автоматическое тестирование раздела 'Дома' VasDom AudioBot. ✅ УСПЕШНЫЕ ТЕСТЫ: 1) Dashboard Navigation - 490 домов отображается в статистике, кнопка 'Дома' работает, навигация функционирует. 2) Houses Data Loading - индикатор загрузки работает, статистика корректная (490 домов, 50,960 квартир, 1,592 подъезда, 4,165 этажей). 3) UI/UX Design - профессиональный дизайн с градиентами, responsive дизайн, плавные переходы. 4) Performance - загрузка < 15 секунд, интерфейс отзывчивый. ❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Frontend использует неправильный backend URL (https://audio-management.preview.emergentagent.com вместо http://localhost:8001), из-за чего данные домов не загружаются полностью. Backend API работает корректно и возвращает 490 домов с полными данными, но frontend не может получить эти данные. ТРЕБУЕТСЯ: Исправить REACT_APP_BACKEND_URL в frontend для полной работоспособности."
+
   - task: "Navigation Fix - Dashboard to Houses Management"
     implemented: true
     working: true
