@@ -80,16 +80,23 @@ class BitrixService:
             if all_deals:
                 logger.info(f"✅ CRM dataset loaded: {len(all_deals)} deals from Bitrix24")
                 
+                # ОТЛАДКА: проверяем первую сделку
+                if len(all_deals) > 0:
+                    first_deal = all_deals[0]
+                    logger.info(f"🔍 FIRST DEAL DEBUG: ID={first_deal.get('ID')}, COMPANY_ID={first_deal.get('COMPANY_ID')}")
+                
                 # Обрабатываем данные домов
                 processed_deals = []
                 for deal in all_deals:
                     processed_deal = self._extract_house_data(deal)
                     processed_deals.append(processed_deal)
                 
+                logger.info(f"📊 Processed {len(processed_deals)} deals, starting companies enrichment...")
+                
                 # Обогащаем управляющими компаниями
                 enriched_deals = await self._enrich_with_management_companies(processed_deals)
                 
-                logger.info(f"✅ Processed and enriched {len(enriched_deals)} houses")
+                logger.info(f"✅ Final processed and enriched {len(enriched_deals)} houses")
                 return enriched_deals
             else:
                 logger.warning("⚠️ No deals from Bitrix24, using fallback")
