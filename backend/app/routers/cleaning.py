@@ -418,6 +418,122 @@ async def get_test_houses():
         logger.error(f"❌ Test houses error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/cleaning/houses-full")
+async def get_cleaning_houses_full_data(
+    limit: Optional[int] = None,
+    brigade: Optional[str] = None,
+    management_company: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """ПОЛНЫЕ данные домов с УК, квартирами, подъездами, этажами, графиками - для продакшена"""
+    try:
+        logger.info(f"🏠 Loading FULL houses data from Bitrix24...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        
+        # Используем оптимизированную загрузку с большим лимитом
+        deals = await bitrix.get_deals_optimized(limit=limit or 500)
+        
+        houses = []
+        for deal in deals:
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            stage_id = deal.get('STAGE_ID', '')
+            
+            # ПОЛУЧАЕМ ВСЕ ДАННЫЕ ИЗ BITRIX24
+            company_id = deal.get('COMPANY_ID')
+            assigned_by_id = deal.get('ASSIGNED_BY_ID')
+            
+            # УК - из COMPANY_TITLE или fallback
+            management_company = deal.get('COMPANY_TITLE', '') or _get_management_company(address)
+            
+            # Бригада - из ASSIGNED_BY или fallback  
+            assigned_name = ""
+            if deal.get('ASSIGNED_BY_NAME'):
+                assigned_name = f"{deal.get('ASSIGNED_BY_NAME', '')} {deal.get('ASSIGNED_BY_LAST_NAME', '')}".strip()
+            
+            if assigned_name:
+                brigade_info = _get_brigade_by_responsible_name(assigned_name.split()[0])
+            else:
+                brigade_info = bitrix.analyze_house_brigade(address)
+            
+            # ОСНОВНЫЕ ДАННЫЕ ДОМА из полей Bitrix24
+            house_address = deal.get('UF_CRM_1669561599956', '') or address
+            apartments_count = _parse_int(deal.get('UF_CRM_1669704529022')) or 0
+            entrances_count = _parse_int(deal.get('UF_CRM_1669705507390')) or 0  
+            floors_count = _parse_int(deal.get('UF_CRM_1669704631166')) or 0
+            tariff = deal.get('UF_CRM_1669706387893', '')
+            
+            # ГРАФИКИ УБОРКИ СЕНТЯБРЯ
+            september_schedule = _parse_september_schedule(deal)
+            
+            # Статус
+            status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            house_data = {
+                'address': address,
+                'house_address': house_address,
+                'deal_id': deal_id,
+                'stage': stage_id,
+                'brigade': brigade_info,
+                'status_text': status_text,
+                'status_color': status_color,
+                'created_date': deal.get('DATE_CREATE'),
+                'opportunity': deal.get('OPPORTUNITY'),
+                'last_sync': datetime.utcnow().isoformat(),
+                
+                # ПОЛНЫЕ ДАННЫЕ ДЛЯ КАРТОЧЕК
+                'management_company': management_company,
+                'assigned_name': assigned_name,
+                'apartments_count': apartments_count,
+                'floors_count': floors_count,
+                'entrances_count': entrances_count,
+                'tariff': tariff,
+                'assigned_by_id': assigned_by_id,
+                'company_id': company_id,
+                
+                # ГРАФИКИ УБОРКИ
+                'september_schedule': september_schedule,
+                'october_schedule': None,
+                'november_schedule': None,
+                'december_schedule': None,
+                
+                # Поля для фильтрации
+                'cleaning_weeks': [1, 2, 3] if apartments_count > 50 else [1, 2],
+                'cleaning_days': ['Понедельник', 'Среда'] if apartments_count > 100 else ['Вторник']
+            }
+            
+            # Применяем фильтры
+            if brigade and brigade.lower() not in brigade_info.lower():
+                continue
+                
+            if management_company and management_company.lower() not in house_data['management_company'].lower():
+                continue
+                
+            if search and search.lower() not in address.lower() and search.lower() not in deal_id.lower():
+                continue
+            
+            houses.append(house_data)
+        
+        logger.info(f"✅ FULL houses data loaded: {len(houses)} houses")
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "filters": {
+                "brigade": brigade,
+                "management_company": management_company,
+                "search": search
+            },
+            "source": "🔥 Bitrix24 CRM FULL DATA",
+            "sync_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Full houses data error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.get("/cleaning/houses", response_model=dict)
 async def get_cleaning_houses(
     limit: Optional[int] = None,
