@@ -105,6 +105,42 @@
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
+  - task: "Deployment Production Debug Endpoints"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ РЕАЛИЗОВАНЫ: Созданы специальные endpoints для диагностики и исправления проблем продакшена: /api/cleaning/production-debug для анализа версии кода и проблем, /api/cleaning/fix-management-companies для ручного исправления данных УК, /api/cleaning/houses-fixed с принудительным обогащением данных через прямые API вызовы к Bitrix24. Endpoint тестирует наличие оптимизированных методов, кэширования и правильность API интеграции."
+
+  - task: "Frontend Hardcoded URLs Removal"
+    implemented: true
+    working: true
+    file: "frontend/src/components/*.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retested: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ ИСПРАВЛЕНО: Удалены все hardcoded fallback URLs из 4 frontend компонентов (apiService.js, Tasks.js, Dashboard.js, Works.js). Теперь все компоненты используют только переменную окружения REACT_APP_BACKEND_URL без fallback значений. Исправлен .env файл с правильным URL для Render деплоя."
+
+  - task: "Render Production URL Fix"
+    implemented: true
+    working: true
+    file: "frontend/.env"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ ИСПРАВЛЕНО: Изменен REACT_APP_BACKEND_URL в frontend/.env с https://audio-management.preview.emergentagent.com на https://audiobot-qci2.onrender.com для соответствия реальному URL продакшена на Render."
+
   - task: "Code Quality Fix - X-API-Key Header Validation"
     implemented: true
     working: true
