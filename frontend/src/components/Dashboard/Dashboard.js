@@ -170,10 +170,10 @@ const Dashboard = () => {
           <Button 
             variant="secondary" 
             className="flex flex-col items-center p-4 h-20"
-            onClick={() => actions.setCurrentSection('tasks')}
+            onClick={() => actions.setCurrentSection('analytics')}
           >
-            <span className="text-xl mb-1">📋</span>
-            <span className="text-xs">Задачи</span>
+            <span className="text-xl mb-1">📊</span>
+            <span className="text-xs">Аналитика</span>
           </Button>
           
           <Button 
