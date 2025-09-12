@@ -542,10 +542,19 @@ const WorksEnhanced = () => {
               <option value="">Все УК</option>
               <option value='ООО "ГородУК"'>ООО "ГородУК"</option>
               <option value='ООО "ДомУслуги"'>ООО "ДомУслуги"</option>
+              <option value='ООО "Домоуправление"'>ООО "Домоуправление"</option>
+              <option value='ООО "ЖЭК-Сервис"'>ООО "ЖЭК-Сервис"</option>
+              <option value='ООО "Жилищная компания"'>ООО "Жилищная компания"</option>
               <option value='ООО "Жилкомсервис"'>ООО "Жилкомсервис"</option>
+              <option value='ООО "Жилстройсервис"'>ООО "Жилстройсервис"</option>
               <option value='ООО "КомфортСервис"'>ООО "КомфортСервис"</option>
               <option value='ООО "Мастер-УК"'>ООО "Мастер-УК"</option>
+              <option value='ООО "Молодость"'>ООО "Молодость"</option>
+              <option value='ООО "НовоСтрой-УК"'>ООО "НовоСтрой-УК"</option>
+              <option value='ООО "Образование-Сервис"'>ООО "Образование-Сервис"</option>
+              <option value='ООО "Премиум-УК"'>ООО "Премиум-УК"</option>
               <option value='ООО "РЯДОМ-Комфорт"'>ООО "РЯДОМ-Комфорт"</option>
+              <option value='ООО "РЯДОМ-Плюс"'>ООО "РЯДОМ-Плюс"</option>
             </select>
           </div>
 
