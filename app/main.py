@@ -198,14 +198,7 @@ app.include_router(logs.router)
 app.include_router(analytics.router)
 app.include_router(learning.router)       # Новый: модуль самообучения
 
-# Подключаем продвинутые voice модули если доступны
-if VOICE_MODULES_AVAILABLE:
-    app.include_router(realistic_voice.router)  # Новый: реальный человеческий голос
-    app.include_router(realtime_voice.router)   # Новый: GPT-4o Realtime API
-    app.include_router(websocket.router)        # Новый: WebSocket для живого чата
-    logger.info("✅ Advanced voice modules loaded")
-else:
-    logger.warning("⚠️ Advanced voice modules skipped")
+app.include_router(websocket.router)        # Новый: WebSocket для живого чата
 
 logger.info("✅ All routers included")
 
