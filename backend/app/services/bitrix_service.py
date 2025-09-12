@@ -15,7 +15,25 @@ class BitrixService:
         # Кэш для домов с обогащенными данными
         self._enriched_deals_cache = {}
         self._cache_timestamp = None
-        logger.info(f"🔗 Bitrix24 service initialized with caching")
+        logger.info(f"🔗 Bitrix24 service initialized with caching (DB-independent)")
+        
+    def analyze_house_brigade(self, address: str) -> str:
+        """Определение бригады по адресу дома (для случаев когда нет assigned_by)"""
+        address_lower = address.lower()
+        
+        # Географическое распределение по районам Калуги
+        if any(word in address_lower for word in ['центр', 'ленина', 'пролетарская', 'баррикад']):
+            return "1 бригада - Центральный район"
+        elif any(word in address_lower for word in ['никитина', 'чижевского', 'никитинский']):
+            return "2 бригада - Никитинский район"  
+        elif any(word in address_lower for word in ['жилетово', 'молодежная', 'широкая']):
+            return "3 бригада - Жилетово"
+        elif any(word in address_lower for word in ['хрустальная', 'жукова', 'северн']):
+            return "4 бригада - Северный район"
+        elif any(word in address_lower for word in ['кондрово', 'пушкина', 'ленина']):
+            return "5 бригада - Пригород"
+        else:
+            return "6 бригада - Окраины"
         
     async def get_deals_optimized(self, limit: Optional[int] = None, use_cache: bool = True) -> List[Dict[str, Any]]:
         """Оптимизированная загрузка домов с кэшированием и fallback логикой"""
