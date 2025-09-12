@@ -11,9 +11,9 @@ router = APIRouter(prefix="/api", tags=["cleaning"])
 
 @router.get("/cleaning/houses", response_model=dict)
 async def get_cleaning_houses(limit: Optional[int] = None):
-    """Все дома из Bitrix24"""
+    """Все дома из Bitrix24 (старая категория - 348 домов)"""
     try:
-        logger.info(f"🏠 Loading houses from CRM...")
+        logger.info(f"🏠 Loading houses from CRM (old category)...")
         
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         deals = await bitrix.get_deals(limit=limit)
@@ -48,12 +48,95 @@ async def get_cleaning_houses(limit: Optional[int] = None):
             "status": "success",
             "houses": houses,
             "total": len(houses),
-            "source": "🔥 Bitrix24 CRM",
+            "source": "🔥 Bitrix24 CRM (Category 34)",
             "sync_timestamp": datetime.utcnow().isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Houses error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/cleaning/houses-490", response_model=dict)
+async def get_cleaning_houses_490():
+    """Новый endpoint - 490 домов из правильной категории Bitrix24"""
+    try:
+        logger.info(f"🏠 Loading 490 houses from CRM (Category 34)...")
+        
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        deals = await bitrix.get_deals(limit=500)  # Загружаем все 490+ домов
+        
+        houses = []
+        for deal in deals:
+            address = deal.get('TITLE', 'Без названия')
+            deal_id = deal.get('ID', '')
+            stage_id = deal.get('STAGE_ID', '')
+            
+            # Определяем бригаду и статус
+            brigade = bitrix.analyze_house_brigade(address)
+            status_text, status_color = bitrix.get_status_info(stage_id)
+            
+            house_data = House(
+                address=address,
+                deal_id=deal_id,
+                stage=stage_id,
+                brigade=brigade,
+                status_text=status_text,
+                status_color=status_color,
+                created_date=deal.get('DATE_CREATE'),
+                opportunity=deal.get('OPPORTUNITY'),
+                last_sync=datetime.utcnow().isoformat()
+            )
+            
+            houses.append(house_data.dict())
+        
+        logger.info(f"✅ Houses-490 data prepared: {len(houses)} houses")
+        
+        return {
+            "status": "success",
+            "houses": houses,
+            "total": len(houses),
+            "source": "🔥 Bitrix24 CRM - 490 Houses (Category 34)",
+            "category_id": "34",
+            "sync_timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Houses-490 error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/force-houses-490")
+async def force_houses_490():
+    """Принудительная загрузка 490 домов"""
+    try:
+        logger.info(f"🔄 FORCE loading 490 houses...")
+        
+        # Сначала проверяем подключение к Bitrix24
+        bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+        test_deals = await bitrix.get_deals(limit=1)
+        
+        if not test_deals:
+            return {
+                "status": "error", 
+                "message": "❌ Нет подключения к Bitrix24",
+                "webhook_url": BITRIX24_WEBHOOK_URL[:50] + "..."
+            }
+        
+        # Принудительно загружаем все дома
+        all_deals = await bitrix.get_deals(limit=600)
+        
+        logger.info(f"🔥 FORCE loaded {len(all_deals)} houses from Bitrix24")
+        
+        return {
+            "status": "success",
+            "message": f"✅ Принудительно загружено {len(all_deals)} домов",
+            "houses_count": len(all_deals),
+            "category_id": "34",
+            "source": "Bitrix24 CRM",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Force houses error: {e}")
         return {"status": "error", "message": str(e)}
 
 @router.get("/cleaning/brigades")
