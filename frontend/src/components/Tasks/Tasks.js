@@ -27,7 +27,7 @@ const Tasks = () => {
   });
 
   const { state } = useApp();
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+  const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     loadTasks();
