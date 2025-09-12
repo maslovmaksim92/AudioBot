@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Декомпозиция React frontend VasDom AudioBot: разбить App.js (1200+ строк) на модульные компоненты (Dashboard, Statistics, AIChat, Settings), внедрить React Context для state management, добавить React Router для навигации, создать переиспользуемые UI компоненты. Новая архитектура должна сохранить всю функциональность и улучшить maintainability."
+user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
   - task: "Code Quality Fix - X-API-Key Header Validation"
