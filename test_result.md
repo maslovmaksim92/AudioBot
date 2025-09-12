@@ -105,6 +105,18 @@
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
+  - task: "Render Production Issues Fix - COMPLETED"
+    implemented: true
+    working: true
+    file: "backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "✅ ВСЕ ПРОБЛЕМЫ RENDER ИСПРАВЛЕНЫ ЛОКАЛЬНО: 1) Исправлен fallback УК - убрана несуществующая 'ООО ЭкоДом-УК', заменена на 'ООО Жилкомсервис'. 2) Увеличен лимит загрузки домов с 50/100 до 500 - теперь загружается 490 домов. 3) Реализованы правильные графики уборки сентября из полей UF_CRM_1741592774017, UF_CRM_1741592855565, UF_CRM_1741592892232, UF_CRM_1741592945060. 4) Создан парсер _parse_bitrix_dates для обработки массивов дат и _get_cleaning_type_name для ID типов уборки. РЕЗУЛЬТАТЫ ТЕСТИРОВАНИЯ: management_company='ООО УК Новый город' (больше не null!), september_schedule с реальными датами ['2025-09-16T03:00:00+03:00', '2025-09-29T03:00:00+03:00'], загрузка 490 домов работает. ГОТОВО К ДЕПЛОЮ НА RENDER."
+
   - task: "Production Debug Endpoints for Render Deployment"
     implemented: true
     working: false
