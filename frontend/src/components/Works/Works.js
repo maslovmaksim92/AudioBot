@@ -806,29 +806,48 @@ const WorksEnhanced = () => {
           </div>
         </div>
 
-        {/* Расширенная информация */}
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">👥 Бригада:</span>
-            <span className="font-medium text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded">
-              {house.brigade?.split(' - ')[0] || 'Не назначена'}
-            </span>
+        {/* PRODUCTION: Улучшенная информация */}
+        <div className="space-y-3 mb-4">
+          {/* Основная информация */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 p-2 rounded-lg">
+              <div className="text-xs text-gray-600 mb-1">👥 Бригада</div>
+              <div className="font-medium text-xs text-blue-800">
+                {house.brigade?.split(' - ')[0]?.replace('бригада', 'бр.') || 'Не назначена'}
+              </div>
+            </div>
+            <div className="bg-gray-50 p-2 rounded-lg">
+              <div className="text-xs text-gray-600 mb-1">📋 Статус</div>
+              <div className={`text-xs font-medium ${
+                house.status_text?.includes('Активный') ? 'text-green-700' :
+                house.status_text?.includes('Проблемный') ? 'text-red-700' :
+                'text-gray-700'
+              }`}>
+                {house.status_text || '🏠 Активный'}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">🏢 УК:</span>
-            <span className="font-medium text-xs bg-gray-50 px-2 py-1 rounded max-w-32 truncate">
+          
+          {/* УК информация */}
+          <div className="bg-blue-50 p-3 rounded-lg border-l-2 border-blue-400">
+            <div className="text-xs text-blue-700 font-semibold mb-1">🏢 Управляющая компания:</div>
+            <div className="text-xs font-medium text-gray-900">
               {house.management_company?.replace('ООО "', '').replace('"', '') || 'Не указана'}
-            </span>
+            </div>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">📋 Статус:</span>
-            <span className={`px-2 py-1 rounded text-xs font-medium ${
-              house.status_color === 'success' ? 'bg-green-100 text-green-800' :
-              house.status_color === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {house.status_text}
-            </span>
+          
+          {/* Дополнительные детали */}
+          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+            <div className="flex justify-between items-center">
+              <span>📍 ID сделки:</span>
+              <span className="font-mono">{house.deal_id}</span>
+            </div>
+            {house.created_date && (
+              <div className="flex justify-between items-center mt-1">
+                <span>📅 Создано:</span>
+                <span>{new Date(house.created_date).toLocaleDateString('ru-RU')}</span>
+              </div>
+            )}
           </div>
         </div>
 
