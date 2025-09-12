@@ -858,7 +858,7 @@ const WorksEnhanced = () => {
               <span>График уборки на сентябрь 2025</span>
             </div>
             
-            {/* Уборка 1 */}
+            {/* ИСПРАВЛЕНО: Уборка 1 - правильное соответствие типа и дат */}
             {house.september_schedule.cleaning_date_1 && 
              house.september_schedule.cleaning_date_1.length > 0 && (
               <div className="mb-3 p-3 bg-white rounded-lg border-l-4 border-green-500">
@@ -878,12 +878,12 @@ const WorksEnhanced = () => {
                   🧹 Тип уборки 1 | Сентябрь 2025:
                 </div>
                 <div className="text-xs text-gray-700 leading-relaxed">
-                  {house.september_schedule.cleaning_type_1 || 'Не указан'}
+                  {house.september_schedule.cleaning_type_1 || 'Тип не указан'}
                 </div>
               </div>
             )}
             
-            {/* Уборка 2 */}
+            {/* ИСПРАВЛЕНО: Уборка 2 - правильное соответствие типа и дат */}
             {house.september_schedule.cleaning_date_2 && 
              house.september_schedule.cleaning_date_2.length > 0 && (
               <div className="p-3 bg-white rounded-lg border-l-4 border-blue-500">
@@ -903,7 +903,7 @@ const WorksEnhanced = () => {
                   🧹 Тип уборки 2 | Сентябрь 2025:
                 </div>
                 <div className="text-xs text-gray-700 leading-relaxed">
-                  {house.september_schedule.cleaning_type_2 || 'Не указан'}
+                  {house.september_schedule.cleaning_type_2 || 'Тип не указан'}
                 </div>
               </div>
             )}
