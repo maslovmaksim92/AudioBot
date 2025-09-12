@@ -139,6 +139,69 @@ async def force_houses_490():
         logger.error(f"❌ Force houses error: {e}")
         return {"status": "error", "message": str(e)}
 
+@router.get("/debug-houses")
+async def debug_houses():
+    """Отладочный endpoint для диагностики"""
+    try:
+        logger.info(f"🔧 Debug houses endpoint called...")
+        
+        debug_info = {
+            "status": "success",
+            "bitrix24_webhook": BITRIX24_WEBHOOK_URL[:50] + "..." if BITRIX24_WEBHOOK_URL else "❌ Not configured",
+            "category_info": {
+                "old_category": "2 (348 домов)",
+                "new_category": "34 (490 домов) ✅ ИСПОЛЬЗУЕТСЯ",
+                "current_filter": "CATEGORY_ID=34"
+            },
+            "endpoints": {
+                "/api/cleaning/houses": "Старый endpoint (348 домов)",
+                "/api/cleaning/houses-490": "✅ Новый endpoint (490 домов)",
+                "/api/force-houses-490": "✅ Принудительная загрузка",
+                "/api/debug-houses": "✅ Этот отладочный endpoint"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Проверяем подключение к Bitrix24
+        if BITRIX24_WEBHOOK_URL:
+            try:
+                bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
+                test_deals = await bitrix.get_deals(limit=1)
+                
+                debug_info["bitrix_connection"] = {
+                    "status": "✅ Connected" if test_deals else "⚠️ Connected but no data",
+                    "test_deals_count": len(test_deals) if test_deals else 0,
+                    "sample_deal": test_deals[0] if test_deals else None
+                }
+            except Exception as conn_error:
+                debug_info["bitrix_connection"] = {
+                    "status": "❌ Connection failed",
+                    "error": str(conn_error)
+                }
+        
+        return debug_info
+        
+    except Exception as e:
+        logger.error(f"❌ Debug houses error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/version-check")
+async def version_check():
+    """Проверка версии кода"""
+    return {
+        "status": "success",
+        "version": "3.0.0",
+        "app_name": "VasDom AudioBot API",
+        "category_fix": "✅ Fixed CATEGORY_ID=34 (490 houses)",
+        "endpoints_added": [
+            "/api/cleaning/houses-490",
+            "/api/force-houses-490", 
+            "/api/debug-houses",
+            "/api/version-check"
+        ],
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
 @router.get("/cleaning/brigades")
 async def get_brigades():
     """Информация о бригадах"""
