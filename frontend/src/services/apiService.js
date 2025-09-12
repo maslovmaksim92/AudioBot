@@ -1,6 +1,6 @@
 // API Service - Centralized HTTP client
 // Backend URL from environment variable
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 console.log('🔗 API Service initialized with backend URL:', BACKEND_URL);
 
