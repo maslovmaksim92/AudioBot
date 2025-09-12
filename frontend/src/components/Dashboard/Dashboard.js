@@ -6,7 +6,7 @@ const Dashboard = () => {
   const { state, actions } = useApp();
   const { dashboardStats, loading, apiStatus } = state;
 
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://audiobot-qci2.onrender.com';
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   const statCards = [
     { 
