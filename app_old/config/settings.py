@@ -30,20 +30,20 @@ APP_VERSION = "3.0.0"
 APP_DESCRIPTION = "🤖 AI-система управления клининговой компанией"
 
 # CORS settings - убираем '*' и читаем из переменных окружения
-CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://vasdom-clean.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
+CORS_ORIGINS_RAW = os.environ.get('CORS_ORIGINS', 'https://housing-management.preview.emergentagent.com,https://audiobot-qci2.onrender.com')
 CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS_RAW.split(',') if origin.strip()]
 
 # Безопасные дефолтные origins если переменная пустая
 if not CORS_ORIGINS:
     CORS_ORIGINS = [
-        "https://vasdom-clean.preview.emergentagent.com",
+        "https://housing-management.preview.emergentagent.com",
         "https://audiobot-qci2.onrender.com"
     ]
 
 # Frontend redirect URLs - вынос в конфигурацию
 FRONTEND_DASHBOARD_URL = os.environ.get(
     'FRONTEND_DASHBOARD_URL', 
-    'https://vasdom-clean.preview.emergentagent.com'
+    'https://housing-management.preview.emergentagent.com'
 )
 
 # API Keys with validation
