@@ -25,7 +25,7 @@ async def get_cleaning_houses_with_forced_enrichment(
         bitrix = BitrixService(BITRIX24_WEBHOOK_URL)
         
         # Получаем базовые данные
-        deals = await bitrix.get_deals(limit=limit or 50)
+        deals = await bitrix.get_deals(limit=limit or 500)  # Увеличиваем лимит
         
         houses = []
         for deal in deals:
