@@ -1,0 +1,18 @@
+RENDER FORCE UPDATE v3 - 2025-09-12T09:40:00Z
+
+CRITICAL FIXES:
+1. CATEGORY_ID fixed to 34 (was using 2)
+2. Limit increased to 500 houses (was 50)  
+3. Version check endpoint added
+4. Database URL logic fixed
+5. BitrixService made DB-independent
+
+EXPECTED RESULTS AFTER DEPLOYMENT:
+- 490 houses loading (not 348)
+- management_company with real UК names
+- /api/version-check returns "3.0-FIXED-FORCE-UPDATE"
+- september_schedule with real dates
+- All new endpoints working
+
+LAST MODIFIED: 2025-09-12T09:40:00Z
+BUILD ID: FORCE-v3-490-houses
