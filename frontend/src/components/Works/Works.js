@@ -1519,8 +1519,14 @@ const WorksEnhanced = () => {
       {/* Прогресс-бар загрузки */}
       <LoadingProgressBar />
       
+      {/* Панель управления отображением - Фаза 3 */}
+      {!loading && houses.length > 0 && <ViewControls />}
+      
       {/* Список домов с улучшенным UX */}
       {renderHousesSection()}
+      
+      {/* Пагинация - Фаза 3 */}
+      {!loading && filteredHouses.length > itemsPerPage && <PaginationControls />}
 
       <CreateHouseModal />
       <NotificationBar />
