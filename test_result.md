@@ -102,6 +102,100 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+user_problem_statement: |
+  Объединение веток chat1-chat25 из репозитория AudioBot
+  
+  Задачи:
+  1. Проанализировать код во всех ветках chat1–chat25
+  2. Сравнить изменения каждой ветки с main
+  3. Выбрать и собрать лучший рабочий код в ветке main
+  4. Удалить мусор и неиспользуемые файлы
+  5. Получить итоговое рабочее приложение, идентичное https://audiobot-qci2.onrender.com
+  
+  Базовая ветка: main
+  Никогда не начинать анализ заново - работать итеративно от текущего состояния
+
+backend:
+  - task: "Синхронизация с удаленным репозиторием AudioBot"
+    implemented: true
+    working: true
+    file: "git remote/fetch operations"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Успешно добавлен remote origin и получены 25+ веток chat*"
+
+  - task: "Анализ структуры приложения AudioBot"
+    implemented: true
+    working: true
+    file: "app/main.py, vasdom_app.py, README.md"
+    stuck_count: 0
+    priority: "high"  
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Обнаружена модульная структура FastAPI приложения с полной интеграцией Bitrix24, Telegram Bot, AI сервисами"
+
+  - task: "Интеграция лучших изменений из веток chat24-chat25"
+    implemented: false
+    working: "NA"
+    file: "app/*, backend/*, requirements.txt"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Началось объединение изменений. Chat25 содержит роутеры tasks, analytics, улучшенные settings"
+
+frontend:
+  - task: "Анализ frontend структуры React приложения"
+    implemented: true
+    working: true
+    file: "frontend/src/**"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "Обнаружена полная React структура с компонентами: Dashboard, Tasks, Works, AIChat, Meetings, Analytics"
+
+  - task: "Интеграция frontend изменений из веток"
+    implemented: false
+    working: "NA"
+    file: "frontend/src/**"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Требуется перенос улучшений frontend из веток chat*"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Интеграция лучших изменений из веток chat24-chat25"
+    - "Интеграция frontend изменений из веток"
+    - "Очистка неиспользуемых файлов"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Начата интеграция веток AudioBot. Обнаружено полнофункциональное приложение с Bitrix24, Telegram, AI интеграциями. Chat25 выглядит как наиболее актуальная версия с роутерами tasks и analytics."
+
 user_problem_statement: "ПРОБЛЕМЫ ДЕПЛОЯ НА RENDER: 1) Не загружаются УК компании (management_company возвращает null), 2) Не загружаются правильные графики уборки из Bitrix24, 3) Несоответствие URL между локальной средой (https://audio-management.preview.emergentagent.com) и продакшеном (https://audiobot-qci2.onrender.com), 4) Хардкоженные fallback URLs в frontend компонентах, 5) Возможно устаревшая версия кода на Render без исправлений BitrixService"
 
 backend:
