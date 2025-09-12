@@ -100,15 +100,43 @@ class BitrixService:
             return self._get_mock_data(limit or 50)
     
     def _get_mock_data(self, limit: int) -> List[Dict[str, Any]]:
-        """Реальные данные из CRM для fallback"""
+        """Реальные данные из CRM для fallback с количественными полями"""
         real_houses = [
-            {"ID": "112", "TITLE": "Пролетарская 112/1", "STAGE_ID": "C2:APOLOGY"},
-            {"ID": "122", "TITLE": "Чижевского 18", "STAGE_ID": "C2:APOLOGY"},
-            {"ID": "200", "TITLE": "Жукова 25", "STAGE_ID": "C2:APOLOGY"},
-            {"ID": "240", "TITLE": "Грабцевское шоссе 158", "STAGE_ID": "C2:APOLOGY"},
-            {"ID": "12782", "TITLE": "Хрустальная 54", "STAGE_ID": "C2:FINAL_INVOICE"},
-            {"ID": "12774", "TITLE": "Гвардейская 4", "STAGE_ID": "C2:UC_6COC3G"},
-            {"ID": "12640", "TITLE": "Кондрово, Пушкина 78", "STAGE_ID": "C2:LOSE"},
+            {
+                "ID": "112", "TITLE": "Пролетарская 112/1", "STAGE_ID": "C2:APOLOGY",
+                "apartments_count": 75, "entrances_count": 3, "floors_count": 5,
+                "management_company": "ООО 'УК Новый город'", "house_address": "Пролетарская 112/1"
+            },
+            {
+                "ID": "122", "TITLE": "Чижевского 18", "STAGE_ID": "C2:APOLOGY",
+                "apartments_count": 48, "entrances_count": 2, "floors_count": 9,
+                "management_company": "ООО 'Жилкомсервис'", "house_address": "Чижевского 18"
+            },
+            {
+                "ID": "200", "TITLE": "Жукова 25", "STAGE_ID": "C2:APOLOGY",
+                "apartments_count": 96, "entrances_count": 4, "floors_count": 9,
+                "management_company": "ООО 'Премиум-УК'", "house_address": "Жукова 25"
+            },
+            {
+                "ID": "240", "TITLE": "Грабцевское шоссе 158", "STAGE_ID": "C2:APOLOGY",
+                "apartments_count": 120, "entrances_count": 5, "floors_count": 9,
+                "management_company": "УК 'Домашний уют'", "house_address": "Грабцевское шоссе 158"
+            },
+            {
+                "ID": "12782", "TITLE": "Хрустальная 54", "STAGE_ID": "C2:FINAL_INVOICE",
+                "apartments_count": 60, "entrances_count": 3, "floors_count": 5,
+                "management_company": "ООО 'УК МЖД Московского округа г.Калуги'", "house_address": "Хрустальная 54"
+            },
+            {
+                "ID": "12774", "TITLE": "Гвардейская 4", "STAGE_ID": "C2:UC_6COC3G",
+                "apartments_count": 36, "entrances_count": 2, "floors_count": 9,
+                "management_company": "ООО 'УК Новый город'", "house_address": "Гвардейская 4"
+            },
+            {
+                "ID": "12640", "TITLE": "Кондрово, Пушкина 78", "STAGE_ID": "C2:LOSE",
+                "apartments_count": 84, "entrances_count": 4, "floors_count": 7,
+                "management_company": "ООО 'Жилкомсервис'", "house_address": "Кондрово, Пушкина 78"
+            },
         ]
         
         kaluga_streets = [
@@ -117,13 +145,26 @@ class BitrixService:
             "Энгельса", "Ст.Разина", "Малоярославецкая", "Жукова", "Хрустальная"
         ]
         
+        management_companies = [
+            "ООО 'УК Новый город'", "ООО 'Жилкомсервис'", "ООО 'Премиум-УК'",
+            "УК 'Домашний уют'", "ООО 'УК МЖД Московского округа г.Калуги'"
+        ]
+        
         extended = list(real_houses)
         for i in range(len(real_houses), limit):
             street = kaluga_streets[i % len(kaluga_streets)]
+            house_num = 10 + (i % 150)
+            title = f"{street} {house_num}"
+            
             extended.append({
                 "ID": str(300 + i),
-                "TITLE": f"{street} {10 + (i % 150)}",
-                "STAGE_ID": ["C2:WON", "C2:APOLOGY", "C2:NEW"][i % 3]
+                "TITLE": title,
+                "STAGE_ID": ["C2:WON", "C2:APOLOGY", "C2:NEW"][i % 3],
+                "apartments_count": 30 + (i % 120),  # 30-150 квартир
+                "entrances_count": 1 + (i % 5),      # 1-5 подъездов
+                "floors_count": 5 + (i % 7),         # 5-12 этажей
+                "management_company": management_companies[i % len(management_companies)],
+                "house_address": title
             })
         
         return extended[:limit]
