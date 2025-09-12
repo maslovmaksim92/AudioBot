@@ -553,6 +553,43 @@ async def get_cleaning_houses(
         logger.error(f"❌ Optimized houses error: {e}")
         return {"status": "error", "message": str(e)}
 
+def _parse_bitrix_dates(date_data) -> List[str]:
+    """Парсинг дат из данных Bitrix24 (может быть строкой или массивом)"""
+    if not date_data:
+        return []
+    
+    dates = []
+    if isinstance(date_data, list):
+        # Если это массив дат
+        for date_item in date_data:
+            if isinstance(date_item, str) and date_item.strip():
+                dates.append(date_item.strip())
+    elif isinstance(date_data, str):
+        # Если это строка с датами через запятую
+        for date_part in date_data.split(','):
+            date_part = date_part.strip()
+            if date_part and len(date_part) >= 8:  # Минимум для даты
+                dates.append(date_part)
+    
+    return dates
+
+def _get_cleaning_type_name(type_id) -> str:
+    """Получение названия типа уборки по ID"""
+    if not type_id:
+        return ""
+    
+    # Маппинг ID типов уборки на их названия
+    # Эти ID нужно будет получить из Bitrix24 API или настроить вручную
+    type_mapping = {
+        '1': 'Генеральная уборка',
+        '2': 'Поддерживающая уборка', 
+        '3': 'Мытье окон',
+        '4': 'Уборка подъездов',
+        '5': 'Уборка территории'
+    }
+    
+    return type_mapping.get(str(type_id), f"Тип {type_id}")
+
 def _parse_monthly_schedule(deal: dict, month: str, field_mapping: dict) -> Optional[dict]:
     """Парсинг графика уборки для конкретного месяца"""
     cleaning_date_1_str = deal.get(field_mapping['date_1'], '')
