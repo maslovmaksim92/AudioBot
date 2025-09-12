@@ -73,7 +73,7 @@ class BitrixService:
             
         except Exception as e:
             logger.error(f"❌ Bitrix24 load error: {e}")
-            return self._get_mock_data(limit or 50)
+            return self._get_mock_data(limit if limit is not None else 490)
     
     def _get_mock_data(self, limit: int) -> List[Dict[str, Any]]:
         """Реальные данные из CRM для fallback"""
