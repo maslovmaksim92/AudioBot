@@ -13,8 +13,12 @@ load_dotenv(ROOT_DIR / '.env')
 
 logger = logging.getLogger(__name__)
 
-# Database configuration - ТОЛЬКО PostgreSQL или None
+# Database configuration - приоритет системным переменным (для Render)
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
+# Fallback к локальному .env только если системной переменной нет
+if not DATABASE_URL:
+    DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost:5432/vasdom_audiobot')
 
 Base = declarative_base()
 database = None
