@@ -222,124 +222,89 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-6">
+                <div className="grid gap-4">
                   {houses.map((house) => (
-                    <Card key={house.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
+                    <Card key={house.id} className="border border-gray-200 hover:shadow-md transition-shadow">
                       <CardContent className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex-1">
-                            {/* House Header */}
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center">
-                                <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                                  <Building2 className="h-6 w-6 text-blue-600" />
-                                </div>
-                                <div>
-                                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                                    {house.address}
-                                  </h3>
-                                  <div className="flex items-center text-sm text-gray-500">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    ID: {house.id}
-                                  </div>
-                                </div>
-                              </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Просмотр
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Редактировать
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <ClipboardCheck className="h-4 w-4 mr-2" />
-                                    Задачи
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Удалить
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                        {/* House Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <div className="bg-blue-100 p-2 rounded-lg mr-4">
+                              <Building2 className="h-6 w-6 text-blue-600" />
                             </div>
-
-                            {/* House Stats Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                              <div className="bg-gray-50 p-3 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-blue-600">{house.apartments}</div>
-                                <div className="text-xs text-gray-500 font-medium">Квартир</div>
+                            <div>
+                              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                                {house.address}
+                              </h3>
+                              <div className="flex items-center text-sm text-gray-500">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                ID: {house.id}
                               </div>
-                              <div className="bg-gray-50 p-3 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-green-600">{house.entrances}</div>
-                                <div className="text-xs text-gray-500 font-medium">Подъездов</div>
-                              </div>
-                              <div className="bg-gray-50 p-3 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-purple-600">{house.floors}</div>
-                                <div className="text-xs text-gray-500 font-medium">Этажей</div>
-                              </div>
-                              <div className="bg-gray-50 p-3 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-orange-600">
-                                  {Math.round((house.apartments / house.entrances) * 10) / 10}
-                                </div>
-                                <div className="text-xs text-gray-500 font-medium">Кв/подъезд</div>
-                              </div>
-                            </div>
-
-                            {/* Management Company */}
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center">
-                                <Shield className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-600">Управляющая компания:</span>
-                              </div>
-                              <Badge variant="secondary" className="font-medium">
-                                {house.management_company}
-                              </Badge>
-                            </div>
-
-                            {/* Schedule Section */}
-                            {house.september_schedule && house.september_schedule !== 'Не указан' && (
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                                <div className="flex items-center mb-2">
-                                  <Calendar className="h-4 w-4 text-blue-600 mr-2" />
-                                  <span className="font-medium text-blue-900">График уборки</span>
-                                </div>
-                                <div className="text-sm text-blue-800">
-                                  {house.september_schedule}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                                <Eye className="h-3 w-3 mr-1" />
-                                Детали
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50">
-                                <ClipboardCheck className="h-3 w-3 mr-1" />
-                                Задачи
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-purple-600 border-purple-600 hover:bg-purple-50">
-                                <Calendar className="h-3 w-3 mr-1" />
-                                График
-                              </Button>
-                              {house.has_apartments && (
-                                <Badge variant="outline" className="text-green-600 border-green-600">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Активный
-                                </Badge>
-                              )}
                             </div>
                           </div>
+                        </div>
+
+                        {/* Правильные данные - статистика дома */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-3">Правильные данные</h4>
+                          <div className="grid grid-cols-3 gap-6">
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-green-600 mb-1">{house.apartments}</div>
+                              <div className="text-sm text-gray-600">Квартир</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-blue-600 mb-1">{house.entrances}</div>
+                              <div className="text-sm text-gray-600">Подъездов</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-orange-600 mb-1">{house.floors}</div>
+                              <div className="text-sm text-gray-600">Этажей</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Управляющая компания */}
+                        <div className="mb-4">
+                          <div className="flex items-center mb-2">
+                            <Shield className="h-4 w-4 text-blue-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-700">Управляющая компания:</span>
+                          </div>
+                          <div className="pl-6">
+                            <Badge variant="secondary" className="font-medium text-base px-3 py-1">
+                              {house.management_company}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* График уборки */}
+                        {house.september_schedule && house.september_schedule !== 'Не указан' && (
+                          <div className="mb-4">
+                            <div className="flex items-center mb-2">
+                              <Calendar className="h-4 w-4 text-green-600 mr-2" />
+                              <span className="text-sm font-medium text-gray-700">График уборки:</span>
+                            </div>
+                            <div className="pl-6 bg-green-50 border-l-4 border-green-400 p-3 rounded-r-lg">
+                              <div className="text-sm text-green-800 font-medium">
+                                {house.september_schedule}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Действия */}
+                        <div className="flex gap-3 pt-4 border-t border-gray-200">
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            График
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Детали
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1">
+                            <ClipboardCheck className="h-4 w-4 mr-2" />
+                            Задачи
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
