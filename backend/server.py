@@ -155,6 +155,38 @@ async def create_status_check(input: StatusCheckCreate):
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
+    """Получение всех записей о проверке статуса (требует MongoDB)"""
+    if not db:
+        raise HTTPException(status_code=503, detail="База данных не настроена")
+    
+    cursor = db.status_checks.find({})
+    status_checks = []
+    async for document in cursor:
+        status_checks.append(StatusCheck(**document))
+    return status_checks
+
+# Include the API router in the main app
+app.include_router(api_router)
+
+# Add CORS middleware
+cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Root endpoint (без префикса /api)
+@app.get("/")
+async def root_redirect():
+    return {"message": "AudioBot API", "documentation": "/docs", "health": "/api/health"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
+async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
 
