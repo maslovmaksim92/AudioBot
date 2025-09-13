@@ -126,11 +126,10 @@ const WorksEnhanced = () => {
     setLoading(true);
     console.log('🔄 Starting initial data load...');
     try {
-      await Promise.all([
-        fetchFilters(),
-        fetchHouses(),
-        fetchDashboardStats()
-      ]);
+      // Выполняем последовательно для лучшего контроля ошибок
+      await fetchFilters();
+      await fetchDashboardStats();
+      await fetchHouses(); // Самая важная операция последней
       console.log('✅ Initial data load completed');
     } catch (error) {
       console.error('❌ Error fetching initial data:', error);
