@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, StatCard, Button, LoadingSpinner } from '../UI';
 
 const Dashboard = () => {
   const { state, actions } = useApp();
   const { dashboardStats, loading, apiStatus } = state;
+  const [districtStats, setDistrictStats] = useState(null);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
