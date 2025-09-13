@@ -320,21 +320,33 @@ export default function Dashboard() {
                             </div>
                             
                             {house.september_schedule && house.september_schedule !== 'Не указан' ? (
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 {(() => {
-                                  const scheduleItems = house.september_schedule.split(',').map(item => item.trim());
-                                  return scheduleItems.map((scheduleItem, index) => (
-                                    <div key={index} className="space-y-1">
-                                      <div className="flex items-center text-sm">
+                                  // Парсим новый формат: дата|описание|дата|описание
+                                  const scheduleParts = house.september_schedule.split('|');
+                                  const scheduleItems = [];
+                                  
+                                  for (let i = 0; i < scheduleParts.length; i += 2) {
+                                    if (scheduleParts[i] && scheduleParts[i + 1]) {
+                                      scheduleItems.push({
+                                        date: scheduleParts[i].trim(),
+                                        type: scheduleParts[i + 1].trim()
+                                      });
+                                    }
+                                  }
+                                  
+                                  return scheduleItems.map((item, index) => (
+                                    <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
+                                      <div className="flex items-center text-sm mb-2">
                                         <Calendar className="h-3 w-3 text-red-500 mr-2" />
                                         <span className="font-medium text-gray-700">
-                                          Дата {index + 1}: {scheduleItem}
+                                          Дата {index + 1}: {item.date}
                                         </span>
                                       </div>
-                                      <div className="flex items-center text-sm">
-                                        <Edit className="h-3 w-3 text-orange-500 mr-2" />
-                                        <span className="text-gray-600">
-                                          Тип {index + 1}: Тип {index === 0 ? '2468' : '1357'}
+                                      <div className="flex items-start text-xs">
+                                        <Edit className="h-3 w-3 text-orange-500 mr-2 mt-0.5 flex-shrink-0" />
+                                        <span className="text-gray-600 leading-relaxed">
+                                          Тип {index + 1}: {item.type}
                                         </span>
                                       </div>
                                     </div>
