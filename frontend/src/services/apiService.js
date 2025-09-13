@@ -123,6 +123,11 @@ const apiService = {
   getHealth: async () => {
     const response = await fetch(`${BACKEND_URL}/api/health`);
     return response.json();
+  },
+
+  // Voice message processing (alias for processVoice)
+  sendVoiceMessage: async (text, userId = 'user') => {
+    return apiService.processVoice(text, userId);
   }
 };
 
