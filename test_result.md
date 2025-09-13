@@ -888,8 +888,8 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "3.1"
-  test_sequence: 8
+  version: "3.2"
+  test_sequence: 9
   run_ui: true
 
   - task: "AI Chat Section Loading Issue Fix - RESOLVED"
