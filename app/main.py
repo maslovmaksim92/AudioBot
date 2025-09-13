@@ -245,7 +245,7 @@ async def startup():
     
     # Try MongoDB first (recommended)
     mongo_db = await init_mongodb()
-    if mongo_db:
+    if mongo_db is not None:
         logger.info("🍃 MongoDB database ready")
         app.state.db_type = "mongodb"
     else:
