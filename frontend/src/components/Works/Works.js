@@ -194,6 +194,12 @@ const WorksEnhanced = () => {
         // Принудительно показываем что загрузилось
         showNotification(`✅ УК загружено: ${companies.length}, бригад: ${brigades.length}`, 'info');
         
+        // ИСПРАВЛЕНИЕ: Принудительно сбрасываем loading, если данные загружены
+        if (housesData.length > 0) {
+          setLoading(false);
+          console.log('🔄 FORCED: Loading set to false - data loaded successfully');
+        }
+        
         // Анимация появления карточек (только для первых 50 для производительности)
         const newAnimated = new Set();
         const animationCount = Math.min(housesData.length, 50);
