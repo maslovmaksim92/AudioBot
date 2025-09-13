@@ -24,9 +24,21 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={`bg-white shadow-lg transition-all duration-300 ${
-      isMenuCollapsed ? 'w-16' : 'w-64'
-    } h-screen fixed left-0 top-0 z-10 flex flex-col`}>
+    <>
+      {/* Мобильный overlay */}
+      {!isMenuCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={actions.toggleMenu}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`bg-white shadow-lg transition-all duration-300 ${
+        isMenuCollapsed 
+          ? 'w-16 -translate-x-full md:translate-x-0' 
+          : 'w-64 translate-x-0'
+      } h-screen fixed left-0 top-0 z-50 flex flex-col`}>
       
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
