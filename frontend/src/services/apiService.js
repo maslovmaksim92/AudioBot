@@ -29,7 +29,7 @@ const apiService = {
     return response.json();
   },
 
-  startMeetingRecording: async (title) => {
+  startMeeting: async (title) => {
     const response = await fetch(`${BACKEND_URL}/api/meetings/start-recording`, {
       method: 'POST',
       headers: {
@@ -40,7 +40,7 @@ const apiService = {
     return response.json();
   },
 
-  stopMeetingRecording: async (meetingId) => {
+  stopMeeting: async (meetingId) => {
     const response = await fetch(`${BACKEND_URL}/api/meetings/stop-recording`, {
       method: 'POST',
       headers: {
@@ -49,6 +49,15 @@ const apiService = {
       body: JSON.stringify({ meeting_id: meetingId }),
     });
     return response.json();
+  },
+
+  // Aliases for backward compatibility
+  startMeetingRecording: async (title) => {
+    return apiService.startMeeting(title);
+  },
+
+  stopMeetingRecording: async (meetingId) => {
+    return apiService.stopMeeting(meetingId);
   },
 
   // Houses and cleaning - УНИФИЦИРОВАННЫЙ для загрузки 490 домов
