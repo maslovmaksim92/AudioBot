@@ -70,14 +70,11 @@ class BitrixService:
             'start': '0'
         }
         
-        if limit:
-            params['ORDER'] = {'ID': 'DESC'}
-        
         data = await self._make_request('crm.deal.list', params)
         houses = data.get('result', [])
         
         # Если нет доступа к CRM, используем заглушку
-        if not houses and data.get('error') == 'insufficient_scope':
+        if not houses and (data.get('error') == 'insufficient_scope' or 'error' in data):
             logger.warning("Нет доступа к CRM - используем тестовые данные домов")
             houses = await self._get_demo_houses()
         
