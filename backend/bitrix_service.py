@@ -73,10 +73,15 @@ class BitrixService:
         data = await self._make_request('crm.deal.list', params)
         houses = data.get('result', [])
         
-        # Если нет доступа к CRM, используем заглушку
-        if not houses and (data.get('error') == 'insufficient_scope' or 'error' in data):
-            logger.warning("Нет доступа к CRM - используем тестовые данные домов")
+        # Если нет доступа к CRM или нет данных, используем заглушку
+        if not houses or data.get('error') == 'insufficient_scope':
+            if data.get('error') == 'insufficient_scope':
+                logger.warning("Нет доступа к CRM - ждем обновления прав. Используем демо данные")
+            else:
+                logger.warning("CRM не вернул данные - используем демо данные")
             houses = await self._get_demo_houses()
+        else:
+            logger.info(f"Загружены РЕАЛЬНЫЕ данные из CRM: {len(houses)} домов")
         
         # Нормализация данных
         normalized_houses = []
@@ -85,7 +90,7 @@ class BitrixService:
                 'id': house.get('ID'),
                 'address': house.get('TITLE', 'Адрес не указан'),
                 'apartments': int(house.get('UF_CRM_1669704529022', 0) or 0),
-                'entrances': int(house.get('UF_CRM_1669705507390', 0) or 0),
+                'entrances': int(house.get('UF_CRM_1669705507390', 0) or 0), 
                 'floors': int(house.get('UF_CRM_1669704631166', 0) or 0),
                 'management_company': house.get('UF_CRM_1669708345534', 'Не указана'),
                 'september_schedule': house.get('UF_CRM_1693297230181', 'Не указан'),
@@ -95,7 +100,7 @@ class BitrixService:
             }
             normalized_houses.append(normalized_house)
         
-        logger.info(f"Загружено домов из Bitrix24: {len(normalized_houses)}")
+        logger.info(f"Возвращено домов: {len(normalized_houses)}")
         return normalized_houses
     
     async def _get_demo_houses(self) -> List[Dict[str, Any]]:
