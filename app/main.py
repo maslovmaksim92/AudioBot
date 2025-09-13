@@ -9,7 +9,6 @@ from .config.settings import (
     CORS_ORIGINS, FRONTEND_DASHBOARD_URL
 )
 from .config.database import init_database, close_database
-from .config.mongodb import init_mongodb
 
 # Import routers
 from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics
