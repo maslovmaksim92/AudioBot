@@ -17,10 +17,27 @@ const NotificationBar = () => {
     });
   }, [notifications, actions]);
 
-  if (notifications.length === 0) return null;
-
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+    <>
+      {/* Мобильная кнопка меню */}
+      <div className="md:hidden bg-white shadow-sm border-b border-gray-200 p-3 flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={actions.toggleMenu}
+          className="p-2 text-gray-600 hover:text-gray-900"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </Button>
+        <div className="text-lg font-semibold text-gray-900">VasDom AI</div>
+        <div className="w-8"></div> {/* Spacer */}
+      </div>
+
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
       {notifications.map(notification => (
         <div
           key={notification.id}
