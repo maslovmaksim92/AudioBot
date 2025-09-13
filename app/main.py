@@ -13,10 +13,7 @@ from .config.mongodb import init_mongodb
 
 # Import routers
 from .routers import dashboard, voice, telegram, meetings, cleaning, logs, tasks, analytics
-from .routers import learning_simple as learning
 from .routers import ai_chat
-# Упрощенные voice модули
-from .routers import websocket_simple as websocket
 
 logger = logging.getLogger(__name__)
 
