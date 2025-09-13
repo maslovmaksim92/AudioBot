@@ -1168,140 +1168,159 @@ const WorksEnhanced = () => {
     </div>
   );
 
-  // Показываем skeleton loading при загрузке
+  // Показываем skeleton loading при загрузке  
   const renderHousesSection = () => {
-    // РАДИКАЛЬНОЕ ИСПРАВЛЕНИЕ: Показываем дома если они есть, игнорируем loading state
-    if (houses.length > 0) {
-      console.log('🏠 Showing houses: houses.length =', houses.length);
+    console.log('🏠 renderHousesSection called: loading =', loading, ', houses.length =', houses.length, ', filteredHouses.length =', filteredHouses.length);
+    
+    // КАРДИНАЛЬНОЕ УПРОЩЕНИЕ: Показываем дома если они есть в любом массиве
+    const housesToShow = filteredHouses.length > 0 ? filteredHouses : houses;
+    
+    if (housesToShow.length > 0) {
+      console.log('✅ Showing houses from:', filteredHouses.length > 0 ? 'filteredHouses' : 'houses');
       return (
         <div className="mt-8">
-          {/* Улучшенный счетчик домов */}
+          {/* Упрощенный счетчик домов */}
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <h2 className="text-2xl font-bold text-gray-900">
-                📋 Список домов ({filteredHouses.length} из {houses.length})
-              </h2>
-              <div className="flex space-x-2">
-                {filteredHouses.length !== houses.length && (
-                  <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                    🔍 Применены фильтры
-                  </div>
-                )}
-                {houses.length < 490 && (
-                  <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                    ⚠️ Загружено {houses.length} из 490
-                  </div>
-                )}
-                {houses.length === 490 && (
-                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    ✅ Все дома загружены
-                  </div>
-                )}
-              </div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              📋 Список домов ({housesToShow.length})
+            </h2>
+            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+              ✅ Загружено домов: {housesToShow.length}
             </div>
-            
-            <Button
-              onClick={fetchHouses}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              disabled={loading}
-            >
-              <span>🔄</span>
-              <span>{loading ? 'Загрузка...' : 'Обновить'}</span>
-            </Button>
           </div>
 
-          {viewMode === 'cards' ? (
-            <div className={`grid gap-6 ${
-              isMobile ? 'grid-cols-1' : 
-              viewDensity === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
-              viewDensity === 'spacious' ? 'grid-cols-1 lg:grid-cols-2' :
-              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-            }`}>
-              {paginatedHouses.map((house, index) => renderHouseCard(house, startIndex + index))}
-            </div>
-          ) : (
-            <Card title="📋 Таблица домов">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3">Адрес</th>
-                      <th className="text-left p-3">Квартир</th>
-                      <th className="text-left p-3">Этажей</th>
-                      <th className="text-left p-3">Подъездов</th>
-                      <th className="text-left p-3">Бригада</th>
-                      <th className="text-left p-3">УК</th>
-                      <th className="text-left p-3">Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedHouses.map((house, index) => (
-                      <tr key={house.deal_id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">
-                          <div>
-                            <div className="font-medium">{house.address}</div>
-                            {house.house_address && (
-                              <button
-                                onClick={() => openGoogleMaps(house.house_address)}
-                                className="text-blue-600 hover:text-blue-800 underline text-xs"
-                              >
-                                📍 {house.house_address}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3">{house.apartments_count || 0}</td>
-                        <td className="p-3">{house.floors_count || 0}</td>
-                        <td className="p-3">{house.entrances_count || 0}</td>
-                        <td className="p-3">{house.brigade}</td>
-                        <td className="p-3 text-xs">{house.management_company || '-'}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            house.status_color === 'green' ? 'bg-green-100 text-green-800' :
-                            house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {house.status_text}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* ПРОСТЫЕ карточки домов */}
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {housesToShow.slice(0, 12).map((house, index) => (
+              <div key={house.deal_id || index} className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+                {/* Заголовок */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{house.address || 'Адрес не указан'}</h3>
+                  <p className="text-blue-600 text-sm">{house.house_address || house.address}</p>
+                </div>
+
+                {/* Статистика */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-green-50 p-3 rounded-lg text-center">
+                    <div className="text-xl font-bold text-green-600">{house.apartments_count || 0}</div>
+                    <div className="text-xs text-green-700">Квартир</div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg text-center">
+                    <div className="text-xl font-bold text-blue-600">{house.entrances_count || 0}</div>
+                    <div className="text-xs text-blue-700">Подъездов</div>
+                  </div>
+                  <div className="bg-orange-50 p-3 rounded-lg text-center">
+                    <div className="text-xl font-bold text-orange-600">{house.floors_count || 0}</div>
+                    <div className="text-xs text-orange-700">Этажей</div>
+                  </div>
+                </div>
+
+                {/* УК */}
+                <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                  <div className="text-xs text-blue-700 font-semibold mb-1">🏢 Управляющая компания:</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {house.management_company || 'Не указана'}
+                  </div>
+                </div>
+
+                {/* График уборки */}
+                {house.september_schedule && house.september_schedule.has_schedule && (
+                  <div className="bg-green-50 p-3 rounded-lg mb-4">
+                    <div className="text-xs text-green-700 font-semibold mb-2">📅 График уборки:</div>
+                    {house.september_schedule.cleaning_date_1 && (
+                      <div className="text-xs mb-1">
+                        <strong>Дата 1:</strong> {house.september_schedule.cleaning_date_1.map(d => new Date(d).toLocaleDateString()).join(', ')}
+                      </div>
+                    )}
+                    {house.september_schedule.cleaning_type_1 && (
+                      <div className="text-xs mb-1">
+                        <strong>Тип 1:</strong> {house.september_schedule.cleaning_type_1}
+                      </div>
+                    )}
+                    {house.september_schedule.cleaning_date_2 && (
+                      <div className="text-xs mb-1">
+                        <strong>Дата 2:</strong> {house.september_schedule.cleaning_date_2.map(d => new Date(d).toLocaleDateString()).join(', ')}
+                      </div>
+                    )}
+                    {house.september_schedule.cleaning_type_2 && (
+                      <div className="text-xs">
+                        <strong>Тип 2:</strong> {house.september_schedule.cleaning_type_2}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Кнопки */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm">
+                    📅 График
+                  </button>
+                  <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm">
+                    🔍 Детали
+                  </button>
+                </div>
               </div>
-            </Card>
+            ))}
+          </div>
+          
+          {housesToShow.length > 12 && (
+            <div className="text-center mt-6">
+              <p className="text-gray-600">Показано 12 из {housesToShow.length} домов</p>
+            </div>
           )}
         </div>
       );
     }
     
     // Показываем skeleton только если нет данных и идет загрузка
-    if (houses.length === 0 && loading) {
-      console.log('🔄 Showing skeleton cards: loading =', loading, ', houses.length =', houses.length);
+    if (loading) {
       return (
         <div className="mt-8">
-          {renderSkeletonCards()}
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white rounded-2xl shadow-lg border-l-4 border-gray-300 animate-pulse p-6">
+                <div className="h-5 bg-gray-300 rounded mb-2 w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded mb-4 w-1/2"></div>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <div className="h-6 bg-gray-300 rounded mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <div className="h-6 bg-gray-300 rounded mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                  <div className="bg-gray-100 p-3 rounded-lg">
+                    <div className="h-6 bg-gray-300 rounded mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+                <div className="h-12 bg-gray-200 rounded mb-4"></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-8 bg-gray-300 rounded"></div>
+                  <div className="h-8 bg-gray-300 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
 
     // Показываем пустое состояние только если нет данных и НЕ идет загрузка
-    if (houses.length === 0 && !loading) {
-      console.log('🔄 Showing empty state: loading =', loading, ', houses.length =', houses.length);
-      return (
-        <div className="mt-8 text-center py-12">
-          <div className="text-6xl mb-4">🏠</div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Дома не найдены</h3>
-          <p className="text-gray-500 mb-4">Попробуйте изменить фильтры поиска</p>
-          <Button
-            onClick={fetchHouses}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
-          >
-            🔄 Обновить список
-          </Button>
-        </div>
-      );
-    }
+    return (
+      <div className="mt-8 text-center py-12">
+        <div className="text-6xl mb-4">🏠</div>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Дома не найдены</h3>
+        <p className="text-gray-500 mb-4">Данные загружаются или произошла ошибка</p>
+        <button
+          onClick={fetchHouses}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
+        >
+          🔄 Обновить список
+        </button>
+      </div>
+    );
   };
 
   return (
