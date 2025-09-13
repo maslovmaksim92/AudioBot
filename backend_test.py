@@ -14,7 +14,30 @@ from pathlib import Path
 
 # Получаем URL backend из frontend/.env
 def get_backend_url():
-    """Получить URL backend из frontend/.env"""
+    """Получить URL backend - сначала локальный, потом из frontend/.env"""
+    # Проверяем локальный backend
+    try:
+        import httpx
+        import asyncio
+        
+        async def check_local():
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.get("http://localhost:8001/api/")
+                    if response.status_code == 200:
+                        return "http://localhost:8001/api"
+            except:
+                pass
+            return None
+        
+        local_url = asyncio.run(check_local())
+        if local_url:
+            print("🏠 Using local backend")
+            return local_url
+    except:
+        pass
+    
+    # Fallback к URL из frontend/.env
     try:
         frontend_env_path = Path(__file__).parent / "frontend" / ".env"
         if frontend_env_path.exists():
@@ -22,9 +45,11 @@ def get_backend_url():
                 for line in f:
                     if line.startswith('REACT_APP_BACKEND_URL='):
                         url = line.split('=', 1)[1].strip()
+                        print("🌐 Using external backend from .env")
                         return f"{url}/api"
         
-        # Fallback
+        # Final fallback
+        print("⚠️ Using fallback URL")
         return "https://crmunified.preview.emergentagent.com/api"
     except Exception as e:
         print(f"❌ Error reading backend URL: {e}")
