@@ -195,7 +195,13 @@ app.include_router(cleaning.router)
 app.include_router(tasks.router)
 app.include_router(logs.router)
 app.include_router(analytics.router)
-app.include_router(ai_chat.router)        # Новый: AI Chat с MongoDB
+
+# Add AI Chat router
+try:
+    app.include_router(ai_chat.router, prefix="", tags=["ai-chat"])
+    logger.info("✅ AI Chat router added successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to add AI Chat router: {e}")
 
 logger.info("✅ All routers included")
 
