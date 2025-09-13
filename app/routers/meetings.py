@@ -14,32 +14,48 @@ async def start_meeting_recording():
     """Начать запись планерки"""
     try:
         meeting_id = str(uuid.uuid4())
+        current_time = datetime.now()
         logger.info(f"🎤 Starting meeting: {meeting_id}")
         
+        # Пытаемся сохранить в базу данных, если доступна
+        database_status = "saved"
         if database:
-            query = """
-            INSERT INTO meetings (id, title, transcription, status, created_at)
-            VALUES (:id, :title, :transcription, :status, :created_at)
-            """
-            values = {
-                "id": meeting_id,
-                "title": f"Планерка {datetime.now().strftime('%d.%m.%Y %H:%M')}",
-                "transcription": "🎙️ Запись начата...",
-                "status": "recording",
-                "created_at": datetime.utcnow()
-            }
-            await database.execute(query, values)
-            logger.info(f"✅ Meeting saved: {meeting_id}")
+            try:
+                query = """
+                INSERT INTO meetings (id, title, transcription, status, created_at)
+                VALUES (:id, :title, :transcription, :status, :created_at)
+                """
+                values = {
+                    "id": meeting_id,
+                    "title": f"Планерка {current_time.strftime('%d.%m.%Y %H:%M')}",
+                    "transcription": "🎙️ Запись начата...",
+                    "status": "recording",
+                    "created_at": datetime.utcnow()
+                }
+                await database.execute(query, values)
+                logger.info(f"✅ Meeting saved to database: {meeting_id}")
+            except Exception as db_error:
+                logger.warning(f"⚠️ Database save failed: {db_error}")
+                database_status = "database_unavailable"
+        else:
+            database_status = "no_database"
+            logger.info(f"✅ Meeting created in memory: {meeting_id}")
         
         return {
             "status": "success",
             "meeting_id": meeting_id,
-            "message": "Запись планерки начата"
+            "message": "Запись планерки начата",
+            "database_status": database_status,
+            "timestamp": current_time.isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Start meeting error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {
+            "status": "error", 
+            "message": f"Ошибка запуска планерки: {str(e)}",
+            "meeting_id": None
+        }
 
 @router.post("/meetings/stop-recording")
 async def stop_meeting_recording(meeting_id: str):
