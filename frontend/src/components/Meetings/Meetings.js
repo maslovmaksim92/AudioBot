@@ -109,6 +109,18 @@ const Meetings = () => {
       return;
     }
 
+    // Проверяем разрешения микрофона
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      console.error('❌ Microphone permission denied:', error);
+      actions.addNotification({
+        type: 'error',
+        message: 'Разрешите доступ к микрофону для записи планерки. Проверьте настройки браузера.'
+      });
+      return;
+    }
+
     try {
       console.log('🎤 Starting meeting recording...');
       const response = await apiService.startMeeting(meetingTitle);
@@ -126,7 +138,7 @@ const Meetings = () => {
         
         actions.addNotification({
           type: 'success',
-          message: `Планерка "${meetingTitle}" начата`
+          message: `Планерка "${meetingTitle}" начата. Говорите четко!`
         });
         
         console.log('✅ Meeting started:', response.meeting_id);
