@@ -569,31 +569,39 @@ class VoiceAPITester:
             return False
 
 async def run_comprehensive_tests():
-    """Запуск всех тестов meetings и voice API"""
-    print("🚀 VasDom AudioBot - Meetings & Voice API Testing")
+    """Запуск всех тестов API домов и анализ проблем"""
+    print("🚀 VasDom AudioBot - Houses API Testing & Analysis")
+    print("=" * 60)
+    print("🎯 ЦЕЛЬ: Анализ проблем с УК и графиками уборки")
     print("=" * 60)
     
     # Инициализация тестеров
-    meetings_tester = MeetingsAPITester(BACKEND_URL)
-    voice_tester = VoiceAPITester(BACKEND_URL)
+    houses_tester = HousesAPITester(BACKEND_URL)
     
     # Результаты тестов
     results = {}
     
-    # Тестирование Meetings API
-    print("\n🎤 MEETINGS API TESTING")
+    # Тестирование Houses API
+    print("\n🏠 HOUSES API TESTING")
     print("-" * 30)
     
-    results["get_meetings"] = await meetings_tester.test_get_meetings()
-    results["start_recording"] = await meetings_tester.test_start_recording()
-    results["stop_recording"] = await meetings_tester.test_stop_recording()
+    results["get_houses"] = await houses_tester.test_get_houses()
+    results["get_houses_490"] = await houses_tester.test_get_houses_490()
+    results["dashboard_stats"] = await houses_tester.test_dashboard_stats()
+    results["brigades_info"] = await houses_tester.test_brigades_info()
     
-    # Тестирование Voice API
-    print("\n🎙️ VOICE API TESTING")
+    # Тестирование Production Debug Endpoints
+    print("\n🔍 PRODUCTION DEBUG ENDPOINTS")
     print("-" * 30)
     
-    results["voice_process"] = await voice_tester.test_voice_process_post()
-    results["self_learning_status"] = await voice_tester.test_self_learning_status()
+    debug_results = await houses_tester.test_production_debug_endpoints()
+    results.update(debug_results)
+    
+    # Тестирование Bitrix24 Integration
+    print("\n🔗 BITRIX24 INTEGRATION")
+    print("-" * 30)
+    
+    results["bitrix24_integration"] = await houses_tester.test_bitrix24_integration()
     
     # Итоговый отчет
     print("\n📊 TEST RESULTS SUMMARY")
@@ -604,7 +612,7 @@ async def run_comprehensive_tests():
     
     for test_name, result in results.items():
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{test_name:25} {status}")
+        print(f"{test_name:35} {status}")
         
         if result:
             passed_tests.append(test_name)
@@ -613,24 +621,92 @@ async def run_comprehensive_tests():
     
     print(f"\n📈 TOTAL: {len(passed_tests)}/{len(results)} tests passed")
     
+    # Анализ критических проблем
+    print("\n🔍 CRITICAL ISSUES ANALYSIS")
+    print("=" * 60)
+    
+    critical_issues = []
+    
+    # Проверяем проблемы с УК
+    if not results.get("get_houses", False):
+        critical_issues.append("❌ КРИТИЧНО: Основной API /api/cleaning/houses не работает")
+    
+    # Проверяем проблемы с 490 домами
+    if not results.get("get_houses_490", False):
+        critical_issues.append("❌ КРИТИЧНО: API /api/cleaning/houses-490 не работает")
+    
+    # Проверяем новые endpoints
+    debug_endpoints_working = any([
+        results.get("/cleaning/production-debug", False),
+        results.get("/cleaning/fix-management-companies", False),
+        results.get("/cleaning/houses-fixed", False)
+    ])
+    
+    if not debug_endpoints_working:
+        critical_issues.append("❌ КРИТИЧНО: Новые production debug endpoints не развернуты (404)")
+    
+    # Проверяем Bitrix24
+    if not results.get("bitrix24_integration", False):
+        critical_issues.append("⚠️ ВНИМАНИЕ: Проблемы с интеграцией Bitrix24")
+    
+    if critical_issues:
+        print("🚨 НАЙДЕНЫ КРИТИЧЕСКИЕ ПРОБЛЕМЫ:")
+        for issue in critical_issues:
+            print(f"  {issue}")
+    else:
+        print("✅ Критических проблем не обнаружено")
+    
+    # Рекомендации
+    print("\n💡 РЕКОМЕНДАЦИИ")
+    print("=" * 60)
+    
     if failed_tests:
-        print(f"\n❌ FAILED TESTS:")
+        print("🔧 ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ:")
         for test in failed_tests:
-            print(f"  - {test}")
+            if "production-debug" in test or "fix-management" in test or "houses-fixed" in test:
+                print(f"  - {test}: Требуется деплой новой версии кода на Render")
+            elif "houses" in test:
+                print(f"  - {test}: Проверить работу основных API endpoints")
+            elif "bitrix24" in test:
+                print(f"  - {test}: Проверить настройки Bitrix24 webhook")
     
     if passed_tests:
-        print(f"\n✅ PASSED TESTS:")
+        print(f"\n✅ РАБОТАЮЩИЕ ФУНКЦИИ:")
         for test in passed_tests:
             print(f"  - {test}")
     
-    # Проверка критических функций
-    critical_tests = ["voice_process", "get_meetings"]
-    critical_passed = all(results.get(test, False) for test in critical_tests)
-    
-    if critical_passed:
-        print("\n🎉 CRITICAL FUNCTIONALITY: All core meetings and voice endpoints working!")
-    else:
-        print("\n⚠️ CRITICAL ISSUES: Some core endpoints are not working properly")
+    # Специальный анализ данных домов
+    if houses_tester.houses_data:
+        print("\n📋 ДЕТАЛЬНЫЙ АНАЛИЗ ДАННЫХ ДОМОВ")
+        print("=" * 60)
+        
+        houses = houses_tester.houses_data
+        total = len(houses)
+        
+        # Анализ УК
+        uk_analysis = houses_tester._analyze_management_companies(houses)
+        uk_percentage = (uk_analysis['filled'] / total * 100) if total > 0 else 0
+        
+        print(f"🏢 УПРАВЛЯЮЩИЕ КОМПАНИИ:")
+        print(f"   - Всего домов: {total}")
+        print(f"   - С заполненными УК: {uk_analysis['filled']} ({uk_percentage:.1f}%)")
+        print(f"   - С пустыми УК (null): {uk_analysis['null']} ({100-uk_percentage:.1f}%)")
+        print(f"   - Уникальных УК: {len(uk_analysis['unique_companies'])}")
+        
+        if uk_analysis['unique_companies']:
+            print(f"   - Примеры УК: {uk_analysis['unique_companies'][:5]}")
+        
+        # Анализ графиков
+        schedule_analysis = houses_tester._analyze_cleaning_schedules(houses)
+        schedule_percentage = (schedule_analysis['with_september'] / total * 100) if total > 0 else 0
+        
+        print(f"\n📅 ГРАФИКИ УБОРКИ:")
+        print(f"   - С графиком сентября: {schedule_analysis['with_september']} ({schedule_percentage:.1f}%)")
+        print(f"   - С датами уборки: {schedule_analysis['with_dates']}")
+        print(f"   - Найденные поля графиков: {len(schedule_analysis['schedule_fields'])}")
+        
+        if schedule_analysis['schedule_fields']:
+            print(f"   - Поля графиков: {schedule_analysis['schedule_fields'][:5]}")
     
     return results
 
