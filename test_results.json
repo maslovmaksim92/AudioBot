@@ -11,36 +11,36 @@
       "success": true,
       "details": "Message: AudioBot API v1.0",
       "data": null,
-      "timestamp": "2025-09-13T10:05:30.433262"
+      "timestamp": "2025-09-13T10:23:16.087376"
     },
     {
       "name": "Health Check",
       "success": true,
       "details": "API healthy, Bitrix24 connected",
       "data": null,
-      "timestamp": "2025-09-13T10:05:31.325208"
+      "timestamp": "2025-09-13T10:23:16.865985"
     },
     {
       "name": "Houses Endpoint",
       "success": true,
       "details": "Successfully loaded 5 houses with correct structure",
       "data": null,
-      "timestamp": "2025-09-13T10:05:31.852637"
+      "timestamp": "2025-09-13T10:23:17.398600"
     },
     {
       "name": "Employees Endpoint",
       "success": true,
       "details": "Successfully loaded 39 employees with correct structure",
       "data": null,
-      "timestamp": "2025-09-13T10:05:32.386667"
+      "timestamp": "2025-09-13T10:23:17.941146"
     },
     {
       "name": "Statistics Endpoint",
       "success": true,
       "details": "All statistics validated successfully",
       "data": null,
-      "timestamp": "2025-09-13T10:05:32.929194"
+      "timestamp": "2025-09-13T10:23:18.482630"
     }
   ],
-  "timestamp": "2025-09-13T10:05:32.930892"
+  "timestamp": "2025-09-13T10:23:18.484400"
 }
