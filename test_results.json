@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 5,
+    "success_rate": 1.0,
+    "all_passed": true
+  },
+  "detailed_results": [
+    {
+      "name": "Root API Endpoint",
+      "success": true,
+      "details": "Message: AudioBot API v1.0",
+      "data": null,
+      "timestamp": "2025-09-13T10:05:30.433262"
+    },
+    {
+      "name": "Health Check",
+      "success": true,
+      "details": "API healthy, Bitrix24 connected",
+      "data": null,
+      "timestamp": "2025-09-13T10:05:31.325208"
+    },
+    {
+      "name": "Houses Endpoint",
+      "success": true,
+      "details": "Successfully loaded 5 houses with correct structure",
+      "data": null,
+      "timestamp": "2025-09-13T10:05:31.852637"
+    },
+    {
+      "name": "Employees Endpoint",
+      "success": true,
+      "details": "Successfully loaded 39 employees with correct structure",
+      "data": null,
+      "timestamp": "2025-09-13T10:05:32.386667"
+    },
+    {
+      "name": "Statistics Endpoint",
+      "success": true,
+      "details": "All statistics validated successfully",
+      "data": null,
+      "timestamp": "2025-09-13T10:05:32.929194"
+    }
+  ],
+  "timestamp": "2025-09-13T10:05:32.930892"
+}
