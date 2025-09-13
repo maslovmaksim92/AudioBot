@@ -121,7 +121,7 @@ const WorksEnhanced = () => {
     applyFiltersAndSort();
   }, [houses, activeFilters, sortConfig]);
 
-  // API calls
+  // API calls  
   const fetchInitialData = async () => {
     setLoading(true);
     console.log('🔄 Starting initial data load...');
@@ -129,14 +129,14 @@ const WorksEnhanced = () => {
       // Выполняем последовательно для лучшего контроля ошибок
       await fetchFilters();
       await fetchDashboardStats();
-      await fetchHouses(); // Самая важная операция последней
+      await fetchHouses(); // fetchHouses() сам управляет setLoading(false)
       console.log('✅ Initial data load completed');
     } catch (error) {
       console.error('❌ Error fetching initial data:', error);
-    } finally {
+      // Только при ошибке сбрасываем loading в fetchInitialData
       setLoading(false);
-      console.log('🔄 Loading state set to false');
     }
+    // УБИРАЕМ finally block чтобы избежать race condition
   };
 
   const fetchFilters = async () => {
