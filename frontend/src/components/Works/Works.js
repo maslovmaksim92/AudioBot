@@ -271,7 +271,16 @@ const WorksEnhanced = () => {
 
   // Функция применения фильтров и сортировки
   const applyFiltersAndSort = () => {
+    console.log('🔄 applyFiltersAndSort called with houses.length:', houses.length);
+    
+    if (houses.length === 0) {
+      console.log('⚠️ applyFiltersAndSort: houses is empty, setting filteredHouses to empty');
+      setFilteredHouses([]);
+      return;
+    }
+    
     let filtered = [...houses];
+    console.log('🔄 Starting filtering with', filtered.length, 'houses');
     
     // Применяем фильтры
     if (activeFilters.search) {
@@ -280,26 +289,32 @@ const WorksEnhanced = () => {
         house.address?.toLowerCase().includes(searchTerm) ||
         house.management_company?.toLowerCase().includes(searchTerm)
       );
+      console.log('🔍 After search filter:', filtered.length, 'houses');
     }
     
     if (activeFilters.brigade) {
       filtered = filtered.filter(house => house.brigade === activeFilters.brigade);
+      console.log('👥 After brigade filter:', filtered.length, 'houses');
     }
     
     if (activeFilters.management_company) {
       filtered = filtered.filter(house => house.management_company === activeFilters.management_company);
+      console.log('🏢 After management_company filter:', filtered.length, 'houses');
     }
     
     if (activeFilters.status) {
       filtered = filtered.filter(house => house.status_text === activeFilters.status);
+      console.log('📊 After status filter:', filtered.length, 'houses');
     }
     
     if (activeFilters.apartments_min) {
       filtered = filtered.filter(house => (house.apartments_count || 0) >= parseInt(activeFilters.apartments_min));
+      console.log('🏠 After apartments_min filter:', filtered.length, 'houses');
     }
     
     if (activeFilters.apartments_max) {
       filtered = filtered.filter(house => (house.apartments_count || 0) <= parseInt(activeFilters.apartments_max));
+      console.log('🏠 After apartments_max filter:', filtered.length, 'houses');
     }
     
     // Применяем сортировку
@@ -321,6 +336,7 @@ const WorksEnhanced = () => {
       return 0;
     });
     
+    console.log('✅ Final filtered houses:', filtered.length);
     setFilteredHouses(filtered);
   };
 
