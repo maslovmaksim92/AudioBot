@@ -199,27 +199,13 @@ export default function Dashboard() {
           <TabsContent value="houses" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="flex items-center">
-                      <Building2 className="h-5 w-5 mr-2 text-blue-600" />
-                      Многоквартирные дома
-                    </CardTitle>
-                    <CardDescription>
-                      Объекты недвижимости под управлением
-                    </CardDescription>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Экспорт
-                    </Button>
-                    <Button size="sm">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Добавить дом
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className="flex items-center">
+                  <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+                  Многоквартирные дома
+                </CardTitle>
+                <CardDescription>
+                  Объекты недвижимости с правильными данными из CRM
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
