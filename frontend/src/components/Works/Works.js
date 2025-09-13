@@ -1197,8 +1197,113 @@ const WorksEnhanced = () => {
 
   // Показываем skeleton loading при загрузке
   const renderHousesSection = () => {
-    // ИСПРАВЛЕНИЕ: Проверяем не только loading, но и наличие данных
-    if (loading && houses.length === 0) {
+    // РАДИКАЛЬНОЕ ИСПРАВЛЕНИЕ: Показываем дома если они есть, игнорируем loading state
+    if (houses.length > 0) {
+      console.log('🏠 Showing houses: houses.length =', houses.length);
+      return (
+        <div className="mt-8">
+          {/* Улучшенный счетчик домов */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-2xl font-bold text-gray-900">
+                📋 Список домов ({filteredHouses.length} из {houses.length})
+              </h2>
+              <div className="flex space-x-2">
+                {filteredHouses.length !== houses.length && (
+                  <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    🔍 Применены фильтры
+                  </div>
+                )}
+                {houses.length < 490 && (
+                  <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                    ⚠️ Загружено {houses.length} из 490
+                  </div>
+                )}
+                {houses.length === 490 && (
+                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    ✅ Все дома загружены
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <Button
+              onClick={fetchHouses}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              disabled={loading}
+            >
+              <span>🔄</span>
+              <span>{loading ? 'Загрузка...' : 'Обновить'}</span>
+            </Button>
+          </div>
+
+          {viewMode === 'cards' ? (
+            <div className={`grid gap-6 ${
+              isMobile ? 'grid-cols-1' : 
+              viewDensity === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
+              viewDensity === 'spacious' ? 'grid-cols-1 lg:grid-cols-2' :
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+            }`}>
+              {paginatedHouses.map((house, index) => renderHouseCard(house, startIndex + index))}
+            </div>
+          ) : (
+            <Card title="📋 Таблица домов">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3">Адрес</th>
+                      <th className="text-left p-3">Квартир</th>
+                      <th className="text-left p-3">Этажей</th>
+                      <th className="text-left p-3">Подъездов</th>
+                      <th className="text-left p-3">Бригада</th>
+                      <th className="text-left p-3">УК</th>
+                      <th className="text-left p-3">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedHouses.map((house, index) => (
+                      <tr key={house.deal_id} className="border-b hover:bg-gray-50">
+                        <td className="p-3">
+                          <div>
+                            <div className="font-medium">{house.address}</div>
+                            {house.house_address && (
+                              <button
+                                onClick={() => openGoogleMaps(house.house_address)}
+                                className="text-blue-600 hover:text-blue-800 underline text-xs"
+                              >
+                                📍 {house.house_address}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3">{house.apartments_count || 0}</td>
+                        <td className="p-3">{house.floors_count || 0}</td>
+                        <td className="p-3">{house.entrances_count || 0}</td>
+                        <td className="p-3">{house.brigade}</td>
+                        <td className="p-3 text-xs">{house.management_company || '-'}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            house.status_color === 'green' ? 'bg-green-100 text-green-800' :
+                            house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {house.status_text}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      );
+    }
+    
+    // Показываем skeleton только если нет данных и идет загрузка
+    if (houses.length === 0 && loading) {
       console.log('🔄 Showing skeleton cards: loading =', loading, ', houses.length =', houses.length);
       return (
         <div className="mt-8">
@@ -1207,6 +1312,7 @@ const WorksEnhanced = () => {
       );
     }
 
+    // Показываем пустое состояние только если нет данных и НЕ идет загрузка
     if (houses.length === 0 && !loading) {
       console.log('🔄 Showing empty state: loading =', loading, ', houses.length =', houses.length);
       return (
@@ -1223,109 +1329,6 @@ const WorksEnhanced = () => {
         </div>
       );
     }
-
-    // ИСПРАВЛЕНИЕ: Показываем дома, если они есть, независимо от loading
-    console.log('🏠 Showing houses: loading =', loading, ', houses.length =', houses.length);
-    return (
-      <div className="mt-8">
-        {/* Улучшенный счетчик домов */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              📋 Список домов ({filteredHouses.length} из {houses.length})
-            </h2>
-            <div className="flex space-x-2">
-              {filteredHouses.length !== houses.length && (
-                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  🔍 Применены фильтры
-                </div>
-              )}
-              {houses.length < 490 && (
-                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                  ⚠️ Загружено {houses.length} из 490
-                </div>
-              )}
-              {houses.length === 490 && (
-                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                  ✅ Все дома загружены
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <Button
-            onClick={fetchHouses}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-            disabled={loading}
-          >
-            <span>🔄</span>
-            <span>{loading ? 'Загрузка...' : 'Обновить'}</span>
-          </Button>
-        </div>
-
-        {viewMode === 'cards' ? (
-          <div className={`grid gap-6 ${
-            isMobile ? 'grid-cols-1' : 
-            viewDensity === 'compact' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' :
-            viewDensity === 'spacious' ? 'grid-cols-1 lg:grid-cols-2' :
-            'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
-          }`}>
-            {paginatedHouses.map((house, index) => renderHouseCard(house, startIndex + index))}
-          </div>
-        ) : (
-          <Card title="📋 Таблица домов">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3">Адрес</th>
-                    <th className="text-left p-3">Квартир</th>
-                    <th className="text-left p-3">Этажей</th>
-                    <th className="text-left p-3">Подъездов</th>
-                    <th className="text-left p-3">Бригада</th>
-                    <th className="text-left p-3">УК</th>
-                    <th className="text-left p-3">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedHouses.map((house, index) => (
-                    <tr key={house.deal_id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium">{house.address}</div>
-                          {house.house_address && (
-                            <button
-                              onClick={() => openGoogleMaps(house.house_address)}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs"
-                            >
-                              📍 {house.house_address}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3">{house.apartments_count || 0}</td>
-                      <td className="p-3">{house.floors_count || 0}</td>
-                      <td className="p-3">{house.entrances_count || 0}</td>
-                      <td className="p-3">{house.brigade}</td>
-                      <td className="p-3 text-xs">{house.management_company || '-'}</td>
-                      <td className="p-3">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          house.status_color === 'green' ? 'bg-green-100 text-green-800' :
-                          house.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {house.status_text}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-      </div>
-    );
   };
 
   return (
