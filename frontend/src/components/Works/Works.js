@@ -123,20 +123,17 @@ const WorksEnhanced = () => {
 
   // API calls  
   const fetchInitialData = async () => {
-    setLoading(true);
     console.log('🔄 Starting initial data load...');
     try {
-      // Выполняем последовательно для лучшего контроля ошибок
+      // КАРДИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Только fetchHouses управляет loading
       await fetchFilters();
       await fetchDashboardStats();
-      await fetchHouses(); // fetchHouses() сам управляет setLoading(false)
+      await fetchHouses();
       console.log('✅ Initial data load completed');
     } catch (error) {
       console.error('❌ Error fetching initial data:', error);
-      // Только при ошибке сбрасываем loading в fetchInitialData
       setLoading(false);
     }
-    // УБИРАЕМ finally block чтобы избежать race condition
   };
 
   const fetchFilters = async () => {
