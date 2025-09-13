@@ -9,6 +9,12 @@ import os
 from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Загружаем .env файл
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
 
 logger = logging.getLogger(__name__)
 
