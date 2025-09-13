@@ -321,26 +321,25 @@ export default function Dashboard() {
                             
                             {house.september_schedule && house.september_schedule !== 'Не указан' ? (
                               <div className="space-y-2">
-                                <div className="flex items-center text-sm">
-                                  <Calendar className="h-3 w-3 text-red-500 mr-2" />
-                                  <span className="font-medium text-gray-700">
-                                    Дата 1: {house.september_schedule.split(',')[0] || house.september_schedule}
-                                  </span>
-                                </div>
-                                <div className="flex items-center text-sm">
-                                  <Edit className="h-3 w-3 text-orange-500 mr-2" />
-                                  <span className="text-gray-600">
-                                    Тип 1: Тип 2468
-                                  </span>
-                                </div>
-                                {house.september_schedule.split(',')[1] && (
-                                  <div className="flex items-center text-sm">
-                                    <Calendar className="h-3 w-3 text-red-500 mr-2" />
-                                    <span className="font-medium text-gray-700">
-                                      Дата 2: {house.september_schedule.split(',')[1].trim()}
-                                    </span>
-                                  </div>
-                                )}
+                                {(() => {
+                                  const scheduleItems = house.september_schedule.split(',').map(item => item.trim());
+                                  return scheduleItems.map((scheduleItem, index) => (
+                                    <div key={index} className="space-y-1">
+                                      <div className="flex items-center text-sm">
+                                        <Calendar className="h-3 w-3 text-red-500 mr-2" />
+                                        <span className="font-medium text-gray-700">
+                                          Дата {index + 1}: {scheduleItem}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center text-sm">
+                                        <Edit className="h-3 w-3 text-orange-500 mr-2" />
+                                        <span className="text-gray-600">
+                                          Тип {index + 1}: Тип {index === 0 ? '2468' : '1357'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ));
+                                })()}
                               </div>
                             ) : (
                               <div className="text-sm text-gray-500 italic">
