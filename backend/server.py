@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,25 +6,43 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Dict, Any
 import uuid
 from datetime import datetime
+from bitrix_service import bitrix_service
 
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection (optional - для логов и кеша)
+try:
+    mongo_url = os.environ.get('MONGO_URL')
+    if mongo_url:
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[os.environ.get('DB_NAME', 'audiobot')]
+        logger.info("MongoDB подключен")
+    else:
+        client = None
+        db = None
+        logger.info("MongoDB не настроен - работаем без БД")
+except Exception as e:
+    logger.warning(f"Ошибка подключения к MongoDB: {e}")
+    client = None
+    db = None
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="AudioBot API",
+    description="API для интеграции с Bitrix24 и управления домами",
+    version="1.0"
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
-
 
 # Define Models
 class StatusCheck(BaseModel):
@@ -34,6 +52,15 @@ class StatusCheck(BaseModel):
 
 class StatusCheckCreate(BaseModel):
     client_name: str
+
+class HouseResponse(BaseModel):
+    id: str
+    address: str
+    apartments: int
+    entrances: int
+    floors: int
+    management_company: str
+    september_schedule: str
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
