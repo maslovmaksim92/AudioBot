@@ -148,17 +148,11 @@ const WorksEnhanced = () => {
   };
 
   const fetchHouses = async () => {
+    setLoading(true); // НАЧИНАЕМ загрузку
+    console.log('🏠 Starting house data loading...');
+    
     try {
-      // Callback для прогресс-бара
-      const onProgress = (progressData) => {
-        setLoadingProgress(progressData);
-        console.log(`🔄 Progress: ${progressData.stage} - ${progressData.message} (${progressData.progress}%)`);
-      };
-      
-      console.log('🏠 Starting unified house loading (490 houses)...');
-      
-      // Используем унифицированный apiService с прогресс-баром
-      const data = await apiService.getCleaningHouses(activeFilters, onProgress);
+      const data = await apiService.getCleaningHouses(activeFilters);
       
       console.log('🏠 API Response Summary:', {
         status: data?.status,
@@ -167,79 +161,35 @@ const WorksEnhanced = () => {
         error: data?.message || 'None'
       });
       
-      // Простая и надежная логика извлечения данных
+      // ИСПРАВЛЕНИЕ: Проверяем данные и СРАЗУ обновляем состояние
       if (data?.status === 'success' && data?.houses && Array.isArray(data.houses)) {
         const housesData = data.houses;
         console.log(`✅ Successfully received ${housesData.length} houses`);
-        console.log('🏠 Sample house data:', housesData[0]);
         
-        // PRODUCTION: Извлекаем уникальные УК и бригады для фильтров
+        // Обновляем состояние домов
+        setHouses(housesData);
+        
+        // Извлекаем УК и бригады
         const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))].sort();
         const brigades = [...new Set(housesData.map(h => h.brigade).filter(Boolean))].sort();
         
-        console.log('🏢 ОКОНЧАТЕЛЬНАЯ ЗАГРУЗКА УК:');
-        console.log('🏢 Total houses with companies:', housesData.filter(h => h.management_company).length);
-        console.log('🏢 Unique companies extracted:', companies.length);
-        console.log('🏢 Company sample:', companies.slice(0, 5));
-        console.log('🏢 Full companies list:', companies);
-        
         setAvailableCompanies(companies);
         setAvailableBrigades(brigades);
-        setHouses(housesData);
         
         console.log(`📊 FINAL: ${companies.length} companies and ${brigades.length} brigades loaded`);
         
-        // Принудительно показываем что загрузилось
-        showNotification(`✅ УК загружено: ${companies.length}, бригад: ${brigades.length}`, 'info');
-        
-        // ИСПРАВЛЕНИЕ: Принудительно сбрасываем loading, если данные загружены
-        if (housesData.length > 0) {
-          console.log('🔄 IMMEDIATE: Setting loading to false - data loaded successfully');
-          console.log(`🏠 Setting houses state with ${housesData.length} items`);
-          setLoading(false); // УБИРАЕМ setTimeout - immediate call
-          console.log('🔄 CONFIRMED: Loading set to false immediately');
-        }
-        
-        // Анимация появления карточек (только для первых 50 для производительности)
-        const newAnimated = new Set();
-        const animationCount = Math.min(housesData.length, 50);
-        for (let i = 0; i < animationCount; i++) {
-          setTimeout(() => {
-            newAnimated.add(i);
-            setAnimatedCards(new Set(newAnimated));
-          }, i * 30);
-        }
-        // Добавляем остальные карточки без анимации
-        if (housesData.length > 50) {
-          setTimeout(() => {
-            const allAnimated = new Set();
-            for (let i = 0; i < housesData.length; i++) {
-              allAnimated.add(i);
-            }
-            setAnimatedCards(allAnimated);
-          }, 1500);
-        }
-        
-        showNotification(`✅ Загружено ${housesData.length} из 490 домов`, 'success');
-        
       } else {
-        // Обработка ошибок
         console.error('❌ Failed to load houses:', data?.message || 'Unknown error');
-        showNotification(`❌ ${data?.message || 'Ошибка загрузки домов'}`, 'error');
         setHouses([]);
-        setLoading(false); // Сбрасываем loading при ошибке данных
       }
       
     } catch (error) {
       console.error('❌ Exception during house loading:', error);
-      showNotification('❌ Критическая ошибка загрузки', 'error');
       setHouses([]);
-      setLoading(false); // Сбрасываем loading при исключении
     } finally {
-      // Сбрасываем прогресс
-      setTimeout(() => {
-        setLoadingProgress({ stage: '', message: '', progress: 0 });
-      }, 1000);
+      // ВСЕГДА выключаем loading в конце
+      setLoading(false);
+      console.log('🔄 Loading set to false in finally block');
     }
   };
 
