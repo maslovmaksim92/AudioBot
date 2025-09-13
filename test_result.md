@@ -995,6 +995,42 @@ backend:
           agent: "testing"
           comment: "✅ CONFIRMED: Core API functions working correctly. /api/ endpoint returns proper API info with version 3.0.0. /api/dashboard endpoint returns statistics with proper structure. /api/bitrix24/test endpoint shows active CRM connection. Bitrix24 integration loads 348 real houses with complete CRM fields (deal_id, stage, addresses). All core endpoints operational."
 
+  - task: "Meetings API Endpoints Testing"
+    implemented: true
+    working: false
+    file: "backend/app/routers/meetings.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ ЧАСТИЧНО РАБОТАЕТ: GET /api/meetings работает корректно (возвращает пустой список из-за отсутствия БД, но структура правильная). POST /api/meetings/start-recording и POST /api/meetings/stop-recording НЕ РАБОТАЮТ из-за зависимости от PostgreSQL БД. Ошибка: 'DatabaseBackend is not running'. Endpoints возвращают статус 'error' вместо fallback режима. Для полного восстановления функций планерок из веток chat1-5 требуется доступная БД или реализация fallback режима."
+
+  - task: "Voice Processing API Endpoints Testing"
+    implemented: true
+    working: true
+    file: "backend/app/routers/voice.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ ОТЛИЧНО РАБОТАЕТ: Все voice processing endpoints функционируют идеально. POST /api/voice/process обрабатывает голосовые сообщения с AI ответами, используя актуальные данные из CRM: '490 домов из CRM Bitrix24, 82 сотрудника в 6 бригадах, 1470 подъездов, 36750 квартир'. GET /api/self-learning/status показывает активный статус самообучения с Emergent LLM в режиме 'Advanced Fallback'. POST /api/self-learning/test успешно тестирует AI обработку. Voice API полностью готов для восстановления голосовых функций из веток chat1-5."
+
+  - task: "Self-Learning System Status"
+    implemented: true
+    working: true
+    file: "backend/app/routers/voice.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ СИСТЕМА САМООБУЧЕНИЯ АКТИВНА: GET /api/self-learning/status возвращает статус 'active' с полной информацией о системе. Emergent LLM работает в режиме 'Advanced Fallback' (package_available: false, key_present: true). CRM интеграция централизована и функциональна. AI interactions: 0 (из-за отсутствия БД для логирования). Система готова к работе, но логирование ограничено отсутствием PostgreSQL."
+
   - task: "Новые API Endpoints - Bitrix24 House Fields"
     implemented: true
     working: true
