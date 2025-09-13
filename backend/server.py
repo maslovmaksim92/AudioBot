@@ -65,10 +65,89 @@ class HouseResponse(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "AudioBot API v1.0", "status": "working"}
+
+@api_router.get("/health")
+async def health_check():
+    """Проверка состояния API и интеграции с Bitrix24"""
+    bitrix_status = await bitrix_service.test_connection()
+    
+    return {
+        "api_status": "healthy",
+        "bitrix_integration": bitrix_status,
+        "timestamp": datetime.now().isoformat(),
+        "database": "connected" if db else "disabled"
+    }
+
+# ========== BITRIX24 ENDPOINTS ==========
+
+@api_router.get("/cleaning/houses")
+async def get_houses(limit: int = 500):
+    """Получение списка домов из Bitrix24 CRM"""
+    try:
+        houses = await bitrix_service.get_houses(limit)
+        return {
+            "status": "success", 
+            "houses": houses,
+            "total": len(houses),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Ошибка загрузки домов: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки домов: {str(e)}")
+
+@api_router.get("/dashboard/employees")
+async def get_employees():
+    """Получение списка сотрудников из Bitrix24"""
+    try:
+        employees = await bitrix_service.get_employees()
+        return {
+            "status": "success",
+            "employees": employees, 
+            "total": len(employees),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Ошибка загрузки сотрудников: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки сотрудников: {str(e)}")
+
+@api_router.get("/dashboard/departments")
+async def get_departments():
+    """Получение списка подразделений из Bitrix24"""
+    try:
+        departments = await bitrix_service.get_departments()
+        return {
+            "status": "success",
+            "departments": departments,
+            "total": len(departments), 
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Ошибка загрузки подразделений: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки подразделений: {str(e)}")
+
+@api_router.get("/dashboard/statistics")
+async def get_statistics():
+    """Получение общей статистики для дашборда"""
+    try:
+        stats = await bitrix_service.get_statistics()
+        return {
+            "status": "success",
+            "statistics": stats,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Ошибка загрузки статистики: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки статистики: {str(e)}")
+
+# ========== LEGACY ENDPOINTS ==========
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
+    """Создание записи о проверке статуса (требует MongoDB)"""
+    if not db:
+        raise HTTPException(status_code=503, detail="База данных не настроена")
+    
     status_dict = input.dict()
     status_obj = StatusCheck(**status_dict)
     _ = await db.status_checks.insert_one(status_obj.dict())
