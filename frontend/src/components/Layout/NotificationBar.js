@@ -77,7 +77,9 @@ const NotificationBar = () => {
           </div>
         </div>
       ))}
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
