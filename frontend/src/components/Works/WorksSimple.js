@@ -1,24 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../../context/AppContext';
 
 const WorksSimple = () => {
+  const { state } = useApp();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Debug logging
+  console.log('🏠 Works component loaded!');
+  console.log('🏠 Current section:', state?.currentSection);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-        console.log('Loading houses from:', `${BACKEND_URL}/api/cleaning/houses-fixed`);
+        console.log('🏠 Loading houses from:', `${BACKEND_URL}/api/cleaning/houses-fixed`);
         
         const response = await fetch(`${BACKEND_URL}/api/cleaning/houses-fixed?limit=20`);
         const result = await response.json();
-        console.log('Houses data loaded:', result);
+        console.log('🏠 Houses data loaded:', result);
         
         setData(result);
       } catch (error) {
-        console.error('Error loading houses:', error);
+        console.error('🏠 Error loading houses:', error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -31,8 +37,10 @@ const WorksSimple = () => {
   if (loading) {
     return (
       <div className="p-8 text-center">
+        <div className="text-6xl mb-4">🏠</div>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p>Загрузка домов из Bitrix24...</p>
+        <p className="text-lg">Загрузка домов из Bitrix24...</p>
+        <p className="text-sm text-gray-500 mt-2">Works компонент активен - currentSection: {state?.currentSection}</p>
       </div>
     );
   }
@@ -41,8 +49,9 @@ const WorksSimple = () => {
     return (
       <div className="p-8 text-center">
         <div className="text-red-500 text-6xl mb-4">❌</div>
-        <h2 className="text-xl font-semibold mb-2">Ошибка загрузки</h2>
-        <p className="text-gray-600">{error}</p>
+        <h2 className="text-xl font-semibold mb-2">Ошибка загрузки домов</h2>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <p className="text-sm text-gray-500">Current section: {state?.currentSection}</p>
       </div>
     );
   }
