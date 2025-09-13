@@ -207,8 +207,8 @@ class ChatRequest(BaseModel):
 async def ai_chat_endpoint(request: ChatRequest):
     """Простой AI Chat endpoint"""
     try:
-        user_message = message.get("message", "")
-        session_id = message.get("session_id", "default")
+        user_message = request.message
+        session_id = request.session_id
         
         # Простые ответы на основе ключевых слов
         user_msg = user_message.lower()
