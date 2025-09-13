@@ -220,14 +220,21 @@ const Meetings = () => {
 
               <div className="flex space-x-2">
                 {!isRecording ? (
-                  <Button
-                    onClick={startRecording}
-                    variant="success"
-                    disabled={!meetingTitle.trim()}
-                    className="flex-1"
-                  >
-                    🎤 Начать запись
-                  </Button>
+                  <div className="flex-1">
+                    <Button
+                      onClick={startRecording}
+                      variant="success"
+                      disabled={!meetingTitle.trim()}
+                      className="w-full"
+                    >
+                      🎤 Начать запись
+                    </Button>
+                    {!meetingTitle.trim() && (
+                      <p className="text-xs text-orange-600 mt-1 text-center">
+                        💡 Введите название планерки, чтобы активировать кнопку
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <Button
                     onClick={stopRecording}
