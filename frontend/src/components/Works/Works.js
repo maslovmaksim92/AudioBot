@@ -148,58 +148,61 @@ const WorksEnhanced = () => {
   };
 
   const fetchHouses = async () => {
-    setLoading(true); // НАЧИНАЕМ загрузку
+    setLoading(true);
     console.log('🏠 Starting house data loading...');
     
     try {
-      // Убираем onProgress callback - он не нужен для простой загрузки
-      const data = await apiService.getCleaningHouses(activeFilters);
+      // ПРЯМОЙ API ВЫЗОВ для отладки
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL;
+      console.log('🔗 Backend URL:', BACKEND_URL);
       
-      console.log('🏠 API Response Summary:', {
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/houses-490`);
+      console.log('📡 API Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('📊 Raw API data:', {
         status: data?.status,
         total: data?.total,
-        houses_count: data?.houses?.length || 0,
-        error: data?.message || 'None'
+        houses_count: data?.houses?.length || 0
       });
       
-      // ИСПРАВЛЕНИЕ: Проверяем данные и СРАЗУ обновляем состояние
-      if (data?.status === 'success' && data?.houses && Array.isArray(data.houses)) {
+      if (data?.status === 'success' && Array.isArray(data.houses) && data.houses.length > 0) {
         const housesData = data.houses;
-        console.log(`✅ Successfully received ${housesData.length} houses`);
-        console.log('🏠 First house sample:', housesData[0]); // Показываем первый дом для отладки
+        console.log(`✅ SUCCESS: Loaded ${housesData.length} houses`);
+        console.log('🏠 First house:', housesData[0]);
         
-        // Обновляем состояние домов
+        // ПРИНУДИТЕЛЬНО устанавливаем данные
         setHouses(housesData);
         
-        // Извлекаем УК и бригады
-        const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))].sort();
-        const brigades = [...new Set(housesData.map(h => h.brigade).filter(Boolean))].sort();
+        // Принудительно устанавливаем фильтрованные дома
+        setFilteredHouses(housesData);
+        
+        // УК и бригады
+        const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))];
+        const brigades = [...new Set(housesData.map(h => h.brigade).filter(Boolean))];
         
         setAvailableCompanies(companies);
         setAvailableBrigades(brigades);
         
-        // ПРИНУДИТЕЛЬНО применяем фильтры после загрузки данных
-        setTimeout(() => {
-          console.log('🔄 Forcing applyFiltersAndSort after houses loaded');
-          const filtered = [...housesData]; // Используем housesData напрямую
-          setFilteredHouses(filtered);
-        }, 100);
-        
-        console.log(`📊 SUCCESS: ${housesData.length} houses loaded, ${companies.length} companies, ${brigades.length} brigades`);
+        console.log(`🎉 FINAL SUCCESS: houses=${housesData.length}, companies=${companies.length}, brigades=${brigades.length}`);
         
       } else {
-        console.error('❌ Failed to load houses:', data?.message || 'Unknown error');
-        console.error('❌ Data structure:', data);
-        setHouses([]);
+        console.error('❌ Invalid data format or empty houses array');
+        console.error('❌ Data:', data);
+        throw new Error('No houses data received');
       }
       
     } catch (error) {
-      console.error('❌ Exception during house loading:', error);
+      console.error('❌ Houses loading error:', error);
       setHouses([]);
+      setFilteredHouses([]);
     } finally {
-      // ВСЕГДА выключаем loading в конце
       setLoading(false);
-      console.log('🔄 Loading set to false in finally block');
+      console.log('🔄 Loading set to false');
     }
   };
 
