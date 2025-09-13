@@ -909,7 +909,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Meetings & Voice API Testing Complete"
+    - "Meetings API Endpoints Testing - FIXED"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
