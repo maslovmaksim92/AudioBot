@@ -197,13 +197,10 @@ const WorksEnhanced = () => {
         
         // ИСПРАВЛЕНИЕ: Принудительно сбрасываем loading, если данные загружены
         if (housesData.length > 0) {
-          console.log('🔄 FORCED: Setting loading to false - data loaded successfully');
+          console.log('🔄 IMMEDIATE: Setting loading to false - data loaded successfully');
           console.log(`🏠 Setting houses state with ${housesData.length} items`);
-          // Используем setTimeout чтобы убедиться что setState завершился
-          setTimeout(() => {
-            setLoading(false);
-            console.log('🔄 CONFIRMED: Loading set to false after timeout');
-          }, 100);
+          setLoading(false); // УБИРАЕМ setTimeout - immediate call
+          console.log('🔄 CONFIRMED: Loading set to false immediately');
         }
         
         // Анимация появления карточек (только для первых 50 для производительности)
