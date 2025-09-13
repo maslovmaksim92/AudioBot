@@ -61,30 +61,48 @@ async def start_meeting_recording():
 async def stop_meeting_recording(meeting_id: str):
     """Остановить запись планерки"""
     try:
+        logger.info(f"⏹️ Stopping meeting: {meeting_id}")
+        current_time = datetime.now()
+        
+        # Пытаемся обновить в базе данных, если доступна
+        database_status = "updated"
         if database:
-            query = """
-            UPDATE meetings 
-            SET status = :status, ended_at = :ended_at, transcription = :transcription
-            WHERE id = :id
-            """
-            values = {
-                "id": meeting_id,
-                "status": "completed",
-                "ended_at": datetime.utcnow(),
-                "transcription": "🎙️ Запись завершена. Транскрипция готова к обработке."
-            }
-            await database.execute(query, values)
-            logger.info(f"✅ Meeting stopped: {meeting_id}")
+            try:
+                query = """
+                UPDATE meetings 
+                SET status = :status, ended_at = :ended_at, transcription = :transcription
+                WHERE id = :id
+                """
+                values = {
+                    "id": meeting_id,
+                    "status": "completed",
+                    "ended_at": datetime.utcnow(),
+                    "transcription": "🎙️ Запись завершена. Транскрипция готова к обработке."
+                }
+                await database.execute(query, values)
+                logger.info(f"✅ Meeting updated in database: {meeting_id}")
+            except Exception as db_error:
+                logger.warning(f"⚠️ Database update failed: {db_error}")
+                database_status = "database_unavailable"
+        else:
+            database_status = "no_database"
+            logger.info(f"✅ Meeting completed in memory: {meeting_id}")
         
         return {
             "status": "success",
             "meeting_id": meeting_id,
-            "message": "Запись планерки остановлена"
+            "message": "Запись планерки остановлена",
+            "database_status": database_status,
+            "timestamp": current_time.isoformat()
         }
         
     except Exception as e:
         logger.error(f"❌ Stop meeting error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {
+            "status": "error", 
+            "message": f"Ошибка остановки планерки: {str(e)}",
+            "meeting_id": meeting_id
+        }
 
 @router.get("/meetings", response_model=dict)
 async def get_meetings():
