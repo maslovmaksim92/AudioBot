@@ -11,12 +11,16 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       
+      {/* Улучшенная мобильная адаптивность */}
       <div className={`transition-all duration-300 ${
-        isMenuCollapsed ? 'ml-16' : 'ml-64'
+        // Мобильные устройства: полная ширина, десктоп: отступ от sidebar
+        isMenuCollapsed 
+          ? 'ml-0 md:ml-16' 
+          : 'ml-0 md:ml-64'
       }`}>
         <NotificationBar />
         
-        <main className="min-h-screen">
+        <main className="min-h-screen p-2 md:p-4 lg:p-6">
           {children}
         </main>
       </div>
