@@ -6,3 +6,5 @@ const WorksEnhanced = () => {
 };
 
 export default WorksEnhanced;
+
+export default WorksEnhanced;
