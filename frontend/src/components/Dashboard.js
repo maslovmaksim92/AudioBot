@@ -199,13 +199,26 @@ export default function Dashboard() {
           <TabsContent value="houses" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Building2 className="h-5 w-5 mr-2 text-blue-600" />
-                  Многоквартирные дома
-                </CardTitle>
-                <CardDescription>
-                  Объекты недвижимости с правильными данными из CRM
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FileText className="h-6 w-6 text-gray-600 mr-3" />
+                    <div>
+                      <CardTitle className="text-xl font-bold">
+                        Список домов ({houses.length} из {houses.length})
+                      </CardTitle>
+                      <div className="flex items-center mt-1">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                        <span className="text-sm text-green-600 font-medium">
+                          Все дома загружены
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Обновить
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
