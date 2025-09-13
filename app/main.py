@@ -242,20 +242,9 @@ logger.info("✅ All routers included")
 async def startup():
     logger.info("🚀 VasDom AudioBot starting...")
     
-    # Try MongoDB first (recommended)
-    mongo_db = await init_mongodb()
-    if mongo_db is not None:
-        logger.info("🍃 MongoDB database ready")
-        app.state.db_type = "mongodb"
-    else:
-        # Fallback to PostgreSQL
-        db_success = await init_database()
-        if db_success:
-            logger.info("🐘 PostgreSQL database ready")
-            app.state.db_type = "postgresql"
-        else:
-            logger.warning("⚠️ No database available - API will work with limited functionality")
-            app.state.db_type = "none"
+    # Render-friendly startup - no databases required
+    logger.info("🌐 Running in API-only mode (Render compatible)")
+    app.state.db_type = "none"
     
     logger.info("✅ VasDom AudioBot started successfully")
 
