@@ -1198,7 +1198,9 @@ const WorksEnhanced = () => {
 
   // Показываем skeleton loading при загрузке
   const renderHousesSection = () => {
+    // ИСПРАВЛЕНИЕ: Проверяем не только loading, но и наличие данных
     if (loading && houses.length === 0) {
+      console.log('🔄 Showing skeleton cards: loading =', loading, ', houses.length =', houses.length);
       return (
         <div className="mt-8">
           {renderSkeletonCards()}
@@ -1207,6 +1209,7 @@ const WorksEnhanced = () => {
     }
 
     if (houses.length === 0 && !loading) {
+      console.log('🔄 Showing empty state: loading =', loading, ', houses.length =', houses.length);
       return (
         <div className="mt-8 text-center py-12">
           <div className="text-6xl mb-4">🏠</div>
@@ -1222,6 +1225,8 @@ const WorksEnhanced = () => {
       );
     }
 
+    // ИСПРАВЛЕНИЕ: Показываем дома, если они есть, независимо от loading
+    console.log('🏠 Showing houses: loading =', loading, ', houses.length =', houses.length);
     return (
       <div className="mt-8">
         {/* Улучшенный счетчик домов */}
