@@ -199,42 +199,192 @@ export default function Dashboard() {
           <TabsContent value="houses" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Список домов</CardTitle>
-                <CardDescription>
-                  Объекты недвижимости в системе управления
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+                      Многоквартирные дома
+                    </CardTitle>
+                    <CardDescription>
+                      Объекты недвижимости под управлением
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Экспорт
+                    </Button>
+                    <Button size="sm">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Добавить дом
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4">
+                <div className="grid gap-6">
                   {houses.map((house) => (
-                    <Card key={house.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-2">
-                            <MapPin className="h-4 w-4 text-gray-500 mr-2" />
-                            <h3 className="font-semibold">{house.address}</h3>
-                          </div>
-                          <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-2">
-                            <div>Квартиры: <span className="font-medium">{house.apartments}</span></div>
-                            <div>Подъезды: <span className="font-medium">{house.entrances}</span></div>
-                            <div>Этажи: <span className="font-medium">{house.floors}</span></div>
-                          </div>
-                          <div className="text-sm">
-                            <Badge variant="secondary" className="mr-2">
-                              {house.management_company}
-                            </Badge>
-                            {house.september_schedule && (
-                              <Badge variant="outline">
-                                <Calendar className="h-3 w-3 mr-1" />
-                                {house.september_schedule}
+                    <Card key={house.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex-1">
+                            {/* House Header */}
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center">
+                                <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                                  <Building2 className="h-6 w-6 text-blue-600" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                                    {house.address}
+                                  </h3>
+                                  <div className="flex items-center text-sm text-gray-500">
+                                    <MapPin className="h-4 w-4 mr-1" />
+                                    ID: {house.id}
+                                  </div>
+                                </div>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Просмотр
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Редактировать
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                                    Задачи
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Удалить
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+
+                            {/* House Stats Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                              <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-blue-600">{house.apartments}</div>
+                                <div className="text-xs text-gray-500 font-medium">Квартир</div>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-green-600">{house.entrances}</div>
+                                <div className="text-xs text-gray-500 font-medium">Подъездов</div>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-purple-600">{house.floors}</div>
+                                <div className="text-xs text-gray-500 font-medium">Этажей</div>
+                              </div>
+                              <div className="bg-gray-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-orange-600">
+                                  {Math.round((house.apartments / house.entrances) * 10) / 10}
+                                </div>
+                                <div className="text-xs text-gray-500 font-medium">Кв/подъезд</div>
+                              </div>
+                            </div>
+
+                            {/* Management Company */}
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center">
+                                <Shield className="h-4 w-4 text-gray-400 mr-2" />
+                                <span className="text-sm text-gray-600">Управляющая компания:</span>
+                              </div>
+                              <Badge variant="secondary" className="font-medium">
+                                {house.management_company}
                               </Badge>
+                            </div>
+
+                            {/* Schedule Section */}
+                            {house.september_schedule && house.september_schedule !== 'Не указан' && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-center mb-2">
+                                  <Calendar className="h-4 w-4 text-blue-600 mr-2" />
+                                  <span className="font-medium text-blue-900">График уборки</span>
+                                </div>
+                                <div className="text-sm text-blue-800">
+                                  {house.september_schedule}
+                                </div>
+                              </div>
                             )}
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50">
+                                <Eye className="h-3 w-3 mr-1" />
+                                Детали
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50">
+                                <ClipboardCheck className="h-3 w-3 mr-1" />
+                                Задачи
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-purple-600 border-purple-600 hover:bg-purple-50">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                График
+                              </Button>
+                              {house.has_apartments && (
+                                <Badge variant="outline" className="text-green-600 border-green-600">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Активный
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
+
+                {/* Summary Card */}
+                <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">Сводка по домам</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Всего домов:</span>
+                            <span className="font-bold text-blue-600 ml-2">{houses.length}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Всего квартир:</span>
+                            <span className="font-bold text-green-600 ml-2">
+                              {houses.reduce((sum, house) => sum + house.apartments, 0)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Всего подъездов:</span>
+                            <span className="font-bold text-purple-600 ml-2">
+                              {houses.reduce((sum, house) => sum + house.entrances, 0)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Средняя этажность:</span>
+                            <span className="font-bold text-orange-600 ml-2">
+                              {Math.round(houses.reduce((sum, house) => sum + house.floors, 0) / houses.length)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="hidden md:block">
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <BarChart3 className="h-8 w-8 text-blue-600" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>
