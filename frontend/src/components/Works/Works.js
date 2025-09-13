@@ -174,6 +174,7 @@ const WorksEnhanced = () => {
       if (data?.status === 'success' && data?.houses && Array.isArray(data.houses)) {
         const housesData = data.houses;
         console.log(`✅ Successfully received ${housesData.length} houses`);
+        console.log('🏠 Sample house data:', housesData[0]);
         
         // PRODUCTION: Извлекаем уникальные УК и бригады для фильтров
         const companies = [...new Set(housesData.map(h => h.management_company).filter(Boolean))].sort();
@@ -196,8 +197,13 @@ const WorksEnhanced = () => {
         
         // ИСПРАВЛЕНИЕ: Принудительно сбрасываем loading, если данные загружены
         if (housesData.length > 0) {
-          setLoading(false);
-          console.log('🔄 FORCED: Loading set to false - data loaded successfully');
+          console.log('🔄 FORCED: Setting loading to false - data loaded successfully');
+          console.log(`🏠 Setting houses state with ${housesData.length} items`);
+          // Используем setTimeout чтобы убедиться что setState завершился
+          setTimeout(() => {
+            setLoading(false);
+            console.log('🔄 CONFIRMED: Loading set to false after timeout');
+          }, 100);
         }
         
         // Анимация появления карточек (только для первых 50 для производительности)
