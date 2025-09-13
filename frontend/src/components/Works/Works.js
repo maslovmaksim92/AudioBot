@@ -178,6 +178,13 @@ const WorksEnhanced = () => {
         setAvailableCompanies(companies);
         setAvailableBrigades(brigades);
         
+        // ПРИНУДИТЕЛЬНО применяем фильтры после загрузки данных
+        setTimeout(() => {
+          console.log('🔄 Forcing applyFiltersAndSort after houses loaded');
+          const filtered = [...housesData]; // Используем housesData напрямую
+          setFilteredHouses(filtered);
+        }, 100);
+        
         console.log(`📊 SUCCESS: ${housesData.length} houses loaded, ${companies.length} companies, ${brigades.length} brigades`);
         
       } else {
