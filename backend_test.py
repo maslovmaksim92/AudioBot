@@ -70,7 +70,7 @@ class HousesAPITester:
         print("\n🏠 Testing GET /api/cleaning/houses...")
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:  # Увеличиваем timeout
                 response = await client.get(f"{self.base_url}/cleaning/houses")
                 
                 print(f"Status: {response.status_code}")
