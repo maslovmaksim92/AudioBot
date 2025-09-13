@@ -199,7 +199,7 @@ app.include_router(tasks.router)
 app.include_router(logs.router)
 app.include_router(analytics.router)
 app.include_router(learning.router)       # Новый: модуль самообучения
-
+app.include_router(ai_chat.router)        # Новый: AI Chat с MongoDB
 app.include_router(websocket.router)        # Новый: WebSocket для живого чата
 
 logger.info("✅ All routers included")
