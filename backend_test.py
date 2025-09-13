@@ -156,6 +156,7 @@ class VoiceAPITester:
                 )
                 
                 print(f"Status: {response.status_code}")
+                print(f"Response text: {response.text}")
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -169,6 +170,9 @@ class VoiceAPITester:
                     else:
                         print("❌ Invalid response structure")
                         return False
+                elif response.status_code == 422:
+                    print("❌ Validation error - checking request format")
+                    return False
                 else:
                     print(f"❌ FAILED: HTTP {response.status_code}")
                     print(f"Response: {response.text}")
@@ -176,6 +180,8 @@ class VoiceAPITester:
                     
         except Exception as e:
             print(f"❌ ERROR: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     async def test_self_learning_status(self):
