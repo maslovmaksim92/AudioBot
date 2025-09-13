@@ -76,7 +76,7 @@ async def health_check():
         "api_status": "healthy",
         "bitrix_integration": bitrix_status,
         "timestamp": datetime.now().isoformat(),
-        "database": "connected" if db else "disabled"
+        "database": "connected" if db is not None else "disabled"
     }
 
 # ========== BITRIX24 ENDPOINTS ==========
