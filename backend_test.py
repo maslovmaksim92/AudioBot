@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 VasDom AudioBot - Backend API Testing
-Тестирование всех meetings API endpoints и voice processing endpoints
+Тестирование API домов и анализ проблем с УК и графиками уборки
 """
 
 import asyncio
