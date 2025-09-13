@@ -230,12 +230,14 @@ const WorksEnhanced = () => {
         console.error('❌ Failed to load houses:', data?.message || 'Unknown error');
         showNotification(`❌ ${data?.message || 'Ошибка загрузки домов'}`, 'error');
         setHouses([]);
+        setLoading(false); // Сбрасываем loading при ошибке данных
       }
       
     } catch (error) {
       console.error('❌ Exception during house loading:', error);
       showNotification('❌ Критическая ошибка загрузки', 'error');
       setHouses([]);
+      setLoading(false); // Сбрасываем loading при исключении
     } finally {
       // Сбрасываем прогресс
       setTimeout(() => {
