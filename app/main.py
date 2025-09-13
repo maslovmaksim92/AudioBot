@@ -197,8 +197,14 @@ app.include_router(logs.router)
 app.include_router(analytics.router)
 
 # Add simple AI Chat endpoint directly in main
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str = "default"
+
 @app.post("/api/ai/chat")
-async def ai_chat_endpoint(message: dict):
+async def ai_chat_endpoint(request: ChatRequest):
     """Простой AI Chat endpoint"""
     try:
         user_message = message.get("message", "")
