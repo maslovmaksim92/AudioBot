@@ -4,7 +4,7 @@ import { Button } from '../UI';
 
 const NotificationBar = () => {
   const { state, actions } = useApp();
-  const { notifications } = state;
+  const { notifications, isMenuCollapsed } = state;
 
   useEffect(() => {
     // Auto-remove notifications after 5 seconds
