@@ -58,6 +58,334 @@ def get_backend_url():
 BACKEND_URL = get_backend_url()
 print(f"🔗 Testing backend at: {BACKEND_URL}")
 
+class HousesAPITester:
+    """Тестер для Houses API endpoints - анализ проблем с УК и графиками уборки"""
+    
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+        self.houses_data = None
+        
+    async def test_get_houses(self):
+        """Тест GET /api/cleaning/houses - получить список домов с УК и графиками"""
+        print("\n🏠 Testing GET /api/cleaning/houses...")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{self.base_url}/cleaning/houses")
+                
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ SUCCESS: API responded")
+                    
+                    # Анализируем структуру ответа
+                    if "houses" in data:
+                        houses = data.get("houses", [])
+                        total = len(houses)
+                        print(f"📊 Total houses loaded: {total}")
+                        
+                        # Сохраняем данные для дальнейшего анализа
+                        self.houses_data = houses
+                        
+                        # Анализ проблем с УК
+                        uk_analysis = self._analyze_management_companies(houses)
+                        print(f"🏢 Management Companies Analysis:")
+                        print(f"   - Houses with УК: {uk_analysis['filled']}/{total}")
+                        print(f"   - Houses with null УК: {uk_analysis['null']}/{total}")
+                        print(f"   - Unique УК found: {len(uk_analysis['unique_companies'])}")
+                        
+                        # Анализ графиков уборки
+                        schedule_analysis = self._analyze_cleaning_schedules(houses)
+                        print(f"📅 Cleaning Schedules Analysis:")
+                        print(f"   - Houses with september_schedule: {schedule_analysis['with_september']}/{total}")
+                        print(f"   - Houses with cleaning dates: {schedule_analysis['with_dates']}/{total}")
+                        print(f"   - Schedule fields found: {schedule_analysis['schedule_fields']}")
+                        
+                        # Анализ источника данных
+                        source = data.get("source", "Unknown")
+                        print(f"🔗 Data source: {source}")
+                        
+                        return True
+                    else:
+                        print("❌ Invalid response structure - no 'houses' field")
+                        return False
+                else:
+                    print(f"❌ FAILED: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ ERROR: {e}")
+            return False
+    
+    async def test_get_houses_490(self):
+        """Тест GET /api/cleaning/houses-490 - получить 490 домов"""
+        print("\n🏠 Testing GET /api/cleaning/houses-490...")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{self.base_url}/cleaning/houses-490")
+                
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ SUCCESS: API responded")
+                    
+                    houses = data.get("houses", [])
+                    total = len(houses)
+                    print(f"📊 Houses loaded: {total} (expected: 490)")
+                    
+                    if total >= 490:
+                        print("✅ SUCCESS: 490+ houses loaded")
+                    else:
+                        print(f"⚠️ WARNING: Only {total} houses loaded, expected 490")
+                    
+                    # Проверяем категорию
+                    category_used = data.get("category_used", "unknown")
+                    print(f"🏷️ Category used: {category_used}")
+                    
+                    # Анализ первых 5 домов
+                    if houses:
+                        sample_house = houses[0]
+                        print(f"📋 Sample house fields: {list(sample_house.keys())}")
+                        print(f"   - Address: {sample_house.get('address', 'N/A')}")
+                        print(f"   - УК: {sample_house.get('management_company', 'N/A')}")
+                        print(f"   - Brigade: {sample_house.get('brigade', 'N/A')}")
+                        print(f"   - September schedule: {bool(sample_house.get('september_schedule'))}")
+                    
+                    return True
+                else:
+                    print(f"❌ FAILED: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ ERROR: {e}")
+            return False
+    
+    async def test_dashboard_stats(self):
+        """Тест GET /api/dashboard - статистика домов"""
+        print("\n📊 Testing GET /api/dashboard...")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{self.base_url}/dashboard")
+                
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ SUCCESS: Dashboard API responded")
+                    
+                    # Анализируем статистику домов
+                    stats = data.get("stats", {})
+                    houses_count = stats.get("houses", 0)
+                    employees_count = stats.get("employees", 0)
+                    
+                    print(f"🏠 Houses in dashboard: {houses_count}")
+                    print(f"👥 Employees: {employees_count}")
+                    print(f"🏢 Apartments: {stats.get('apartments', 0)}")
+                    print(f"🚪 Entrances: {stats.get('entrances', 0)}")
+                    print(f"📊 Floors: {stats.get('floors', 0)}")
+                    
+                    # Проверяем источник данных
+                    data_source = data.get("data_source", "Unknown")
+                    print(f"🔗 Data source: {data_source}")
+                    
+                    return True
+                else:
+                    print(f"❌ FAILED: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ ERROR: {e}")
+            return False
+    
+    async def test_brigades_info(self):
+        """Тест GET /api/cleaning/brigades - информация о бригадах"""
+        print("\n👥 Testing GET /api/cleaning/brigades...")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{self.base_url}/cleaning/brigades")
+                
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ SUCCESS: Brigades API responded")
+                    
+                    brigades = data.get("brigades", [])
+                    total_employees = data.get("total_employees", 0)
+                    total_brigades = data.get("total_brigades", 0)
+                    
+                    print(f"👥 Total brigades: {total_brigades}")
+                    print(f"👷 Total employees: {total_employees}")
+                    
+                    # Показываем информацию о бригадах
+                    for brigade in brigades:
+                        name = brigade.get("name", "Unknown")
+                        employees = brigade.get("employees", 0)
+                        areas = brigade.get("areas", [])
+                        print(f"   - {name}: {employees} employees, areas: {areas}")
+                    
+                    return True
+                else:
+                    print(f"❌ FAILED: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ ERROR: {e}")
+            return False
+    
+    async def test_production_debug_endpoints(self):
+        """Тест новых production debug endpoints"""
+        print("\n🔍 Testing Production Debug Endpoints...")
+        
+        debug_endpoints = [
+            "/cleaning/production-debug",
+            "/cleaning/fix-management-companies", 
+            "/cleaning/houses-fixed"
+        ]
+        
+        results = {}
+        
+        for endpoint in debug_endpoints:
+            print(f"\n🔧 Testing {endpoint}...")
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.get(f"{self.base_url}{endpoint}")
+                    
+                    print(f"Status: {response.status_code}")
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        print(f"✅ SUCCESS: {endpoint}")
+                        results[endpoint] = True
+                        
+                        # Специальный анализ для каждого endpoint
+                        if "production-debug" in endpoint:
+                            has_optimized = data.get("code_version_check", {}).get("has_optimized_loading", False)
+                            has_enrichment = data.get("code_version_check", {}).get("has_enrichment_method", False)
+                            print(f"   - Has optimized loading: {has_optimized}")
+                            print(f"   - Has enrichment method: {has_enrichment}")
+                        
+                        elif "fix-management-companies" in endpoint:
+                            fixed_houses = data.get("fixed_houses", [])
+                            print(f"   - Fixed houses: {len(fixed_houses)}")
+                            if fixed_houses:
+                                sample = fixed_houses[0]
+                                print(f"   - Sample УК: {sample.get('fixed_management_company', 'N/A')}")
+                        
+                        elif "houses-fixed" in endpoint:
+                            houses = data.get("houses", [])
+                            print(f"   - Houses with forced enrichment: {len(houses)}")
+                            
+                    elif response.status_code == 404:
+                        print(f"❌ NOT FOUND: {endpoint} - endpoint not deployed")
+                        results[endpoint] = False
+                    else:
+                        print(f"❌ FAILED: HTTP {response.status_code}")
+                        results[endpoint] = False
+                        
+            except Exception as e:
+                print(f"❌ ERROR: {e}")
+                results[endpoint] = False
+        
+        return results
+    
+    async def test_bitrix24_integration(self):
+        """Тест интеграции с Bitrix24"""
+        print("\n🔗 Testing Bitrix24 Integration...")
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(f"{self.base_url}/bitrix24/test")
+                
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ SUCCESS: Bitrix24 integration working")
+                    
+                    connection = data.get("connection", "Unknown")
+                    sample_deals = data.get("sample_deals", 0)
+                    
+                    print(f"🔗 Connection status: {connection}")
+                    print(f"📊 Sample deals loaded: {sample_deals}")
+                    
+                    return True
+                else:
+                    print(f"❌ FAILED: HTTP {response.status_code}")
+                    print(f"Response: {response.text}")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ ERROR: {e}")
+            return False
+    
+    def _analyze_management_companies(self, houses):
+        """Анализ проблем с управляющими компаниями"""
+        filled_count = 0
+        null_count = 0
+        unique_companies = set()
+        
+        for house in houses:
+            uk = house.get("management_company")
+            if uk and uk != "null" and uk.strip():
+                filled_count += 1
+                unique_companies.add(uk)
+            else:
+                null_count += 1
+        
+        return {
+            "filled": filled_count,
+            "null": null_count,
+            "unique_companies": list(unique_companies)
+        }
+    
+    def _analyze_cleaning_schedules(self, houses):
+        """Анализ проблем с графиками уборки"""
+        with_september = 0
+        with_dates = 0
+        schedule_fields = set()
+        
+        for house in houses:
+            # Проверяем september_schedule
+            september_schedule = house.get("september_schedule")
+            if september_schedule:
+                with_september += 1
+                
+                # Анализируем структуру графика
+                if isinstance(september_schedule, dict):
+                    if september_schedule.get("cleaning_date_1"):
+                        with_dates += 1
+                    
+                    # Собираем все поля графика
+                    for key in september_schedule.keys():
+                        schedule_fields.add(key)
+            
+            # Проверяем другие поля с датами уборки
+            for key, value in house.items():
+                if "cleaning" in key.lower() or "schedule" in key.lower():
+                    if value:
+                        schedule_fields.add(key)
+                
+                # Проверяем UF_CRM поля
+                if key.startswith("UF_CRM_") and "174159" in key:
+                    if value:
+                        schedule_fields.add(key)
+        
+        return {
+            "with_september": with_september,
+            "with_dates": with_dates,
+            "schedule_fields": list(schedule_fields)
+        }
+
 class MeetingsAPITester:
     """Тестер для Meetings API endpoints"""
     
