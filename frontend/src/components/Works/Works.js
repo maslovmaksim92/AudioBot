@@ -152,6 +152,7 @@ const WorksEnhanced = () => {
     console.log('🏠 Starting house data loading...');
     
     try {
+      // Убираем onProgress callback - он не нужен для простой загрузки
       const data = await apiService.getCleaningHouses(activeFilters);
       
       console.log('🏠 API Response Summary:', {
@@ -165,6 +166,7 @@ const WorksEnhanced = () => {
       if (data?.status === 'success' && data?.houses && Array.isArray(data.houses)) {
         const housesData = data.houses;
         console.log(`✅ Successfully received ${housesData.length} houses`);
+        console.log('🏠 First house sample:', housesData[0]); // Показываем первый дом для отладки
         
         // Обновляем состояние домов
         setHouses(housesData);
@@ -176,10 +178,11 @@ const WorksEnhanced = () => {
         setAvailableCompanies(companies);
         setAvailableBrigades(brigades);
         
-        console.log(`📊 FINAL: ${companies.length} companies and ${brigades.length} brigades loaded`);
+        console.log(`📊 SUCCESS: ${housesData.length} houses loaded, ${companies.length} companies, ${brigades.length} brigades`);
         
       } else {
         console.error('❌ Failed to load houses:', data?.message || 'Unknown error');
+        console.error('❌ Data structure:', data);
         setHouses([]);
       }
       
