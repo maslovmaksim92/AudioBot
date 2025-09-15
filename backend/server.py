@@ -581,7 +581,7 @@ async def get_houses(
             address = deal.get("UF_CRM_1669561599956") or deal.get("TITLE", "")
             
             # Обработка бригад - получаем из обогащенных данных
-            brigade_name = deal.get("BRIGADE_NAME_ENRICHED", "")
+            brigade_name = deal.get("BRIGADE_NAME_ENRICHED") or "Бригада не назначена"
             
             # Реальная УК из обогащенных данных Bitrix24
             management_company = deal.get("COMPANY_TITLE_ENRICHED") or deal.get("COMPANY_TITLE") or ""
