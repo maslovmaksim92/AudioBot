@@ -18,6 +18,12 @@ import {
 const Works = () => {
   // State
   const [houses, setHouses] = useState([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 50,
+    pages: 0
+  });
   const [filters, setFilters] = useState({
     brigades: [],
     management_companies: [],
@@ -34,7 +40,6 @@ const Works = () => {
   });
   
   // UI состояние
-  const [viewMode, setViewMode] = useState('cards');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [notification, setNotification] = useState(null);
