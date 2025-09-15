@@ -91,25 +91,36 @@ class BitrixService:
     def __init__(self):
         self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '')
         self.base_url = self.webhook_url.rstrip('/') if self.webhook_url else ""
+        # Простой кэш пользователей (бригады) с TTL
+        self._user_cache: Dict[str, Dict[str, Any]] = {}
+        self._user_cache_ttl_seconds = int(os.environ.get('BITRIX_USER_CACHE_TTL', '600'))  # 10 минут
         
     async def _make_request(self, method: str, params: Dict = None) -> Dict:
-        """Выполнить запрос к Bitrix24 API"""
+        """Выполнить запрос к Bitrix24 API с ретраями и явным признаком успеха"""
         if not self.base_url:
             logger.warning("Bitrix24 webhook URL not configured")
-            return {"result": []}
+            return {"ok": False, "result": None}
             
         url = f"{self.base_url}/{method}"
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(url, json=params or {})
-                response.raise_for_status()
-                return response.json()
-        except httpx.RequestError as e:
-            logger.error(f"Bitrix24 request error: {e}")
-            return {"result": []}
-        except Exception as e:
-            logger.error(f"Unexpected error in Bitrix24 request: {e}")
-            return {"result": []}
+        retries = 2
+        last_error = None
+        for attempt in range(retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(url, json=params or {})
+                    response.raise_for_status()
+                    data = response.json()
+                    return {"ok": True, "result": data.get("result")}
+            except httpx.RequestError as e:
+                last_error = e
+                logger.error(f"Bitrix24 request error (attempt {attempt+1}/{retries+1}): {e}")
+                await asyncio.sleep(0.3 * (attempt + 1))
+            except Exception as e:
+                last_error = e
+                logger.error(f"Unexpected error in Bitrix24 request (attempt {attempt+1}/{retries+1}): {e}")
+                await asyncio.sleep(0.3 * (attempt + 1))
+        # После ретраев
+        return {"ok": False, "result": None, "error": str(last_error) if last_error else "unknown"}
     
     async def get_deals_optimized(
         self,
