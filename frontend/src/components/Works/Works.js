@@ -545,7 +545,7 @@ const Works = () => {
         </div>
       </div>
 
-      {/* Info */}
+      {/* Info с тарифом */}
       <div className="space-y-3 mb-4">
         <div className="flex items-center space-x-2 text-sm">
           <Building2 className="w-4 h-4 text-blue-600" />
@@ -560,37 +560,138 @@ const Works = () => {
         </div>
         
         <div className="flex items-center space-x-2 text-sm">
+          <BarChart3 className="w-4 h-4 text-orange-600" />
+          <span className="font-medium">Тариф:</span>
+          <span className="text-gray-700">{house.tariff || 'Не указан'}</span>
+        </div>
+        
+        <div className="flex items-center space-x-2 text-sm">
           <Calendar className="w-4 h-4 text-purple-600" />
-          <span className="font-medium">График сентябрь:</span>
+          <span className="font-medium">График:</span>
           <span className="text-gray-700">
             {Object.keys(house.cleaning_dates || {}).length > 0 ? 
-              `${Object.keys(house.cleaning_dates).length} уборки` : 
+              `${Object.keys(house.cleaning_dates).length} уборок запланировано` : 
               'Не указан'
             }
           </span>
         </div>
       </div>
 
-      {/* График уборки сентябрь */}
+      {/* Полный график уборки на все месяцы */}
       {house.cleaning_dates && Object.keys(house.cleaning_dates).length > 0 && (
-        <div className="mb-4 p-3 bg-purple-50 rounded-lg">
-          <h4 className="text-sm font-medium text-purple-800 mb-2">🗓️ График уборки (сентябрь 2025):</h4>
-          <div className="space-y-2">
-            {Object.entries(house.cleaning_dates).slice(0, 2).map(([key, cleaning], idx) => (
-              <div key={key} className="flex items-center space-x-2 text-xs">
-                <span className="w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                  {idx + 1}
-                </span>
-                <div>
-                  <div className="font-medium text-purple-700">
-                    {cleaning.date ? new Date(cleaning.date).toLocaleDateString('ru-RU') : 'Дата не указана'}
-                  </div>
-                  <div className="text-purple-600 text-xs">
-                    {cleaning.type || 'Тип уборки не указан'}
-                  </div>
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <h4 className="text-sm font-semibold text-purple-800 mb-3 flex items-center">
+            🗓️ График уборки 2025
+          </h4>
+          
+          <div className="grid grid-cols-1 gap-3">
+            {/* Сентябрь */}
+            {(house.cleaning_dates.september_1 || house.cleaning_dates.september_2) && (
+              <div className="bg-white p-3 rounded-lg border border-purple-100">
+                <div className="text-xs font-medium text-purple-700 mb-2">🍂 Сентябрь</div>
+                <div className="space-y-1">
+                  {house.cleaning_dates.september_1 && house.cleaning_dates.september_1.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.september_1.date}</span>
+                        <div className="text-purple-600">{house.cleaning_dates.september_1.type}</div>
+                      </div>
+                    </div>
+                  )}
+                  {house.cleaning_dates.september_2 && house.cleaning_dates.september_2.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.september_2.date}</span>
+                        <div className="text-purple-600">{house.cleaning_dates.september_2.type}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+            )}
+            
+            {/* Октябрь */}
+            {(house.cleaning_dates.october_1 || house.cleaning_dates.october_2) && (
+              <div className="bg-white p-3 rounded-lg border border-orange-100">
+                <div className="text-xs font-medium text-orange-700 mb-2">🍁 Октябрь</div>
+                <div className="space-y-1">
+                  {house.cleaning_dates.october_1 && house.cleaning_dates.october_1.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.october_1.date}</span>
+                        <div className="text-orange-600">{house.cleaning_dates.october_1.type}</div>
+                      </div>
+                    </div>
+                  )}
+                  {house.cleaning_dates.october_2 && house.cleaning_dates.october_2.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.october_2.date}</span>
+                        <div className="text-orange-600">{house.cleaning_dates.october_2.type}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Ноябрь */}
+            {(house.cleaning_dates.november_1 || house.cleaning_dates.november_2) && (
+              <div className="bg-white p-3 rounded-lg border border-yellow-100">
+                <div className="text-xs font-medium text-yellow-700 mb-2">❄️ Ноябрь</div>
+                <div className="space-y-1">
+                  {house.cleaning_dates.november_1 && house.cleaning_dates.november_1.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.november_1.date}</span>
+                        <div className="text-yellow-600">{house.cleaning_dates.november_1.type}</div>
+                      </div>
+                    </div>
+                  )}
+                  {house.cleaning_dates.november_2 && house.cleaning_dates.november_2.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.november_2.date}</span>
+                        <div className="text-yellow-600">{house.cleaning_dates.november_2.type}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Декабрь */}
+            {(house.cleaning_dates.december_1 || house.cleaning_dates.december_2) && (
+              <div className="bg-white p-3 rounded-lg border border-blue-100">
+                <div className="text-xs font-medium text-blue-700 mb-2">⛄ Декабрь</div>
+                <div className="space-y-1">
+                  {house.cleaning_dates.december_1 && house.cleaning_dates.december_1.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.december_1.date}</span>
+                        <div className="text-blue-600">{house.cleaning_dates.december_1.type}</div>
+                      </div>
+                    </div>
+                  )}
+                  {house.cleaning_dates.december_2 && house.cleaning_dates.december_2.date && (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                      <div>
+                        <span className="font-medium">{house.cleaning_dates.december_2.date}</span>
+                        <div className="text-blue-600">{house.cleaning_dates.december_2.type}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
