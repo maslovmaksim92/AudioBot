@@ -604,6 +604,83 @@ async def get_dashboard_stats():
         logger.error(f"Dashboard stats error: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
 
+@api_router.get("/cleaning/house/{house_id}/details")
+async def get_house_details(house_id: int):
+    """Получить детальную информацию о доме, УК и старшем дома"""
+    try:
+        # Получаем сделку
+        params = {
+            "id": house_id,
+            "select": [
+                "ID", "TITLE", "COMPANY_ID", "COMPANY_TITLE", "CONTACT_ID",
+                "ASSIGNED_BY_NAME", "STAGE_ID",
+                "UF_CRM_1669561599956",  # Адрес
+                "UF_CRM_1669704529022",  # Квартиры
+                "UF_CRM_1669705507390",  # Подъезды
+                "UF_CRM_1669704631166",  # Этажи
+            ]
+        }
+        
+        deal_response = await bitrix_service._make_request("crm.deal.get", params)
+        deal = deal_response.get("result", {})
+        
+        if not deal:
+            raise HTTPException(status_code=404, detail="Дом не найден")
+        
+        # Получаем детали компании
+        company_details = {}
+        if deal.get("COMPANY_ID"):
+            company_details = await bitrix_service.get_company_details(deal["COMPANY_ID"])
+        
+        # Получаем детали контакта (старшего дома)
+        contact_details = {}
+        if deal.get("CONTACT_ID"):
+            if isinstance(deal["CONTACT_ID"], list) and len(deal["CONTACT_ID"]) > 0:
+                contact_details = await bitrix_service.get_contact_details(deal["CONTACT_ID"][0])
+            elif isinstance(deal["CONTACT_ID"], str):
+                contact_details = await bitrix_service.get_contact_details(deal["CONTACT_ID"])
+        
+        result = {
+            "house": {
+                "id": deal.get("ID"),
+                "title": deal.get("TITLE"),
+                "address": deal.get("UF_CRM_1669561599956", ""),
+                "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
+                "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
+                "floors": int(deal.get("UF_CRM_1669704631166") or 0),
+                "brigade": deal.get("ASSIGNED_BY_NAME", ""),
+                "status": deal.get("STAGE_ID", "")
+            },
+            "management_company": {
+                "id": company_details.get("ID", ""),
+                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")),
+                "phone": company_details.get("PHONE", [{}])[0].get("VALUE", "") if company_details.get("PHONE") else "",
+                "email": company_details.get("EMAIL", [{}])[0].get("VALUE", "") if company_details.get("EMAIL") else "",
+                "address": company_details.get("ADDRESS", ""),
+                "web": company_details.get("WEB", [{}])[0].get("VALUE", "") if company_details.get("WEB") else "",
+                "comments": company_details.get("COMMENTS", "")
+            },
+            "senior_resident": {
+                "id": contact_details.get("ID", ""),
+                "name": contact_details.get("NAME", ""),
+                "last_name": contact_details.get("LAST_NAME", ""),
+                "second_name": contact_details.get("SECOND_NAME", ""),
+                "full_name": f"{contact_details.get('LAST_NAME', '')} {contact_details.get('NAME', '')} {contact_details.get('SECOND_NAME', '')}".strip(),
+                "phone": contact_details.get("PHONE", [{}])[0].get("VALUE", "") if contact_details.get("PHONE") else "",
+                "email": contact_details.get("EMAIL", [{}])[0].get("VALUE", "") if contact_details.get("EMAIL") else "",
+                "comments": contact_details.get("COMMENTS", "")
+            }
+        }
+        
+        logger.info(f"Retrieved details for house {house_id}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting house details: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей дома: {str(e)}")
+
 # Include router
 app.include_router(api_router)
 
