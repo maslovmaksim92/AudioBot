@@ -236,12 +236,18 @@ const Works = () => {
           </select>
 
           {/* Фильтр по дате уборки */}
-          <input
-            type="date"
+          <DatePicker
+            selected={activeFilters.cleaning_date ? new Date(activeFilters.cleaning_date) : null}
+            onChange={(date) => {
+              const val = date ? date.toISOString().slice(0,10) : '';
+              setActiveFilters(prev => ({ ...prev, cleaning_date: val }));
+              setPagination(prev => ({...prev, page: 1}));
+            }}
+            placeholderText="Дата уборки"
+            dateFormat="yyyy-MM-dd"
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
-            value={activeFilters.cleaning_date}
-            onChange={(e) => setActiveFilters(prev => ({ ...prev, cleaning_date: e.target.value }))}
-            placeholder="Дата уборки"
+            locale={ru}
+            isClearable
           />
 
 
