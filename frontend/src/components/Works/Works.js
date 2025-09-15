@@ -44,6 +44,8 @@ const Works = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [notification, setNotification] = useState(null);
   const [animatedCards, setAnimatedCards] = useState(new Set());
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedHouse, setSelectedHouse] = useState(null);
   
   const searchRef = useRef(null);
 
