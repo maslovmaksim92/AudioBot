@@ -363,6 +363,11 @@ class VasDomAPITester:
         stats_success, stats_data = self.test_dashboard_stats()
         houses_success, houses_data = self.test_cleaning_houses()
         filters_success, filters_data = self.test_cleaning_filters()
+        
+        # Test new functionality from review request
+        self.test_houses_display_requirements()
+        house_details_success, house_details_data = self.test_house_details_endpoint()
+        
         ai_success, ai_response = self.test_ai_chat()
         bitrix_success = self.test_bitrix24_integration()
         
@@ -387,6 +392,15 @@ class VasDomAPITester:
             print(f"  - Apartments: {stats_data.get('total_apartments', 'N/A')}")
             print(f"  - Brigades: {stats_data.get('active_brigades', 'N/A')}")
             print(f"  - Employees: {stats_data.get('employees', 'N/A')}")
+        
+        if house_details_success:
+            print(f"\n🏠 HOUSE DETAILS TEST:")
+            house = house_details_data.get('house', {})
+            mc = house_details_data.get('management_company', {})
+            print(f"  - House: {house.get('title', 'N/A')}")
+            print(f"  - Address: {house.get('address', 'N/A')}")
+            print(f"  - Management Company: {mc.get('title', 'N/A')}")
+            print(f"  - Apartments: {house.get('apartments', 'N/A')}")
         
         if ai_success:
             print(f"\n🤖 AI RESPONSE SAMPLE:")
