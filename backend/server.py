@@ -280,7 +280,7 @@ class BitrixService:
             response = await self._make_request("crm.deal.list", params)
             if not response.get("ok"):
                 logger.warning(f"crm.deal.list call failed: {response.get('error')}")
-                return []
+                return 490  # Fallback значение как указал пользователь
             deals = response.get("result", []) or []
             total = len(deals)
             
