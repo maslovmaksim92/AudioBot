@@ -724,7 +724,8 @@ async def get_houses(
                 entrances=entrances,
                 floors=floors,
                 cleaning_dates=cleaning_dates,
-                periodicity=periodicity
+                periodicity=periodicity,
+                bitrix_url=f"{bitrix_service.base_url.replace('/rest/','/crm/deal/details/')}{{}}".format(deal.get("ID")) if bitrix_service.base_url else ""
             )
             houses.append(house)
         
