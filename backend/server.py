@@ -408,53 +408,39 @@ async def get_houses(
         
         houses = []
         for deal in deals:
-            # Извлекаем данные из Bitrix24 с улучшенной обработкой
+            # Извлекаем реальные данные из Bitrix24
             apartments = int(deal.get("UF_CRM_1669704529022") or 0)
             entrances = int(deal.get("UF_CRM_1669705507390") or 0)
             floors = int(deal.get("UF_CRM_1669704631166") or 0)
             
-            # Если данные пустые из CRM, генерируем разумные значения на основе ID
-            if apartments == 0 and entrances == 0 and floors == 0:
-                house_id = int(deal.get("ID", 0))
-                apartments = 30 + (house_id % 50)  # 30-80 квартир
-                entrances = 2 + (house_id % 4)     # 2-5 подъездов
-                floors = 5 + (house_id % 5)        # 5-9 этажей
+            # Получаем реальный адрес из Bitrix24
+            address = deal.get("UF_CRM_1669561599956") or deal.get("TITLE", "")
             
-            # Улучшенная обработка бригад
+            # Обработка бригад с реальными данными
             brigade_name = deal.get("ASSIGNED_BY_NAME") or ""
             if not brigade_name and deal.get("ASSIGNED_BY_ID"):
                 brigade_name = f"Бригада №{deal.get('ASSIGNED_BY_ID')}"
             
-            # Улучшенная обработка УК
-            management_company = deal.get("COMPANY_TITLE") or "ООО Управляющая компания"
+            # Реальная УК из Bitrix24
+            management_company = deal.get("COMPANY_TITLE") or ""
             
-            # Обработка графика уборки - берем реальные данные из Bitrix24
+            # Тариф/периодичность
+            tariff = deal.get("tariff", "")
+            
+            # График уборки из реальных данных Bitrix24
             cleaning_dates = deal.get("cleaning_dates", {})
-            
-            # Если график пустой, создаем базовый график на сентябрь
-            if not cleaning_dates:
-                house_id = int(deal.get("ID", 0))
-                cleaning_dates = {
-                    "september_1": {
-                        "date": f"2025-09-{5 + (house_id % 10):02d}",
-                        "type": "Генеральная уборка подъездов"
-                    },
-                    "september_2": {
-                        "date": f"2025-09-{15 + (house_id % 10):02d}",
-                        "type": "Текущая уборка территории"
-                    }
-                }
             
             house = HouseResponse(
                 id=int(deal.get("ID", 0)),
                 title=deal.get("TITLE", "Без названия"),
-                address=deal.get("UF_CRM_1669561599956") or deal.get("TITLE", ""),
+                address=address,
                 brigade=brigade_name,
                 management_company=management_company,
-                status=deal.get("STAGE_ID") or "ACTIVE",
+                status=deal.get("STAGE_ID") or "",
                 apartments=apartments,
                 entrances=entrances,
                 floors=floors,
+                tariff=tariff,
                 cleaning_dates=cleaning_dates
             )
             houses.append(house)
