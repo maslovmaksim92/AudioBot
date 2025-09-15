@@ -613,6 +613,8 @@ async def get_houses(
     management_company: Optional[str] = Query(None, description="Фильтр по УК"),
     week: Optional[str] = Query(None, description="Фильтр по неделе"),
     cleaning_date: Optional[str] = Query(None, description="Фильтр по дате уборки (YYYY-MM-DD)"),
+    date_from: Optional[str] = Query(None, description="Дата с (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Дата по (YYYY-MM-DD)"),
     limit: int = Query(50, description="Лимит записей (10, 50, 100, 500, 1000)"),
     offset: int = Query(0, description="Смещение"),
     page: int = Query(1, description="Номер страницы")
