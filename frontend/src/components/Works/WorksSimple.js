@@ -149,11 +149,11 @@ const WorksSimple = () => {
                     <div className="text-sm font-medium text-green-700 mb-2">📅 График уборки (сентябрь 2025):</div>
                     {house.september_schedule && house.september_schedule.has_schedule ? (
                       <div className="space-y-2">
-                        {/* График 1 */}
+                        {/* График 1 - только из CRM */}
                         {house.september_schedule.cleaning_date_1 && house.september_schedule.cleaning_date_1.length > 0 && (
                           <div className="text-xs text-gray-700 bg-white rounded p-2 border">
                             <div className="font-medium text-green-600 mb-1">
-                              🗓️ {house.september_schedule.cleaning_type_1 || 'Плановая уборка'}
+                              🗓️ {house.september_schedule.cleaning_type_1}
                             </div>
                             <div className="text-gray-600">
                               Даты: {house.september_schedule.cleaning_date_1.map(date => {
@@ -171,11 +171,11 @@ const WorksSimple = () => {
                           </div>
                         )}
                         
-                        {/* График 2 */}
+                        {/* График 2 - только из CRM */}
                         {house.september_schedule.cleaning_date_2 && house.september_schedule.cleaning_date_2.length > 0 && (
                           <div className="text-xs text-gray-700 bg-white rounded p-2 border">
                             <div className="font-medium text-blue-600 mb-1">
-                              🗓️ {house.september_schedule.cleaning_type_2 || 'Дополнительная уборка'}
+                              🗓️ {house.september_schedule.cleaning_type_2}
                             </div>
                             <div className="text-gray-600">
                               Даты: {house.september_schedule.cleaning_date_2.map(date => {
@@ -193,25 +193,15 @@ const WorksSimple = () => {
                           </div>
                         )}
                       </div>
-                    ) : house.cleaning_days && house.cleaning_days.length > 0 ? (
-                      <div className="text-xs text-gray-700 bg-white rounded p-2 border">
-                        🗓️ Регулярная уборка: {house.cleaning_days.join(', ')} каждую неделю
-                        <br />🧹 Подметание лестничных площадок и маршей всех этажей
-                        <br />💧 Влажная уборка 1 этажа и лифта
-                        <br />🦠 Профилактическая дезинфекция МОП
-                      </div>
                     ) : (
-                      <div className="text-xs text-gray-700 bg-white rounded p-2 border">
-                        🗓️05.09.2025 - Влажная уборка лестничных площадок
-                        <br />🗓️12.09.2025 - Подметание маршей и дезинфекция  
-                        <br />🗓️19.09.2025 - Генеральная уборка МОП
-                        <br />🗓️26.09.2025 - Влажная уборка и дезинфекция
+                      <div className="text-xs text-gray-500 italic bg-gray-100 rounded p-2">
+                        ⚠️ График не установлен в CRM
                       </div>
                     )}
                     <div className="flex items-center mt-2 text-xs">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-green-700">
-                        График активен (бригада: {house.brigade || 'Не назначена'})
+                      <div className={`w-2 h-2 rounded-full mr-2 ${house.september_schedule?.has_schedule ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className={house.september_schedule?.has_schedule ? 'text-green-700' : 'text-gray-500'}>
+                        {house.september_schedule?.has_schedule ? 'График из CRM активен' : 'График не настроен в CRM'}
                       </span>
                     </div>
                   </div>
