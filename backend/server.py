@@ -94,6 +94,9 @@ class BitrixService:
         # Простой кэш пользователей (бригады) с TTL
         self._user_cache: Dict[str, Dict[str, Any]] = {}
         self._user_cache_ttl_seconds = int(os.environ.get('BITRIX_USER_CACHE_TTL', '600'))  # 10 минут
+        # Кэш перечислений пользовательских полей (enum) с TTL
+        self._enum_cache: Dict[str, Dict[str, Any]] = {}
+        self._enum_cache_ttl_seconds = int(os.environ.get('BITRIX_ENUM_CACHE_TTL', '3600'))  # 60 минут
         
     async def _make_request(self, method: str, params: Dict = None) -> Dict:
         """Выполнить запрос к Bitrix24 API с ретраями и явным признаком успеха"""
