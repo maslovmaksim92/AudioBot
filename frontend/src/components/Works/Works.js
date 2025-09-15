@@ -12,7 +12,8 @@ import {
   Plus,
   Home,
   Layers,
-  DoorOpen
+  DoorOpen,
+  ExternalLink
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { ru } from 'date-fns/locale';
