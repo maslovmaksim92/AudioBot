@@ -397,12 +397,20 @@ class BitrixService:
         }
         
         # Функция для обработки типа уборки
-        def process_cleaning_type(type_code):
-            if isinstance(type_code, str):
-                return cleaning_types.get(type_code, f"Тип уборки {type_code}")
-            elif isinstance(type_code, list):
-                return cleaning_types.get(str(type_code[0]), f"Тип {type_code[0]}") if type_code else ""
-            return str(type_code) if type_code else ""
+        async def process_cleaning_type(type_code, field_name: str):
+            """Вернуть человекочитаемое значение типа уборки. Сначала пытаемся тянуть enum из Bitrix, если недоступен — из локальной мапы."""
+            if not type_code:
+                return ""
+            # Пробуем получить карту перечислений из Bitrix и кэша
+            enum_map = await self.get_field_enum_map(field_name)
+            if isinstance(type_code, list):
+                key = str(type_code[0]) if type_code else None
+            else:
+                key = str(type_code)
+            if key and enum_map.get(key):
+                return enum_map[key]
+            # Фоллбэк на локальную мапу
+            return cleaning_types.get(key, f"Тип уборки {key}") if key else ""
         
         # Функция для обработки дат
         def process_dates(date_field):
