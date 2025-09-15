@@ -184,10 +184,18 @@ const WorksSimple = () => {
                   </div>
 
                   <div className="mb-4 text-sm">
-                    <div className={`flex items-center justify-between ${house.status_color === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+                    <div className="flex items-center justify-between">
                       <span>Статус:</span>
-                      <span className="font-medium">
-                        {house.status_color === 'error' ? '❌' : '✅'} {house.status_text || 'Активный'}
+                      <span className="font-medium flex items-center">
+                        {house.status_color === 'error' ? (
+                          <>
+                            <span className="text-yellow-600">⚠️ Внимание</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-green-600">✅ Активный</span>
+                          </>
+                        )}
                       </span>
                     </div>
                   </div>
