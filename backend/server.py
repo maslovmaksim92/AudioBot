@@ -517,8 +517,8 @@ async def get_houses(
             elif deal.get("ASSIGNED_BY_ID"):
                 brigade_name = str(deal.get("ASSIGNED_BY_ID"))
             
-            # Реальная УК из Bitrix24
-            management_company = deal.get("COMPANY_TITLE") or ""
+            # Реальная УК из обогащенных данных Bitrix24
+            management_company = deal.get("COMPANY_TITLE_ENRICHED") or deal.get("COMPANY_TITLE") or ""
             
             # График уборки из реальных данных Bitrix24
             cleaning_dates = deal.get("cleaning_dates", {})
