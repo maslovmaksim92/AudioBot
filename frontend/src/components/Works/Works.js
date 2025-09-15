@@ -23,19 +23,19 @@ const Works = () => {
       if (data.houses) {
         setHouses(data.houses);
         
-        // Вычисляем статистику из загруженных домов с fallback значениями
+        // Вычисляем статистику из РЕАЛЬНЫХ данных CRM (без fallback)
         const stats = {
           total: data.houses.length,
           total_apartments: data.houses.reduce((sum, house) => {
-            const apartments = house.apartments_count || house.apartment_count || Math.floor(Math.random() * 80) + 20;
+            const apartments = house.apartments_count || house.apartment_count || 0;
             return sum + apartments;
           }, 0),
           total_entrances: data.houses.reduce((sum, house) => {
-            const entrances = house.entrances_count || house.entrance_count || Math.floor(Math.random() * 4) + 1;
+            const entrances = house.entrances_count || house.entrance_count || 0;
             return sum + entrances;
           }, 0),
           management_companies: [...new Set(data.houses.map(house => house.management_company).filter(Boolean))].length,
-          with_schedule: data.houses.length // Теперь у всех домов есть графики
+          with_schedule: data.houses.filter(house => house.september_schedule?.has_schedule).length // Только реальные графики
         };
         
         setStatistics(stats);
