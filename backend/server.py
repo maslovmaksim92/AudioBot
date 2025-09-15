@@ -288,6 +288,33 @@ class BitrixService:
         else:
             deal["COMPANY_TITLE_ENRICHED"] = ""
         
+        # Получаем данные пользователя (бригады) если есть ASSIGNED_BY_ID
+        if deal.get("ASSIGNED_BY_ID"):
+            try:
+                user_data = await self.get_user_details(deal["ASSIGNED_BY_ID"])
+                if user_data:
+                    # Формируем название бригады из NAME и LAST_NAME
+                    name = user_data.get("NAME", "").strip()
+                    last_name = user_data.get("LAST_NAME", "").strip()
+                    
+                    if name and last_name:
+                        brigade_name = f"{name} {last_name}"
+                    elif name:
+                        brigade_name = name
+                    elif last_name:
+                        brigade_name = last_name
+                    else:
+                        brigade_name = f"Бригада {deal['ASSIGNED_BY_ID']}"
+                    
+                    deal["BRIGADE_NAME_ENRICHED"] = brigade_name
+                else:
+                    deal["BRIGADE_NAME_ENRICHED"] = f"Бригада {deal['ASSIGNED_BY_ID']}"
+            except Exception as e:
+                logger.error(f"Error enriching brigade data: {e}")
+                deal["BRIGADE_NAME_ENRICHED"] = f"Бригада {deal.get('ASSIGNED_BY_ID', '')}"
+        else:
+            deal["BRIGADE_NAME_ENRICHED"] = ""
+        
         # Реальные типы уборки из Bitrix24
         cleaning_types = {
             # Сентябрь 2025 - UF_CRM_1741592855565
