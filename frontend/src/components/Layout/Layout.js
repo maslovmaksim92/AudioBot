@@ -49,11 +49,9 @@ const Layout = ({ children }) => {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
-              </div>
+              <img src={process.env.PUBLIC_URL + '/logo.png'} alt="VasDom" className="w-10 h-10 rounded-xl object-contain bg-white border" />
               <div>
-                <h1 className="text-xl font-bold gradient-text">VasDom</h1>
+                <h1 className="text-xl font-bold text-gray-900">Ваш Дом</h1>
                 <p className="text-sm text-gray-500">AudioBot</p>
               </div>
             </div>
