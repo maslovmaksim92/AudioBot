@@ -187,7 +187,7 @@ const Works = () => {
           Управление домами
         </h1>
         <p className="text-lg text-gray-600">
-          Полная интеграция с Bitrix24 • {houses.length} домов в системе
+          Полная интеграция с Bitrix24 • {pagination.total.toLocaleString()} домов в системе
         </p>
       </div>
 
@@ -501,6 +501,7 @@ const Works = () => {
         </div>
       </div>
     );
+  };
 
   const renderHouseCard = (house, index) => (
     <div
@@ -517,7 +518,7 @@ const Works = () => {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
               {house.title || house.address || 'Без названия'}
             </h3>
             <p className="text-sm text-gray-500">ID: {house.id || 'N/A'}</p>
@@ -549,7 +550,7 @@ const Works = () => {
         <div className="flex items-center space-x-2 text-sm">
           <Building2 className="w-4 h-4 text-blue-600" />
           <span className="font-medium">УК:</span>
-          <span className="text-gray-700">{house.management_company || 'Не указана'}</span>
+          <span className="text-gray-700 truncate">{house.management_company || 'Не указана'}</span>
         </div>
         
         <div className="flex items-center space-x-2 text-sm">
@@ -560,12 +561,39 @@ const Works = () => {
         
         <div className="flex items-center space-x-2 text-sm">
           <Calendar className="w-4 h-4 text-purple-600" />
-          <span className="font-medium">График:</span>
+          <span className="font-medium">График сентябрь:</span>
           <span className="text-gray-700">
-            {Object.keys(house.cleaning_dates || {}).length > 0 ? 'Настроен' : 'Не указан'}
+            {Object.keys(house.cleaning_dates || {}).length > 0 ? 
+              `${Object.keys(house.cleaning_dates).length} уборки` : 
+              'Не указан'
+            }
           </span>
         </div>
       </div>
+
+      {/* График уборки сентябрь */}
+      {house.cleaning_dates && Object.keys(house.cleaning_dates).length > 0 && (
+        <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+          <h4 className="text-sm font-medium text-purple-800 mb-2">🗓️ График уборки (сентябрь 2025):</h4>
+          <div className="space-y-2">
+            {Object.entries(house.cleaning_dates).slice(0, 2).map(([key, cleaning], idx) => (
+              <div key={key} className="flex items-center space-x-2 text-xs">
+                <span className="w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  {idx + 1}
+                </span>
+                <div>
+                  <div className="font-medium text-purple-700">
+                    {cleaning.date ? new Date(cleaning.date).toLocaleDateString('ru-RU') : 'Дата не указана'}
+                  </div>
+                  <div className="text-purple-600 text-xs">
+                    {cleaning.type || 'Тип уборки не указан'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
@@ -630,6 +658,9 @@ const Works = () => {
           </button>
         </div>
       )}
+
+      {/* Пагинация */}
+      {renderPagination()}
 
       <NotificationBar />
     </div>
