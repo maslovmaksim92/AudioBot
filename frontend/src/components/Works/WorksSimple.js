@@ -117,19 +117,19 @@ const WorksSimple = () => {
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-green-100 rounded p-3 text-center">
                       <div className="text-xl font-bold text-green-600">
-                        {house.apartments_count || house.apartment_count || Math.floor(Math.random() * 80) + 20}
+                        {house.apartments_count || house.apartment_count || 'н/д'}
                       </div>
                       <div className="text-xs text-green-700">Квартир</div>
                     </div>
                     <div className="bg-blue-100 rounded p-3 text-center">
                       <div className="text-xl font-bold text-blue-600">
-                        {house.entrances_count || house.entrance_count || Math.floor(Math.random() * 4) + 1}
+                        {house.entrances_count || house.entrance_count || 'н/д'}
                       </div>
                       <div className="text-xs text-blue-700">Подъездов</div>
                     </div>
                     <div className="bg-orange-100 rounded p-3 text-center">
                       <div className="text-xl font-bold text-orange-600">
-                        {house.floors_count || house.floor_count || Math.floor(Math.random() * 5) + 5}
+                        {house.floors_count || house.floor_count || 'н/д'}
                       </div>
                       <div className="text-xs text-orange-700">Этажей</div>
                     </div>
