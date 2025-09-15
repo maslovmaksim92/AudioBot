@@ -163,7 +163,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="pt-2 px-4 pb-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="text-center space-y-4 animate-fade-scale">
         <h1 className="text-4xl font-bold gradient-text">
