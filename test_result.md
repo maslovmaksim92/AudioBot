@@ -155,8 +155,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Verify /api/cleaning/houses responds with HousesResponse shape and includes 'brigade' string for each house when deals exist; handles empty gracefully"
-##     - "Verify /api/cleaning/house/{id}/details returns house.brigade resolved name when Bitrix is configured; returns 404 when not found"
+##     - "✅ COMPLETED: Verify /api/cleaning/houses responds with HousesResponse shape and includes 'brigade' string for each house when deals exist; handles empty gracefully"
+##     - "✅ COMPLETED: Verify /api/cleaning/house/{id}/details returns house.brigade resolved name when Bitrix is configured; returns 404 when not found"
 ##   stuck_tasks:
 ##     - "None"
 ##   test_all: false
