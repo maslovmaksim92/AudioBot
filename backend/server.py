@@ -207,24 +207,28 @@ class BitrixService:
             logger.error(f"Error getting company details: {e}")
             return {}
     
-    async def get_contact_details(self, contact_id: str) -> Dict:
-        """Получить детали контакта (старшего дома) из Bitrix24"""
+    async def get_user_details(self, user_id: str) -> Dict:
+        """Получить детали пользователя (бригады) из Bitrix24"""
         try:
-            if not contact_id:
+            if not user_id:
                 return {}
                 
             params = {
-                "id": contact_id
+                "ID": user_id
             }
             
-            response = await self._make_request("crm.contact.get", params)
-            contact_data = response.get("result", {})
+            response = await self._make_request("user.get", params)
+            user_data = response.get("result", [])
             
-            logger.info(f"Retrieved contact details for ID {contact_id}")
-            return contact_data
+            if user_data and len(user_data) > 0:
+                user = user_data[0]
+                logger.info(f"Retrieved user details for ID {user_id}")
+                return user
+            
+            return {}
             
         except Exception as e:
-            logger.error(f"Error getting contact details: {e}")
+            logger.error(f"Error getting user details: {e}")
             return {}
     
     async def get_total_deals_count(self) -> int:
