@@ -90,8 +90,12 @@ const Works = () => {
       Object.entries(activeFilters).forEach(([key, value]) => {
         if (value) queryParams.append(key, value);
       });
+      
+      // Добавляем параметры пагинации
+      queryParams.append('page', pagination.page.toString());
+      queryParams.append('limit', pagination.limit.toString());
 
-      const url = `${BACKEND_URL}/api/cleaning/houses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const url = `${BACKEND_URL}/api/cleaning/houses?${queryParams.toString()}`;
       console.log('🏠 Fetching houses from:', url);
 
       const response = await fetch(url);
@@ -102,8 +106,15 @@ const Works = () => {
       const data = await response.json();
       console.log('🏠 Houses data received:', data);
 
-      const housesData = data.houses || data || [];
+      // Обновляем данные домов и пагинации
+      const housesData = data.houses || [];
       setHouses(housesData);
+      setPagination({
+        total: data.total || 0,
+        page: data.page || 1,
+        limit: data.limit || 50,
+        pages: data.pages || 0
+      });
 
       // Анимация появления карточек
       const newAnimated = new Set();
@@ -114,8 +125,8 @@ const Works = () => {
         }, index * 50);
       });
 
-      console.log(`✅ Loaded ${housesData.length} houses`);
-      showNotification(`✅ Загружено ${housesData.length} домов из Bitrix24`, 'success');
+      console.log(`✅ Loaded ${housesData.length} houses (page ${data.page}/${data.pages})`);
+      showNotification(`✅ Загружено ${housesData.length} домов из ${data.total} (страница ${data.page}/${data.pages})`, 'success');
       
     } catch (error) {
       console.error('❌ Error fetching houses:', error);
