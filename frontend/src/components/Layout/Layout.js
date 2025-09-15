@@ -115,7 +115,7 @@ const Layout = ({ children }) => {
       {/* Main content */}
       <div className="lg:pl-72">
         {/* Top bar */}
-        <div className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+        <div className="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
