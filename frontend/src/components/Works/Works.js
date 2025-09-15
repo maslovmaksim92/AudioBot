@@ -145,6 +145,7 @@ const Works = () => {
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
     setAnimatedCards(new Set());
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLimitChange = (newLimit) => {
