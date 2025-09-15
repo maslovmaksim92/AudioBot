@@ -188,12 +188,12 @@ const Works = () => {
   return (
     <div className="pt-2 px-6 pb-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8 animate-fade-scale text-center">
-        <h1 className="text-3xl font-bold gradient-text flex items-center justify-center">
-          <Building2 className="w-8 h-8 mr-3 text-blue-600" />
+      <div className="mb-4 animate-fade-scale">
+        <h1 className="text-2xl font-bold gradient-text flex items-center">
+          <Building2 className="w-7 h-7 mr-3 text-blue-600" />
           Управление домами
         </h1>
-        <p className="text-lg text-gray-600 mt-2">
+        <p className="text-sm text-gray-600 mt-1">
           Полная интеграция с Bitrix24 • {pagination.total.toLocaleString()} домов в системе
         </p>
       </div>
