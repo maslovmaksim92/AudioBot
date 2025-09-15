@@ -235,7 +235,7 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="card-modern animate-slide-up" style={{ animationDelay: '700ms' }}>
+      <div className="card-modern animate-slide-up" style={{ animationDelay: '400ms' }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">
             <Activity className="w-5 h-5 mr-2 text-blue-600" />
