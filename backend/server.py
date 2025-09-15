@@ -207,16 +207,17 @@ class BitrixService:
             if not company_id:
                 return {}
                 
-            params = {
-                "id": company_id
-            }
-            
+            params = {"id": company_id}
             response = await self._make_request("crm.company.get", params)
-            company_data = response.get("result", {})
-            
+            if not response.get("ok"):
+                logger.warning(f"crm.company.get failed for ID {company_id}: {response.get('error')}")
+                return {}
+            company_data = response.get("result") or {}
+            if isinstance(company_data, list):
+                # Иногда Bitrix возвращает массив, берем первый элемент
+                company_data = company_data[0] if company_data else {}
             logger.info(f"Retrieved company details for ID {company_id}")
             return company_data
-            
         except Exception as e:
             logger.error(f"Error getting company details: {e}")
             return {}
