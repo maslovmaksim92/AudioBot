@@ -55,6 +55,7 @@ class HouseResponse(BaseModel):
     entrances: int = 0  
     floors: int = 0
     cleaning_dates: Dict = Field(default_factory=dict)  # Все даты уборок
+    periodicity: Optional[str] = "Периодичность - индивидуальная"
 
 class HousesResponse(BaseModel):
     houses: List[HouseResponse]
