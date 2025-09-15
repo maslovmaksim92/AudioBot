@@ -196,8 +196,8 @@ const Works = () => {
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-elegant">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold">{houses.length}</div>
-              <div className="text-blue-100 text-sm">Домов загружено</div>
+              <div className="text-2xl font-bold">{pagination.total.toLocaleString()}</div>
+              <div className="text-blue-100 text-sm">Всего домов в системе</div>
             </div>
             <Building2 className="w-8 h-8 text-blue-200" />
           </div>
@@ -209,7 +209,7 @@ const Works = () => {
               <div className="text-2xl font-bold">
                 {houses.reduce((sum, house) => sum + (house.apartments || 0), 0).toLocaleString()}
               </div>
-              <div className="text-green-100 text-sm">Квартир</div>
+              <div className="text-green-100 text-sm">Квартир на странице</div>
             </div>
             <Home className="w-8 h-8 text-green-200" />
           </div>
@@ -229,7 +229,7 @@ const Works = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-bold">{filters.brigades?.length || 0}</div>
-              <div className="text-orange-100 text-sm">Бригад</div>
+              <div className="text-orange-100 text-sm">Бригад активно</div>
             </div>
             <BarChart3 className="w-8 h-8 text-orange-200" />
           </div>
