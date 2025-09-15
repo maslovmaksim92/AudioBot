@@ -667,24 +667,38 @@ async def get_houses(
 
             # Определяем периодичность по данным сентября (как базовый случай):
             def get_periodicity_label(cd: Dict) -> str:
-                # Считаем количество событий "мытье" и "подметание" по сентябрю
-                wash_count = 0
-                sweep_count = 0
+                # Считаем количество дат-уборок по сентябрю по типам работ
+                wash_dates = 0
+                sweep_dates = 0
+                full_wash_dates = 0
+                first_floor_wash_dates = 0
                 for key in ["september_1", "september_2"]:
-                    if key in cd and cd[key].get("type"):
-                        t = str(cd[key]["type"]).lower()
-                        if "влажная уборка" in t or "мытье" in t:
-                            wash_count += 1
-                        if "подмет" in t:
-                            sweep_count += 1
-                # Правила формулировок
-                if wash_count == 2 and sweep_count == 0:
+                    block = cd.get(key) or {}
+                    t = str(block.get("type") or "").lower()
+                    dates = block.get("dates") or []
+                    if not isinstance(dates, list):
+                        dates = []
+                    # Классификация
+                    has_wash = ("влажная уборка" in t) or ("мытье" in t)
+                    has_sweep = ("подмет" in t)
+                    is_full = ("всех этажей" in t) or ("всех этаж" in t)
+                    is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
+                    if has_wash:
+                        wash_dates += len(dates)
+                    if has_sweep:
+                        sweep_dates += len(dates)
+                    if has_wash and is_full:
+                        full_wash_dates += len(dates)
+                    if has_wash and is_first_floor:
+                        first_floor_wash_dates += len(dates)
+                # Правила формулировок на основе количества дат
+                if wash_dates == 2 and sweep_dates == 0:
                     return "Периодичность - 2 раза"
-                if wash_count == 2 and sweep_count >= 1:
-                    return "Периодичность - Мытье 2 раза + подметание 2 раза" if sweep_count >= 2 else "Периодичность - Мытье 2 раза + подметание"
-                if wash_count == 1 and sweep_count == 1:
+                if full_wash_dates >= 1 and first_floor_wash_dates >= 1 and wash_dates == (full_wash_dates + first_floor_wash_dates) and sweep_dates == 0:
                     return "Периодичность - 2 раза + первые этажи"
-                if wash_count >= 4:
+                if wash_dates == 2 and sweep_dates == 2:
+                    return "Периодичность - Мытье 2 раза + подметание 2 раза"
+                if wash_dates >= 4:
                     return "Периодичность - 4 раза"
                 return "Периодичность - индивидуальная"
             periodicity = get_periodicity_label(cleaning_dates)
