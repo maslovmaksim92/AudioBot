@@ -214,6 +214,27 @@ class BitrixService:
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
         
+        # Словарь типов уборки (предположительные значения)
+        cleaning_types = {
+            "2468": "Генеральная уборка подъездов",
+            "2476": "Текущая уборка подъездов", 
+            "2474": "Мытье окон подъездов",
+            "2480": "Уборка лестничных клеток",
+            "2482": "Генеральная уборка + дезинфекция",
+            "2486": "Текущая уборка + уборка мусора",
+            "2492": "Подготовка к зиме",
+            "2494": "Осенняя генеральная уборка",
+            "2498": "Зимняя профилактика"
+        }
+        
+        # Функция для обработки типа уборки
+        def process_cleaning_type(type_code):
+            if isinstance(type_code, str):
+                return cleaning_types.get(type_code, f"Тип уборки {type_code}")
+            elif isinstance(type_code, list):
+                return " + ".join([cleaning_types.get(str(code), f"Тип {code}") for code in type_code])
+            return str(type_code) if type_code else ""
+        
         # Добавляем обработанные даты уборок для всех месяцев
         cleaning_dates = {}
         
@@ -221,52 +242,52 @@ class BitrixService:
         if deal.get("UF_CRM_1741592774017") or deal.get("UF_CRM_1741592855565"):
             cleaning_dates["september_1"] = {
                 "date": deal.get("UF_CRM_1741592774017") or "",
-                "type": deal.get("UF_CRM_1741592855565") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741592855565"))
             }
         
         if deal.get("UF_CRM_1741592892232") or deal.get("UF_CRM_1741592945060"):
             cleaning_dates["september_2"] = {
                 "date": deal.get("UF_CRM_1741592892232") or "",
-                "type": deal.get("UF_CRM_1741592945060") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741592945060"))
             }
         
         # Октябрь 2025
         if deal.get("UF_CRM_1741593004888") or deal.get("UF_CRM_1741593047994"):
             cleaning_dates["october_1"] = {
                 "date": deal.get("UF_CRM_1741593004888") or "",
-                "type": deal.get("UF_CRM_1741593047994") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593047994"))
             }
         
         if deal.get("UF_CRM_1741593067418") or deal.get("UF_CRM_1741593115407"):
             cleaning_dates["october_2"] = {
                 "date": deal.get("UF_CRM_1741593067418") or "",
-                "type": deal.get("UF_CRM_1741593115407") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593115407"))
             }
         
         # Ноябрь 2025
         if deal.get("UF_CRM_1741593156926") or deal.get("UF_CRM_1741593210242"):
             cleaning_dates["november_1"] = {
                 "date": deal.get("UF_CRM_1741593156926") or "",
-                "type": deal.get("UF_CRM_1741593210242") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593210242"))
             }
         
         if deal.get("UF_CRM_1741593231558") or deal.get("UF_CRM_1741593285121"):
             cleaning_dates["november_2"] = {
                 "date": deal.get("UF_CRM_1741593231558") or "",
-                "type": deal.get("UF_CRM_1741593285121") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593285121"))
             }
         
         # Декабрь 2025
         if deal.get("UF_CRM_1741593340713") or deal.get("UF_CRM_1741593387667"):
             cleaning_dates["december_1"] = {
                 "date": deal.get("UF_CRM_1741593340713") or "",
-                "type": deal.get("UF_CRM_1741593387667") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593387667"))
             }
         
         if deal.get("UF_CRM_1741593408621") or deal.get("UF_CRM_1741593452062"):
             cleaning_dates["december_2"] = {
                 "date": deal.get("UF_CRM_1741593408621") or "",
-                "type": deal.get("UF_CRM_1741593452062") or ""
+                "type": process_cleaning_type(deal.get("UF_CRM_1741593452062"))
             }
         
         # Добавляем тариф/периодичность уборки
