@@ -552,21 +552,8 @@ async def get_houses(
             # Получаем реальный адрес из Bitrix24
             address = deal.get("UF_CRM_1669561599956") or deal.get("TITLE", "")
             
-            # Обработка бригад - получаем из ASSIGNED_BY_NAME
-            brigade_name = ""
-            if deal.get("ASSIGNED_BY_NAME"):
-                assigned_name = str(deal.get("ASSIGNED_BY_NAME"))
-                # Извлекаем номер бригады
-                if "бригада" in assigned_name.lower() or "brigade" in assigned_name.lower():
-                    # Извлекаем номер из строки
-                    import re
-                    numbers = re.findall(r'\d+', assigned_name)
-                    if numbers:
-                        brigade_name = numbers[-1]  # Берем последнее число
-                else:
-                    brigade_name = assigned_name
-            elif deal.get("ASSIGNED_BY_ID"):
-                brigade_name = str(deal.get("ASSIGNED_BY_ID"))
+            # Обработка бригад - получаем из обогащенных данных
+            brigade_name = deal.get("BRIGADE_NAME_ENRICHED", "")
             
             # Реальная УК из обогащенных данных Bitrix24
             management_company = deal.get("COMPANY_TITLE_ENRICHED") or deal.get("COMPANY_TITLE") or ""
