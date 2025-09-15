@@ -115,7 +115,7 @@ class BitrixService:
     ) -> List[Dict]:
         """Получить оптимизированный список сделок (домов) из Bitrix24"""
         
-        # Параметры запроса
+        # Параметры запроса с увеличенным лимитом
         params = {
             "select": [
                 "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
@@ -126,10 +126,15 @@ class BitrixService:
                 "UF_CRM_1669705507390",  # Количество подъездов
                 "UF_CRM_1669704631166",  # Количество этажей
                 "UF_CRM_1669706387893",  # Тариф/периодичность
+                # Поля уборки сентябрь 2025
+                "UF_CRM_1741592774017",  # Дата уборки 1 сентябрь
+                "UF_CRM_1741592855565",  # Тип уборки 1 сентябрь
+                "UF_CRM_1741592892232",  # Дата уборки 2 сентябрь
+                "UF_CRM_1741592945060",  # Тип уборки 2 сентябрь
             ],
             "order": {"ID": "DESC"},
             "start": offset,
-            "limit": limit
+            "limit": min(limit, 1000)  # Максимум 1000 за запрос
         }
         
         # Добавляем фильтры если указаны
@@ -156,6 +161,29 @@ class BitrixService:
         
         logger.info(f"Retrieved {len(enriched_deals)} deals from Bitrix24")
         return enriched_deals
+    
+    async def get_total_deals_count(self) -> int:
+        """Получить общее количество сделок в Bitrix24"""
+        try:
+            params = {
+                "select": ["ID"],
+                "order": {"ID": "DESC"}
+            }
+            
+            response = await self._make_request("crm.deal.list", params)
+            total = response.get("total", 0)
+            
+            # Если total не возвращается API, считаем по результатам
+            if not total:
+                all_deals = response.get("result", [])
+                total = len(all_deals)
+            
+            logger.info(f"Total deals count in Bitrix24: {total}")
+            return total
+            
+        except Exception as e:
+            logger.error(f"Error getting total deals count: {e}")
+            return 490  # Fallback значение из описания
     
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
