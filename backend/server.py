@@ -54,7 +54,8 @@ class HouseResponse(BaseModel):
     apartments: int = 0
     entrances: int = 0  
     floors: int = 0
-    cleaning_dates: Dict = Field(default_factory=dict)
+    tariff: Optional[str] = ""  # Тариф/периодичность уборки
+    cleaning_dates: Dict = Field(default_factory=dict)  # Все даты уборок
 
 class HousesResponse(BaseModel):
     houses: List[HouseResponse]
