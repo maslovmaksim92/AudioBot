@@ -120,32 +120,51 @@ class BitrixService:
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict]:
-        """Получить оптимизированный список сделок (домов) из Bitrix24"""
+        """Получить оптимизированный список сделок (домов) из воронки 'Уборка подъездов' (ID=34)"""
         
-        # Параметры запроса с увеличенным лимитом
+        # Параметры запроса с фильтром по воронке "Уборка подъездов"
         params = {
             "select": [
                 "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
-                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME",
-                # Пользовательские поля Bitrix24
+                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
+                # Основные пользовательские поля
                 "UF_CRM_1669561599956",  # Адрес дома
                 "UF_CRM_1669704529022",  # Количество квартир
                 "UF_CRM_1669705507390",  # Количество подъездов
                 "UF_CRM_1669704631166",  # Количество этажей
-                "UF_CRM_1669706387893",  # Тариф/периодичность
-                # Поля уборки сентябрь 2025
+                "UF_CRM_1669706387893",  # Тариф/периодичность уборки
+                # Сентябрь 2025
                 "UF_CRM_1741592774017",  # Дата уборки 1 сентябрь
                 "UF_CRM_1741592855565",  # Тип уборки 1 сентябрь
                 "UF_CRM_1741592892232",  # Дата уборки 2 сентябрь
                 "UF_CRM_1741592945060",  # Тип уборки 2 сентябрь
+                # Октябрь 2025
+                "UF_CRM_1741593004888",  # Дата уборки 1 октябрь
+                "UF_CRM_1741593047994",  # Тип уборки 1 октябрь
+                "UF_CRM_1741593067418",  # Дата уборки 2 октябрь
+                "UF_CRM_1741593115407",  # Тип уборки 2 октябрь
+                # Ноябрь 2025
+                "UF_CRM_1741593156926",  # Дата уборки 1 ноябрь
+                "UF_CRM_1741593210242",  # Тип уборки 1 ноябрь
+                "UF_CRM_1741593231558",  # Дата уборки 2 ноябрь
+                "UF_CRM_1741593285121",  # Тип уборки 2 ноябрь
+                # Декабрь 2025
+                "UF_CRM_1741593340713",  # Дата уборки 1 декабрь
+                "UF_CRM_1741593387667",  # Тип уборки 1 декабрь
+                "UF_CRM_1741593408621",  # Дата уборки 2 декабрь
+                "UF_CRM_1741593452062",  # Тип уборки 2 декабрь
             ],
             "order": {"ID": "DESC"},
             "start": offset,
-            "limit": min(limit, 1000)  # Максимум 1000 за запрос
+            "limit": min(limit, 1000)
         }
         
-        # Добавляем фильтры если указаны
-        filter_params = {}
+        # Основной фильтр: только воронка "Уборка подъездов" (ID=34)
+        filter_params = {
+            "CATEGORY_ID": "34"
+        }
+        
+        # Добавляем дополнительные фильтры если указаны
         if brigade:
             filter_params["ASSIGNED_BY_NAME"] = f"%{brigade}%"
         if status:
@@ -153,8 +172,7 @@ class BitrixService:
         if management_company:
             filter_params["COMPANY_TITLE"] = f"%{management_company}%"
             
-        if filter_params:
-            params["filter"] = filter_params
+        params["filter"] = filter_params
         
         # Выполняем запрос
         response = await self._make_request("crm.deal.list", params)
@@ -166,31 +184,31 @@ class BitrixService:
             enriched_deal = await self._enrich_deal_data(deal)
             enriched_deals.append(enriched_deal)
         
-        logger.info(f"Retrieved {len(enriched_deals)} deals from Bitrix24")
+        logger.info(f"Retrieved {len(enriched_deals)} deals from 'Уборка подъездов' pipeline")
         return enriched_deals
     
     async def get_total_deals_count(self) -> int:
-        """Получить общее количество сделок в Bitrix24"""
+        """Получить общее количество сделок в воронке 'Уборка подъездов'"""
         try:
             params = {
                 "select": ["ID"],
+                "filter": {
+                    "CATEGORY_ID": "34"  # Только воронка "Уборка подъездов"
+                },
                 "order": {"ID": "DESC"}
             }
             
+            # Делаем запрос с большим лимитом чтобы получить общее количество
             response = await self._make_request("crm.deal.list", params)
-            total = response.get("total", 0)
+            deals = response.get("result", [])
+            total = len(deals)
             
-            # Если total не возвращается API, считаем по результатам
-            if not total:
-                all_deals = response.get("result", [])
-                total = len(all_deals)
-            
-            logger.info(f"Total deals count in Bitrix24: {total}")
+            logger.info(f"Total deals count in 'Уборка подъездов' pipeline: {total}")
             return total
             
         except Exception as e:
             logger.error(f"Error getting total deals count: {e}")
-            return 490  # Fallback значение из описания
+            return 490  # Fallback значение как указал пользователь
     
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
