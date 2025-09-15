@@ -99,7 +99,9 @@ class BitrixService:
         self._enum_cache_ttl_seconds = int(os.environ.get('BITRIX_ENUM_CACHE_TTL', '3600'))  # 60 минут
         
     async def _make_request(self, method: str, params: Dict = None) -> Dict:
-        """Выполнить запрос к Bitrix24 API с ретраями и явным признаком успеха"""
+        """Выполнить запрос к Bitrix24 API с ретраями и явным признаком успеха.
+        Возвращаем также поля next/total, если они присутствуют в ответе Bitrix.
+        """
         if not self.base_url:
             logger.warning("Bitrix24 webhook URL not configured")
             return {"ok": False, "result": None}
@@ -113,7 +115,12 @@ class BitrixService:
                     response = await client.post(url, json=params or {})
                     response.raise_for_status()
                     data = response.json()
-                    return {"ok": True, "result": data.get("result")}
+                    return {
+                        "ok": True,
+                        "result": data.get("result"),
+                        "next": data.get("next"),
+                        "total": data.get("total")
+                    }
             except httpx.RequestError as e:
                 last_error = e
                 logger.error(f"Bitrix24 request error (attempt {attempt+1}/{retries+1}): {e}")
