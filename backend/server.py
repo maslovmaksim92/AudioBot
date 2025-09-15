@@ -278,7 +278,10 @@ class BitrixService:
             
             # Делаем запрос с большим лимитом чтобы получить общее количество
             response = await self._make_request("crm.deal.list", params)
-            deals = response.get("result", [])
+            if not response.get("ok"):
+                logger.warning(f"crm.deal.list call failed: {response.get('error')}")
+                return []
+            deals = response.get("result", []) or []
             total = len(deals)
             
             logger.info(f"Total deals count in 'Уборка подъездов' pipeline: {total}")
