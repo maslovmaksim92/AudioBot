@@ -285,31 +285,16 @@ const Works = () => {
 
             {/* Info */}
             <div className="space-y-3 mb-4">
-              {house.management_company && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Building2 className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">УК:</span>
-                  <span className="text-gray-700">{house.management_company}</span>
-                </div>
-              )}
-              
-              {house.brigade && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <Users className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">Бригада:</span>
-                  <span className="text-gray-700">{house.brigade}</span>
-                </div>
-              )}
+              <div className="flex items-center space-x-2 text-sm">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span className="font-medium">УК:</span>
+                <span className="text-gray-700">{house.management_company || 'Не указана'}</span>
+              </div>
               
               <div className="flex items-center space-x-2 text-sm">
-                <Calendar className="w-4 h-4 text-purple-600" />
-                <span className="font-medium">График:</span>
-                <span className="text-gray-700">
-                  {Object.keys(house.cleaning_dates || {}).length > 0 ? 
-                    `${Object.keys(house.cleaning_dates).length} уборок запланировано` : 
-                    'Не указан'
-                  }
-                </span>
+                <Users className="w-4 h-4 text-green-600" />
+                <span className="font-medium">Бригада №:</span>
+                <span className="text-gray-700">{house.brigade || 'Не назначена'}</span>
               </div>
             </div>
 
