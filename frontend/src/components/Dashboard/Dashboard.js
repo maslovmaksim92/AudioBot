@@ -165,7 +165,8 @@ const Dashboard = () => {
   return (
     <div className="pt-2 px-4 pb-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center space-y-4 animate-fade-scale">
+      <PageHeader />
+      <div className="hidden">
         <h1 className="text-4xl font-bold gradient-text">
           VasDom AudioBot
         </h1>
