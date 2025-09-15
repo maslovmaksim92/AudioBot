@@ -636,7 +636,13 @@ const Works = () => {
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
-        <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors">
+        <button 
+          onClick={() => {
+            setSelectedHouse(house);
+            setShowScheduleModal(true);
+          }}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
+        >
           <Calendar className="w-4 h-4" />
           <span>График</span>
         </button>
@@ -647,6 +653,233 @@ const Works = () => {
       </div>
     </div>
   );
+
+  // Модальное окно с полным графиком
+  const ScheduleModal = () => {
+    if (!showScheduleModal || !selectedHouse) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                График уборки: {selectedHouse.title}
+              </h2>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Сентябрь */}
+              {(selectedHouse.cleaning_dates?.september_1 || selectedHouse.cleaning_dates?.september_2) && (
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div className="text-sm font-medium text-purple-700 mb-3">🍂 Сентябрь 2025</div>
+                  <div className="space-y-3">
+                    {selectedHouse.cleaning_dates.september_1 && selectedHouse.cleaning_dates.september_1.dates && selectedHouse.cleaning_dates.september_1.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.september_1.dates.map((date, idx) => (
+                                <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-md text-sm font-medium border border-purple-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-purple-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.september_1.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedHouse.cleaning_dates.september_2 && selectedHouse.cleaning_dates.september_2.dates && selectedHouse.cleaning_dates.september_2.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.september_2.dates.map((date, idx) => (
+                                <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-md text-sm font-medium border border-purple-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-purple-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.september_2.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Октябрь */}
+              {(selectedHouse.cleaning_dates?.october_1 || selectedHouse.cleaning_dates?.october_2) && (
+                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                  <div className="text-sm font-medium text-orange-700 mb-3">🍁 Октябрь 2025</div>
+                  <div className="space-y-3">
+                    {selectedHouse.cleaning_dates.october_1 && selectedHouse.cleaning_dates.october_1.dates && selectedHouse.cleaning_dates.october_1.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.october_1.dates.map((date, idx) => (
+                                <span key={idx} className="bg-orange-100 text-orange-800 px-3 py-1 rounded-md text-sm font-medium border border-orange-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-orange-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.october_1.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedHouse.cleaning_dates.october_2 && selectedHouse.cleaning_dates.october_2.dates && selectedHouse.cleaning_dates.october_2.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.october_2.dates.map((date, idx) => (
+                                <span key={idx} className="bg-orange-100 text-orange-800 px-3 py-1 rounded-md text-sm font-medium border border-orange-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-orange-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.october_2.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Ноябрь */}
+              {(selectedHouse.cleaning_dates?.november_1 || selectedHouse.cleaning_dates?.november_2) && (
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div className="text-sm font-medium text-yellow-700 mb-3">❄️ Ноябрь 2025</div>
+                  <div className="space-y-3">
+                    {selectedHouse.cleaning_dates.november_1 && selectedHouse.cleaning_dates.november_1.dates && selectedHouse.cleaning_dates.november_1.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.november_1.dates.map((date, idx) => (
+                                <span key={idx} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-sm font-medium border border-yellow-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-yellow-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.november_1.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedHouse.cleaning_dates.november_2 && selectedHouse.cleaning_dates.november_2.dates && selectedHouse.cleaning_dates.november_2.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.november_2.dates.map((date, idx) => (
+                                <span key={idx} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-sm font-medium border border-yellow-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-yellow-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.november_2.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Декабрь */}
+              {(selectedHouse.cleaning_dates?.december_1 || selectedHouse.cleaning_dates?.december_2) && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-blue-700 mb-3">⛄ Декабрь 2025</div>
+                  <div className="space-y-3">
+                    {selectedHouse.cleaning_dates.december_1 && selectedHouse.cleaning_dates.december_1.dates && selectedHouse.cleaning_dates.december_1.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.december_1.dates.map((date, idx) => (
+                                <span key={idx} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm font-medium border border-blue-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-blue-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.december_1.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedHouse.cleaning_dates.december_2 && selectedHouse.cleaning_dates.december_2.dates && selectedHouse.cleaning_dates.december_2.dates.length > 0 && (
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {selectedHouse.cleaning_dates.december_2.dates.map((date, idx) => (
+                                <span key={idx} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md text-sm font-medium border border-blue-200">
+                                  {date}
+                                </span>
+                              ))}
+                            </div>
+                            <div className="text-blue-700 text-sm leading-relaxed">
+                              {selectedHouse.cleaning_dates.december_2.type}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
 
   const NotificationBar = () => {
     if (!notification) return null;
