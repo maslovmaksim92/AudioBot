@@ -213,7 +213,7 @@ const Works = () => {
           <select
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
             value={activeFilters.brigade}
-            onChange={(e) => setActiveFilters(prev => ({ ...prev, brigade: e.target.value }))}
+            onChange={(e) => { setActiveFilters(prev => ({ ...prev, brigade: e.target.value })); setPagination(prev => ({...prev, page: 1})); }}
           >
             <option value="">Все бригады</option>
             {filters.brigades?.map((brigade, index) => (
