@@ -253,6 +253,17 @@ class BitrixService:
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
         
+        # Получаем данные компании если есть COMPANY_ID
+        if deal.get("COMPANY_ID"):
+            try:
+                company_data = await self.get_company_details(deal["COMPANY_ID"])
+                deal["COMPANY_TITLE_ENRICHED"] = company_data.get("TITLE", "")
+            except Exception as e:
+                logger.error(f"Error enriching company data: {e}")
+                deal["COMPANY_TITLE_ENRICHED"] = ""
+        else:
+            deal["COMPANY_TITLE_ENRICHED"] = ""
+        
         # Реальные типы уборки из Bitrix24
         cleaning_types = {
             # Сентябрь 2025 - UF_CRM_1741592855565
@@ -286,7 +297,7 @@ class BitrixService:
         # Функция для обработки дат
         def process_dates(date_field):
             if isinstance(date_field, list):
-                return [date.split('T')[0] for date in date_field if date]  # Убираем время и часовой пояс
+                return [date.split('T')[0] for date in date_field if date]
             elif isinstance(date_field, str):
                 return [date_field.split('T')[0]]
             return []
