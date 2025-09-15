@@ -36,6 +36,7 @@ const Works = () => {
     brigade: '',
     management_company: '',
     status: '',
+    cleaning_date: '',
     search: ''
   });
   
