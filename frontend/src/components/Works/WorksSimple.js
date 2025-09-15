@@ -206,9 +206,20 @@ const WorksSimple = () => {
                     </div>
                   </div>
 
-                  <div className="mb-4 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span>Статус:</span>
+                  {/* Бригада, ответственный и статус */}
+                  <div className="mb-4 flex justify-between text-sm">
+                    <div>
+                      <div className="flex items-center mb-1">
+                        👥 <span className="ml-1">{house.brigade || 'Не назначена'}</span>
+                      </div>
+                      {house.assigned_name && (
+                        <div className="flex items-center text-blue-600">
+                          👤 <span className="ml-1 font-medium">Ответственный: {house.assigned_name}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-2">Статус:</span>
                       <span className="font-medium flex items-center">
                         {house.status_color === 'error' ? (
                           <>
