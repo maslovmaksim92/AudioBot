@@ -101,3 +101,61 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Display correct brigade name on house cards and details by resolving Bitrix24 ASSIGNED_BY_ID to full brigade name (e.g., '4 бригада') and ensure endpoints return enriched data without breaking pagination and filters."
+
+## backend:
+##   - task: "Brigade name mapping in list endpoint (/api/cleaning/houses)"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Implemented BRIGADE_NAME_ENRICHED enrichment via BitrixService.get_user_details and returning 'brigade' from enriched field. Ready for backend testing."
+##   - task: "Brigade name mapping in details endpoint (/api/cleaning/house/{id}/details)"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Added ASSIGNED_BY_ID to select and computed brigade via get_user_details with safe fallbacks; details returns house.brigade as resolved name."
+
+## frontend:
+##   - task: "Works list uses brigade name field"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/frontend/src/components/Works/Works.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: true
+##         -agent: "main"
+##         -comment: "Works.js already uses house.brigade on cards and in details modal; backend now supplies enriched names."
+
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.0"
+##   test_sequence: 1
+##   run_ui: false
+
+## test_plan:
+##   current_focus:
+##     - "Verify /api/cleaning/houses responds with HousesResponse shape and includes 'brigade' string for each house when deals exist; handles empty gracefully"
+##     - "Verify /api/cleaning/house/{id}/details returns house.brigade resolved name when Bitrix is configured; returns 404 when not found"
+##   stuck_tasks:
+##     - "None"
+##   test_all: false
+##   test_priority: "high_first"
+
+## agent_communication:
+##     -agent: "main"
+##     -message: "Backend updated to resolve brigade names. Please run backend tests against endpoints above. Bitrix webhook may be absent in env; expect 0 houses and 404 on details in that case, but validate schemas and HTTP status codes." 
