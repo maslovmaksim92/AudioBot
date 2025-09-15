@@ -163,6 +163,21 @@ const Works = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Пагинация
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+    setAnimatedCards(new Set()); // Сброс анимации для новых карточек
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setPagination(prev => ({ 
+      ...prev, 
+      limit: parseInt(newLimit), 
+      page: 1 // Сброс на первую страницу при изменении лимита
+    }));
+    setAnimatedCards(new Set());
+  };
+
   // Render функции
   const renderHeader = () => (
     <div className="mb-8 animate-fade-scale">
