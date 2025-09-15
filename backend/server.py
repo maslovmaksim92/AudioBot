@@ -632,6 +632,16 @@ async def get_houses(
             limit=fetch_limit,
             offset=calculated_offset
         )
+
+        # Фильтр по дате уборки на уровне API (если указан)
+        if cleaning_date:
+            def matches_date(d: Dict) -> bool:
+                for m in d.values():
+                    dates = m.get("dates", []) if isinstance(m, dict) else []
+                    if cleaning_date in dates:
+                        return True
+                return False
+            deals = [deal for deal in deals if matches_date(deal.get("cleaning_dates", {}))]
         
         # Получаем общее количество домов для пагинации
         total_count = await bitrix_service.get_total_deals_count()
