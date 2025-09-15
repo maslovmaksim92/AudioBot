@@ -668,7 +668,7 @@ async def get_house_details(house_id: int):
             "id": house_id,
             "select": [
                 "ID", "TITLE", "COMPANY_ID", "COMPANY_TITLE", "CONTACT_ID",
-                "ASSIGNED_BY_NAME", "STAGE_ID",
+                "ASSIGNED_BY_NAME", "ASSIGNED_BY_ID", "STAGE_ID",
                 "UF_CRM_1669561599956",  # Адрес
                 "UF_CRM_1669704529022",  # Квартиры
                 "UF_CRM_1669705507390",  # Подъезды
