@@ -271,6 +271,40 @@ class BitrixService:
         except Exception as e:
             logger.error(f"Error getting contact details: {e}")
             return {}
+
+    async def get_field_enum_map(self, field_name: str) -> Dict[str, str]:
+        """Получить карту enum значений (ID->VALUE) для пользовательского поля сделки и кэшировать её"""
+        try:
+            if not field_name:
+                return {}
+            # Кэш
+            cache_entry = self._enum_cache.get(field_name)
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            if cache_entry and now_ts - cache_entry.get("ts", 0) < self._enum_cache_ttl_seconds:
+                return cache_entry.get("data", {})
+            params = {
+                "filter": {"FIELD_NAME": field_name}
+            }
+            response = await self._make_request("crm.deal.userfield.list", params)
+            if not response.get("ok"):
+                logger.warning(f"crm.deal.userfield.list failed for {field_name}: {response.get('error')}")
+                return {}
+            fields = response.get("result") or []
+            mapping: Dict[str, str] = {}
+            if isinstance(fields, list) and fields:
+                field = fields[0]
+                # Для полей типа список значения в ключе LIST
+                for item in field.get("LIST", []) or []:
+                    id_str = str(item.get("ID"))
+                    value = item.get("VALUE")
+                    if id_str and value:
+                        mapping[id_str] = value
+            # Кэшируем
+            self._enum_cache[field_name] = {"data": mapping, "ts": now_ts}
+            return mapping
+        except Exception as e:
+            logger.error(f"Error getting enum map for {field_name}: {e}")
+            return {}
     
     async def get_total_deals_count(self) -> int:
         """Получить общее количество сделок в воронке 'Уборка подъездов'"""
