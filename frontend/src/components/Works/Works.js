@@ -14,6 +14,9 @@ import {
   Layers,
   DoorOpen
 } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import { ru } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const Works = () => {
   // State
