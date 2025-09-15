@@ -121,15 +121,17 @@ class VasDomAPITester:
         """Test houses endpoint with filters"""
         # Test with limit
         success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
-        if success and status == 200 and isinstance(data, list):
-            self.log_test("Houses with Limit Filter", True, f"Retrieved {len(data)} houses (limit=5)")
+        if success and status == 200 and isinstance(data, dict) and 'houses' in data:
+            houses = data['houses']
+            self.log_test("Houses with Limit Filter", True, f"Retrieved {len(houses)} houses (limit=5)")
         else:
             self.log_test("Houses with Limit Filter", False, f"Status: {status}")
         
         # Test with offset
         success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'offset': 10, 'limit': 5})
-        if success and status == 200 and isinstance(data, list):
-            self.log_test("Houses with Offset Filter", True, f"Retrieved {len(data)} houses (offset=10)")
+        if success and status == 200 and isinstance(data, dict) and 'houses' in data:
+            houses = data['houses']
+            self.log_test("Houses with Offset Filter", True, f"Retrieved {len(houses)} houses (offset=10)")
         else:
             self.log_test("Houses with Offset Filter", False, f"Status: {status}")
     
