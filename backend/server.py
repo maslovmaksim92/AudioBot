@@ -693,14 +693,14 @@ async def get_houses(
                         first_floor_wash_dates += len(dates)
                 # Правила формулировок на основе количества дат
                 if wash_dates == 2 and sweep_dates == 0:
-                    return "Периодичность - 2 раза"
+                    return "2 раза"
                 if full_wash_dates >= 1 and first_floor_wash_dates >= 1 and wash_dates == (full_wash_dates + first_floor_wash_dates) and sweep_dates == 0:
-                    return "Периодичность - 2 раза + первые этажи"
+                    return "2 раза + первые этажи"
                 if wash_dates == 2 and sweep_dates == 2:
-                    return "Периодичность - Мытье 2 раза + подметание 2 раза"
+                    return "Мытье 2 раза + подметание 2 раза"
                 if wash_dates >= 4:
-                    return "Периодичность - 4 раза"
-                return "Периодичность - индивидуальная"
+                    return "4 раза"
+                return "индивидуальная"
             periodicity = get_periodicity_label(cleaning_dates)
             
             house = HouseResponse(
