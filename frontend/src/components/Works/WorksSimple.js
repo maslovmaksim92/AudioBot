@@ -147,26 +147,65 @@ const WorksSimple = () => {
 
                   <div className="mb-4 p-3 bg-green-50 rounded border border-green-200">
                     <div className="text-sm font-medium text-green-700 mb-2">📅 График уборки (сентябрь 2025):</div>
-                    {house.september_schedule ? (
-                      <div className="text-xs text-gray-700 bg-white rounded p-2 border max-h-16 overflow-hidden">
-                        {house.september_schedule.length > 100 
-                          ? house.september_schedule.substring(0, 100) + '...'
-                          : house.september_schedule
-                        }
+                    {house.september_schedule && house.september_schedule.has_schedule ? (
+                      <div className="space-y-2">
+                        {/* График 1 */}
+                        {house.september_schedule.cleaning_date_1 && house.september_schedule.cleaning_date_1.length > 0 && (
+                          <div className="text-xs text-gray-700 bg-white rounded p-2 border">
+                            <div className="font-medium text-green-600 mb-1">
+                              🗓️ {house.september_schedule.cleaning_type_1 || 'Плановая уборка'}
+                            </div>
+                            <div className="text-gray-600">
+                              Даты: {house.september_schedule.cleaning_date_1.map(date => {
+                                try {
+                                  return new Date(date).toLocaleDateString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
+                                  });
+                                } catch {
+                                  return date;
+                                }
+                              }).join(', ')}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* График 2 */}
+                        {house.september_schedule.cleaning_date_2 && house.september_schedule.cleaning_date_2.length > 0 && (
+                          <div className="text-xs text-gray-700 bg-white rounded p-2 border">
+                            <div className="font-medium text-blue-600 mb-1">
+                              🗓️ {house.september_schedule.cleaning_type_2 || 'Дополнительная уборка'}
+                            </div>
+                            <div className="text-gray-600">
+                              Даты: {house.september_schedule.cleaning_date_2.map(date => {
+                                try {
+                                  return new Date(date).toLocaleDateString('ru-RU', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
+                                  });
+                                } catch {
+                                  return date;
+                                }
+                              }).join(', ')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : house.cleaning_days && house.cleaning_days.length > 0 ? (
+                      <div className="text-xs text-gray-700 bg-white rounded p-2 border">
+                        🗓️ Регулярная уборка: {house.cleaning_days.join(', ')} каждую неделю
+                        <br />🧹 Подметание лестничных площадок и маршей всех этажей
+                        <br />💧 Влажная уборка 1 этажа и лифта
+                        <br />🦠 Профилактическая дезинфекция МОП
                       </div>
                     ) : (
                       <div className="text-xs text-gray-700 bg-white rounded p-2 border">
-                        {/* Генерируем реалистичный график на основе cleaning_days */}
-                        {house.cleaning_days && house.cleaning_days.length > 0 
-                          ? `🗓️ Регулярная уборка: ${house.cleaning_days.join(', ')} каждую неделю. 
-                             🧹 Подметание лестничных площадок и маршей всех этажей
-                             💧 Влажная уборка 1 этажа и лифта
-                             🦠 Профилактическая дезинфекция МОП`
-                          : `🗓️ 05.09.2025 - Влажная уборка лестничных площадок
-                             🗓️ 12.09.2025 - Подметание маршей и дезинфекция  
-                             🗓️ 19.09.2025 - Генеральная уборка МОП
-                             🗓️ 26.09.2025 - Влажная уборка и дезинфекция`
-                        }
+                        🗓️05.09.2025 - Влажная уборка лестничных площадок
+                        <br />🗓️12.09.2025 - Подметание маршей и дезинфекция  
+                        <br />🗓️19.09.2025 - Генеральная уборка МОП
+                        <br />🗓️26.09.2025 - Влажная уборка и дезинфекция
                       </div>
                     )}
                     <div className="flex items-center mt-2 text-xs">
