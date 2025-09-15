@@ -58,12 +58,6 @@ const WorksSimple = () => {
 
   return (
     <div className="p-8">
-      {/* ОТЛАДОЧНАЯ ИНФОРМАЦИЯ - показывает что Works компонент загружен */}
-      <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg mb-6">
-        <h1 className="text-2xl font-bold text-red-600">🔥 WORKS КОМПОНЕНТ ЗАГРУЖЕН!</h1>
-        <p className="text-red-700">Это доказывает, что навигация работает! Current section: {state?.currentSection}</p>
-      </div>
-
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-blue-600 mb-4">
           🏠 УЛУЧШЕННЫЕ КАРТОЧКИ ДОМОВ
