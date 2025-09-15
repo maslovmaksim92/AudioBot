@@ -374,29 +374,133 @@ const Works = () => {
         </div>
       </div>
 
-      {/* Reset button */}
-      <div className="mt-6 flex justify-between items-center">
-        <button
-          onClick={() => {
-            setActiveFilters({
-              brigade: '',
-              management_company: '',
-              status: '',
-              search: ''
-            });
-            setShowSuggestions(false);
-          }}
-          className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-        >
-          ↻ Сбросить фильтры
-        </button>
-        
-        <div className="text-sm text-gray-600">
-          Найдено: <span className="font-semibold">{houses.length}</span> домов
+      {/* Reset button и пагинация */}
+      <div className="mt-6 flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => {
+              setActiveFilters({
+                brigade: '',
+                management_company: '',
+                status: '',
+                search: ''
+              });
+              setShowSuggestions(false);
+              setPagination(prev => ({ ...prev, page: 1 }));
+            }}
+            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            ↻ Сбросить фильтры
+          </button>
+          
+          <div className="text-sm text-gray-600">
+            Показано: <span className="font-semibold">{houses.length}</span> из <span className="font-semibold">{pagination.total.toLocaleString()}</span> домов
+          </div>
+        </div>
+
+        {/* Выбор количества на странице */}
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-700">На странице:</span>
+            <select
+              value={pagination.limit}
+              onChange={(e) => handleLimitChange(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+            >
+              <option value={10}>10</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={500}>500</option>
+              <option value={1000}>1000</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
   );
+
+  // Компонент пагинации
+  const renderPagination = () => {
+    if (pagination.pages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const delta = 2;
+      const range = [];
+      const rangeWithDots = [];
+
+      for (let i = Math.max(2, pagination.page - delta); 
+           i <= Math.min(pagination.pages - 1, pagination.page + delta); 
+           i++) {
+        range.push(i);
+      }
+
+      if (pagination.page - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
+
+      rangeWithDots.push(...range);
+
+      if (pagination.page + delta < pagination.pages - 1) {
+        rangeWithDots.push('...', pagination.pages);
+      } else {
+        rangeWithDots.push(pagination.pages);
+      }
+
+      return rangeWithDots;
+    };
+
+    return (
+      <div className="card-modern mt-8 animate-slide-up">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="text-sm text-gray-700">
+            Страница {pagination.page} из {pagination.pages} 
+            ({pagination.total.toLocaleString()} домов всего)
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {/* Кнопка "Назад" */}
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Назад
+            </button>
+
+            {/* Номера страниц */}
+            <div className="flex items-center space-x-1">
+              {getPageNumbers().map((pageNum, index) => (
+                <button
+                  key={index}
+                  onClick={() => pageNum !== '...' && handlePageChange(pageNum)}
+                  disabled={pageNum === '...' || pageNum === pagination.page}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    pageNum === pagination.page
+                      ? 'bg-blue-500 text-white'
+                      : pageNum === '...'
+                      ? 'cursor-default text-gray-400'
+                      : 'border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+
+            {/* Кнопка "Вперед" */}
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.pages}
+              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Вперед →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
 
   const renderHouseCard = (house, index) => (
     <div
