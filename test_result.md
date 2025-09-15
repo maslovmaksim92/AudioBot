@@ -164,4 +164,6 @@
 
 ## agent_communication:
 ##     -agent: "main"
-##     -message: "Backend updated to resolve brigade names. Please run backend tests against endpoints above. Bitrix webhook may be absent in env; expect 0 houses and 404 on details in that case, but validate schemas and HTTP status codes." 
+##     -message: "Backend updated to resolve brigade names. Please run backend tests against endpoints above. Bitrix webhook may be absent in env; expect 0 houses and 404 on details in that case, but validate schemas and HTTP status codes."
+##     -agent: "testing"
+##     -message: "✅ BRIGADE MAPPING TESTS COMPLETED - All critical tests passed (5/5, 100% success rate). Both endpoints working correctly: 1) /api/cleaning/houses returns proper HousesResponse shape with brigade fields as strings (no raw ASSIGNED_BY_ID leaks), 2) /api/cleaning/house/{id}/details returns house.brigade as enriched string and proper 404 handling. Brigade name enrichment via BitrixService.get_user_details is functioning correctly with examples like '4 бригада', '6 бригада'. Backend implementation is working as expected." 
