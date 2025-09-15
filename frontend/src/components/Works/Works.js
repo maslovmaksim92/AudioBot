@@ -251,15 +251,7 @@ const Works = () => {
           />
 
 
-          <select
-            value={pagination.limit}
-            onChange={(e) => handleLimitChange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
-          >
-            <option value={10}>10 на странице</option>
-            <option value={50}>50 на странице</option>
-            <option value={100}>100 на странице</option>
-          </select>
+
         </div>
       </div>
       
