@@ -695,6 +695,27 @@ async def get_house_details(house_id: int):
             elif isinstance(deal["CONTACT_ID"], str):
                 contact_details = await bitrix_service.get_contact_details(deal["CONTACT_ID"])
         
+        # Определяем название бригады, предпочитая обогащённые данные по ASSIGNED_BY_ID
+        brigade_name = deal.get("ASSIGNED_BY_NAME", "") or ""
+        try:
+            assigned_id = deal.get("ASSIGNED_BY_ID")
+            if assigned_id:
+                user = await bitrix_service.get_user_details(assigned_id)
+                if user:
+                    name = (user.get("NAME") or "").strip()
+                    last_name = (user.get("LAST_NAME") or "").strip()
+                    if name and last_name:
+                        brigade_name = f"{name} {last_name}"
+                    elif name:
+                        brigade_name = name
+                    elif last_name:
+                        brigade_name = last_name
+                    else:
+                        brigade_name = deal.get("ASSIGNED_BY_NAME", "") or f"Бригада {assigned_id}"
+        except Exception:
+            # Fallback на ASSIGNED_BY_NAME либо на текст с ID
+            brigade_name = deal.get("ASSIGNED_BY_NAME", "") or (f"Бригада {deal.get('ASSIGNED_BY_ID')}" if deal.get('ASSIGNED_BY_ID') else "")
+
         result = {
             "house": {
                 "id": deal.get("ID"),
@@ -703,7 +724,7 @@ async def get_house_details(house_id: int):
                 "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
                 "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
                 "floors": int(deal.get("UF_CRM_1669704631166") or 0),
-                "brigade": deal.get("ASSIGNED_BY_NAME", ""),
+                "brigade": brigade_name or "",
                 "status": deal.get("STAGE_ID", "")
             },
             "management_company": {
