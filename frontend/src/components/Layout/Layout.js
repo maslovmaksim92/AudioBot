@@ -140,7 +140,7 @@ const Layout = ({ children }) => {
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-          <div className="animate-slide-up">
+          <div className="animate-slide-up pt-2 px-4">
             {children}
           </div>
         </main>
