@@ -934,6 +934,9 @@ const Works = () => {
       {/* Пагинация */}
       {renderPagination()}
 
+      {/* Модальное окно с графиком */}
+      <ScheduleModal />
+
       <NotificationBar />
     </div>
   );
