@@ -427,7 +427,7 @@ class BitrixService:
             if key and enum_map.get(key):
                 return enum_map[key]
             # Фоллбэк на локальную мапу
-            return cleaning_types.get(key, f"Тип уборки {key}") if key else ""
+            return f"Тип уборки {key}" if key else ""
         
         # Функция для обработки дат
         def process_dates(date_field):
