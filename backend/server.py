@@ -56,6 +56,13 @@ class HouseResponse(BaseModel):
     floors: int = 0
     cleaning_dates: Dict = Field(default_factory=dict)
 
+class HousesResponse(BaseModel):
+    houses: List[HouseResponse]
+    total: int
+    page: int  
+    limit: int
+    pages: int
+
 class FiltersResponse(BaseModel):
     brigades: List[str] = Field(default_factory=list)
     management_companies: List[str] = Field(default_factory=list)
