@@ -231,6 +231,26 @@ class BitrixService:
             logger.error(f"Error getting user details: {e}")
             return {}
     
+    async def get_contact_details(self, contact_id: str) -> Dict:
+        """Получить детали контакта (старшего дома) из Bitrix24"""
+        try:
+            if not contact_id:
+                return {}
+                
+            params = {
+                "id": contact_id
+            }
+            
+            response = await self._make_request("crm.contact.get", params)
+            contact_data = response.get("result", {})
+            
+            logger.info(f"Retrieved contact details for ID {contact_id}")
+            return contact_data
+            
+        except Exception as e:
+            logger.error(f"Error getting contact details: {e}")
+            return {}
+    
     async def get_total_deals_count(self) -> int:
         """Получить общее количество сделок в воронке 'Уборка подъездов'"""
         try:
