@@ -651,8 +651,9 @@ async def get_houses(
             # Получаем общее количество домов для пагинации (без фильтра по дате)
             total_count = await bitrix_service.get_total_deals_count()
         
-        # Получаем общее количество домов для пагинации
-        total_count = await bitrix_service.get_total_deals_count()
+        # Если total_count ещё не рассчитан (когда нет фильтра даты), считаем его обычным способом
+        if 'total_count' not in locals():
+            total_count = await bitrix_service.get_total_deals_count()
         
         houses = []
         for deal in deals:
