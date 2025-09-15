@@ -224,7 +224,7 @@ const Works = () => {
           <select
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
             value={activeFilters.management_company}
-            onChange={(e) => setActiveFilters(prev => ({ ...prev, management_company: e.target.value }))}
+            onChange={(e) => { setActiveFilters(prev => ({ ...prev, management_company: e.target.value })); setPagination(prev => ({...prev, page: 1})); }}
           >
             <option value="">Все УК</option>
             {filters.management_companies?.map((company, index) => (
