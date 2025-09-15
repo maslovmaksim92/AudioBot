@@ -621,8 +621,8 @@ async def get_houses(
         # Вычисляем offset на основе страницы
         calculated_offset = (page - 1) * limit if page > 1 else offset
         
-        # Увеличиваем лимит для получения большего количества домов
-        fetch_limit = min(limit, 1000)  # Максимум 1000 домов за раз
+        # При фильтре по дате тянем больше, чтобы корректно отфильтровать; иначе обычный лимит
+        fetch_limit = 1000 if cleaning_date else min(limit, 1000)  # Максимум 1000 домов за раз
         
         deals = await bitrix_service.get_deals_optimized(
             brigade=brigade,
