@@ -315,7 +315,7 @@ async def root():
 # CLEANING ROUTES (Дома)
 # ============================================================================
 
-@api_router.get("/cleaning/houses", response_model=List[HouseResponse])
+@api_router.get("/cleaning/houses", response_model=HousesResponse)
 async def get_houses(
     brigade: Optional[str] = Query(None, description="Фильтр по бригаде"),
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
