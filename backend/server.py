@@ -636,22 +636,24 @@ async def get_houses(
             offset=calculated_offset
         )
 
-        # Фильтр по дате уборки (если указан): фильтруем все полученные сделки и пересчитываем пагинацию
-        if cleaning_date:
+        # Фильтр по датам
+        if cleaning_date or (date_from and date_to):
             def matches_date(d: Dict) -> bool:
+                # сравнение строк YYYY-MM-DD лексикографически корректно
                 for m in d.values():
                     dates = m.get("dates", []) if isinstance(m, dict) else []
-                    if cleaning_date in dates:
-                        return True
+                    for dt in dates:
+                        if cleaning_date and dt == cleaning_date:
+                            return True
+                        if date_from and date_to and (date_from <= dt <= date_to):
+                            return True
                 return False
             filtered = [deal for deal in deals if matches_date(deal.get("cleaning_dates", {}))]
-            # Пересчитываем total/pages по отфильтрованному списку и режем по текущей странице
             total_count = len(filtered)
             start_idx = (page - 1) * limit
             end_idx = start_idx + limit
             deals = filtered[start_idx:end_idx]
         else:
-            # Получаем общее количество домов для пагинации (без фильтра по дате)
             total_count = await bitrix_service.get_total_deals_count()
         
         # Если total_count ещё не рассчитан (когда нет фильтра даты), считаем его обычным способом
