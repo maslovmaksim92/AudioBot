@@ -209,7 +209,7 @@ const Works = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <select
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
             value={activeFilters.brigade}
