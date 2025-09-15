@@ -214,17 +214,26 @@ class BitrixService:
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
         
-        # Словарь типов уборки (предположительные значения)
+        # Реальные типы уборки из Bitrix24
         cleaning_types = {
-            "2468": "Генеральная уборка подъездов",
-            "2476": "Текущая уборка подъездов", 
-            "2474": "Мытье окон подъездов",
-            "2480": "Уборка лестничных клеток",
-            "2482": "Генеральная уборка + дезинфекция",
-            "2486": "Текущая уборка + уборка мусора",
-            "2492": "Подготовка к зиме",
-            "2494": "Осенняя генеральная уборка",
-            "2498": "Зимняя профилактика"
+            # Сентябрь 2025 - UF_CRM_1741592855565
+            "2466": "Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;",
+            "2468": "Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;",
+            "2470": "Влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;",
+            "2472": "Подметание лестничных площадок и маршей всех этажей",
+            "2474": "Влажная уборка лестничных площадок всех этажей",
+            "2476": "Влажная уборка 1 этажа и лифта (при наличии)",
+            "2478": "Профилактическая дезинфекция МОП",
+            "2480": "Генеральная уборка подъездов",
+            "2482": "Текущая уборка подъездов",
+            "2484": "Мытье окон в подъездах",
+            "2486": "Уборка мусорных площадок",
+            "2488": "Подготовка к зимнему периоду",
+            "2490": "Осенняя генеральная уборка",
+            "2492": "Зимняя профилактическая уборка",
+            "2494": "Весенняя генеральная уборка",
+            "2496": "Летняя текущая уборка",
+            "2498": "Дезинфекция и санитарная обработка"
         }
         
         # Функция для обработки типа уборки
@@ -232,8 +241,16 @@ class BitrixService:
             if isinstance(type_code, str):
                 return cleaning_types.get(type_code, f"Тип уборки {type_code}")
             elif isinstance(type_code, list):
-                return " + ".join([cleaning_types.get(str(code), f"Тип {code}") for code in type_code])
+                return cleaning_types.get(str(type_code[0]), f"Тип {type_code[0]}") if type_code else ""
             return str(type_code) if type_code else ""
+        
+        # Функция для обработки дат
+        def process_dates(date_field):
+            if isinstance(date_field, list):
+                return [date.split('T')[0] for date in date_field if date]  # Убираем время и часовой пояс
+            elif isinstance(date_field, str):
+                return [date_field.split('T')[0]]
+            return []
         
         # Добавляем обработанные даты уборок для всех месяцев
         cleaning_dates = {}
@@ -241,59 +258,56 @@ class BitrixService:
         # Сентябрь 2025
         if deal.get("UF_CRM_1741592774017") or deal.get("UF_CRM_1741592855565"):
             cleaning_dates["september_1"] = {
-                "date": deal.get("UF_CRM_1741592774017") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741592774017")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741592855565"))
             }
         
         if deal.get("UF_CRM_1741592892232") or deal.get("UF_CRM_1741592945060"):
             cleaning_dates["september_2"] = {
-                "date": deal.get("UF_CRM_1741592892232") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741592892232")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741592945060"))
             }
         
         # Октябрь 2025
         if deal.get("UF_CRM_1741593004888") or deal.get("UF_CRM_1741593047994"):
             cleaning_dates["october_1"] = {
-                "date": deal.get("UF_CRM_1741593004888") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593004888")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593047994"))
             }
         
         if deal.get("UF_CRM_1741593067418") or deal.get("UF_CRM_1741593115407"):
             cleaning_dates["october_2"] = {
-                "date": deal.get("UF_CRM_1741593067418") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593067418")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593115407"))
             }
         
         # Ноябрь 2025
         if deal.get("UF_CRM_1741593156926") or deal.get("UF_CRM_1741593210242"):
             cleaning_dates["november_1"] = {
-                "date": deal.get("UF_CRM_1741593156926") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593156926")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593210242"))
             }
         
         if deal.get("UF_CRM_1741593231558") or deal.get("UF_CRM_1741593285121"):
             cleaning_dates["november_2"] = {
-                "date": deal.get("UF_CRM_1741593231558") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593231558")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593285121"))
             }
         
         # Декабрь 2025
         if deal.get("UF_CRM_1741593340713") or deal.get("UF_CRM_1741593387667"):
             cleaning_dates["december_1"] = {
-                "date": deal.get("UF_CRM_1741593340713") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593340713")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593387667"))
             }
         
         if deal.get("UF_CRM_1741593408621") or deal.get("UF_CRM_1741593452062"):
             cleaning_dates["december_2"] = {
-                "date": deal.get("UF_CRM_1741593408621") or "",
+                "dates": process_dates(deal.get("UF_CRM_1741593408621")),
                 "type": process_cleaning_type(deal.get("UF_CRM_1741593452062"))
             }
         
-        # Добавляем тариф/периодичность уборки
-        deal["tariff"] = deal.get("UF_CRM_1669706387893") or ""
         deal["cleaning_dates"] = cleaning_dates
-        
         return deal
     
     async def get_filter_options(self) -> Dict[str, List[str]]:
