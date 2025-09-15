@@ -401,13 +401,13 @@ async def get_houses(
         logger.info(f"Retrieved {len(houses)} houses with filters (page {page}, limit {limit})")
         
         # Возвращаем данные с информацией о пагинации
-        return {
-            "houses": houses,
-            "total": total_count,
-            "page": page,
-            "limit": limit,
-            "pages": (total_count + limit - 1) // limit
-        }
+        return HousesResponse(
+            houses=houses,
+            total=total_count,
+            page=page,
+            limit=limit,
+            pages=(total_count + limit - 1) // limit
+        )
         
     except Exception as e:
         logger.error(f"Error retrieving houses: {e}")
