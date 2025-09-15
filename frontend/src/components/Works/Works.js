@@ -188,7 +188,7 @@ const Works = () => {
   }
 
   return (
-    <div className="pt-2 px-6 pb-8 max-w-7xl mx-auto">
+    <div className="pt-0 px-4 pb-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-4 animate-fade-scale">
         <h1 className="text-2xl font-bold gradient-text flex items-center">
