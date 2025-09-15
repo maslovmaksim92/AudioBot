@@ -304,8 +304,8 @@ const Works = () => {
 
               <div className="flex items-center space-x-2 text-sm">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                <span className="font-medium">Тариф:</span>
-                <span className="text-gray-700">{house.periodicity || 'Периодичность - индивидуальная'}</span>
+                <span className="font-medium">Периодичность:</span>
+                <span className="text-gray-700">{house.periodicity || 'индивидуальная'}</span>
               </div>
               
               <div className="flex items-center space-x-2 text-sm">
