@@ -137,6 +137,20 @@ const Dashboard = () => {
     }
   ];
 
+  // Компактная шапка и метрики
+  const PageHeader = () => (
+    <div className="mb-4 animate-fade-scale">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold gradient-text">VasDom AudioBot</h1>
+        <div className="flex items-center space-x-2 text-sm text-green-600">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span>Bitrix24 подключен</span>
+        </div>
+      </div>
+      <p className="text-sm text-gray-600 mt-1">Интеллектуальная система для комплексного управления клинингом</p>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="p-8 flex justify-center items-center min-h-96">
