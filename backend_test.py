@@ -181,9 +181,10 @@ class VasDomAPITester:
         print("\n🔍 Testing Bitrix24 Integration...")
         
         # Get houses and check if they contain real Bitrix24 data
-        success, houses, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 10})
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 10})
         
-        if success and status == 200 and houses:
+        if success and status == 200 and data and 'houses' in data:
+            houses = data['houses']
             # Check for signs of real Bitrix24 data
             real_data_indicators = 0
             
