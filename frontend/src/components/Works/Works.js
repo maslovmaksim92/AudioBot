@@ -232,6 +232,16 @@ const Works = () => {
             ))}
           </select>
 
+          {/* Фильтр по дате уборки */}
+          <input
+            type="date"
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+            value={activeFilters.cleaning_date}
+            onChange={(e) => setActiveFilters(prev => ({ ...prev, cleaning_date: e.target.value }))}
+            placeholder="Дата уборки"
+          />
+
+
           <select
             value={pagination.limit}
             onChange={(e) => handleLimitChange(e.target.value)}
