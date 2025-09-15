@@ -56,6 +56,7 @@ class HouseResponse(BaseModel):
     floors: int = 0
     cleaning_dates: Dict = Field(default_factory=dict)  # Все даты уборок
     periodicity: Optional[str] = "индивидуальная"
+    bitrix_url: Optional[str] = ""
 
 class HousesResponse(BaseModel):
     houses: List[HouseResponse]
