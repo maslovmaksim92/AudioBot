@@ -286,8 +286,9 @@ async def get_houses(
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
     management_company: Optional[str] = Query(None, description="Фильтр по УК"),
     week: Optional[str] = Query(None, description="Фильтр по неделе"),
-    limit: int = Query(100, description="Лимит записей"),
-    offset: int = Query(0, description="Смещение")
+    limit: int = Query(100, description="Лимит записей (10, 50, 100, 500, 1000)"),
+    offset: int = Query(0, description="Смещение"),
+    page: int = Query(1, description="Номер страницы")
 ):
     """Получить список домов с фильтрами"""
     try:
