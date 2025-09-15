@@ -440,7 +440,11 @@ class BitrixService:
         response = await self._make_request("crm.deal.list", params)
         if not response.get("ok"):
             logger.warning(f"crm.deal.list call failed: {response.get('error')}")
-            return []
+            return {
+                "brigades": [],
+                "management_companies": [],
+                "statuses": []
+            }
         deals = response.get("result", []) or []
         
         # Извлекаем уникальные значения
