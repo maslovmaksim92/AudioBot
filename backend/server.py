@@ -214,21 +214,54 @@ class BitrixService:
 # AI SERVICE
 # ============================================================================
 
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
 class AIService:
     """Сервис для работы с Emergent LLM"""
     
     def __init__(self):
         self.api_key = os.environ.get('EMERGENT_LLM_KEY', '')
+        self.system_message = """Вы - AI консультант системы управления клининговой компанией VasDom AudioBot.
+
+Ваши возможности:
+- Помощь с вопросами по домам, уборке, графикам
+- Консультации по работе с Bitrix24
+- Информация о сотрудниках и бригадах  
+- Статистика и отчетность
+
+В системе:
+- 490 домов под управлением
+- 82 сотрудника в 7 бригадах
+- Интеграция с Bitrix24 CRM
+- Автоматизация процессов уборки
+
+Отвечайте на русском языке, будьте дружелюбны и информативны."""
         
     async def generate_response(self, message: str, user_id: Optional[str] = None) -> str:
         """Генерировать ответ через Emergent LLM"""
         try:
-            # Здесь будет интеграция с Emergent LLM
-            # Пока возвращаем заглушку
-            return f"AI ответ на: {message}"
+            # Создаем уникальный session_id для каждого пользователя
+            session_id = f"vasdom_user_{user_id or 'anonymous'}_{datetime.now().strftime('%Y%m%d')}"
+            
+            # Инициализируем чат с Emergent LLM
+            chat = LlmChat(
+                api_key=self.api_key,
+                session_id=session_id,
+                system_message=self.system_message
+            ).with_model("openai", "gpt-4o-mini")  # Используем современную модель
+            
+            # Создаем пользовательское сообщение
+            user_message = UserMessage(text=message)
+            
+            # Отправляем сообщение и получаем ответ
+            response = await chat.send_message(user_message)
+            
+            logger.info(f"AI response generated for user {user_id}: {len(response)} chars")
+            return response
+            
         except Exception as e:
             logger.error(f"AI service error: {e}")
-            return "Извините, произошла ошибка при генерации ответа."
+            return "Извините, сейчас я временно недоступен. Попробуйте позже или обратитесь к администратору системы."
 
 # ============================================================================
 # API ROUTES
