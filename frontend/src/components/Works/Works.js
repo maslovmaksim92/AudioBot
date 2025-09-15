@@ -450,6 +450,197 @@ const Works = () => {
         </div>
       )}
 
+      {/* Модальное окно деталей */}
+      {showDetailsModal && houseDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  Детали дома: {houseDetails.house.title}
+                </h2>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Информация о доме */}
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                    <Building2 className="w-5 h-5 mr-2" />
+                    Информация о доме
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Адрес:</span>
+                      <p className="text-gray-900">{houseDetails.house.address || 'Не указан'}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center bg-white p-3 rounded-lg">
+                        <div className="text-xl font-bold text-blue-600">{houseDetails.house.apartments}</div>
+                        <div className="text-xs text-gray-500">Квартир</div>
+                      </div>
+                      <div className="text-center bg-white p-3 rounded-lg">
+                        <div className="text-xl font-bold text-green-600">{houseDetails.house.entrances}</div>
+                        <div className="text-xs text-gray-500">Подъездов</div>
+                      </div>
+                      <div className="text-center bg-white p-3 rounded-lg">
+                        <div className="text-xl font-bold text-orange-600">{houseDetails.house.floors}</div>
+                        <div className="text-xs text-gray-500">Этажей</div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Бригада:</span>
+                      <p className="text-gray-900">{houseDetails.house.brigade || 'Не назначена'}</p>
+                    </div>
+                    
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Статус:</span>
+                      <p className="text-gray-900">{houseDetails.house.status || 'Не указан'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Управляющая компания */}
+                <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center">
+                    <Building2 className="w-5 h-5 mr-2" />
+                    Управляющая компания
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Название:</span>
+                      <p className="text-gray-900 font-medium">{houseDetails.management_company.title || 'Не указана'}</p>
+                    </div>
+                    
+                    {houseDetails.management_company.phone && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Телефон:</span>
+                        <p className="text-gray-900">
+                          <a href={`tel:${houseDetails.management_company.phone}`} className="text-blue-600 hover:underline">
+                            {houseDetails.management_company.phone}
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {houseDetails.management_company.email && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Email:</span>
+                        <p className="text-gray-900">
+                          <a href={`mailto:${houseDetails.management_company.email}`} className="text-blue-600 hover:underline">
+                            {houseDetails.management_company.email}
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {houseDetails.management_company.address && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Адрес:</span>
+                        <p className="text-gray-900">{houseDetails.management_company.address}</p>
+                      </div>
+                    )}
+                    
+                    {houseDetails.management_company.web && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Сайт:</span>
+                        <p className="text-gray-900">
+                          <a href={houseDetails.management_company.web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {houseDetails.management_company.web}
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {houseDetails.management_company.comments && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Комментарии:</span>
+                        <p className="text-gray-900 text-sm bg-white p-3 rounded-lg">{houseDetails.management_company.comments}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Старший дома */}
+              {houseDetails.senior_resident.full_name && (
+                <div className="mt-6 bg-purple-50 p-6 rounded-lg border border-purple-200">
+                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
+                    Старший дома (контактное лицо)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">ФИО:</span>
+                      <p className="text-gray-900 font-medium">{houseDetails.senior_resident.full_name}</p>
+                    </div>
+                    
+                    {houseDetails.senior_resident.phone && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Телефон:</span>
+                        <p className="text-gray-900">
+                          <a href={`tel:${houseDetails.senior_resident.phone}`} className="text-blue-600 hover:underline">
+                            {houseDetails.senior_resident.phone}
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {houseDetails.senior_resident.email && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-600">Email:</span>
+                        <p className="text-gray-900">
+                          <a href={`mailto:${houseDetails.senior_resident.email}`} className="text-blue-600 hover:underline">
+                            {houseDetails.senior_resident.email}
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {houseDetails.senior_resident.comments && (
+                    <div className="mt-4">
+                      <span className="text-sm font-medium text-gray-600">Комментарии:</span>
+                      <p className="text-gray-900 text-sm bg-white p-3 rounded-lg mt-1">{houseDetails.senior_resident.comments}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Закрыть
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedHouse(houseDetails.house);
+                    setShowScheduleModal(true);
+                  }}
+                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Посмотреть график</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white ${
