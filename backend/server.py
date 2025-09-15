@@ -442,6 +442,7 @@ class BitrixService:
         # Получаем все сделки для извлечения уникальных значений
         params = {
             "select": ["ASSIGNED_BY_NAME", "COMPANY_TITLE", "STAGE_ID"],
+            "filter": {"CATEGORY_ID": "34"},
             "order": {"ID": "DESC"}
         }
         
