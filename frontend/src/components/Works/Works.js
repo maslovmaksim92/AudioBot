@@ -151,6 +151,25 @@ const Works = () => {
     setAnimatedCards(new Set());
   };
 
+  const fetchHouseDetails = async (houseId) => {
+    setDetailsLoading(true);
+    try {
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${BACKEND_URL}/api/cleaning/house/${houseId}/details`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setHouseDetails(data);
+      setShowDetailsModal(true);
+    } catch (error) {
+      console.error('❌ Error fetching house details:', error);
+      showNotification('❌ Ошибка загрузки деталей дома', 'error');
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   if (loading && houses.length === 0) {
     return (
       <div className="p-8 flex justify-center items-center min-h-96">
