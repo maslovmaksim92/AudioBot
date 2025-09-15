@@ -362,9 +362,13 @@ const Works = () => {
                 <Calendar className="w-4 h-4" />
                 <span>График</span>
               </button>
-              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors">
+              <button 
+                onClick={() => fetchHouseDetails(house.id)}
+                disabled={detailsLoading}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors disabled:opacity-50"
+              >
                 <MapPin className="w-4 h-4" />
-                <span>Детали</span>
+                <span>{detailsLoading ? 'Загрузка...' : 'Детали'}</span>
               </button>
             </div>
           </div>
