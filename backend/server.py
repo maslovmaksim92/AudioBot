@@ -450,16 +450,18 @@ async def get_houses(
             # Получаем реальный адрес из Bitrix24
             address = deal.get("UF_CRM_1669561599956") or deal.get("TITLE", "")
             
-            # Обработка бригад с реальными данными
-            brigade_name = deal.get("ASSIGNED_BY_NAME") or ""
-            if not brigade_name and deal.get("ASSIGNED_BY_ID"):
-                brigade_name = f"Бригада №{deal.get('ASSIGNED_BY_ID')}"
+            # Обработка бригад - только номер
+            brigade_name = ""
+            if deal.get("ASSIGNED_BY_NAME"):
+                assigned_name = deal.get("ASSIGNED_BY_NAME")
+                # Извлекаем номер бригады из названия
+                if "Бригада №" in assigned_name:
+                    brigade_name = assigned_name.replace("Бригада №", "")
+                else:
+                    brigade_name = assigned_name
             
-            # Реальная УК из Bitrix24
+            # Реальная УК из Bitrix24 или пустая строка
             management_company = deal.get("COMPANY_TITLE") or ""
-            
-            # Тариф/периодичность
-            tariff = deal.get("tariff", "")
             
             # График уборки из реальных данных Bitrix24
             cleaning_dates = deal.get("cleaning_dates", {})
@@ -474,7 +476,6 @@ async def get_houses(
                 apartments=apartments,
                 entrances=entrances,
                 floors=floors,
-                tariff=tariff,
                 cleaning_dates=cleaning_dates
             )
             houses.append(house)
