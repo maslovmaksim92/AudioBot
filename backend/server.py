@@ -213,23 +213,65 @@ class BitrixService:
     async def _enrich_deal_data(self, deal: Dict) -> Dict:
         """Обогатить данные сделки дополнительной информацией"""
         
-        # Добавляем обработанные даты уборок
+        # Добавляем обработанные даты уборок для всех месяцев
         cleaning_dates = {}
         
         # Сентябрь 2025
-        if deal.get("UF_CRM_1741592774017"):
+        if deal.get("UF_CRM_1741592774017") or deal.get("UF_CRM_1741592855565"):
             cleaning_dates["september_1"] = {
-                "date": deal.get("UF_CRM_1741592774017"),
-                "type": deal.get("UF_CRM_1741592855565", "")
+                "date": deal.get("UF_CRM_1741592774017") or "",
+                "type": deal.get("UF_CRM_1741592855565") or ""
             }
         
-        if deal.get("UF_CRM_1741592892232"):
+        if deal.get("UF_CRM_1741592892232") or deal.get("UF_CRM_1741592945060"):
             cleaning_dates["september_2"] = {
-                "date": deal.get("UF_CRM_1741592892232"),
-                "type": deal.get("UF_CRM_1741592945060", "")
+                "date": deal.get("UF_CRM_1741592892232") or "",
+                "type": deal.get("UF_CRM_1741592945060") or ""
             }
         
+        # Октябрь 2025
+        if deal.get("UF_CRM_1741593004888") or deal.get("UF_CRM_1741593047994"):
+            cleaning_dates["october_1"] = {
+                "date": deal.get("UF_CRM_1741593004888") or "",
+                "type": deal.get("UF_CRM_1741593047994") or ""
+            }
+        
+        if deal.get("UF_CRM_1741593067418") or deal.get("UF_CRM_1741593115407"):
+            cleaning_dates["october_2"] = {
+                "date": deal.get("UF_CRM_1741593067418") or "",
+                "type": deal.get("UF_CRM_1741593115407") or ""
+            }
+        
+        # Ноябрь 2025
+        if deal.get("UF_CRM_1741593156926") or deal.get("UF_CRM_1741593210242"):
+            cleaning_dates["november_1"] = {
+                "date": deal.get("UF_CRM_1741593156926") or "",
+                "type": deal.get("UF_CRM_1741593210242") or ""
+            }
+        
+        if deal.get("UF_CRM_1741593231558") or deal.get("UF_CRM_1741593285121"):
+            cleaning_dates["november_2"] = {
+                "date": deal.get("UF_CRM_1741593231558") or "",
+                "type": deal.get("UF_CRM_1741593285121") or ""
+            }
+        
+        # Декабрь 2025
+        if deal.get("UF_CRM_1741593340713") or deal.get("UF_CRM_1741593387667"):
+            cleaning_dates["december_1"] = {
+                "date": deal.get("UF_CRM_1741593340713") or "",
+                "type": deal.get("UF_CRM_1741593387667") or ""
+            }
+        
+        if deal.get("UF_CRM_1741593408621") or deal.get("UF_CRM_1741593452062"):
+            cleaning_dates["december_2"] = {
+                "date": deal.get("UF_CRM_1741593408621") or "",
+                "type": deal.get("UF_CRM_1741593452062") or ""
+            }
+        
+        # Добавляем тариф/периодичность уборки
+        deal["tariff"] = deal.get("UF_CRM_1669706387893") or ""
         deal["cleaning_dates"] = cleaning_dates
+        
         return deal
     
     async def get_filter_options(self) -> Dict[str, List[str]]:
