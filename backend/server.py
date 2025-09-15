@@ -314,27 +314,37 @@ class BitrixService:
             return {}
     
     async def get_total_deals_count(self) -> int:
-        """Получить общее количество сделок в воронке 'Уборка подъездов'"""
+        """Получить общее количество сделок в воронке 'Уборка подъездов' (ID=34).
+        Пытаемся взять total из ответа Bitrix, иначе считаем пагинацией по 100 ID за раз.
+        """
         try:
-            params = {
-                "select": ["ID"],
-                "filter": {
-                    "CATEGORY_ID": "34"  # Только воронка "Уборка подъездов"
-                },
-                "order": {"ID": "DESC"}
-            }
-            
-            # Делаем запрос с большим лимитом чтобы получить общее количество
-            response = await self._make_request("crm.deal.list", params)
-            if not response.get("ok"):
-                logger.warning(f"crm.deal.list call failed: {response.get('error')}")
-                return 490  # Fallback значение как указал пользователь
-            deals = response.get("result", []) or []
-            total = len(deals)
-            
+            limit = 100
+            start = 0
+            total = 0
+            while True:
+                params = {
+                    "select": ["ID"],
+                    "filter": {"CATEGORY_ID": "34"},
+                    "order": {"ID": "DESC"},
+                    "start": start,
+                    "limit": limit
+                }
+                response = await self._make_request("crm.deal.list", params)
+                if not response.get("ok"):
+                    logger.warning(f"crm.deal.list call failed in total counter: {response.get('error')}")
+                    break
+                # Если есть поле total — используем его напрямую
+                if response.get("total") is not None:
+                    total = int(response.get("total") or 0)
+                    break
+                batch = response.get("result", []) or []
+                total += len(batch)
+                next_start = response.get("next")
+                if next_start is None:
+                    break
+                start = next_start
             logger.info(f"Total deals count in 'Уборка подъездов' pipeline: {total}")
-            return total
-            
+            return total if total > 0 else 490
         except Exception as e:
             logger.error(f"Error getting total deals count: {e}")
             return 490  # Fallback значение как указал пользователь
