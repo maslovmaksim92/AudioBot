@@ -53,7 +53,7 @@ const Works = () => {
 
   useEffect(() => {
     fetchHouses();
-  }, [activeFilters]);
+  }, [activeFilters, pagination.page, pagination.limit]);
 
   // API calls
   const fetchInitialData = async () => {
