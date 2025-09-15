@@ -91,26 +91,28 @@ class VasDomAPITester:
         success, data, status = self.make_request('GET', '/api/cleaning/houses')
         
         if success and status == 200:
-            if isinstance(data, list):
-                houses_count = len(data)
+            # Check if response has the expected structure
+            if isinstance(data, dict) and 'houses' in data:
+                houses = data['houses']
+                houses_count = len(houses)
                 if houses_count > 0:
                     # Check first house structure
-                    first_house = data[0]
+                    first_house = houses[0]
                     required_fields = ['id', 'title', 'address', 'brigade', 'management_company', 'status']
                     missing_fields = [field for field in required_fields if field not in first_house]
                     
                     if not missing_fields:
-                        self.log_test("Houses List", True, f"Retrieved {houses_count} houses")
+                        self.log_test("Houses List", True, f"Retrieved {houses_count} houses, Total: {data.get('total', 'N/A')}")
                         
                         # Test with filters
                         self.test_houses_with_filters()
-                        return True, data
+                        return True, houses
                     else:
                         self.log_test("Houses List", False, f"Missing fields in house data: {missing_fields}")
                 else:
                     self.log_test("Houses List", False, "No houses returned")
             else:
-                self.log_test("Houses List", False, f"Expected list, got: {type(data)}")
+                self.log_test("Houses List", False, f"Expected dict with 'houses' key, got: {type(data)}")
         else:
             self.log_test("Houses List", False, f"Status: {status}, Data: {data}")
         return False, []
