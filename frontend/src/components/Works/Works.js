@@ -366,32 +366,6 @@ const Works = () => {
                   </div>
                 </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-center mt-6 space-x-2">
-        <button
-          onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
-          disabled={pagination.page <= 1}
-          className="px-3 py-2 bg-white border rounded-lg text-sm disabled:opacity-50"
-        >
-          ← Предыдущая
-        </button>
-        {Array.from({ length: pagination.pages || 0 }, (_, i) => i + 1).slice(Math.max(0, pagination.page - 3), Math.max(3, pagination.page + 2)).map(p => (
-          <button
-            key={p}
-            onClick={() => handlePageChange(p)}
-            className={`px-3 py-2 border rounded-lg text-sm ${p === pagination.page ? 'bg-blue-600 text-white border-blue-600' : 'bg-white'}`}
-          >
-            {p}
-          </button>
-        ))}
-        <button
-          onClick={() => handlePageChange(Math.min(pagination.pages, pagination.page + 1))}
-          disabled={pagination.page >= pagination.pages}
-          className="px-3 py-2 bg-white border rounded-lg text-sm disabled:opacity-50"
-        >
-          Следующая →
-        </button>
-      </div>
 
               </div>
             )}
