@@ -187,7 +187,10 @@ class BitrixService:
         
         # Выполняем запрос
         response = await self._make_request("crm.deal.list", params)
-        deals = response.get("result", [])
+        if not response.get("ok"):
+            logger.warning(f"crm.deal.list call failed: {response.get('error')}")
+            return []
+        deals = response.get("result", []) or []
         
         # Обогащаем данные
         enriched_deals = []
