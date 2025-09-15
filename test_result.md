@@ -107,26 +107,32 @@
 ## backend:
 ##   - task: "Brigade name mapping in list endpoint (/api/cleaning/houses)"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "/app/backend/server.py"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##         -working: false
 ##         -agent: "main"
 ##         -comment: "Implemented BRIGADE_NAME_ENRICHED enrichment via BitrixService.get_user_details and returning 'brigade' from enriched field. Ready for backend testing."
+##         -working: true
+##         -agent: "testing"
+##         -comment: "✅ PASSED - Houses endpoint returns correct HousesResponse shape with houses[], total, page, limit, pages as integers. All brigade fields are strings (no raw ASSIGNED_BY_ID leaks). Sample enriched brigades: '4 бригада', '6 бригада'. Brigade name enrichment working correctly."
 ##   - task: "Brigade name mapping in details endpoint (/api/cleaning/house/{id}/details)"
 ##     implemented: true
-##     working: "NA"
+##     working: true
 ##     file: "/app/backend/server.py"
 ##     stuck_count: 0
 ##     priority: "high"
-##     needs_retesting: true
+##     needs_retesting: false
 ##     status_history:
 ##         -working: false
 ##         -agent: "main"
 ##         -comment: "Added ASSIGNED_BY_ID to select and computed brigade via get_user_details with safe fallbacks; details returns house.brigade as resolved name."
+##         -working: true
+##         -agent: "testing"
+##         -comment: "✅ PASSED - House details endpoint returns house.brigade as string (e.g., '4 бригада' for house 13112). Correctly returns 404 for non-existent houses (not 500). Brigade name resolution working with proper fallbacks."
 
 ## frontend:
 ##   - task: "Works list uses brigade name field"
