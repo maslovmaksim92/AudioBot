@@ -46,6 +46,9 @@ const Works = () => {
   const [animatedCards, setAnimatedCards] = useState(new Set());
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [houseDetails, setHouseDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   
   const searchRef = useRef(null);
 
