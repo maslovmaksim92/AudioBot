@@ -240,9 +240,10 @@ const Works = () => {
           <DatePicker
             selected={activeFilters.cleaning_date ? new Date(activeFilters.cleaning_date) : null}
             onChange={(date) => {
-              const val = date ? date.toISOString().slice(0,10) : '';
+              const val = date ? format(date, 'yyyy-MM-dd') : '';
               setActiveFilters(prev => ({ ...prev, cleaning_date: val }));
               setPagination(prev => ({...prev, page: 1}));
+              window.scrollTo({top: 0, behavior: 'smooth'});
             }}
             placeholderText="Дата уборки"
             dateFormat="yyyy-MM-dd"
