@@ -653,6 +653,30 @@ async def get_houses(
             
             # График уборки из реальных данных Bitrix24
             cleaning_dates = deal.get("cleaning_dates", {})
+
+            # Определяем периодичность по данным сентября (как базовый случай):
+            def get_periodicity_label(cd: Dict) -> str:
+                # Считаем количество событий "мытье" и "подметание" по сентябрю
+                wash_count = 0
+                sweep_count = 0
+                for key in ["september_1", "september_2"]:
+                    if key in cd and cd[key].get("type"):
+                        t = str(cd[key]["type"]).lower()
+                        if "влажная уборка" in t or "мытье" in t:
+                            wash_count += 1
+                        if "подмет" in t:
+                            sweep_count += 1
+                # Правила формулировок
+                if wash_count == 2 and sweep_count == 0:
+                    return "Периодичность - 2 раза"
+                if wash_count == 2 and sweep_count >= 1:
+                    return "Периодичность - Мытье 2 раза + подметание 2 раза" if sweep_count >= 2 else "Периодичность - Мытье 2 раза + подметание"
+                if wash_count == 1 and sweep_count == 1:
+                    return "Периодичность - 2 раза + первые этажи"
+                if wash_count >= 4:
+                    return "Периодичность - 4 раза"
+                return "Периодичность - индивидуальная"
+            periodicity = get_periodicity_label(cleaning_dates)
             
             house = HouseResponse(
                 id=int(deal.get("ID", 0)),
@@ -664,7 +688,8 @@ async def get_houses(
                 apartments=apartments,
                 entrances=entrances,
                 floors=floors,
-                cleaning_dates=cleaning_dates
+                cleaning_dates=cleaning_dates,
+                periodicity=periodicity
             )
             houses.append(house)
         
