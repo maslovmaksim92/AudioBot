@@ -176,6 +176,145 @@ class VasDomAPITester:
             self.log_test("AI Chat", False, f"Status: {status}, Data: {data}")
         return False, ""
     
+    def test_house_details_endpoint(self):
+        """Test the new house details endpoint"""
+        print("\n🔍 Testing House Details Endpoint...")
+        
+        # Test with the specific house mentioned in requirements: ID 13112
+        test_house_id = 13112
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{test_house_id}/details')
+        
+        if success and status == 200:
+            # Check if response has the expected structure
+            required_sections = ['house', 'management_company', 'senior_resident']
+            missing_sections = [section for section in required_sections if section not in data]
+            
+            if not missing_sections:
+                # Check house section
+                house = data.get('house', {})
+                house_fields = ['id', 'title', 'address', 'apartments', 'entrances', 'floors', 'brigade', 'status']
+                missing_house_fields = [field for field in house_fields if field not in house]
+                
+                # Check management company section
+                mc = data.get('management_company', {})
+                mc_fields = ['title', 'phone', 'email']
+                missing_mc_fields = [field for field in mc_fields if field not in mc]
+                
+                # Check senior resident section
+                sr = data.get('senior_resident', {})
+                sr_fields = ['full_name', 'phone', 'email']
+                missing_sr_fields = [field for field in sr_fields if field not in sr]
+                
+                if not missing_house_fields and not missing_mc_fields and not missing_sr_fields:
+                    # Verify specific data for house 13112
+                    house_info = f"House: {house.get('title', 'N/A')}, Address: {house.get('address', 'N/A')}"
+                    mc_info = f"MC: {mc.get('title', 'N/A')}, Email: {mc.get('email', 'N/A')}"
+                    apartments = house.get('apartments', 0)
+                    entrances = house.get('entrances', 0)
+                    floors = house.get('floors', 0)
+                    
+                    details_info = f"{house_info}, {mc_info}, Apt: {apartments}, Ent: {entrances}, Fl: {floors}"
+                    self.log_test("House Details Endpoint", True, details_info)
+                    
+                    # Verify expected data for house 13112
+                    self.verify_house_13112_data(data)
+                    return True, data
+                else:
+                    all_missing = missing_house_fields + missing_mc_fields + missing_sr_fields
+                    self.log_test("House Details Endpoint", False, f"Missing fields: {all_missing}")
+            else:
+                self.log_test("House Details Endpoint", False, f"Missing sections: {missing_sections}")
+        else:
+            self.log_test("House Details Endpoint", False, f"Status: {status}, Data: {data}")
+        
+        # Test with invalid house ID
+        success, data, status = self.make_request('GET', '/api/cleaning/house/99999/details')
+        if status == 404:
+            self.log_test("House Details - Invalid ID", True, "Correctly returns 404 for invalid house ID")
+        else:
+            self.log_test("House Details - Invalid ID", False, f"Expected 404, got {status}")
+        
+        return False, {}
+    
+    def verify_house_13112_data(self, data):
+        """Verify specific data for house 13112 as mentioned in requirements"""
+        house = data.get('house', {})
+        mc = data.get('management_company', {})
+        
+        # Expected data from requirements
+        expected_address = "Аллейная 6 п.1"
+        expected_mc = "ООО УК Новый город"
+        expected_email = "yk.novo-gorod@mail.ru"
+        expected_apartments = 119
+        expected_entrances = 1
+        expected_floors = 14
+        
+        # Check address
+        address = house.get('address', '')
+        if expected_address in address or address in expected_address:
+            self.log_test("House 13112 - Address Verification", True, f"Address contains: {expected_address}")
+        else:
+            self.log_test("House 13112 - Address Verification", False, f"Expected '{expected_address}', got '{address}'")
+        
+        # Check management company
+        mc_title = mc.get('title', '')
+        if expected_mc in mc_title or mc_title in expected_mc:
+            self.log_test("House 13112 - MC Verification", True, f"MC: {mc_title}")
+        else:
+            self.log_test("House 13112 - MC Verification", False, f"Expected '{expected_mc}', got '{mc_title}'")
+        
+        # Check email
+        mc_email = mc.get('email', '')
+        if expected_email in mc_email or mc_email in expected_email:
+            self.log_test("House 13112 - Email Verification", True, f"Email: {mc_email}")
+        else:
+            self.log_test("House 13112 - Email Verification", False, f"Expected '{expected_email}', got '{mc_email}'")
+        
+        # Check apartment count
+        apartments = house.get('apartments', 0)
+        if apartments == expected_apartments:
+            self.log_test("House 13112 - Apartments Count", True, f"Apartments: {apartments}")
+        else:
+            self.log_test("House 13112 - Apartments Count", False, f"Expected {expected_apartments}, got {apartments}")
+    
+    def test_houses_display_requirements(self):
+        """Test houses display requirements from the review request"""
+        print("\n🔍 Testing Houses Display Requirements...")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 10})
+        
+        if success and status == 200 and data and 'houses' in data:
+            houses = data['houses']
+            
+            # Check if houses have management company displayed
+            houses_with_mc = [h for h in houses if h.get('management_company')]
+            mc_percentage = (len(houses_with_mc) / len(houses)) * 100 if houses else 0
+            
+            if mc_percentage > 50:
+                self.log_test("Houses - Management Company Display", True, f"{mc_percentage:.1f}% houses have MC")
+            else:
+                self.log_test("Houses - Management Company Display", False, f"Only {mc_percentage:.1f}% houses have MC")
+            
+            # Check if houses have brigade numbers instead of schedule
+            houses_with_brigade = [h for h in houses if h.get('brigade')]
+            brigade_percentage = (len(houses_with_brigade) / len(houses)) * 100 if houses else 0
+            
+            if brigade_percentage > 50:
+                self.log_test("Houses - Brigade Number Display", True, f"{brigade_percentage:.1f}% houses have brigade")
+            else:
+                self.log_test("Houses - Brigade Number Display", False, f"Only {brigade_percentage:.1f}% houses have brigade")
+            
+            # Sample some house data
+            if houses:
+                sample_house = houses[0]
+                sample_info = f"ID: {sample_house.get('id')}, MC: {sample_house.get('management_company', 'N/A')}, Brigade: {sample_house.get('brigade', 'N/A')}"
+                self.log_test("Houses - Sample Data", True, sample_info)
+            
+            return True
+        else:
+            self.log_test("Houses Display Requirements", False, f"Failed to get houses data")
+            return False
+    
     def test_bitrix24_integration(self):
         """Test Bitrix24 integration by checking if real data is returned"""
         print("\n🔍 Testing Bitrix24 Integration...")
