@@ -126,7 +126,7 @@ class BitrixService:
         params = {
             "select": [
                 "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
-                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
+                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID", "CONTACT_ID",
                 # Основные пользовательские поля
                 "UF_CRM_1669561599956",  # Адрес дома
                 "UF_CRM_1669704529022",  # Количество квартир
@@ -186,6 +186,46 @@ class BitrixService:
         
         logger.info(f"Retrieved {len(enriched_deals)} deals from 'Уборка подъездов' pipeline")
         return enriched_deals
+    
+    async def get_company_details(self, company_id: str) -> Dict:
+        """Получить детали компании из Bitrix24"""
+        try:
+            if not company_id:
+                return {}
+                
+            params = {
+                "id": company_id
+            }
+            
+            response = await self._make_request("crm.company.get", params)
+            company_data = response.get("result", {})
+            
+            logger.info(f"Retrieved company details for ID {company_id}")
+            return company_data
+            
+        except Exception as e:
+            logger.error(f"Error getting company details: {e}")
+            return {}
+    
+    async def get_contact_details(self, contact_id: str) -> Dict:
+        """Получить детали контакта (старшего дома) из Bitrix24"""
+        try:
+            if not contact_id:
+                return {}
+                
+            params = {
+                "id": contact_id
+            }
+            
+            response = await self._make_request("crm.contact.get", params)
+            contact_data = response.get("result", {})
+            
+            logger.info(f"Retrieved contact details for ID {contact_id}")
+            return contact_data
+            
+        except Exception as e:
+            logger.error(f"Error getting contact details: {e}")
+            return {}
     
     async def get_total_deals_count(self) -> int:
         """Получить общее количество сделок в воронке 'Уборка подъездов'"""
