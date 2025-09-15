@@ -227,21 +227,22 @@ class BitrixService:
         try:
             if not user_id:
                 return {}
-                
-            params = {
-                "ID": user_id
-            }
-            
+            # Кэш
+            cache_entry = self._user_cache.get(str(user_id))
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            if cache_entry and now_ts - cache_entry.get("ts", 0) < self._user_cache_ttl_seconds:
+                return cache_entry.get("data", {})
+            params = {"ID": user_id}
             response = await self._make_request("user.get", params)
-            user_data = response.get("result", [])
-            
-            if user_data and len(user_data) > 0:
-                user = user_data[0]
+            if not response.get("ok"):
+                logger.warning(f"user.get failed for ID {user_id}: {response.get('error')}")
+                return {}
+            user_list = response.get("result") or []
+            user = user_list[0] if isinstance(user_list, list) and user_list else {}
+            if user:
+                self._user_cache[str(user_id)] = {"data": user, "ts": now_ts}
                 logger.info(f"Retrieved user details for ID {user_id}")
-                return user
-            
-            return {}
-            
+            return user
         except Exception as e:
             logger.error(f"Error getting user details: {e}")
             return {}
