@@ -111,7 +111,6 @@ const WorksSimple = () => {
                       📍 {house.address || house.house_address}
                     </h3>
                     <div className="text-sm text-gray-600 mb-1">ID: {house.deal_id}</div>
-                    <div className="text-sm text-blue-600">👥 {house.brigade || 'Не назначена'}</div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
