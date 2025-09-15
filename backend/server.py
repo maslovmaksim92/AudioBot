@@ -427,13 +427,13 @@ class BitrixService:
         if deal.get("UF_CRM_1741592774017") or deal.get("UF_CRM_1741592855565"):
             cleaning_dates["september_1"] = {
                 "dates": process_dates(deal.get("UF_CRM_1741592774017")),
-                "type": process_cleaning_type(deal.get("UF_CRM_1741592855565"))
+                "type": await process_cleaning_type(deal.get("UF_CRM_1741592855565"), "UF_CRM_1741592855565")
             }
         
         if deal.get("UF_CRM_1741592892232") or deal.get("UF_CRM_1741592945060"):
             cleaning_dates["september_2"] = {
                 "dates": process_dates(deal.get("UF_CRM_1741592892232")),
-                "type": process_cleaning_type(deal.get("UF_CRM_1741592945060"))
+                "type": await process_cleaning_type(deal.get("UF_CRM_1741592945060"), "UF_CRM_1741592945060")
             }
         
         # Октябрь 2025
