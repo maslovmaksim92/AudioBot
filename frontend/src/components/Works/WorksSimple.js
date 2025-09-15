@@ -18,7 +18,7 @@ const WorksSimple = () => {
         const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
         console.log('🏠 Loading houses from:', `${BACKEND_URL}/api/cleaning/houses-fixed`);
         
-        const response = await fetch(`${BACKEND_URL}/api/cleaning/houses-fixed?limit=20`);
+        const response = await fetch(`${BACKEND_URL}/api/cleaning/houses-fixed`); // Убираем limit - загружаем все дома
         const result = await response.json();
         console.log('🏠 Houses data loaded:', result);
         
