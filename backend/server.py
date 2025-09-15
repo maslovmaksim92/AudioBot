@@ -258,8 +258,10 @@ class BitrixService:
             }
             
             response = await self._make_request("crm.contact.get", params)
-            contact_data = response.get("result", {})
-            
+            if not response.get("ok"):
+                logger.warning(f"crm.contact.get failed for ID {contact_id}: {response.get('error')}")
+                return {}
+            contact_data = response.get("result") or {}
             logger.info(f"Retrieved contact details for ID {contact_id}")
             return contact_data
             
