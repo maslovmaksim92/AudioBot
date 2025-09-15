@@ -380,9 +380,9 @@ async def get_dashboard_stats():
         deals = await bitrix_service.get_deals_optimized(limit=500)
         
         total_houses = len(deals)
-        total_apartments = sum(int(deal.get("UF_CRM_1669704529022", 0)) for deal in deals)
-        total_entrances = sum(int(deal.get("UF_CRM_1669705507390", 0)) for deal in deals)
-        total_floors = sum(int(deal.get("UF_CRM_1669704631166", 0)) for deal in deals)
+        total_apartments = sum(int(deal.get("UF_CRM_1669704529022") or 0) for deal in deals)
+        total_entrances = sum(int(deal.get("UF_CRM_1669705507390") or 0) for deal in deals)
+        total_floors = sum(int(deal.get("UF_CRM_1669704631166") or 0) for deal in deals)
         
         # Если данные пустые, генерируем на основе статистики
         if total_apartments == 0:
