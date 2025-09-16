@@ -7,8 +7,12 @@ import os
 import logging
 import httpx
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
+import jwt
+import base64
+import json
+import websockets
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
