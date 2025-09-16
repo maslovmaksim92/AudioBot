@@ -155,15 +155,13 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "✅ COMPLETED: Verify /api/cleaning/houses responds with HousesResponse shape and includes 'brigade' string for each house when deals exist; handles empty gracefully"
-##     - "✅ COMPLETED: Verify /api/cleaning/house/{id}/details returns house.brigade resolved name when Bitrix is configured; returns 404 when not found"
+##     - "Verify /api/cleaning/houses supports filters brigade, management_company, cleaning_date and date_from/date_to; pagination returns bottom-only pages with correct total/pages"
+##     - "Verify /api/cleaning/house/{id}/details includes bitrix_url and details payload is stable"
 ##   stuck_tasks:
-##     - "None"
+##     - "Past 503 Bitrix24 instabilities; verify fallbacks don't break responses"
 ##   test_all: false
 ##   test_priority: "high_first"
 
 ## agent_communication:
 ##     -agent: "main"
-##     -message: "Backend updated to resolve brigade names. Please run backend tests against endpoints above. Bitrix webhook may be absent in env; expect 0 houses and 404 on details in that case, but validate schemas and HTTP status codes."
-##     -agent: "testing"
-##     -message: "✅ BRIGADE MAPPING TESTS COMPLETED - All critical tests passed (5/5, 100% success rate). Both endpoints working correctly: 1) /api/cleaning/houses returns proper HousesResponse shape with brigade fields as strings (no raw ASSIGNED_BY_ID leaks), 2) /api/cleaning/house/{id}/details returns house.brigade as enriched string and proper 404 handling. Brigade name enrichment via BitrixService.get_user_details is functioning correctly with examples like '4 бригада', '6 бригада'. Backend implementation is working as expected." 
+##     -message: "Please run backend tests for the updated filters and pagination: 1) /api/cleaning/houses with brigade, management_company, cleaning_date=2025-09-05 and date range (2025-09-01..2025-09-30); verify pages/total integers and non-empty when Bitrix responds; 2) /api/cleaning/house/{id}/details returns bitrix_url when available. Validate schema stability and no 500s on Bitrix 503 (fallbacks)."
