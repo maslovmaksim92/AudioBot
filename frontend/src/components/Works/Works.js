@@ -35,6 +35,7 @@ const Works = () => {
     statuses: []
   });
   const [loading, setLoading] = useState(false);
+  const [showMiniSchedule, setShowMiniSchedule] = useState(true);
   
   // Активные фильтры
   const [activeFilters, setActiveFilters] = useState({
