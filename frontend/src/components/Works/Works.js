@@ -181,10 +181,10 @@ const Works = () => {
 
   if (loading && houses.length === 0) {
     return (
-      <div className="p-8 flex justify-center items-center min-h-96">
+      <div className="px-4 py-6 flex justify-center items-center">
         <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="text-lg font-medium text-gray-600">Загрузка домов из Bitrix24...</span>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span className="text-sm font-medium text-gray-600">Загрузка домов из Bitrix24...</span>
         </div>
       </div>
     );
