@@ -419,6 +419,20 @@ const Works = () => {
                 onClick={() => {
                   setSelectedHouse(house);
                   setShowScheduleModal(true);
+              <div className="mt-4 flex justify-end">
+                {selectedHouse.bitrix_url && (
+                  <a
+                    href={selectedHouse.bitrix_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 border rounded-lg text-sm flex items-center space-x-1 hover:bg-gray-50"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Открыть в Bitrix24</span>
+                  </a>
+                )}
+              </div>
+
                 }}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
               >
