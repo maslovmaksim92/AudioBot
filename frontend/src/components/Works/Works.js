@@ -414,7 +414,7 @@ const Works = () => {
             )}
 
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 onClick={() => {
                   setSelectedHouse(house);
@@ -424,6 +424,13 @@ const Works = () => {
               >
                 <Calendar className="w-4 h-4" />
                 <span>Посмотреть график</span>
+              </button>
+              <button 
+                onClick={() => fetchHouseDetails(house.id)}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
+              >
+                <MapPin className="w-4 h-4" />
+                <span>Детали</span>
               </button>
               {house.bitrix_url ? (
                 <a
