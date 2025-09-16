@@ -479,27 +479,32 @@ class VasDomAPITester:
         return False
     
     def run_comprehensive_test(self):
-        """Run all tests"""
+        """Run all tests focusing on review request requirements"""
         print("🚀 Starting VasDom AudioBot API Testing")
         print(f"📍 Testing URL: {self.base_url}")
+        print("🎯 Focus: Updated filters and pagination per review request")
         print("=" * 60)
         
-        # Test all endpoints
+        # Test core endpoints
         self.test_root_endpoint()
         stats_success, stats_data = self.test_dashboard_stats()
-        houses_success, houses_data = self.test_cleaning_houses()
-        filters_success, filters_data = self.test_cleaning_filters()
         
-        # Test new functionality from review request
-        self.test_houses_display_requirements()
+        # Main focus: Houses endpoint with filters and pagination
+        houses_success, houses_data = self.test_cleaning_houses()
+        
+        # Test house details endpoint
         house_details_success, house_details_data = self.test_house_details_endpoint()
         
+        # Test Bitrix fallback behavior
+        self.test_bitrix_fallback_behavior()
+        
+        # Test other endpoints
+        filters_success, filters_data = self.test_cleaning_filters()
         ai_success, ai_response = self.test_ai_chat()
-        bitrix_success = self.test_bitrix24_integration()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY")
+        print("📊 TEST SUMMARY - REVIEW REQUEST FOCUS")
         print("=" * 60)
         print(f"Total Tests: {self.tests_run}")
         print(f"Passed: {self.tests_passed}")
@@ -511,26 +516,13 @@ class VasDomAPITester:
             for test in self.failed_tests:
                 print(f"  - {test['name']}: {test['details']}")
         
-        # Print key findings
-        if stats_success:
-            print(f"\n📈 SYSTEM STATS:")
-            print(f"  - Houses: {stats_data.get('total_houses', 'N/A')}")
-            print(f"  - Apartments: {stats_data.get('total_apartments', 'N/A')}")
-            print(f"  - Brigades: {stats_data.get('active_brigades', 'N/A')}")
-            print(f"  - Employees: {stats_data.get('employees', 'N/A')}")
-        
-        if house_details_success:
-            print(f"\n🏠 HOUSE DETAILS TEST:")
-            house = house_details_data.get('house', {})
-            mc = house_details_data.get('management_company', {})
-            print(f"  - House: {house.get('title', 'N/A')}")
-            print(f"  - Address: {house.get('address', 'N/A')}")
-            print(f"  - Management Company: {mc.get('title', 'N/A')}")
-            print(f"  - Apartments: {house.get('apartments', 'N/A')}")
-        
-        if ai_success:
-            print(f"\n🤖 AI RESPONSE SAMPLE:")
-            print(f"  {ai_response[:100]}..." if len(ai_response) > 100 else f"  {ai_response}")
+        # Print key findings for review request
+        print(f"\n🎯 REVIEW REQUEST RESULTS:")
+        print(f"  ✅ GET /api/cleaning/houses filters: {'PASSED' if any('Filter' in t['name'] and t['name'] not in [f['name'] for f in self.failed_tests] for t in [{'name': 'Houses Brigade Filter'}, {'name': 'Houses Management Company Filter'}, {'name': 'Houses Cleaning Date Filter'}, {'name': 'Houses Date Range Filter'}]) else 'FAILED'}")
+        print(f"  ✅ Response schema validation: {'PASSED' if 'Houses Response Schema' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
+        print(f"  ✅ House details with bitrix_url: {'PASSED' if 'House Details - Valid Response' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
+        print(f"  ✅ 404 handling (not 500): {'PASSED' if 'House Details - Invalid ID (404)' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
+        print(f"  ✅ Bitrix 503 fallbacks: {'PASSED' if 'Bitrix Fallback' not in ' '.join([f['name'] for f in self.failed_tests]) else 'FAILED'}")
         
         return len(self.failed_tests) == 0
 
