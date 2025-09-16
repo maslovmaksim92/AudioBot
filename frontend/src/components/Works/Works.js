@@ -151,6 +151,34 @@ const Works = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Быстрые пресеты дат
+  const applyPreset = (type) => {
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    let from = '', to = '';
+    if (type === 'today') {
+      from = to = fmt(today);
+    } else if (type === 'tomorrow') {
+      const t = new Date(); t.setDate(t.getDate()+1);
+      from = to = fmt(t);
+    } else if (type === 'week') {
+      const d = new Date();
+      const day = d.getDay() === 0 ? 7 : d.getDay();
+      const monday = new Date(d); monday.setDate(d.getDate() - (day-1));
+      const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+      from = fmt(monday); to = fmt(sunday);
+    } else if (type === 'month') {
+      const d = new Date();
+      const first = new Date(d.getFullYear(), d.getMonth(), 1);
+      const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+      from = fmt(first); to = fmt(last);
+    }
+    setActiveFilters(prev => ({ ...prev, cleaning_date: '', date_from: from, date_to: to }));
+    setPagination(prev => ({...prev, page: 1}));
+    window.scrollTo({top:0, behavior:'smooth'});
+  };
+
   const handleLimitChange = (newLimit) => {
     setPagination(prev => ({ 
       ...prev, 
