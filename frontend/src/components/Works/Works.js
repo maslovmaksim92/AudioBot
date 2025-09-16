@@ -548,12 +548,25 @@ const Works = () => {
                 <h2 className="text-2xl font-semibold text-gray-900">
                   Детали дома: {houseDetails.house.title}
                 </h2>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  {houseDetails.house.bitrix_url && (
+                    <a
+                      href={houseDetails.house.bitrix_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 flex items-center space-x-1"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Открыть в Bitrix24</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
