@@ -818,7 +818,7 @@ async def get_dashboard_stats():
         raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
 
 @api_router.get("/cleaning/house/{house_id}/details")
-async def get_house_details(house_id: int):
+async def get_house_details(house_id: int, include_url: bool = True):
     """Получить детальную информацию о доме, УК и старшем дома"""
     try:
         # Получаем сделку
