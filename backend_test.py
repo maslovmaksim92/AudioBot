@@ -118,22 +118,114 @@ class VasDomAPITester:
         return False, []
     
     def test_houses_with_filters(self):
-        """Test houses endpoint with filters"""
-        # Test with limit
-        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
-        if success and status == 200 and isinstance(data, dict) and 'houses' in data:
-            houses = data['houses']
-            self.log_test("Houses with Limit Filter", True, f"Retrieved {len(houses)} houses (limit=5)")
-        else:
-            self.log_test("Houses with Limit Filter", False, f"Status: {status}")
+        """Test houses endpoint with filters as per review request"""
+        print("\n🔍 Testing Houses Endpoint Filters and Pagination...")
         
-        # Test with offset
-        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'offset': 10, 'limit': 5})
-        if success and status == 200 and isinstance(data, dict) and 'houses' in data:
-            houses = data['houses']
-            self.log_test("Houses with Offset Filter", True, f"Retrieved {len(houses)} houses (offset=10)")
+        # Test 1: Basic pagination response schema
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5, 'page': 1})
+        if success and status == 200:
+            # Verify response schema: { houses: [...], total, page, limit, pages }
+            required_fields = ['houses', 'total', 'page', 'limit', 'pages']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                # Verify integers for total/page/limit/pages
+                integer_fields = ['total', 'page', 'limit', 'pages']
+                non_integer_fields = []
+                for field in integer_fields:
+                    if not isinstance(data[field], int):
+                        non_integer_fields.append(f"{field}={data[field]} ({type(data[field]).__name__})")
+                
+                if not non_integer_fields:
+                    # Verify houses array is present
+                    if isinstance(data['houses'], list):
+                        self.log_test("Houses Response Schema", True, 
+                                    f"Schema valid: houses={len(data['houses'])}, total={data['total']}, page={data['page']}, limit={data['limit']}, pages={data['pages']}")
+                        
+                        # Test house object schema
+                        if data['houses']:
+                            self.test_house_object_schema(data['houses'][0])
+                    else:
+                        self.log_test("Houses Response Schema", False, f"houses field is not array: {type(data['houses'])}")
+                else:
+                    self.log_test("Houses Response Schema", False, f"Non-integer fields: {non_integer_fields}")
+            else:
+                self.log_test("Houses Response Schema", False, f"Missing fields: {missing_fields}")
         else:
-            self.log_test("Houses with Offset Filter", False, f"Status: {status}")
+            self.log_test("Houses Response Schema", False, f"Status: {status}, Data: {data}")
+        
+        # Test 2: Brigade filter
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'brigade': '4 бригада', 'limit': 10})
+        if success and status == 200:
+            self.log_test("Houses Brigade Filter", True, f"Brigade filter works, returned {len(data.get('houses', []))} houses")
+        else:
+            self.log_test("Houses Brigade Filter", False, f"Status: {status}")
+        
+        # Test 3: Management company filter
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'management_company': 'УК', 'limit': 10})
+        if success and status == 200:
+            self.log_test("Houses Management Company Filter", True, f"Management company filter works, returned {len(data.get('houses', []))} houses")
+        else:
+            self.log_test("Houses Management Company Filter", False, f"Status: {status}")
+        
+        # Test 4: Cleaning date filter (specific date)
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'cleaning_date': '2025-09-05', 'limit': 10})
+        if success and status == 200:
+            self.log_test("Houses Cleaning Date Filter", True, f"Cleaning date filter works, returned {len(data.get('houses', []))} houses")
+        else:
+            self.log_test("Houses Cleaning Date Filter", False, f"Status: {status}")
+        
+        # Test 5: Date range filter
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={
+            'date_from': '2025-09-01', 
+            'date_to': '2025-09-30', 
+            'limit': 10
+        })
+        if success and status == 200:
+            self.log_test("Houses Date Range Filter", True, f"Date range filter works, returned {len(data.get('houses', []))} houses")
+        else:
+            self.log_test("Houses Date Range Filter", False, f"Status: {status}")
+        
+        # Test 6: Combined filters
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={
+            'brigade': '4 бригада',
+            'management_company': 'УК',
+            'date_from': '2025-09-01',
+            'date_to': '2025-09-30',
+            'limit': 5,
+            'page': 1
+        })
+        if success and status == 200:
+            self.log_test("Houses Combined Filters", True, f"Combined filters work, returned {len(data.get('houses', []))} houses")
+        else:
+            self.log_test("Houses Combined Filters", False, f"Status: {status}")
+    
+    def test_house_object_schema(self, house):
+        """Test individual house object schema"""
+        required_fields = ['id', 'title', 'address', 'brigade', 'management_company', 'periodicity', 'cleaning_dates', 'bitrix_url']
+        missing_fields = [field for field in required_fields if field not in house]
+        
+        if not missing_fields:
+            # Verify field types
+            type_errors = []
+            if not isinstance(house['brigade'], str):
+                type_errors.append(f"brigade should be string, got {type(house['brigade'])}")
+            if not isinstance(house['management_company'], str):
+                type_errors.append(f"management_company should be string, got {type(house['management_company'])}")
+            if not isinstance(house['periodicity'], str):
+                type_errors.append(f"periodicity should be string, got {type(house['periodicity'])}")
+            if not isinstance(house['cleaning_dates'], dict):
+                type_errors.append(f"cleaning_dates should be object, got {type(house['cleaning_dates'])}")
+            if not isinstance(house['bitrix_url'], str):
+                type_errors.append(f"bitrix_url should be string, got {type(house['bitrix_url'])}")
+            
+            if not type_errors:
+                self.log_test("House Object Schema", True, 
+                            f"House ID {house['id']}: brigade='{house['brigade']}', mc='{house['management_company']}', periodicity='{house['periodicity']}'")
+            else:
+                self.log_test("House Object Schema", False, f"Type errors: {type_errors}")
+        else:
+            self.log_test("House Object Schema", False, f"Missing fields: {missing_fields}")
     
     def test_cleaning_filters(self):
         """Test filters endpoint"""
