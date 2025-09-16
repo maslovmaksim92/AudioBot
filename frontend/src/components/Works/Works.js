@@ -423,18 +423,6 @@ const Works = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-        {house.bitrix_url && (
-          <a
-            href={house.bitrix_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50 flex items-center space-x-1"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span>Открыть в Bitrix24</span>
-          </a>
-        )}
-
                 <span>График</span>
               </button>
               <button 
