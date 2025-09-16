@@ -874,6 +874,8 @@ async def get_house_details(house_id: int, include_url: bool = True):
             # Fallback на ASSIGNED_BY_NAME либо на текст с ID
             brigade_name = deal.get("ASSIGNED_BY_NAME", "") or (f"Бригада {deal.get('ASSIGNED_BY_ID')}" if deal.get('ASSIGNED_BY_ID') else "")
 
+        bitrix_url = f"{bitrix_service.base_url.replace('/rest/','/crm/deal/details/')}{{}}".format(deal.get("ID")) if bitrix_service.base_url else ""
+
         result = {
             "house": {
                 "id": deal.get("ID"),
@@ -883,7 +885,8 @@ async def get_house_details(house_id: int, include_url: bool = True):
                 "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
                 "floors": int(deal.get("UF_CRM_1669704631166") or 0),
                 "brigade": brigade_name or "",
-                "status": deal.get("STAGE_ID", "")
+                "status": deal.get("STAGE_ID", ""),
+                "bitrix_url": bitrix_url if include_url else ""
             },
             "management_company": {
                 "id": company_details.get("ID", ""),
