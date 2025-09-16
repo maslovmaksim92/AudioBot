@@ -42,6 +42,8 @@ const Works = () => {
     management_company: '',
     status: '',
     cleaning_date: '',
+    date_from: '',
+    date_to: '',
     search: ''
   });
   
