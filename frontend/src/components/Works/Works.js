@@ -217,6 +217,15 @@ const Works = () => {
           </button>
         </div>
 
+        {/* Быстрые пресеты дат */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-sm text-gray-500 mr-2">Быстрый выбор:</span>
+          <button onClick={() => applyPreset('today')} className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200">Сегодня</button>
+          <button onClick={() => applyPreset('tomorrow')} className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200">Завтра</button>
+          <button onClick={() => applyPreset('week')} className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200">Неделя</button>
+          <button onClick={() => applyPreset('month')} className="px-2 py-1 text-xs rounded-md bg-gray-100 hover:bg-gray-200">Месяц</button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
           <select
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
