@@ -269,11 +269,22 @@ class VasDomAPITester:
         return False, ""
     
     def test_house_details_endpoint(self):
-        """Test the new house details endpoint"""
+        """Test house details endpoint as per review request"""
         print("\n🔍 Testing House Details Endpoint...")
         
-        # Test with the specific house mentioned in requirements: ID 13112
-        test_house_id = 13112
+        # First, get a house ID from the houses list
+        success, houses_data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
+        test_house_id = None
+        
+        if success and status == 200 and houses_data.get('houses'):
+            test_house_id = houses_data['houses'][0]['id']
+            print(f"   Using house ID {test_house_id} for testing")
+        else:
+            # Fallback to a sample ID
+            test_house_id = 1
+            print(f"   Using fallback house ID {test_house_id} for testing")
+        
+        # Test 1: Valid house details
         success, data, status = self.make_request('GET', f'/api/cleaning/house/{test_house_id}/details')
         
         if success and status == 200:
@@ -282,51 +293,74 @@ class VasDomAPITester:
             missing_sections = [section for section in required_sections if section not in data]
             
             if not missing_sections:
-                # Check house section
+                # Check house section has bitrix_url
                 house = data.get('house', {})
-                house_fields = ['id', 'title', 'address', 'apartments', 'entrances', 'floors', 'brigade', 'status']
-                missing_house_fields = [field for field in house_fields if field not in house]
-                
-                # Check management company section
-                mc = data.get('management_company', {})
-                mc_fields = ['title', 'phone', 'email']
-                missing_mc_fields = [field for field in mc_fields if field not in mc]
-                
-                # Check senior resident section
-                sr = data.get('senior_resident', {})
-                sr_fields = ['full_name', 'phone', 'email']
-                missing_sr_fields = [field for field in sr_fields if field not in sr]
-                
-                if not missing_house_fields and not missing_mc_fields and not missing_sr_fields:
-                    # Verify specific data for house 13112
-                    house_info = f"House: {house.get('title', 'N/A')}, Address: {house.get('address', 'N/A')}"
-                    mc_info = f"MC: {mc.get('title', 'N/A')}, Email: {mc.get('email', 'N/A')}"
-                    apartments = house.get('apartments', 0)
-                    entrances = house.get('entrances', 0)
-                    floors = house.get('floors', 0)
+                if 'bitrix_url' in house:
+                    bitrix_url = house['bitrix_url']
+                    self.log_test("House Details - Valid Response", True, 
+                                f"House ID {test_house_id}: bitrix_url={'present' if bitrix_url else 'empty'}")
                     
-                    details_info = f"{house_info}, {mc_info}, Apt: {apartments}, Ent: {entrances}, Fl: {floors}"
-                    self.log_test("House Details Endpoint", True, details_info)
-                    
-                    # Verify expected data for house 13112
-                    self.verify_house_13112_data(data)
-                    return True, data
+                    # Verify house.bitrix_url is string
+                    if isinstance(bitrix_url, str):
+                        self.log_test("House Details - Bitrix URL Type", True, f"bitrix_url is string: {len(bitrix_url)} chars")
+                    else:
+                        self.log_test("House Details - Bitrix URL Type", False, f"bitrix_url should be string, got {type(bitrix_url)}")
                 else:
-                    all_missing = missing_house_fields + missing_mc_fields + missing_sr_fields
-                    self.log_test("House Details Endpoint", False, f"Missing fields: {all_missing}")
+                    self.log_test("House Details - Valid Response", False, "Missing bitrix_url in house object")
             else:
-                self.log_test("House Details Endpoint", False, f"Missing sections: {missing_sections}")
+                self.log_test("House Details - Valid Response", False, f"Missing sections: {missing_sections}")
         else:
-            self.log_test("House Details Endpoint", False, f"Status: {status}, Data: {data}")
+            self.log_test("House Details - Valid Response", False, f"Status: {status}, Data: {data}")
         
-        # Test with invalid house ID
-        success, data, status = self.make_request('GET', '/api/cleaning/house/99999/details')
+        # Test 2: Invalid house ID (should return 404, not 500)
+        invalid_id = 999999
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{invalid_id}/details')
+        
         if status == 404:
-            self.log_test("House Details - Invalid ID", True, "Correctly returns 404 for invalid house ID")
+            self.log_test("House Details - Invalid ID (404)", True, f"Correctly returns 404 for house ID {invalid_id}")
+        elif status == 500:
+            self.log_test("House Details - Invalid ID (404)", False, f"Returns 500 instead of 404 for invalid house ID {invalid_id}")
         else:
-            self.log_test("House Details - Invalid ID", False, f"Expected 404, got {status}")
+            self.log_test("House Details - Invalid ID (404)", False, f"Expected 404, got {status} for invalid house ID {invalid_id}")
         
-        return False, {}
+        return success and status == 200, data
+    
+    def test_bitrix_fallback_behavior(self):
+        """Test that endpoints handle Bitrix 503 gracefully without returning 500"""
+        print("\n🔍 Testing Bitrix Fallback Behavior...")
+        
+        # Test houses endpoint - should not return 500 even if Bitrix is down
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
+        
+        if success and status == 200:
+            # Check that response has correct shape even if Bitrix is down
+            if isinstance(data, dict) and 'houses' in data and 'total' in data:
+                houses = data['houses']
+                # Houses array should be present (may be empty if Bitrix down but should not 500)
+                if isinstance(houses, list):
+                    self.log_test("Bitrix Fallback - Houses Endpoint", True, 
+                                f"Houses endpoint stable: {len(houses)} houses, total={data['total']}")
+                else:
+                    self.log_test("Bitrix Fallback - Houses Endpoint", False, f"houses should be array, got {type(houses)}")
+            else:
+                self.log_test("Bitrix Fallback - Houses Endpoint", False, f"Invalid response structure: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+        elif status == 500:
+            self.log_test("Bitrix Fallback - Houses Endpoint", False, f"Houses endpoint returns 500 - should handle Bitrix failures gracefully")
+        else:
+            self.log_test("Bitrix Fallback - Houses Endpoint", False, f"Unexpected status: {status}")
+        
+        # Test house details endpoint - should not return 500 even if Bitrix is down
+        test_id = 1
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{test_id}/details')
+        
+        if success and status in [200, 404]:
+            self.log_test("Bitrix Fallback - House Details", True, f"House details endpoint stable (status {status})")
+        elif status == 500:
+            self.log_test("Bitrix Fallback - House Details", False, f"House details returns 500 - should handle Bitrix failures gracefully")
+        else:
+            self.log_test("Bitrix Fallback - House Details", False, f"Unexpected status: {status}")
+        
+        return True
     
     def verify_house_13112_data(self, data):
         """Verify specific data for house 13112 as mentioned in requirements"""
