@@ -419,34 +419,25 @@ const Works = () => {
                 onClick={() => {
                   setSelectedHouse(house);
                   setShowScheduleModal(true);
-              <div className="mt-4 flex justify-end">
-                {selectedHouse.bitrix_url && (
-                  <a
-                    href={selectedHouse.bitrix_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 border rounded-lg text-sm flex items-center space-x-1 hover:bg-gray-50"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>Открыть в Bitrix24</span>
-                  </a>
-                )}
-              </div>
-
                 }}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
-                <span>График</span>
+                <span>Посмотреть график</span>
               </button>
-              <button 
-                onClick={() => fetchHouseDetails(house.id)}
-                disabled={detailsLoading}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors disabled:opacity-50"
-              >
-                <MapPin className="w-4 h-4" />
-                <span>{detailsLoading ? 'Загрузка...' : 'Детали'}</span>
-              </button>
+              {house.bitrix_url ? (
+                <a
+                  href={house.bitrix_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white border hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center space-x-1 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Открыть в Bitrix24</span>
+                </a>
+              ) : (
+                <button disabled className="bg-gray-200 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium">Bitrix24 недоступен</button>
+              )}
             </div>
           </div>
         ))}
