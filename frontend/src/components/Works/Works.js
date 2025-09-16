@@ -234,7 +234,7 @@ const Works = () => {
 
       {/* Filters */}
       <div className="card-modern mb-8 animate-slide-up">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold text-gray-900">Фильтры домов</h2>
           <button
             onClick={fetchHouses}
