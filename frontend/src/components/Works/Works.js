@@ -452,12 +452,25 @@ const Works = () => {
                 <h2 className="text-xl font-semibold text-gray-900">
                   График уборки: {selectedHouse.title}
                 </h2>
-                <button
-                  onClick={() => setShowScheduleModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  {selectedHouse.bitrix_url && (
+                    <a
+                      href={selectedHouse.bitrix_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 flex items-center space-x-1"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Открыть в Bitrix24</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setShowScheduleModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
