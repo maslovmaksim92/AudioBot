@@ -1122,16 +1122,76 @@ MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
 MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
 DEFAULT_TOP_K = 10
 
-from emergentintegrations.llm.embeddings import LlmEmbeddings
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
+import zipfile, io
+from PyPDF2 import PdfReader
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
 
 async def _read_file_content(file: UploadFile) -> str:
-    # Simple extractor (txt); other types parsed later inline
     ext = os.path.splitext(file.filename or '')[1].lower()
+    data = await file.read()
     if ext == '.txt':
-        return (await file.read()).decode('utf-8', errors='ignore')
+        return data.decode('utf-8', errors='ignore')
+    if ext == '.pdf':
+        try:
+            reader = PdfReader(io.BytesIO(data))
+            texts = []
+            for page in reader.pages:
+                try:
+                    texts.append(page.extract_text() or '')
+                except Exception:
+                    continue
+            return '\n'.join(texts)
+        except Exception:
+            return ''
+    if ext == '.docx':
+        try:
+            bio = io.BytesIO(data)
+            doc = DocxDocument(bio)
+            return '\n'.join(p.text for p in doc.paragraphs)
+        except Exception:
+            return ''
+    if ext == '.xlsx':
+        try:
+            bio = io.BytesIO(data)
+            wb = load_workbook(bio, read_only=True, data_only=True)
+            out = []
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    line = ' '.join([str(c) for c in row if c is not None])
+                    if line:
+                        out.append(line)
+            return '\n'.join(out)
+        except Exception:
+            return ''
+    if ext == '.zip':
+        text_parts = []
+        try:
+            bio = io.BytesIO(data)
+            with zipfile.ZipFile(bio) as zf:
+                for name in zf.namelist():
+                    if name.endswith('/'):
+                        continue
+                    sub_ext = os.path.splitext(name)[1].lower()
+                    if sub_ext not in {'.pdf','.docx','.txt','.xlsx'}:
+                        continue
+                    # path traversal guard
+                    if os.path.isabs(name) or '..' in name:
+                        continue
+                    with zf.open(name) as f:
+                        sub_data = f.read()
+                        uf = UploadFile(filename=name, file=io.BytesIO(sub_data))
+                        # Reuse logic: but our function expects .read() once; ensure buffer at start
+                        await uf.seek(0)
+                        text_parts.append(await _read_file_content(uf))
+            return '\n\n'.join(tp for tp in text_parts if tp)
+        except Exception:
+            return ''
     return ''
 
 async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> list[str]:
@@ -1170,16 +1230,19 @@ async def _summarize(text: str) -> str:
         return text[:500]
 
 async def _embed_texts(texts: list[str]) -> list[list[float]]:
-    if not EMERGENT_LLM_KEY:
+    if not OPENAI_API_KEY:
         # fallback: zeros
         return [[0.0]*3072 for _ in texts]
-    emb = LlmEmbeddings(api_key=EMERGENT_LLM_KEY).with_model('openai','text-embedding-3-large')
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     # batch sequentially to be safe
     res: list[list[float]] = []
     for t in texts:
         try:
-            r = await emb.embed_async(t)
-            res.append(list(r.embedding))
+            response = await client.embeddings.create(
+                model='text-embedding-3-large',
+                input=t
+            )
+            res.append(response.data[0].embedding)
         except Exception as e:
             logger.error(f'Embedding error: {e}')
             res.append([0.0]*3072)
