@@ -10,6 +10,7 @@ import Meetings from './components/Meetings/Meetings';
 import Training from './components/Training/Training';
 import Tasks from './components/Tasks/Tasks';
 import './App.css';
+import Logistics from './components/Logistics/Logistics';
 
 function App() {
   return (
