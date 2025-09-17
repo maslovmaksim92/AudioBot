@@ -495,14 +495,14 @@ class VasDomAPITester:
         
         success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
         
-        if status == 404:
+        if status == 404 and success and 'detail' in data and 'геокодировать' not in data['detail']:
             self.log_test("Logistics Route - Endpoint Exists", False, f"Endpoint /api/logistics/route not found (404). Success: {success}, Data: {data}")
             return False
         elif status == 405:
             self.log_test("Logistics Route - Endpoint Exists", False, "Method not allowed (405) - endpoint may exist but not accept POST")
             return False
-        elif success and status in [200, 400, 401, 500]:
-            # Endpoint exists if we get any of these status codes (not 404)
+        elif success and status in [200, 400, 401, 404, 500]:
+            # Endpoint exists if we get any of these status codes (including geocoding 404)
             self.log_test("Logistics Route - Endpoint Exists", True, f"Endpoint responds (status {status})")
             
             # Test 2: Basic route with 2 addresses
