@@ -245,6 +245,14 @@ const AIChat = () => {
           </div>
           
           <button
+            onClick={() => setVoiceOnline(v => !v)}
+            className={`p-3 rounded-xl transition-all duration-200 ${voiceOnline ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            title="Разговор онлайн"
+          >
+            {voiceOnline ? 'Онлайн' : 'Онлайн-голос'}
+          </button>
+
+          <button
             onClick={startRecording}
             disabled={isRecording}
             className={`p-3 rounded-xl transition-all duration-200 ${
