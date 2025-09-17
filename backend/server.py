@@ -1342,11 +1342,10 @@ async def ai_search(req: SearchRequest, db: AsyncSession = Depends(get_db)):
     return {"results": results}
 
 @api_router.delete('/ai-knowledge/document/{doc_id}')
-async def ai_delete(doc_id: str):
-    async with AsyncSessionLocal() as s:
-        await s.execute(sa_text('DELETE FROM ai_chunks WHERE document_id=:id'), {"id": doc_id})
-        await s.execute(sa_text('DELETE FROM ai_documents WHERE id=:id'), {"id": doc_id})
-        await s.commit()
+async def ai_delete(doc_id: str, db: AsyncSession = Depends(get_db)):
+    await db.execute(sa_text('DELETE FROM ai_chunks WHERE document_id=:id'), {"id": doc_id})
+    await db.execute(sa_text('DELETE FROM ai_documents WHERE id=:id'), {"id": doc_id})
+    await db.commit()
     return {"ok": True}
 
 # ============================================================================
