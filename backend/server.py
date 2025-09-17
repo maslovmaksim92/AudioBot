@@ -617,6 +617,98 @@ class AIService:
             return "Извините, сейчас я временно недоступен. Попробуйте позже или обратитесь к администратору системы."
 
 # ============================================================================
+# LOGISTICS (OpenRouteService) CONFIG & MODELS
+# ============================================================================
+
+# ORS configuration
+ORS_API_KEY = os.environ.get('ORS_API_KEY', '').strip()
+ORS_GEOCODE_URL = "https://api.openrouteservice.org/geocode/search"
+ORS_DIRECTIONS_URL = "https://api.openrouteservice.org/v2/directions"
+ORS_MATRIX_URL = "https://api.openrouteservice.org/v2/matrix"
+
+class LogisticsWaypoint(BaseModel):
+    address: Optional[str] = None
+    lon: Optional[float] = None
+    lat: Optional[float] = None
+
+class LogisticsRouteRequest(BaseModel):
+    points: List[LogisticsWaypoint]
+    optimize: bool = False  # оптимизировать порядок точек
+    profile: str = Field(default="driving-car", description="ORS профиль: driving-car, driving-hgv, foot-walking, cycling-regular")
+    language: str = Field(default="ru", description="Язык инструкций")
+
+class LogisticsStep(BaseModel):
+    instruction: str
+    distance: float
+    duration: float
+
+class LogisticsRouteResponse(BaseModel):
+    distance: float  # метры
+    duration: float  # секунды
+    order: List[int]  # порядок точек после оптимизации
+    geometry: List[List[float]]  # [[lon, lat], ...]
+    steps: List[Dict[str, Any]] = Field(default_factory=list)
+    bbox: Optional[List[float]] = None
+
+async def _ors_geocode(address: str) -> Optional[List[float]]:
+    if not ORS_API_KEY:
+        return None
+    params = {"text": address, "size": 1, "lang": "ru"}
+    headers = {"Authorization": ORS_API_KEY}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(ORS_GEOCODE_URL, params=params, headers=headers)
+        if resp.status_code != 200:
+            logger.warning(f"ORS geocode failed {resp.status_code}: {address}")
+            return None
+        data = resp.json()
+        try:
+            coords = data["features"][0]["geometry"]["coordinates"]
+            return [float(coords[0]), float(coords[1])]
+        except Exception:
+            return None
+
+async def _ors_matrix(coordinates: List[List[float]], profile: str = "driving-car") -> Optional[List[List[float]]]:
+    if not ORS_API_KEY:
+        return None
+    url = f"{ORS_MATRIX_URL}/{profile}"
+    headers = {"Authorization": ORS_API_KEY, "Content-Type": "application/json"}
+    body = {"locations": coordinates, "metrics": ["duration"], "resolve_locations": False}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.post(url, headers=headers, json=body)
+        if resp.status_code != 200:
+            logger.warning(f"ORS matrix failed {resp.status_code}: {resp.text[:200]}")
+            return None
+        data = resp.json()
+        return data.get("durations")
+
+def _nearest_neighbor_order(durations: List[List[float]]) -> List[int]:
+    n = len(durations)
+    if n <= 2:
+        return list(range(n))
+    unvisited = set(range(1, n))
+    order = [0]
+    cur = 0
+    while unvisited:
+        next_idx = min(unvisited, key=lambda j: durations[cur][j] if durations[cur][j] is not None else float('inf'))
+        order.append(next_idx)
+        unvisited.remove(next_idx)
+        cur = next_idx
+    return order
+
+async def _build_directions(coordinates: List[List[float]], profile: str = "driving-car", language: str = "ru") -> Dict[str, Any]:
+    url = f"{ORS_DIRECTIONS_URL}/{profile}/geojson"
+    headers = {"Authorization": ORS_API_KEY, "Content-Type": "application/json"}
+    body = {
+        "coordinates": coordinates,
+        "language": language,
+        "instructions": True
+    }
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(url, headers=headers, json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+# ============================================================================
 # API ROUTES
 # ============================================================================
 
