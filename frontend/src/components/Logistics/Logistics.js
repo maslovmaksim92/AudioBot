@@ -84,24 +84,29 @@ const Logistics = () => {
       </div>
 
       {route && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="font-semibold text-green-800 mb-2">Итоги</div>
-          <div className="text-sm text-green-900">Дистанция: {formatDistance(route.distance)} · Время: {formatDuration(route.duration)}</div>
-          {route.order && (
-            <div className="mt-2 text-xs text-green-800">Порядок точек: {route.order.map((i) => i + 1).join(' → ')}</div>
-          )}
-          <div className="mt-3 bg-white p-3 rounded-lg border">
-            <div className="font-medium mb-2">Шаги:</div>
-            <ol className="list-decimal pl-5 space-y-1 text-sm">
-              {(route.steps || []).slice(0, 20).map((s, i) => (
-                <li key={i}>{s.instruction} · {formatDistance(s.distance)} · {formatDuration(s.duration)}</li>
-              ))}
-            </ol>
-            {(route.steps || []).length > 20 && (
-              <div className="text-xs text-gray-500 mt-1">Показаны первые 20 шагов</div>
-            )}
+        <>
+          <div className="mt-4">
+            <MapView geometry={route.geometry} points={points} bbox={route.bbox} />
           </div>
-        </div>
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="font-semibold text-green-800 mb-2">Итоги</div>
+            <div className="text-sm text-green-900">Дистанция: {formatDistance(route.distance)} · Время: {formatDuration(route.duration)}</div>
+            {route.order && (
+              <div className="mt-2 text-xs text-green-800">Порядок точек: {route.order.map((i) => i + 1).join(' → ')}</div>
+            )}
+            <div className="mt-3 bg-white p-3 rounded-lg border">
+              <div className="font-medium mb-2">Шаги:</div>
+              <ol className="list-decimal pl-5 space-y-1 text-sm">
+                {(route.steps || []).slice(0, 20).map((s, i) => (
+                  <li key={i}>{s.instruction} · {formatDistance(s.distance)} · {formatDuration(s.duration)}</li>
+                ))}
+              </ol>
+              {(route.steps || []).length > 20 && (
+                <div className="text-xs text-gray-500 mt-1">Показаны первые 20 шагов</div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
