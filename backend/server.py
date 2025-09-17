@@ -205,19 +205,31 @@ class BitrixService:
         params["filter"] = filter_params
         
         # Выполняем запрос
+        # Кэш ключ по фильтрам/странице
+        cache_key = json.dumps({
+            "brigade": brigade, "status": status, "management_company": management_company,
+            "week": week, "limit": limit, "offset": offset
+        }, ensure_ascii=False)
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        entry = self._deals_cache.get(cache_key)
+        if entry and now_ts - entry.get("ts", 0) < self._deals_cache_ttl_seconds:
+            return entry.get("data", [])
+
         response = await self._make_request("crm.deal.list", params)
         if not response.get("ok"):
             logger.warning(f"crm.deal.list call failed: {response.get('error')}")
             return []
         deals = response.get("result", []) or []
         
-        # Обогащаем данные
-        enriched_deals = []
-        for deal in deals[:limit]:
-            enriched_deal = await self._enrich_deal_data(deal)
-            enriched_deals.append(enriched_deal)
+        # Обогащаем данные параллельно (ускорение)
+        async def enrich_one(d):
+            return await self._enrich_deal_data(d)
+        enriched_deals = await asyncio.gather(*(enrich_one(d) for d in deals[:limit]))
         
-        logger.info(f"Retrieved {len(enriched_deals)} deals from 'Уборка подъездов' pipeline")
+        # Закэшируем
+        self._deals_cache[cache_key] = {"data": enriched_deals, "ts": now_ts}
+        
+        logger.info(f"Retrieved {len(enriched_deals)} deals from 'Уборка подъездов' pipeline (cached)")
         return enriched_deals
     
     async def get_company_details(self, company_id: str) -> Dict:
