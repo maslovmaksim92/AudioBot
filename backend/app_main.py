@@ -141,6 +141,289 @@ bitrix = BitrixService()
 async def root():
     return {"message":"VasDom AudioBot API","version":"1.0.0"}
 
+# ========================= CLEANING (HOUSES) =========================
+class HouseResponse(BaseModel):
+    id: int
+    title: str
+    address: str
+    brigade: Optional[str] = ""
+    management_company: Optional[str] = ""
+    status: Optional[str] = ""
+    apartments: int = 0
+    entrances: int = 0
+    floors: int = 0
+    cleaning_dates: Dict[str, Any] = {}
+    periodicity: Optional[str] = "индивидуальная"
+    bitrix_url: Optional[str] = ""
+
+class HousesResponse(BaseModel):
+    houses: List[HouseResponse]
+    total: int
+    page: int
+    limit: int
+    pages: int
+
+class FiltersResponse(BaseModel):
+    brigades: List[str] = []
+    management_companies: List[str] = []
+    statuses: List[str] = []
+
+@api_router.get("/cleaning/filters", response_model=FiltersResponse)
+async def get_filters():
+    try:
+        deals = await bitrix.deals(limit=1000)
+        brigades = sorted({d.get("ASSIGNED_BY_NAME", "") for d in deals if d.get("ASSIGNED_BY_NAME")})
+        companies = sorted({d.get("COMPANY_TITLE", "") for d in deals if d.get("COMPANY_TITLE")})
+        statuses = sorted({d.get("STAGE_ID", "") for d in deals if d.get("STAGE_ID")})
+        return FiltersResponse(brigades=brigades, management_companies=companies, statuses=statuses)
+    except Exception as e:
+        logger.error(f"filters error: {e}")
+        return FiltersResponse()
+
+# Helper to build cleaning_dates and periodicity from UF fields
+def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    # сентябрь
+    if d.get("UF_CRM_1741592774017") or d.get("UF_CRM_1741592855565"):
+        out["september_1"] = {
+            "dates": d.get("UF_CRM_1741592774017") if isinstance(d.get("UF_CRM_1741592774017"), list) else ([d.get("UF_CRM_1741592774017")] if d.get("UF_CRM_1741592774017") else []),
+            "type": str(d.get("UF_CRM_1741592855565") or "")
+        }
+    if d.get("UF_CRM_1741592892232") or d.get("UF_CRM_1741592945060"):
+        out["september_2"] = {
+            "dates": d.get("UF_CRM_1741592892232") if isinstance(d.get("UF_CRM_1741592892232"), list) else ([d.get("UF_CRM_1741592892232")] if d.get("UF_CRM_1741592892232") else []),
+            "type": str(d.get("UF_CRM_1741592945060") or "")
+        }
+    # октябрь
+    if d.get("UF_CRM_1741593004888") or d.get("UF_CRM_1741593047994"):
+        out["october_1"] = {
+            "dates": d.get("UF_CRM_1741593004888") if isinstance(d.get("UF_CRM_1741593004888"), list) else ([d.get("UF_CRM_1741593004888")] if d.get("UF_CRM_1741593004888") else []),
+            "type": str(d.get("UF_CRM_1741593047994") or "")
+        }
+    if d.get("UF_CRM_1741593067418") or d.get("UF_CRM_1741593115407"):
+        out["october_2"] = {
+            "dates": d.get("UF_CRM_1741593067418") if isinstance(d.get("UF_CRM_1741593067418"), list) else ([d.get("UF_CRM_1741593067418")] if d.get("UF_CRM_1741593067418") else []),
+            "type": str(d.get("UF_CRM_1741593115407") or "")
+        }
+    # ноябрь
+    if d.get("UF_CRM_1741593156926") or d.get("UF_CRM_1741593210242"):
+        out["november_1"] = {
+            "dates": d.get("UF_CRM_1741593156926") if isinstance(d.get("UF_CRM_1741593156926"), list) else ([d.get("UF_CRM_1741593156926")] if d.get("UF_CRM_1741593156926") else []),
+            "type": str(d.get("UF_CRM_1741593210242") or "")
+        }
+    if d.get("UF_CRM_1741593231558") or d.get("UF_CRM_1741593285121"):
+        out["november_2"] = {
+            "dates": d.get("UF_CRM_1741593231558") if isinstance(d.get("UF_CRM_1741593231558"), list) else ([d.get("UF_CRM_1741593231558")] if d.get("UF_CRM_1741593231558") else []),
+            "type": str(d.get("UF_CRM_1741593285121") or "")
+        }
+    # декабрь
+    if d.get("UF_CRM_1741593340713") or d.get("UF_CRM_1741593387667"):
+        out["december_1"] = {
+            "dates": d.get("UF_CRM_1741593340713") if isinstance(d.get("UF_CRM_1741593340713"), list) else ([d.get("UF_CRM_1741593340713")] if d.get("UF_CRM_1741593340713") else []),
+            "type": str(d.get("UF_CRM_1741593387667") or "")
+        }
+    if d.get("UF_CRM_1741593408621") or d.get("UF_CRM_1741593452062"):
+        out["december_2"] = {
+            "dates": d.get("UF_CRM_1741593408621") if isinstance(d.get("UF_CRM_1741593408621"), list) else ([d.get("UF_CRM_1741593408621")] if d.get("UF_CRM_1741593408621") else []),
+            "type": str(d.get("UF_CRM_1741593452062") or "")
+        }
+    return out
+
+def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
+    wash_dates = 0
+    sweep_dates = 0
+    full_wash_dates = 0
+    first_floor_wash_dates = 0
+    for key in ["september_1","september_2"]:
+        block = cleaning_dates.get(key) or {}
+        t = str(block.get("type") or "").lower()
+        dates = block.get("dates") or []
+        if not isinstance(dates, list):
+            dates = []
+        has_wash = ("влажная уборка" in t) or ("мытье" in t)
+        has_sweep = ("подмет" in t)
+        is_full = ("всех этаж" in t)
+        is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
+        if has_wash:
+            wash_dates += len(dates)
+        if has_sweep:
+            sweep_dates += len(dates)
+        if has_wash and is_full:
+            full_wash_dates += len(dates)
+        if has_wash and is_first_floor:
+            first_floor_wash_dates += len(dates)
+    if wash_dates == 2 and sweep_dates == 0:
+        return "2 раза"
+    if full_wash_dates >= 1 and first_floor_wash_dates >= 1 and wash_dates == (full_wash_dates + first_floor_wash_dates) and sweep_dates == 0:
+        return "2 раза + первые этажи"
+    if wash_dates == 2 and sweep_dates == 2:
+        return "Мытье 2 раза + подметание 2 раза"
+    if wash_dates >= 4:
+        return "4 раза"
+    return "индивидуальная"
+
+@api_router.get("/cleaning/houses", response_model=HousesResponse)
+async def get_houses(
+    brigade: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    management_company: Optional[str] = Query(None),
+    week: Optional[str] = Query(None),
+    cleaning_date: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    limit: int = Query(50),
+    offset: int = Query(0),
+    page: int = Query(1)
+):
+    try:
+        # Fetch full deals with necessary fields
+        resp = await bitrix._call("crm.deal.list", {
+            "select": [
+                "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
+                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
+                "UF_CRM_1669561599956",
+                "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
+                "UF_CRM_1741592774017","UF_CRM_1741592855565",
+                "UF_CRM_1741592892232","UF_CRM_1741592945060",
+                "UF_CRM_1741593004888","UF_CRM_1741593047994",
+                "UF_CRM_1741593067418","UF_CRM_1741593115407",
+                "UF_CRM_1741593156926","UF_CRM_1741593210242",
+                "UF_CRM_1741593231558","UF_CRM_1741593285121",
+                "UF_CRM_1741593340713","UF_CRM_1741593387667",
+                "UF_CRM_1741593408621","UF_CRM_1741593452062"
+            ],
+            "filter": {"CATEGORY_ID": "34"},
+            "order": {"ID": "DESC"},
+            "limit": 1000
+        })
+        raw = resp.get("result") or []
+        # filter in-memory as Bitrix filters for complex fields are tricky
+        def ok(d):
+            if brigade and brigade not in (d.get("ASSIGNED_BY_NAME") or ""):
+                return False
+            if status and status != (d.get("STAGE_ID") or ""):
+                return False
+            if management_company and management_company not in (d.get("COMPANY_TITLE") or ""):
+                return False
+            # date filters
+            def has_date(cd: Dict[str, Any], target: str) -> bool:
+                for v in cd.values():
+                    dates = v.get("dates", []) if isinstance(v, dict) else []
+                    for dt in dates:
+                        if dt == target:
+                            return True
+                return False
+            def between(cd: Dict[str, Any], a: str, b: str) -> bool:
+                for v in cd.values():
+                    dates = v.get("dates", []) if isinstance(v, dict) else []
+                    for dt in dates:
+                        if a <= dt <= b:
+                            return True
+                return False
+            cd = _build_cleaning_dates(d)
+            if cleaning_date and not has_date(cd, cleaning_date):
+                return False
+            if date_from and date_to and not between(cd, date_from, date_to):
+                return False
+            return True
+        deals = [d for d in raw if ok(d)]
+        total_count = len(deals)
+        # pagination
+        page = max(1, page)
+        limit = max(1, min(1000, limit))
+        start = (page - 1) * limit
+        end = start + limit
+        deals_page = deals[start:end]
+        houses: List[HouseResponse] = []
+        base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+        for d in deals_page:
+            address = d.get("UF_CRM_1669561599956") or d.get("TITLE") or ""
+            cd = _build_cleaning_dates(d)
+            periodicity = _compute_periodicity(cd)
+            houses.append(HouseResponse(
+                id=int(d.get("ID", 0)),
+                title=d.get("TITLE", "Без названия"),
+                address=address,
+                brigade=d.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
+                management_company=d.get("COMPANY_TITLE", ""),
+                status=d.get("STAGE_ID") or "",
+                apartments=int(d.get("UF_CRM_1669704529022") or 0),
+                entrances=int(d.get("UF_CRM_1669705507390") or 0),
+                floors=int(d.get("UF_CRM_1669704631166") or 0),
+                cleaning_dates=cd,
+                periodicity=periodicity,
+                bitrix_url=f"{base_url}/crm/deal/details/{d.get('ID')}/"
+            ))
+        pages = (total_count + limit - 1) // limit
+        return HousesResponse(houses=houses, total=total_count, page=page, limit=limit, pages=pages)
+    except Exception as e:
+        logger.error(f"get_houses error: {e}")
+        # graceful fallback
+        return HousesResponse(houses=[], total=0, page=page, limit=limit, pages=0)
+
+@api_router.get("/cleaning/house/{house_id}/details")
+async def get_house_details(house_id: int):
+    try:
+        dresp = await bitrix._call("crm.deal.get", {"id": house_id, "select": [
+            "ID","TITLE","COMPANY_ID","COMPANY_TITLE","CONTACT_ID",
+            "ASSIGNED_BY_NAME","ASSIGNED_BY_ID","STAGE_ID","UF_CRM_1669561599956",
+            "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166"
+        ]})
+        deal = dresp.get("result") or {}
+        if isinstance(deal, list) and deal:
+            deal = deal[0]
+        if not deal:
+            raise HTTPException(status_code=404, detail="Дом не найден")
+        company_details = {}
+        if deal.get("COMPANY_ID"):
+            cresp = await bitrix._call("crm.company.get", {"id": deal["COMPANY_ID"]})
+            company_details = cresp.get("result") or {}
+        contact_details = {}
+        cid = deal.get("CONTACT_ID")
+        if cid:
+            if isinstance(cid, list) and cid:
+                cid = cid[0]
+            cresp = await bitrix._call("crm.contact.get", {"id": cid})
+            contact_details = cresp.get("result") or {}
+        base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+        return {
+            "house": {
+                "id": deal.get("ID"),
+                "title": deal.get("TITLE"),
+                "address": deal.get("UF_CRM_1669561599956", ""),
+                "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
+                "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
+                "floors": int(deal.get("UF_CRM_1669704631166") or 0),
+                "brigade": deal.get("ASSIGNED_BY_NAME", ""),
+                "status": deal.get("STAGE_ID", ""),
+                "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else ""
+            },
+            "management_company": {
+                "id": company_details.get("ID", ""),
+                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")),
+                "phone": (company_details.get("PHONE", [{}])[0].get("VALUE", "") if company_details.get("PHONE") else ""),
+                "email": (company_details.get("EMAIL", [{}])[0].get("VALUE", "") if company_details.get("EMAIL") else ""),
+                "address": company_details.get("ADDRESS", ""),
+                "web": (company_details.get("WEB", [{}])[0].get("VALUE", "") if company_details.get("WEB") else ""),
+                "comments": company_details.get("COMMENTS", "")
+            },
+            "senior_resident": {
+                "id": contact_details.get("ID", ""),
+                "name": contact_details.get("NAME", ""),
+                "last_name": contact_details.get("LAST_NAME", ""),
+                "second_name": contact_details.get("SECOND_NAME", ""),
+                "full_name": f"{contact_details.get('LAST_NAME','')} {contact_details.get('NAME','')} {contact_details.get('SECOND_NAME','')}".strip(),
+                "phone": (contact_details.get("PHONE", [{}])[0].get("VALUE", "") if contact_details.get("PHONE") else ""),
+                "email": (contact_details.get("EMAIL", [{}])[0].get("VALUE", "") if contact_details.get("EMAIL") else ""),
+                "comments": contact_details.get("COMMENTS", "")
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"details error: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка получения деталей дома")
+
 @api_router.get("/dashboard/stats")
 async def dashboard_stats():
     try:
