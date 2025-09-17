@@ -16,6 +16,9 @@ const Training = () => {
 
   const confirm = async () => {
     setStatus('Сохранено в базу знаний');
+    const items = JSON.parse(localStorage.getItem('ai_knowledge') || '[]');
+    items.push({ id: Date.now(), name: file?.name || 'файл', preview });
+    localStorage.setItem('ai_knowledge', JSON.stringify(items));
   };
 
   return (
