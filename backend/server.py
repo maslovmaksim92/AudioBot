@@ -1037,6 +1037,70 @@ async def get_house_details(house_id: int, include_url: bool = True):
         logger.error(f"Error getting house details: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения деталей дома: {str(e)}")
 
+
+# ============================================================================
+# LOGISTICS ROUTES (ORS)
+# ============================================================================
+@api_router.post("/logistics/route", response_model=LogisticsRouteResponse)
+async def logistics_route(req: LogisticsRouteRequest):
+    """Построение маршрута по точкам. Если optimize=True, порядок точек оптимизируется
+    через матрицу времени ORS (жадный NN). Точки могут быть адресами либо lon/lat.
+    Возвращаем геометрию, дистанцию, длительность и порядок.
+    """
+    try:
+        if not req.points or len(req.points) < 2:
+            raise HTTPException(status_code=400, detail="Минимум 2 точки")
+        # Сбор координат [lon, lat]
+        coords: List[List[float]] = []
+        for p in req.points:
+            if p.lon is not None and p.lat is not None:
+                coords.append([float(p.lon), float(p.lat)])
+            elif p.address:
+                c = await _ors_geocode(p.address)
+                if not c:
+                    raise HTTPException(status_code=404, detail=f"Не удалось геокодировать адрес: {p.address}")
+                coords.append(c)
+            else:
+                raise HTTPException(status_code=400, detail="Укажите address или lon/lat для каждой точки")
+        order = list(range(len(coords)))
+        if req.optimize and len(coords) > 2:
+            durations = await _ors_matrix(coords, profile=req.profile)
+            if durations:
+                order = _nearest_neighbor_order(durations)
+        # Применить порядок
+        ordered_coords = [coords[i] for i in order]
+        data = await _build_directions(ordered_coords, profile=req.profile, language=req.language)
+        # Разбор ответа
+        feat = (data.get("features") or [{}])[0]
+        props = feat.get("properties", {})
+        summary = props.get("summary", {})
+        distance = float(summary.get("distance", 0))
+        duration = float(summary.get("duration", 0))
+        geometry = feat.get("geometry", {}).get("coordinates", [])
+        steps = []
+        segments = props.get("segments", []) or []
+        for seg in segments:
+            for step in seg.get("steps", []) or []:
+                steps.append({
+                    "instruction": step.get("instruction", ""),
+                    "distance": step.get("distance", 0),
+                    "duration": step.get("duration", 0)
+                })
+        bbox = feat.get("bbox") or props.get("bbox")
+        return LogisticsRouteResponse(
+            distance=distance,
+            duration=duration,
+            order=order,
+            geometry=geometry,
+            steps=steps,
+            bbox=bbox
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Logistics route error: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка маршрутизации: {str(e)}")
+
 # Include router
 app.include_router(api_router)
 
