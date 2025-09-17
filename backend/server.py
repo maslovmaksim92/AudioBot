@@ -1286,24 +1286,23 @@ async def ai_upload(files: list[UploadFile] = File(...), db: AsyncSession = Depe
     return {"upload_id": upload_id, "preview": preview, "chunks": len(chunks)}
 
 @api_router.post('/ai-knowledge/save')
-async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt')):
+async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt'), db: AsyncSession = Depends(get_db)):
     # fetch temp
-    async with AsyncSessionLocal() as s:
-        tmp = await s.get(AIUploadTemp, upload_id)
-        if not tmp:
-            raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
-        meta = tmp.meta
-        chunks = meta.get('chunks', [])
-        # embed
-        vectors = await _embed_texts(chunks)
-        doc_id = str(uuid4())
-        doc = AIDocument(id=doc_id, filename=filename, mime='text/plain', size_bytes=None, summary='См. превью при загрузке')
-        s.add(doc)
-        for idx,(text,v) in enumerate(zip(chunks, vectors)):
-            s.add(AIChunk(id=str(uuid4()), document_id=doc_id, chunk_index=idx, content=text, embedding=v))
-        # delete temp
-        await s.delete(tmp)
-        await s.commit()
+    tmp = await db.get(AIUploadTemp, upload_id)
+    if not tmp:
+        raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
+    meta = tmp.meta
+    chunks = meta.get('chunks', [])
+    # embed
+    vectors = await _embed_texts(chunks)
+    doc_id = str(uuid4())
+    doc = AIDocument(id=doc_id, filename=filename, mime='text/plain', size_bytes=None, summary='См. превью при загрузке')
+    db.add(doc)
+    for idx,(text,v) in enumerate(zip(chunks, vectors)):
+        db.add(AIChunk(id=str(uuid4()), document_id=doc_id, chunk_index=idx, content=text, embedding=v))
+    # delete temp
+    await db.delete(tmp)
+    await db.commit()
     return {"document_id": doc_id}
 
 @api_router.get('/ai-knowledge/documents')
