@@ -478,33 +478,211 @@ class VasDomAPITester:
         
         return False
     
+    def test_logistics_route_endpoint(self):
+        """Test logistics route endpoint as per user request"""
+        print("\n🔍 Testing Logistics Route Endpoint...")
+        
+        # Test 1: Check if endpoint exists
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"},
+                {"address": "Москва, ВДНХ"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if status == 404:
+            self.log_test("Logistics Route - Endpoint Exists", False, "Endpoint /api/logistics/route not found (404)")
+            return False
+        elif status == 405:
+            self.log_test("Logistics Route - Endpoint Exists", False, "Method not allowed (405) - endpoint may exist but not accept POST")
+            return False
+        elif success and status == 200:
+            self.log_test("Logistics Route - Endpoint Exists", True, "Endpoint responds successfully")
+            
+            # Test 2: Basic route with 2 addresses
+            self.test_basic_route()
+            
+            # Test 3: Route with 3-4 points, optimize=false
+            self.test_route_no_optimization()
+            
+            # Test 4: Route with optimization
+            self.test_route_with_optimization()
+            
+            # Test 5: Validation error - 1 point
+            self.test_route_validation_error()
+            
+            # Test 6: Geocoding error
+            self.test_route_geocoding_error()
+            
+            return True
+        else:
+            self.log_test("Logistics Route - Endpoint Exists", False, f"Unexpected response: Status {status}, Data: {data}")
+            return False
+    
+    def test_basic_route(self):
+        """Test basic route with 2 Moscow addresses"""
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"},
+                {"address": "Москва, ВДНХ"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if success and status == 200:
+            # Check required fields in response
+            required_fields = ['distance', 'duration', 'order', 'geometry']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                # Verify data types and values
+                if (isinstance(data['distance'], (int, float)) and data['distance'] > 0 and
+                    isinstance(data['duration'], (int, float)) and data['duration'] > 0 and
+                    isinstance(data['geometry'], list) and len(data['geometry']) > 0):
+                    
+                    self.log_test("Logistics Route - Basic Route", True, 
+                                f"Distance: {data['distance']}m, Duration: {data['duration']}s, Geometry points: {len(data['geometry'])}")
+                else:
+                    self.log_test("Logistics Route - Basic Route", False, 
+                                f"Invalid data values: distance={data['distance']}, duration={data['duration']}, geometry_len={len(data.get('geometry', []))}")
+            else:
+                self.log_test("Logistics Route - Basic Route", False, f"Missing fields: {missing_fields}")
+        else:
+            self.log_test("Logistics Route - Basic Route", False, f"Status: {status}, Data: {data}")
+    
+    def test_route_no_optimization(self):
+        """Test route with 3-4 points and optimize=false (should preserve order)"""
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"},
+                {"address": "Москва, ВДНХ"},
+                {"address": "Москва, Парк Горького"},
+                {"address": "Москва, Третьяковская галерея"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if success and status == 200:
+            order = data.get('order', [])
+            expected_order = [0, 1, 2, 3]
+            
+            if order == expected_order:
+                self.log_test("Logistics Route - No Optimization", True, f"Order preserved: {order}")
+            else:
+                self.log_test("Logistics Route - No Optimization", False, f"Expected {expected_order}, got {order}")
+        else:
+            self.log_test("Logistics Route - No Optimization", False, f"Status: {status}, Data: {data}")
+    
+    def test_route_with_optimization(self):
+        """Test route with optimization=true"""
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"},
+                {"address": "Москва, ВДНХ"},
+                {"address": "Москва, Парк Горького"},
+                {"address": "Москва, Третьяковская галерея"}
+            ],
+            "optimize": True,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if success and status == 200:
+            order = data.get('order', [])
+            
+            if isinstance(order, list) and len(order) == 4 and set(order) == {0, 1, 2, 3}:
+                # Order should be a valid permutation of [0,1,2,3]
+                self.log_test("Logistics Route - With Optimization", True, f"Optimized order: {order}")
+            else:
+                self.log_test("Logistics Route - With Optimization", False, f"Invalid order array: {order}")
+        else:
+            self.log_test("Logistics Route - With Optimization", False, f"Status: {status}, Data: {data}")
+    
+    def test_route_validation_error(self):
+        """Test validation error with only 1 point"""
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if status == 400:
+            detail = data.get('detail', '')
+            if 'Минимум 2 точки' in detail:
+                self.log_test("Logistics Route - Validation Error", True, f"Correct 400 error: {detail}")
+            else:
+                self.log_test("Logistics Route - Validation Error", False, f"Wrong error message: {detail}")
+        else:
+            self.log_test("Logistics Route - Validation Error", False, f"Expected 400, got {status}")
+    
+    def test_route_geocoding_error(self):
+        """Test geocoding error with meaningless address"""
+        test_data = {
+            "points": [
+                {"address": "_____"},
+                {"address": "Москва, ВДНХ"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if status == 404:
+            detail = data.get('detail', '')
+            if detail.startswith('Не удалось геокодировать адрес'):
+                self.log_test("Logistics Route - Geocoding Error", True, f"Correct 404 error: {detail}")
+            else:
+                self.log_test("Logistics Route - Geocoding Error", False, f"Wrong error message: {detail}")
+        else:
+            self.log_test("Logistics Route - Geocoding Error", False, f"Expected 404, got {status}")
+
     def run_comprehensive_test(self):
         """Run all tests focusing on review request requirements"""
         print("🚀 Starting VasDom AudioBot API Testing")
         print(f"📍 Testing URL: {self.base_url}")
-        print("🎯 Focus: Updated filters and pagination per review request")
+        print("🎯 Focus: Logistics Route Endpoint Testing")
         print("=" * 60)
         
         # Test core endpoints
         self.test_root_endpoint()
         stats_success, stats_data = self.test_dashboard_stats()
         
-        # Main focus: Houses endpoint with filters and pagination
-        houses_success, houses_data = self.test_cleaning_houses()
+        # Main focus: Logistics route endpoint
+        logistics_success = self.test_logistics_route_endpoint()
         
-        # Test house details endpoint
-        house_details_success, house_details_data = self.test_house_details_endpoint()
-        
-        # Test Bitrix fallback behavior
-        self.test_bitrix_fallback_behavior()
-        
-        # Test other endpoints
-        filters_success, filters_data = self.test_cleaning_filters()
-        ai_success, ai_response = self.test_ai_chat()
+        # Test other endpoints if logistics is working
+        if logistics_success:
+            houses_success, houses_data = self.test_cleaning_houses()
+            house_details_success, house_details_data = self.test_house_details_endpoint()
+            self.test_bitrix_fallback_behavior()
+            filters_success, filters_data = self.test_cleaning_filters()
+            ai_success, ai_response = self.test_ai_chat()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY - REVIEW REQUEST FOCUS")
+        print("📊 TEST SUMMARY - LOGISTICS ROUTE FOCUS")
         print("=" * 60)
         print(f"Total Tests: {self.tests_run}")
         print(f"Passed: {self.tests_passed}")
@@ -516,13 +694,15 @@ class VasDomAPITester:
             for test in self.failed_tests:
                 print(f"  - {test['name']}: {test['details']}")
         
-        # Print key findings for review request
-        print(f"\n🎯 REVIEW REQUEST RESULTS:")
-        print(f"  ✅ GET /api/cleaning/houses filters: {'PASSED' if any('Filter' in t['name'] and t['name'] not in [f['name'] for f in self.failed_tests] for t in [{'name': 'Houses Brigade Filter'}, {'name': 'Houses Management Company Filter'}, {'name': 'Houses Cleaning Date Filter'}, {'name': 'Houses Date Range Filter'}]) else 'FAILED'}")
-        print(f"  ✅ Response schema validation: {'PASSED' if 'Houses Response Schema' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
-        print(f"  ✅ House details with bitrix_url: {'PASSED' if 'House Details - Valid Response' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
-        print(f"  ✅ 404 handling (not 500): {'PASSED' if 'House Details - Invalid ID (404)' not in [f['name'] for f in self.failed_tests] else 'FAILED'}")
-        print(f"  ✅ Bitrix 503 fallbacks: {'PASSED' if 'Bitrix Fallback' not in ' '.join([f['name'] for f in self.failed_tests]) else 'FAILED'}")
+        # Print key findings for logistics route
+        print(f"\n🎯 LOGISTICS ROUTE RESULTS:")
+        logistics_tests = [t for t in self.failed_tests if 'Logistics Route' in t['name']]
+        if not logistics_tests and logistics_success:
+            print(f"  ✅ All logistics route tests PASSED")
+        else:
+            print(f"  ❌ Logistics route tests FAILED: {len(logistics_tests)} failures")
+            if not logistics_success:
+                print(f"  ⚠️  Endpoint not implemented or not accessible")
         
         return len(self.failed_tests) == 0
 
