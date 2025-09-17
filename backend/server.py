@@ -14,6 +14,13 @@ import base64
 import json
 import websockets
 
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import text as sa_text
+from pgvector.sqlalchemy import Vector
+import hashlib
+
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
