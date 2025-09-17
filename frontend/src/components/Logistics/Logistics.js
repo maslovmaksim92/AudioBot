@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, Route, Shuffle, Loader2 } from 'lucide-react';
+import MapView from './MapView';
 
 const Logistics = () => {
   const [points, setPoints] = useState([{ address: '' }, { address: '' }]);
