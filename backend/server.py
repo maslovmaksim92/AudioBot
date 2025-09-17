@@ -1277,7 +1277,7 @@ async def ai_upload(files: list[UploadFile] = File(...), chunk_tokens: int = For
     if not all_text.strip():
         raise HTTPException(status_code=400, detail='Не удалось извлечь текст')
 
-    chunks = await _split_into_chunks(all_text)
+    chunks = await _split_into_chunks(all_text, target_tokens=int(chunk_tokens), overlap=int(overlap))
     preview = await _summarize(all_text)
 
     upload_id = str(uuid4())
