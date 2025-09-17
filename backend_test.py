@@ -671,6 +671,404 @@ class VasDomAPITester:
         else:
             self.log_test("Logistics Route - Geocoding Error", False, f"Expected 404, got {status}")
 
+    def make_multipart_request(self, method: str, endpoint: str, files: dict = None, data: dict = None) -> tuple:
+        """Make multipart HTTP request for file uploads"""
+        url = f"{self.base_url}{endpoint}"
+        
+        try:
+            if method == 'POST':
+                response = requests.post(url, files=files, data=data, timeout=60)
+            else:
+                return False, {}, 0
+                
+            return True, response.json() if response.content else {}, response.status_code
+            
+        except requests.exceptions.Timeout:
+            return False, {"error": "Request timeout"}, 0
+        except requests.exceptions.ConnectionError:
+            return False, {"error": "Connection error"}, 0
+        except Exception as e:
+            return False, {"error": str(e)}, 0
+
+    def test_ai_knowledge_endpoints(self):
+        """Test AI Knowledge Base endpoints comprehensively"""
+        print("\n🧠 Testing AI Knowledge Base Endpoints...")
+        
+        # Test 1: Upload validation - no files
+        self.test_ai_upload_no_files()
+        
+        # Test 2: Upload validation - unsupported file extension
+        self.test_ai_upload_unsupported_extension()
+        
+        # Test 3: Upload validation - small TXT file (should work)
+        upload_id = self.test_ai_upload_txt_file()
+        
+        # Test 4: Size limits - file >50MB
+        self.test_ai_upload_large_file()
+        
+        # Test 5: Size limits - total >200MB
+        self.test_ai_upload_total_size_limit()
+        
+        # Test 6: Format parsing - various file types
+        self.test_ai_upload_various_formats()
+        
+        # Test 7: Save uploaded file
+        document_id = None
+        if upload_id:
+            document_id = self.test_ai_save_document(upload_id)
+        
+        # Test 8: List documents
+        self.test_ai_list_documents()
+        
+        # Test 9: Search functionality
+        self.test_ai_search()
+        
+        # Test 10: Delete document
+        if document_id:
+            self.test_ai_delete_document(document_id)
+            # Test 11: Delete same document again (idempotent)
+            self.test_ai_delete_document(document_id)
+        
+        # Test 12: Database not initialized scenario
+        self.test_ai_database_not_initialized()
+        
+        return True
+
+    def test_ai_upload_no_files(self):
+        """Test upload endpoint with no files - should return 400"""
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files={})
+        
+        if status == 400:
+            self.log_test("AI Upload - No Files", True, f"Correctly returns 400: {data.get('detail', '')}")
+        else:
+            self.log_test("AI Upload - No Files", False, f"Expected 400, got {status}: {data}")
+
+    def test_ai_upload_unsupported_extension(self):
+        """Test upload with unsupported file extension (.exe) - should return 400"""
+        # Create a fake .exe file
+        fake_exe_content = b"fake executable content"
+        files = {'files': ('malware.exe', fake_exe_content, 'application/octet-stream')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files=files)
+        
+        if status == 400:
+            detail = data.get('detail', '')
+            if 'Недопустимый формат' in detail or '.exe' in detail:
+                self.log_test("AI Upload - Unsupported Extension", True, f"Correctly rejects .exe: {detail}")
+            else:
+                self.log_test("AI Upload - Unsupported Extension", False, f"Wrong error message: {detail}")
+        else:
+            self.log_test("AI Upload - Unsupported Extension", False, f"Expected 400, got {status}: {data}")
+
+    def test_ai_upload_txt_file(self):
+        """Test upload with small TXT file - should return 200 with upload_id, chunks>0, preview"""
+        txt_content = """Это тестовый документ для системы VasDom AudioBot.
+        
+Система управления клининговой компанией включает в себя:
+1. Управление домами и подъездами
+2. Планирование уборок
+3. Контроль качества работ
+4. Интеграция с Bitrix24
+5. AI-консультант для сотрудников
+
+Компания обслуживает 490 домов с 82 сотрудниками в 7 бригадах.
+Используется современная система автоматизации процессов."""
+
+        files = {'files': ('test_document.txt', txt_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files=files)
+        
+        if success and status == 200:
+            # Check required fields
+            required_fields = ['upload_id', 'chunks', 'preview']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                upload_id = data['upload_id']
+                chunks = data['chunks']
+                preview = data['preview']
+                
+                if chunks > 0 and isinstance(preview, str) and len(preview) > 0:
+                    self.log_test("AI Upload - TXT File", True, 
+                                f"upload_id: {upload_id[:8]}..., chunks: {chunks}, preview: {len(preview)} chars")
+                    return upload_id
+                else:
+                    self.log_test("AI Upload - TXT File", False, f"Invalid chunks ({chunks}) or preview ({len(preview) if isinstance(preview, str) else type(preview)})")
+            else:
+                self.log_test("AI Upload - TXT File", False, f"Missing fields: {missing_fields}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Upload - TXT File", False, f"Database not initialized (expected if DATABASE_URL not set): {data.get('detail')}")
+        else:
+            self.log_test("AI Upload - TXT File", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_ai_upload_large_file(self):
+        """Test upload with file >50MB - should return 413"""
+        # Create a large file content (simulate >50MB)
+        large_content = "A" * (51 * 1024 * 1024)  # 51MB of 'A' characters
+        files = {'files': ('large_file.txt', large_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files=files)
+        
+        if status == 413:
+            detail = data.get('detail', '')
+            if '50MB' in detail or 'превышает' in detail:
+                self.log_test("AI Upload - Large File", True, f"Correctly rejects >50MB file: {detail}")
+            else:
+                self.log_test("AI Upload - Large File", False, f"Wrong error message: {detail}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Upload - Large File", False, f"Database not initialized (cannot test size limits): {data.get('detail')}")
+        else:
+            self.log_test("AI Upload - Large File", False, f"Expected 413, got {status}: {data}")
+
+    def test_ai_upload_total_size_limit(self):
+        """Test upload with total size >200MB - should return 413"""
+        # Create multiple files that together exceed 200MB
+        file_size = 70 * 1024 * 1024  # 70MB each
+        file_content = "B" * file_size
+        
+        files = [
+            ('files', ('file1.txt', file_content.encode('utf-8'), 'text/plain')),
+            ('files', ('file2.txt', file_content.encode('utf-8'), 'text/plain')),
+            ('files', ('file3.txt', file_content.encode('utf-8'), 'text/plain'))  # Total: 210MB
+        ]
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files=files)
+        
+        if status == 413:
+            detail = data.get('detail', '')
+            if '200MB' in detail or 'Общий размер' in detail:
+                self.log_test("AI Upload - Total Size Limit", True, f"Correctly rejects >200MB total: {detail}")
+            else:
+                self.log_test("AI Upload - Total Size Limit", False, f"Wrong error message: {detail}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Upload - Total Size Limit", False, f"Database not initialized (cannot test size limits): {data.get('detail')}")
+        else:
+            self.log_test("AI Upload - Total Size Limit", False, f"Expected 413, got {status}: {data}")
+
+    def test_ai_upload_various_formats(self):
+        """Test upload with various file formats - TXT, PDF, DOCX, XLSX, ZIP"""
+        # Simple TXT
+        txt_content = "Простой текстовый файл для тестирования системы."
+        
+        # Simple PDF content (minimal PDF structure)
+        pdf_content = b"""%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+100 700 Td
+(Test PDF content) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000206 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+299
+%%EOF"""
+
+        files = [
+            ('files', ('test.txt', txt_content.encode('utf-8'), 'text/plain')),
+            ('files', ('test.pdf', pdf_content, 'application/pdf'))
+        ]
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/upload', files=files)
+        
+        if success and status == 200:
+            chunks = data.get('chunks', 0)
+            if chunks > 0:
+                self.log_test("AI Upload - Various Formats", True, f"Successfully parsed multiple formats, chunks: {chunks}")
+            else:
+                self.log_test("AI Upload - Various Formats", False, f"No chunks extracted from files")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Upload - Various Formats", False, f"Database not initialized: {data.get('detail')}")
+        else:
+            self.log_test("AI Upload - Various Formats", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_save_document(self, upload_id):
+        """Test saving uploaded document"""
+        if not upload_id:
+            self.log_test("AI Save - Document", False, "No upload_id provided")
+            return None
+            
+        data = {
+            'upload_id': upload_id,
+            'filename': 'test_knowledge_document.txt'
+        }
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/save', data=data)
+        
+        if success and status == 200:
+            if 'document_id' in response_data:
+                document_id = response_data['document_id']
+                self.log_test("AI Save - Document", True, f"Document saved with ID: {document_id[:8]}...")
+                return document_id
+            else:
+                self.log_test("AI Save - Document", False, f"Missing document_id in response: {response_data}")
+        elif status == 404:
+            self.log_test("AI Save - Document", False, f"upload_id not found or expired: {response_data.get('detail', '')}")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Save - Document", False, f"Database not initialized: {response_data.get('detail')}")
+        else:
+            self.log_test("AI Save - Document", False, f"Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_list_documents(self):
+        """Test listing documents"""
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            if 'documents' in data and isinstance(data['documents'], list):
+                docs_count = len(data['documents'])
+                self.log_test("AI List - Documents", True, f"Retrieved {docs_count} documents")
+                
+                # Check document structure if any documents exist
+                if docs_count > 0:
+                    doc = data['documents'][0]
+                    required_fields = ['id', 'filename']
+                    missing_fields = [field for field in required_fields if field not in doc]
+                    
+                    if not missing_fields:
+                        self.log_test("AI List - Document Structure", True, f"Document structure valid: {doc.get('filename', 'N/A')}")
+                    else:
+                        self.log_test("AI List - Document Structure", False, f"Missing fields: {missing_fields}")
+            else:
+                self.log_test("AI List - Documents", False, f"Invalid response structure: {data}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI List - Documents", False, f"Database not initialized: {data.get('detail')}")
+        else:
+            self.log_test("AI List - Documents", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_search(self):
+        """Test search functionality"""
+        search_data = {
+            'query': 'test',
+            'top_k': 10
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            if 'results' in data and isinstance(data['results'], list):
+                results_count = len(data['results'])
+                self.log_test("AI Search - Basic Query", True, f"Search returned {results_count} results")
+                
+                # Check result structure if any results exist
+                if results_count > 0:
+                    result = data['results'][0]
+                    required_fields = ['document_id', 'content', 'score', 'filename']
+                    missing_fields = [field for field in required_fields if field not in result]
+                    
+                    if not missing_fields:
+                        score = result.get('score', 0)
+                        # Score should be 1.0 if OPENAI_API_KEY is missing (zero vector fallback)
+                        self.log_test("AI Search - Result Structure", True, 
+                                    f"Result structure valid, score: {score}, filename: {result.get('filename', 'N/A')}")
+                    else:
+                        self.log_test("AI Search - Result Structure", False, f"Missing fields: {missing_fields}")
+            else:
+                self.log_test("AI Search - Basic Query", False, f"Invalid response structure: {data}")
+        elif status == 400:
+            self.log_test("AI Search - Basic Query", False, f"Bad request: {data.get('detail', '')}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Search - Basic Query", False, f"Database not initialized: {data.get('detail')}")
+        else:
+            self.log_test("AI Search - Basic Query", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_delete_document(self, document_id):
+        """Test deleting a document"""
+        if not document_id:
+            self.log_test("AI Delete - Document", False, "No document_id provided")
+            return
+            
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            if data.get('ok') is True:
+                self.log_test("AI Delete - Document", True, f"Document {document_id[:8]}... deleted successfully")
+            else:
+                self.log_test("AI Delete - Document", False, f"Unexpected response: {data}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Delete - Document", False, f"Database not initialized: {data.get('detail')}")
+        else:
+            self.log_test("AI Delete - Document", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_database_not_initialized(self):
+        """Test behavior when DATABASE_URL is not set"""
+        # This test assumes DATABASE_URL might not be set
+        # We'll check if endpoints return 500 with "Database is not initialized"
+        
+        # Try a simple operation that requires database
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Database - Not Initialized", True, f"Correctly returns 500 when DB not initialized: {data.get('detail')}")
+        elif status == 200:
+            self.log_test("AI Database - Initialized", True, f"Database is properly initialized and working")
+        else:
+            self.log_test("AI Database - Status Check", False, f"Unexpected response: Status {status}, Data: {data}")
+
+    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> tuple:
+        """Make HTTP request and return (success, response_data, status_code)"""
+        url = f"{self.base_url}{endpoint}"
+        headers = {'Content-Type': 'application/json'}
+        
+        try:
+            if method == 'GET':
+                response = requests.get(url, headers=headers, params=params, timeout=30)
+            elif method == 'POST':
+                response = requests.post(url, json=data, headers=headers, timeout=30)
+            elif method == 'DELETE':
+                response = requests.delete(url, headers=headers, timeout=30)
+            else:
+                return False, {}, 0
+                
+            return True, response.json() if response.content else {}, response.status_code
+            
+        except requests.exceptions.Timeout:
+            return False, {"error": "Request timeout"}, 0
+        except requests.exceptions.ConnectionError:
+            return False, {"error": "Connection error"}, 0
+        except Exception as e:
+            return False, {"error": str(e)}, 0
+
     def run_comprehensive_test(self):
         """Run all tests focusing on review request requirements"""
         print("🚀 Starting VasDom AudioBot API Testing")
