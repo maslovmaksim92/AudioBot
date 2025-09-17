@@ -204,6 +204,30 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Simple CSS bars for statuses (placeholder) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card-modern">
+          <h3 className="font-semibold mb-2">Статусы (пример)</h3>
+          <div className="space-y-2">
+            {[{label:'В работе', val:60, color:'bg-blue-500'}, {label:'Завершено', val:30, color:'bg-green-500'}, {label:'Просрочено', val:10, color:'bg-red-500'}].map(s => (
+              <div key={s.label}>
+                <div className="flex items-center justify-between text-xs text-gray-600"><span>{s.label}</span><span>{s.val}%</span></div>
+                <div className="w-full bg-gray-100 h-2 rounded"><div className={`${s.color} h-2 rounded`} style={{width:`${s.val}%`}}></div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card-modern">
+          <h3 className="font-semibold mb-2">Быстрые действия</h3>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <button className="px-2 py-1 bg-white border rounded" onClick={()=>window.location.href='/works'}>Открыть Дома</button>
+            <button className="px-2 py-1 bg-white border rounded" onClick={()=>window.location.href='/meetings'}>Открыть Планёрку</button>
+            <button className="px-2 py-1 bg-white border rounded" onClick={()=>window.location.href='/training'}>Открыть Обучение</button>
+            <button className="px-2 py-1 bg-white border rounded" onClick={()=>window.location.href='/tasks'}>Открыть AI Задачи</button>
+          </div>
+        </div>
+      </div>
+
         {statCards.map((card, index) => (
           <div
             key={card.title}
