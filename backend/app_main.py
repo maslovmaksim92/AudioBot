@@ -373,7 +373,7 @@ async def ai_upload(files: List[UploadFile] = File(...), chunk_tokens: int = For
             'chunk_tokens': int(chunk_tokens),
             'overlap': int(overlap)
         }
-        await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m, :exp)'),
+        await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m::jsonb, :exp)'),
                         {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)})
         await s.commit()
 
