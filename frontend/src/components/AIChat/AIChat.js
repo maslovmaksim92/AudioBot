@@ -23,6 +23,7 @@ const AIChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceOnline, setVoiceOnline] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
