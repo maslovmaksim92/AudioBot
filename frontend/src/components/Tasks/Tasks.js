@@ -11,7 +11,11 @@ const Tasks = () => {
   const addTask = async () => {
     if (!text.trim()) return;
     const task = { id: Date.now(), text, time: time || 'завтра 12:00', status: 'запланировано' };
-    setItems(prev => [task, ...prev]);
+    setItems(prev => {
+      const next = [task, ...prev];
+      localStorage.setItem('ai_tasks', JSON.stringify(next));
+      return next;
+    });
     setText('');
     setTime('');
   };
