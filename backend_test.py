@@ -1070,30 +1070,30 @@ startxref
             return False, {"error": str(e)}, 0
 
     def run_comprehensive_test(self):
-        """Run all tests focusing on review request requirements"""
+        """Run all tests focusing on AI Knowledge Base endpoints"""
         print("🚀 Starting VasDom AudioBot API Testing")
         print(f"📍 Testing URL: {self.base_url}")
-        print("🎯 Focus: Logistics Route Endpoint Testing")
+        print("🎯 Focus: AI Knowledge Base Endpoints Testing")
         print("=" * 60)
         
         # Test core endpoints
         self.test_root_endpoint()
         stats_success, stats_data = self.test_dashboard_stats()
         
-        # Main focus: Logistics route endpoint
-        logistics_success = self.test_logistics_route_endpoint()
+        # Main focus: AI Knowledge Base endpoints
+        ai_knowledge_success = self.test_ai_knowledge_endpoints()
         
-        # Test other endpoints if logistics is working
-        if logistics_success:
-            houses_success, houses_data = self.test_cleaning_houses()
-            house_details_success, house_details_data = self.test_house_details_endpoint()
-            self.test_bitrix_fallback_behavior()
-            filters_success, filters_data = self.test_cleaning_filters()
-            ai_success, ai_response = self.test_ai_chat()
+        # Test existing endpoints to ensure they still work
+        logistics_success = self.test_logistics_route_endpoint()
+        houses_success, houses_data = self.test_cleaning_houses()
+        house_details_success, house_details_data = self.test_house_details_endpoint()
+        self.test_bitrix_fallback_behavior()
+        filters_success, filters_data = self.test_cleaning_filters()
+        ai_success, ai_response = self.test_ai_chat()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY - LOGISTICS ROUTE FOCUS")
+        print("📊 TEST SUMMARY - AI KNOWLEDGE BASE FOCUS")
         print("=" * 60)
         print(f"Total Tests: {self.tests_run}")
         print(f"Passed: {self.tests_passed}")
@@ -1105,7 +1105,17 @@ startxref
             for test in self.failed_tests:
                 print(f"  - {test['name']}: {test['details']}")
         
-        # Print key findings for logistics route
+        # Print key findings for AI Knowledge Base
+        print(f"\n🧠 AI KNOWLEDGE BASE RESULTS:")
+        ai_tests = [t for t in self.failed_tests if 'AI ' in t['name']]
+        if not ai_tests and ai_knowledge_success:
+            print(f"  ✅ All AI Knowledge Base tests PASSED")
+        else:
+            print(f"  ❌ AI Knowledge Base tests FAILED: {len(ai_tests)} failures")
+            if not ai_knowledge_success:
+                print(f"  ⚠️  Endpoints not implemented or not accessible")
+        
+        # Print key findings for logistics route (existing functionality)
         print(f"\n🎯 LOGISTICS ROUTE RESULTS:")
         logistics_tests = [t for t in self.failed_tests if 'Logistics Route' in t['name']]
         if not logistics_tests and logistics_success:
