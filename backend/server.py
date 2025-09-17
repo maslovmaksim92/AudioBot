@@ -237,7 +237,14 @@ class BitrixService:
         try:
             if not company_id:
                 return {}
-                
+            # Кэш компаний
+            if not hasattr(self, "_company_cache"):
+                self._company_cache = {}
+                self._company_cache_ttl_seconds = int(os.environ.get('BITRIX_COMPANY_CACHE_TTL', '1800'))  # 30 минут
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            ce = self._company_cache.get(str(company_id))
+            if ce and now_ts - ce.get("ts", 0) < self._company_cache_ttl_seconds:
+                return ce.get("data", {})
             params = {"id": company_id}
             response = await self._make_request("crm.company.get", params)
             if not response.get("ok"):
@@ -248,6 +255,7 @@ class BitrixService:
                 # Иногда Bitrix возвращает массив, берем первый элемент
                 company_data = company_data[0] if company_data else {}
             logger.info(f"Retrieved company details for ID {company_id}")
+            self._company_cache[str(company_id)] = {"data": company_data, "ts": now_ts}
             return company_data
         except Exception as e:
             logger.error(f"Error getting company details: {e}")
