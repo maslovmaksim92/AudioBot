@@ -9,16 +9,41 @@ const Meetings = () => {
   const liveRef = useRef(null);
 
   useEffect(() => {
+    let recognition;
     if (isLive) {
-      // Имитация поступления строк транскрибации, пока не подключили Realtime WS
-      liveRef.current = setInterval(() => {
-        setTranscript(prev => [...prev, `Фрагмент речи ${prev.length + 1}...`]);
-      }, 1200);
-    } else if (liveRef.current) {
-      clearInterval(liveRef.current);
-      liveRef.current = null;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event) => {
+          let finalText = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const res = event.results[i];
+            if (res.isFinal) finalText += res[0].transcript.trim() + '.';
+          }
+          if (finalText) setTranscript(prev => [...prev, finalText]);
+        };
+        recognition.onerror = () => {};
+        recognition.start();
+      } else {
+        // Фоллбэк: имитация если Web Speech недоступен
+        liveRef.current = setInterval(() => {
+          setTranscript(prev => [...prev, `Фрагмент речи ${prev.length + 1}...`]);
+        }, 1200);
+      }
+    } else {
+      if (recognition) recognition.stop();
+      if (liveRef.current) {
+        clearInterval(liveRef.current);
+        liveRef.current = null;
+      }
     }
-    return () => { if (liveRef.current) clearInterval(liveRef.current); };
+    return () => {
+      if (recognition) recognition.stop();
+      if (liveRef.current) clearInterval(liveRef.current);
+    };
   }, [isLive]);
 
   const handleStart = () => setIsLive(true);
