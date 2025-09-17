@@ -1254,7 +1254,7 @@ async def _embed_texts(texts: list[str]) -> list[list[float]]:
     return res
 
 @api_router.post('/ai-knowledge/upload')
-async def ai_upload(files: list[UploadFile] = File(...)):
+async def ai_upload(files: list[UploadFile] = File(...), db: AsyncSession = Depends(get_db)):
     if not files:
         raise HTTPException(status_code=400, detail='Нет файлов')
     # validate names/ext
@@ -1278,11 +1278,10 @@ async def ai_upload(files: list[UploadFile] = File(...)):
 
     upload_id = str(uuid4())
     # store temp in DB
-    async with AsyncSessionLocal() as s:
-        meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
-        tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
-        s.add(tmp)
-        await s.commit()
+    meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
+    tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
+    db.add(tmp)
+    await db.commit()
 
     return {"upload_id": upload_id, "preview": preview, "chunks": len(chunks)}
 
