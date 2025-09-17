@@ -1319,28 +1319,27 @@ class SearchRequest(BaseModel):
     top_k: int = DEFAULT_TOP_K
 
 @api_router.post('/ai-knowledge/search')
-async def ai_search(req: SearchRequest):
+async def ai_search(req: SearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail='query пуст')
     # embed query
     qv = (await _embed_texts([req.query]))[0]
     # cosine search
-    async with AsyncSessionLocal() as s:
-        sql = sa_text('''
-            SELECT c.document_id, c.chunk_index, c.content,
-                   1 - (c.embedding <=> :qv) as score,
-                   d.filename
-            FROM ai_chunks c
-            JOIN ai_documents d ON d.id = c.document_id
-            ORDER BY c.embedding <=> :qv
-            LIMIT :k
-        ''')
-        rows = (await s.execute(sql, {"qv": qv, "k": req.top_k})).all()
-        results = []
-        for r in rows:
-            doc_id, idx, content, score, filename = r
-            results.append({"document_id": doc_id, "chunk_index": idx, "content": content, "score": float(score), "filename": filename})
-        return {"results": results}
+    sql = sa_text('''
+        SELECT c.document_id, c.chunk_index, c.content,
+               1 - (c.embedding <=> :qv) as score,
+               d.filename
+        FROM ai_chunks c
+        JOIN ai_documents d ON d.id = c.document_id
+        ORDER BY c.embedding <=> :qv
+        LIMIT :k
+    ''')
+    rows = (await db.execute(sql, {"qv": qv, "k": req.top_k})).all()
+    results = []
+    for r in rows:
+        doc_id, idx, content, score, filename = r
+        results.append({"document_id": doc_id, "chunk_index": idx, "content": content, "score": float(score), "filename": filename})
+    return {"results": results}
 
 @api_router.delete('/ai-knowledge/document/{doc_id}')
 async def ai_delete(doc_id: str):
