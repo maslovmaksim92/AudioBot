@@ -155,6 +155,9 @@
 ##         -working: "NA"
 ##         -agent: "testing"
 ##         -comment: "❌ NOT IMPLEMENTED - The /api/logistics/route endpoint is not implemented in /app/backend/server.py. Found logistics models (LogisticsRouteRequest, LogisticsRouteResponse) and ORS helper functions but no actual API route definition. Need main agent to implement the endpoint first."
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ FAILED - Endpoint /api/logistics/route returns 404 (not found). Testing confirmed the endpoint is not implemented. Backend has logistics models and ORS integration code but missing the actual @api_router.post('/logistics/route') endpoint definition. Cannot test the 5 required scenarios until endpoint is implemented."
 
 ## frontend:
 ##   - task: "Works list uses brigade name field"
