@@ -208,7 +208,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Logistics route endpoint (/api/logistics/route)"
+##     - "Brigade name mapping in list endpoint (/api/cleaning/houses)"
+##     - "Brigade name mapping in details endpoint (/api/cleaning/house/{id}/details)"
 ##   stuck_tasks:
 ##     - "Past 503 Bitrix24 instabilities; verify fallbacks don't break responses"
 ##   test_all: false
