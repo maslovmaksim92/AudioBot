@@ -1254,7 +1254,7 @@ async def _embed_texts(texts: list[str]) -> list[list[float]]:
     return res
 
 @api_router.post('/ai-knowledge/upload')
-async def ai_upload(files: list[UploadFile] = File(...), db: AsyncSession = Depends(get_db)):
+async def ai_upload(files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail='Нет файлов')
     # validate names/ext
@@ -1263,6 +1263,10 @@ async def ai_upload(files: list[UploadFile] = File(...), db: AsyncSession = Depe
         if ext not in ALLOWED_EXT:
             raise HTTPException(status_code=400, detail=f'Недопустимый формат: {ext}')
     await _ensure_sizes(files)
+
+    # Check database availability
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
 
     # Read all supported file types using enhanced parser
     all_text = ''
@@ -1278,10 +1282,11 @@ async def ai_upload(files: list[UploadFile] = File(...), db: AsyncSession = Depe
 
     upload_id = str(uuid4())
     # store temp in DB
-    meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
-    tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
-    db.add(tmp)
-    await db.commit()
+    async with AsyncSessionLocal() as s:
+        meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
+        tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
+        s.add(tmp)
+        await s.commit()
 
     return {"upload_id": upload_id, "preview": preview, "chunks": len(chunks)}
 
