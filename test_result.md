@@ -105,7 +105,7 @@
 ## user_problem_statement: "Display correct brigade name on house cards and details by resolving Bitrix24 ASSIGNED_BY_ID to full brigade name (e.g., '4 бригада') and ensure endpoints return enriched data without breaking pagination and filters."
 
 ## backend:
-##   - task: "AI Knowledge Base: upload/search/list endpoints (/api/ai-knowledge/*)"
+##   - task: "AI Knowledge Base: upload/search/list/save/delete (/api/ai-knowledge/*)"
 ##     implemented: true
 ##     working: "NA"
 ##     file: "/app/backend/server.py"
@@ -115,7 +115,7 @@
 ##     status_history:
 ##         -working: false
 ##         -agent: "main"
-##         -comment: "Implemented PostgreSQL + pgvector (3072 dims) storage, file parsing (PDF/DOCX/TXT/XLSX up to 10MB), embeddings (text-embedding-3-large), summarization (gpt-4.1-mini). Endpoints: /api/ai-knowledge/upload, /search, /documents. Requires DATABASE_URL and EMERGENT_LLM_KEY in env."
+##         -comment: "Implemented full PostgreSQL + pgvector (3072 dims) pipeline with Alembic-like init in startup: tables ai_documents, ai_chunks, ai_uploads_temp; file parsing PDF/DOCX/TXT/XLSX + ZIP (50MB/file, 200MB/request); chunking via tiktoken; embeddings via OpenAI Async (text-embedding-3-large) using OPENAI_API_KEY; summarization via Emergent LlmChat (gpt-4.1-mini) using EMERGENT_LLM_KEY. Endpoints: /api/ai-knowledge/upload, /save, /documents, /search, /document/:id (DELETE). Requires DATABASE_URL, OPENAI_API_KEY, EMERGENT_LLM_KEY. Graceful behavior if DB not set: returns 500 'Database is not initialized'."
 ##   - task: "Logistics route endpoint (/api/logistics/route) with ORS"
 ##     implemented: true
 ##     working: true
