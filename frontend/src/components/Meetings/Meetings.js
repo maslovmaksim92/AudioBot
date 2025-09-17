@@ -6,6 +6,7 @@ const Meetings = () => {
   const [transcript, setTranscript] = useState([]);
   const [summary, setSummary] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [interim, setInterim] = useState('');
   const liveRef = useRef(null);
 
   useEffect(() => {
