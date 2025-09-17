@@ -105,6 +105,17 @@
 ## user_problem_statement: "Display correct brigade name on house cards and details by resolving Bitrix24 ASSIGNED_BY_ID to full brigade name (e.g., '4 бригада') and ensure endpoints return enriched data without breaking pagination and filters."
 
 ## backend:
+##   - task: "Logistics route endpoint (/api/logistics/route) with ORS"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Implemented ORS-based logistics route with geocoding, optional optimization (matrix NN), returns geometry/summary/steps. Requires ORS_API_KEY."
 ##   - task: "Brigade name mapping in list endpoint (/api/cleaning/houses)"
 ##     implemented: true
 ##     working: true
