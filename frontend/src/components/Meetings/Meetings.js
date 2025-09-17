@@ -52,6 +52,10 @@ const Meetings = () => {
 
   const handleStart = () => setIsLive(true);
   const handleStop = () => setIsLive(false);
+          {interim && (
+            <div className="text-xs text-gray-500 italic">{interim}</div>
+          )}
+
 
   const makeSummary = async () => {
     try {
