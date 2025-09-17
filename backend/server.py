@@ -38,6 +38,8 @@ app = FastAPI(
     description="Интеллектуальная система управления клининговой компанией",
     version="1.0.0"
 )
+from uuid import uuid4
+
 
 # CORS middleware
 app.add_middleware(
