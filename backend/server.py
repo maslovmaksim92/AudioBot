@@ -1259,16 +1259,11 @@ async def ai_upload(files: list[UploadFile] = File(...)):
             raise HTTPException(status_code=400, detail=f'Недопустимый формат: {ext}')
     await _ensure_sizes(files)
 
-    # For MVP: читаем только TXT, остальные — заглушка
+    # Read all supported file types using enhanced parser
     all_text = ''
     for f in files:
-        ext = os.path.splitext(f.filename or '')[1].lower()
-        if ext == '.txt':
-            all_text += await _read_file_content(f) + '\n\n'
-        else:
-            # TODO: PDF/DOCX/XLSX парсинг
-            content = (await f.read()).decode('utf-8', errors='ignore') if ext != '.zip' else ''
-            all_text += content + '\n\n'
+        content = await _read_file_content(f)
+        all_text += content + '\n\n'
 
     if not all_text.strip():
         raise HTTPException(status_code=400, detail='Не удалось извлечь текст')
