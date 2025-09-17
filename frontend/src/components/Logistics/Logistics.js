@@ -4,7 +4,7 @@ import MapView from './MapView';
 
 const Logistics = () => {
   const [points, setPoints] = useState([{ address: '' }, { address: '' }]);
-  const [optimize, setOptimize] = useState(true);
+  const [optimize, setOptimize] = useState(false);
   const [route, setRoute] = useState(null);
   const [loading, setLoading] = useState(false);
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
