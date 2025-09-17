@@ -59,6 +59,9 @@ const Training = () => {
 
     const form = new FormData();
     files.forEach((f) => form.append('files', f));
+    // advanced controls
+    form.append('chunk_tokens', String(topK > 0 ? 1200 : 1200));
+    form.append('overlap', '200');
 
     try {
       await new Promise((resolve, reject) => {
