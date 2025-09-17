@@ -23,6 +23,9 @@ function App() {
             <Route path="/ai-chat" element={<AIChat />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/meetings" element={<Meetings />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/tasks" element={<Tasks />} />
           </Routes>
         </Layout>
       </div>
