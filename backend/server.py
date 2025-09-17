@@ -1128,6 +1128,7 @@ import zipfile, io
 from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
 from openpyxl import load_workbook
+from html import escape as html_escape
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
