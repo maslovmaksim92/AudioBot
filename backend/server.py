@@ -102,64 +102,281 @@ async def get_db():
 # ========================= BITRIX SERVICE (FROM WORKING BRANCH CONCEPT) =========================
 class BitrixService:
     def __init__(self):
-        self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '').rstrip('/')
-        self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
+        self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '')
+        self.base_url = self.webhook_url.rstrip('/') if self.webhook_url else ''
+        self._user_cache: Dict[str, Dict[str, Any]] = {}
+        self._user_cache_ttl_seconds = int(os.environ.get('BITRIX_USER_CACHE_TTL', '600'))
+        self._enum_cache: Dict[str, Dict[str, Any]] = {}
+        self._enum_cache_ttl_seconds = int(os.environ.get('BITRIX_ENUM_CACHE_TTL', '3600'))
+        self._deals_cache: Dict[str, Dict[str, Any]] = {}
+        self._deals_cache_ttl_seconds = int(os.environ.get('DEALS_CACHE_TTL', '120'))
 
-    async def _call(self, method: str, params: Dict = None) -> Dict:
-        if not self.webhook_url:
-            return {"ok": False}
-        url = f"{self.webhook_url}/{method}"
+    async def _make_request(self, method: str, params: Dict = None) -> Dict:
+        if not self.base_url:
+            logger.warning("Bitrix24 webhook URL not configured")
+            return {"ok": False, "result": None}
+        url = f"{self.base_url}/{method}"
+        retries = 2
+        last_error = None
+        for attempt in range(retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(url, json=params or {})
+                    response.raise_for_status()
+                    data = response.json()
+                    return {"ok": True, "result": data.get("result"), "next": data.get("next"), "total": data.get("total")}
+            except Exception as e:
+                last_error = e
+                logger.error(f"Bitrix24 request error (attempt {attempt+1}/{retries+1}): {e}")
+                await asyncio.sleep(0.3 * (attempt + 1))
+        return {"ok": False, "result": None, "error": str(last_error) if last_error else "unknown"}
+
+    async def get_company_details(self, company_id: str) -> Dict:
         try:
-            async with httpx.AsyncClient(timeout=40.0) as client:
-                r = await client.post(url, json=params or {})
-                r.raise_for_status()
-                data = r.json()
-                return {"ok": True, "result": data.get("result"), "next": data.get("next"), "total": data.get("total")}
+            if not company_id:
+                return {}
+            if not hasattr(self, "_company_cache"):
+                self._company_cache = {}
+                self._company_cache_ttl_seconds = int(os.environ.get('BITRIX_COMPANY_CACHE_TTL', '1800'))
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            ce = self._company_cache.get(str(company_id))
+            if ce and now_ts - ce.get("ts", 0) < self._company_cache_ttl_seconds:
+                return ce.get("data", {})
+            params = {"id": company_id}
+            response = await self._make_request("crm.company.get", params)
+            if not response.get("ok"):
+                logger.warning(f"crm.company.get failed for ID {company_id}: {response.get('error')}")
+                return {}
+            company_data = response.get("result") or {}
+            if isinstance(company_data, list):
+                company_data = company_data[0] if company_data else {}
+            self._company_cache[str(company_id)] = {"data": company_data, "ts": now_ts}
+            return company_data
         except Exception as e:
-            logger.error(f"Bitrix error: {e}")
-            return {"ok": False}
+            logger.error(f"Error getting company details: {e}")
+            return {}
 
-    async def _list_all(self, method: str, params: Dict) -> List[Dict]:
-        items: List[Dict] = []
-        q = dict(params or {})
-        next_start = None
-        for _ in range(50):
-            if next_start is not None:
-                q['start'] = next_start
-            resp = await self._call(method, q)
-            if not resp.get('ok'):
-                break
-            part = resp.get('result') or []
-            if isinstance(part, dict):
-                part = [part]
-            items.extend(part)
-            next_start = resp.get('next')
-            if next_start is None:
-                break
-        return items
+    async def get_user_details(self, user_id: str) -> Dict:
+        try:
+            if not user_id:
+                return {}
+            cache_entry = self._user_cache.get(str(user_id))
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            if cache_entry and now_ts - cache_entry.get("ts", 0) < self._user_cache_ttl_seconds:
+                return cache_entry.get("data", {})
+            params = {"ID": user_id}
+            response = await self._make_request("user.get", params)
+            if not response.get("ok"):
+                logger.warning(f"user.get failed for ID {user_id}: {response.get('error')}")
+                return {}
+            user_list = response.get("result") or []
+            user = user_list[0] if isinstance(user_list, list) and user_list else {}
+            if user:
+                self._user_cache[str(user_id)] = {"data": user, "ts": now_ts}
+            return user
+        except Exception as e:
+            logger.error(f"Error getting user details: {e}")
+            return {}
+
+    async def get_contact_details(self, contact_id: str) -> Dict:
+        try:
+            if not contact_id:
+                return {}
+            response = await self._make_request("crm.contact.get", {"id": contact_id})
+            if not response.get("ok"):
+                logger.warning(f"crm.contact.get failed for ID {contact_id}: {response.get('error')}")
+                return {}
+            return response.get("result") or {}
+        except Exception as e:
+            logger.error(f"Error getting contact details: {e}")
+            return {}
+
+    async def get_field_enum_map(self, field_name: str) -> Dict[str, str]:
+        try:
+            if not field_name:
+                return {}
+            cache_entry = self._enum_cache.get(field_name)
+            now_ts = int(datetime.now(timezone.utc).timestamp())
+            if cache_entry and now_ts - cache_entry.get("ts", 0) < self._enum_cache_ttl_seconds:
+                return cache_entry.get("data", {})
+            response = await self._make_request("crm.deal.userfield.list", {"filter": {"FIELD_NAME": field_name}})
+            if not response.get("ok"):
+                logger.warning(f"crm.deal.userfield.list failed for {field_name}: {response.get('error')}")
+                return {}
+            fields = response.get("result") or []
+            mapping: Dict[str, str] = {}
+            if isinstance(fields, list) and fields:
+                field = fields[0]
+                for item in field.get("LIST", []) or []:
+                    id_str = str(item.get("ID")); value = item.get("VALUE")
+                    if id_str and value: mapping[id_str] = value
+            self._enum_cache[field_name] = {"data": mapping, "ts": now_ts}
+            return mapping
+        except Exception as e:
+            logger.error(f"Error getting enum map for {field_name}: {e}")
+            return {}
+
+    async def get_total_deals_count(self) -> int:
+        try:
+            limit = 100; start = 0; total = 0
+            while True:
+                response = await self._make_request("crm.deal.list", {"select": ["ID"], "filter": {"CATEGORY_ID": "34"}, "order": {"ID": "DESC"}, "start": start, "limit": limit})
+                if not response.get("ok"):
+                    logger.warning(f"crm.deal.list call failed in total counter: {response.get('error')}")
+                    break
+                if response.get("total") is not None:
+                    total = int(response.get("total") or 0); break
+                batch = response.get("result", []) or []
+                total += len(batch)
+                next_start = response.get("next")
+                if next_start is None: break
+                start = next_start
+            return total if total > 0 else 490
+        except Exception as e:
+            logger.error(f"Error getting total deals count: {e}")
+            return 490
+
+    async def _enrich_deal_data(self, deal: Dict) -> Dict:
+        if deal.get("COMPANY_ID"):
+            try:
+                company_data = await self.get_company_details(deal["COMPANY_ID"])
+                deal["COMPANY_TITLE_ENRICHED"] = company_data.get("TITLE", "")
+            except Exception:
+                deal["COMPANY_TITLE_ENRICHED"] = ""
+        else:
+            deal["COMPANY_TITLE_ENRICHED"] = ""
+
+        if deal.get("ASSIGNED_BY_ID"):
+            try:
+                user = await self.get_user_details(deal["ASSIGNED_BY_ID"])
+                name = (user.get("NAME", "").strip()); last_name = (user.get("LAST_NAME", "").strip())
+                if name and last_name: brigade_name = f"{name} {last_name}"
+                elif name: brigade_name = name
+                elif last_name: brigade_name = last_name
+                else: brigade_name = deal.get("ASSIGNED_BY_NAME", "") or f"Бригада {deal['ASSIGNED_BY_ID']}"
+                deal["BRIGADE_NAME_ENRICHED"] = brigade_name
+            except Exception:
+                deal["BRIGADE_NAME_ENRICHED"] = deal.get("ASSIGNED_BY_NAME", "") or f"Бригада {deal.get('ASSIGNED_BY_ID','')}"
+        else:
+            deal["BRIGADE_NAME_ENRICHED"] = ""
+
+        async def process_cleaning_type(type_code, field_name: str):
+            if not type_code: return ""
+            enum_map = await self.get_field_enum_map(field_name)
+            key = str(type_code[0]) if isinstance(type_code, list) and type_code else (str(type_code) if type_code else None)
+            if key and enum_map.get(key): return enum_map[key]
+            return f"Тип уборки {key}" if key else ""
+
+        def process_dates(date_field):
+            if isinstance(date_field, list):
+                return [str(date).split('T')[0] for date in date_field if date]
+            elif isinstance(date_field, str):
+                return [date_field.split('T')[0]]
+            return []
+
+        cleaning_dates = {}
+        if deal.get("UF_CRM_1741592774017") or deal.get("UF_CRM_1741592855565"):
+            cleaning_dates["september_1"] = {"dates": process_dates(deal.get("UF_CRM_1741592774017")), "type": await process_cleaning_type(deal.get("UF_CRM_1741592855565"), "UF_CRM_1741592855565")}
+        if deal.get("UF_CRM_1741592892232") or deal.get("UF_CRM_1741592945060"):
+            cleaning_dates["september_2"] = {"dates": process_dates(deal.get("UF_CRM_1741592892232")), "type": await process_cleaning_type(deal.get("UF_CRM_1741592945060"), "UF_CRM_1741592945060")}
+        if deal.get("UF_CRM_1741593004888") or deal.get("UF_CRM_1741593047994"):
+            cleaning_dates["october_1"] = {"dates": process_dates(deal.get("UF_CRM_1741593004888")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593047994"), "UF_CRM_1741593047994")}
+        if deal.get("UF_CRM_1741593067418") or deal.get("UF_CRM_1741593115407"):
+            cleaning_dates["october_2"] = {"dates": process_dates(deal.get("UF_CRM_1741593067418")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593115407"), "UF_CRM_1741593115407")}
+        if deal.get("UF_CRM_1741593156926") or deal.get("UF_CRM_1741593210242"):
+            cleaning_dates["november_1"] = {"dates": process_dates(deal.get("UF_CRM_1741593156926")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593210242"), "UF_CRM_1741593210242")}
+        if deal.get("UF_CRM_1741593231558") or deal.get("UF_CRM_1741593285121"):
+            cleaning_dates["november_2"] = {"dates": process_dates(deal.get("UF_CRM_1741593231558")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593285121"), "UF_CRM_1741593285121")}
+        if deal.get("UF_CRM_1741593340713") or deal.get("UF_CRM_1741593387667"):
+            cleaning_dates["december_1"] = {"dates": process_dates(deal.get("UF_CRM_1741593340713")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593387667"), "UF_CRM_1741593387667")}
+        if deal.get("UF_CRM_1741593408621") or deal.get("UF_CRM_1741593452062"):
+            cleaning_dates["december_2"] = {"dates": process_dates(deal.get("UF_CRM_1741593408621")), "type": await process_cleaning_type(deal.get("UF_CRM_1741593452062"), "UF_CRM_1741593452062")}
+        deal["cleaning_dates"] = cleaning_dates
+        return deal
+
+    async def get_deals_optimized(self, brigade: Optional[str] = None, status: Optional[str] = None, management_company: Optional[str] = None, week: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict]:
+        params = {
+            "select": [
+                "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
+                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID", "CONTACT_ID",
+                "UF_CRM_1669561599956",
+                "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","UF_CRM_1669706387893",
+                "UF_CRM_1741592774017","UF_CRM_1741592855565",
+                "UF_CRM_1741592892232","UF_CRM_1741592945060",
+                "UF_CRM_1741593004888","UF_CRM_1741593047994",
+                "UF_CRM_1741593067418","UF_CRM_1741593115407",
+                "UF_CRM_1741593156926","UF_CRM_1741593210242",
+                "UF_CRM_1741593231558","UF_CRM_1741593285121",
+                "UF_CRM_1741593340713","UF_CRM_1741593387667",
+                "UF_CRM_1741593408621","UF_CRM_1741593452062"
+            ],
+            "order": {"ID": "DESC"},
+            "start": offset,
+            "limit": min(limit, 1000)
+        }
+        filter_params = {"CATEGORY_ID": "34"}
+        if brigade: filter_params["ASSIGNED_BY_NAME"] = f"%{brigade}%"
+        if status: filter_params["STAGE_ID"] = status
+        if management_company: filter_params["COMPANY_TITLE"] = f"%{management_company}%"
+        params["filter"] = filter_params
+
+        cache_key = json.dumps({"brigade": brigade, "status": status, "management_company": management_company, "week": week, "limit": limit, "offset": offset}, ensure_ascii=False)
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        entry = self._deals_cache.get(cache_key)
+        if entry and now_ts - entry.get("ts", 0) < self._deals_cache_ttl_seconds:
+            return entry.get("data", [])
+        response = await self._make_request("crm.deal.list", params)
+        if not response.get("ok"):
+            logger.warning(f"crm.deal.list call failed: {response.get('error')}")
+            return []
+        deals = response.get("result", []) or []
+        enriched_deals = await asyncio.gather(*(self._enrich_deal_data(d) for d in deals[:limit]))
+        self._deals_cache[cache_key] = {"data": enriched_deals, "ts": now_ts}
+        return enriched_deals
+
+    async def get_filter_options(self) -> Dict[str, List[str]]:
+        response = await self._make_request("crm.deal.list", {"select": ["ASSIGNED_BY_NAME", "COMPANY_TITLE", "STAGE_ID"], "filter": {"CATEGORY_ID": "34"}, "order": {"ID": "DESC"}})
+        if not response.get("ok"):
+            logger.warning(f"crm.deal.list call failed: {response.get('error')}")
+            return {"brigades": [], "management_companies": [], "statuses": []}
+        deals = response.get("result", []) or []
+        brigades = sorted({d.get("ASSIGNED_BY_NAME") for d in deals if d.get("ASSIGNED_BY_NAME")})
+        companies = sorted({d.get("COMPANY_TITLE") for d in deals if d.get("COMPANY_TITLE")})
+        statuses = sorted({d.get("STAGE_ID") for d in deals if d.get("STAGE_ID")})
+        return {"brigades": brigades, "management_companies": companies, "statuses": statuses}
+
+    # Legacy methods for backward compatibility
+    async def _call(self, method: str, params: Dict = None) -> Dict:
+        return await self._make_request(method, params)
 
     async def deals(self, limit=500) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
-            return self._deals_cache["data"]
-        items = await self._list_all("crm.deal.list", {
+        cache_key = f"legacy_deals_{limit}"
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        entry = self._deals_cache.get(cache_key)
+        if entry and now_ts - entry.get("ts", 0) < self._deals_cache_ttl_seconds:
+            return entry.get("data", [])
+        
+        response = await self._make_request("crm.deal.list", {
             "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID"],
             "filter": {"CATEGORY_ID":"34"},
             "order": {"ID":"DESC"},
             "limit": min(limit,1000)
         })
-        if not items:
-            return self._deals_cache["data"] or []
-        self._deals_cache = {"ts": now, "data": items}
-        return items
+        if not response.get("ok"):
+            return entry.get("data", []) if entry else []
+        
+        deals = response.get("result", []) or []
+        self._deals_cache[cache_key] = {"data": deals, "ts": now_ts}
+        return deals
 
     async def deals_full(self) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_full_cache["ts"] < self._deals_ttl and self._deals_full_cache["data"]:
-            return self._deals_full_cache["data"]
-        items = await self._list_all("crm.deal.list", {
+        cache_key = "legacy_deals_full"
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        entry = self._deals_cache.get(cache_key)
+        if entry and now_ts - entry.get("ts", 0) < self._deals_cache_ttl_seconds:
+            return entry.get("data", [])
+        
+        response = await self._make_request("crm.deal.list", {
             "select": [
                 "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
                 "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
@@ -178,10 +395,12 @@ class BitrixService:
             "order": {"ID": "DESC"},
             "limit": 1000
         })
-        if not items:
-            return self._deals_full_cache["data"] or []
-        self._deals_full_cache = {"ts": now, "data": items}
-        return items
+        if not response.get("ok"):
+            return entry.get("data", []) if entry else []
+        
+        deals = response.get("result", []) or []
+        self._deals_cache[cache_key] = {"data": deals, "ts": now_ts}
+        return deals
 
 bitrix = BitrixService()
 
