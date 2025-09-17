@@ -108,6 +108,7 @@ class BitrixService:
     def __init__(self):
         self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '').rstrip('/')
         self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
+        self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
         self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
 
     async def _call(self, method: str, params: Dict = None) -> Dict:
@@ -115,7 +116,7 @@ class BitrixService:
             return {"ok": False}
         url = f"{self.webhook_url}/{method}"
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=40.0) as client:
                 r = await client.post(url, json=params or {})
                 r.raise_for_status()
                 data = r.json()
@@ -124,22 +125,68 @@ class BitrixService:
             logger.error(f"Bitrix error: {e}")
             return {"ok": False}
 
+    async def _list_all(self, method: str, params: Dict) -> List[Dict]:
+        items: List[Dict] = []
+        q = dict(params or {})
+        next_start = None
+        for _ in range(50):  # safety cap
+            if next_start is not None:
+                q['start'] = next_start
+            resp = await self._call(method, q)
+            if not resp.get('ok'):
+                break
+            part = resp.get('result') or []
+            if isinstance(part, dict):
+                # Some Bitrix methods return dict; normalize to list if needed
+                part = [part]
+            items.extend(part)
+            next_start = resp.get('next')
+            if next_start is None:
+                break
+        return items
+
     async def deals(self, limit=500) -> List[Dict]:
         now = int(datetime.now(timezone.utc).timestamp())
         if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
             return self._deals_cache["data"]
-        resp = await self._call("crm.deal.list", {
+        items = await self._list_all("crm.deal.list", {
             "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID"],
             "filter": {"CATEGORY_ID":"34"},
             "order": {"ID":"DESC"},
             "limit": min(limit,1000)
         })
-        if not resp.get("ok"):
-            # fallback to previous cache if present
+        if not items:
             return self._deals_cache["data"] or []
-        data = resp.get("result") or []
-        self._deals_cache = {"ts": now, "data": data}
-        return data
+        self._deals_cache = {"ts": now, "data": items}
+        return items
+
+    async def deals_full(self) -> List[Dict]:
+        now = int(datetime.now(timezone.utc).timestamp())
+        if now - self._deals_full_cache["ts"] < self._deals_ttl and self._deals_full_cache["data"]:
+            return self._deals_full_cache["data"]
+        items = await self._list_all("crm.deal.list", {
+            "select": [
+                "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
+                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
+                "UF_CRM_1669561599956",
+                "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
+                "UF_CRM_1741592774017","UF_CRM_1741592855565",
+                "UF_CRM_1741592892232","UF_CRM_1741592945060",
+                "UF_CRM_1741593004888","UF_CRM_1741593047994",
+                "UF_CRM_1741593067418","UF_CRM_1741593115407",
+                "UF_CRM_1741593156926","UF_CRM_1741593210242",
+                "UF_CRM_1741593231558","UF_CRM_1741593285121",
+                "UF_CRM_1741593340713","UF_CRM_1741593387667",
+                "UF_CRM_1741593408621","UF_CRM_1741593452062"
+            ],
+            "filter": {"CATEGORY_ID": "34"},
+            "order": {"ID": "DESC"},
+            "limit": 1000
+        })
+        if not items:
+            return self._deals_full_cache["data"] or []
+        self._deals_full_cache = {"ts": now, "data": items}
+        return items
 
 bitrix = BitrixService()
 
