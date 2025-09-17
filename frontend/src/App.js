@@ -6,6 +6,9 @@ import Works from './components/Works/Works';
 import AIChat from './components/AIChat/AIChat';
 import Employees from './components/Employees/Employees';
 import Logs from './components/Logs/Logs';
+import Meetings from './components/Meetings/Meetings';
+import Training from './components/Training/Training';
+import Tasks from './components/Tasks/Tasks';
 import './App.css';
 
 function App() {
