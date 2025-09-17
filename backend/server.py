@@ -1208,9 +1208,10 @@ async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int 
 async def _ensure_sizes(files: list[UploadFile]):
     total = 0
     for f in files:
-        await f.seek(0, 2)  # end
-        size = f.tell()
-        await f.seek(0)
+        await f.seek(0)  # start
+        content = await f.read()
+        size = len(content)
+        await f.seek(0)  # reset to start
         if size > MAX_FILE_MB * 1024 * 1024:
             raise HTTPException(status_code=413, detail=f"Файл {f.filename} превышает {MAX_FILE_MB}MB")
         total += size
