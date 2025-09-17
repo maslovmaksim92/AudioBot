@@ -1221,11 +1221,15 @@ async def _ensure_sizes(files: list[UploadFile]):
 async def _summarize(text: str) -> str:
     if not EMERGENT_LLM_KEY:
         return text[:500]
-    chat = LlmChat(api_key=EMERGENT_LLM_KEY).with_model('openai', 'gpt-4.1-mini')
-    prompt = f"Суммируй кратко ключевые пункты (до 120 слов):\n{text[:6000]}"
     try:
-        resp = await chat.complete_async(messages=[UserMessage(text=prompt)], temperature=0.2)
-        return getattr(resp.choices[0].message, 'content', '') or ''
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"ai_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            system_message="Ты помощник для создания кратких саммари документов."
+        ).with_model('openai', 'gpt-4o-mini')
+        prompt = f"Суммируй кратко ключевые пункты (до 120 слов):\n{text[:6000]}"
+        resp = await chat.send_message(UserMessage(text=prompt))
+        return resp or text[:500]
     except Exception as e:
         logger.warning(f'Summary error: {e}')
         return text[:500]
