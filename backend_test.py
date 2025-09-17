@@ -557,6 +557,10 @@ class VasDomAPITester:
                                 f"Invalid data values: distance={data['distance']}, duration={data['duration']}, geometry_len={len(data.get('geometry', []))}")
             else:
                 self.log_test("Logistics Route - Basic Route", False, f"Missing fields: {missing_fields}")
+        elif status == 404 and 'геокодировать' in data.get('detail', ''):
+            self.log_test("Logistics Route - Basic Route", False, f"ORS API Key missing - geocoding failed: {data.get('detail', '')}")
+        elif status == 401:
+            self.log_test("Logistics Route - Basic Route", False, f"ORS API Key missing - unauthorized: {data.get('detail', '')}")
         else:
             self.log_test("Logistics Route - Basic Route", False, f"Status: {status}, Data: {data}")
     
