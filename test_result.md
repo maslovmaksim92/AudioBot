@@ -157,6 +157,17 @@
 ##         -working: true
 ##         -agent: "main"
 ##         -comment: "Works.js already uses house.brigade on cards and in details modal; backend now supplies enriched names."
+##   - task: "Logistics UI (Leaflet + OSM) consuming /api/logistics/route"
+##     implemented: false
+##     working: "NA"
+##     file: "/app/frontend/src/components/Logistics/Logistics.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Planned: input addresses, optimize toggle, render route polyline and steps using react-leaflet."
 
 ## metadata:
 ##   created_by: "main_agent"
