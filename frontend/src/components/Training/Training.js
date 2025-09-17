@@ -51,6 +51,21 @@ const Training = () => {
           {status && <span className="text-sm text-green-700">{status}</span>}
         </div>
       </div>
+
+      {saved.length > 0 && (
+        <div className="mt-4 bg-white rounded-xl shadow-elegant p-6">
+          <h2 className="text-lg font-semibold mb-2">Сохранённые знания</h2>
+          <div className="space-y-2">
+            {saved.map(item => (
+              <div key={item.id} className="text-sm bg-gray-50 rounded-lg p-3">
+                <div className="font-medium text-gray-800">{item.name}</div>
+                <div className="text-gray-700 mt-1">{item.preview}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
