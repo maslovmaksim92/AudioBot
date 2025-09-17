@@ -1306,14 +1306,13 @@ async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt
     return {"document_id": doc_id}
 
 @api_router.get('/ai-knowledge/documents')
-async def ai_docs_list():
-    async with AsyncSessionLocal() as s:
-        rows = (await s.execute(sa_text('SELECT id, filename, mime, size_bytes, summary, created_at, pages FROM ai_documents ORDER BY created_at DESC LIMIT 200'))).all()
-        docs = []
-        for r in rows:
-            rid, filename, mime, size_bytes, summary, created_at, pages = r
-            docs.append({"id": rid, "filename": filename, "mime": mime, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages})
-        return {"documents": docs}
+async def ai_docs_list(db: AsyncSession = Depends(get_db)):
+    rows = (await db.execute(sa_text('SELECT id, filename, mime, size_bytes, summary, created_at, pages FROM ai_documents ORDER BY created_at DESC LIMIT 200'))).all()
+    docs = []
+    for r in rows:
+        rid, filename, mime, size_bytes, summary, created_at, pages = r
+        docs.append({"id": rid, "filename": filename, "mime": mime, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages})
+    return {"documents": docs}
 
 class SearchRequest(BaseModel):
     query: str
