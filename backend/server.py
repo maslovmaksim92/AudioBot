@@ -1176,6 +1176,11 @@ async def logistics_route(req: LogisticsRouteRequest):
 # Include router
 app.include_router(api_router)
 
+# App startup event to init DB
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
