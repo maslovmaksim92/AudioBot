@@ -52,7 +52,70 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 
 # ============================================================================
-# MODELS & SCHEMAS
+# DATABASE (PostgreSQL + pgvector) CONFIG
+# ============================================================================
+
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+Base = declarative_base()
+engine = None
+AsyncSessionLocal = None
+
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ForeignKey, Float
+
+class AIDocument(Base):
+    __tablename__ = 'ai_documents'
+    id = Column(String, primary_key=True)
+    filename = Column(String, nullable=False)
+    mime = Column(String, nullable=True)
+    size_bytes = Column(Integer, nullable=True)
+    summary = Column(Text, nullable=True)
+    pages = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class AIChunk(Base):
+    __tablename__ = 'ai_chunks'
+    id = Column(String, primary_key=True)
+    document_id = Column(String, ForeignKey('ai_documents.id', ondelete='CASCADE'), index=True, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    embedding = Column(Vector(3072))
+
+class AIUploadTemp(Base):
+    __tablename__ = 'ai_uploads_temp'
+    upload_id = Column(String, primary_key=True)
+    meta = Column(JSONB, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+async def init_db():
+    global engine, AsyncSessionLocal
+    if not DATABASE_URL:
+        logger.warning('DATABASE_URL is not configured; AI Training will be disabled')
+        return
+    engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
+    AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    async with engine.begin() as conn:
+        # Enable pgvector extension and create tables
+        try:
+            await conn.execute(sa_text('CREATE EXTENSION IF NOT EXISTS vector'))
+        except Exception as e:
+            logger.info(f'pgvector extension ensure error (may be already enabled): {e}')
+        await conn.run_sync(Base.metadata.create_all)
+        # Create IVFFLAT index if not exists (best-effort)
+        try:
+            await conn.execute(sa_text('CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=100)'))
+        except Exception as e:
+            logger.info(f'Index creation note: {e}')
+
+async def get_db():
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    async with AsyncSessionLocal() as session:
+        yield session
+
+# ============================================================================
+# MODELS & SCHEMAS (HTTP)
 # ============================================================================
 
 class HouseResponse(BaseModel):
