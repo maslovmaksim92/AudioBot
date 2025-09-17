@@ -24,6 +24,7 @@ const Layout = ({ children }) => {
     { name: 'Планёрка', href: '/meetings', icon: FileText, color: 'text-indigo-600' },
     { name: 'Обучение', href: '/training', icon: FileText, color: 'text-purple-600' },
     { name: 'AI Задачи', href: '/tasks', icon: FileText, color: 'text-blue-600' },
+    { name: 'Логистика', href: '/logistics', icon: FileText, color: 'text-teal-600' },
     { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },
   ];
 
