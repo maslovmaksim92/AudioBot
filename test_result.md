@@ -105,6 +105,17 @@
 ## user_problem_statement: "Display correct brigade name on house cards and details by resolving Bitrix24 ASSIGNED_BY_ID to full brigade name (e.g., '4 бригада') and ensure endpoints return enriched data without breaking pagination and filters."
 
 ## backend:
+##   - task: "AI Knowledge Base: upload/search/list endpoints (/api/ai-knowledge/*)"
+##     implemented: true
+##     working: "NA"
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Implemented PostgreSQL + pgvector (3072 dims) storage, file parsing (PDF/DOCX/TXT/XLSX up to 10MB), embeddings (text-embedding-3-large), summarization (gpt-4.1-mini). Endpoints: /api/ai-knowledge/upload, /search, /documents. Requires DATABASE_URL and EMERGENT_LLM_KEY in env."
 ##   - task: "Logistics route endpoint (/api/logistics/route) with ORS"
 ##     implemented: true
 ##     working: true
