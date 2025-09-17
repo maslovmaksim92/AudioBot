@@ -5,6 +5,9 @@ const Training = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [status, setStatus] = useState('');
+  const [saved, setSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ai_knowledge') || '[]'); } catch { return []; }
+  });
 
   const handleFile = async (e) => {
     const f = e.target.files?.[0];
