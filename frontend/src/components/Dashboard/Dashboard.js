@@ -25,6 +25,17 @@ const Dashboard = () => {
     fetchDashboardStats();
   }, []);
 
+  // Быстрая панель фильтров + пресеты
+  const [filters, setFilters] = useState({ brigade: '', mc: '', from: '', to: '' });
+  const applyPreset = (type) => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const fmt = (x) => `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`;
+    if (type === 'today') setFilters(f => ({ ...f, from: fmt(d), to: fmt(d) }));
+    if (type === 'tomorrow') { const t = new Date(); t.setDate(d.getDate()+1); setFilters(f => ({ ...f, from: fmt(t), to: fmt(t) })); }
+    if (type === 'week') { const w1 = new Date(d); const day = w1.getDay()===0?7:w1.getDay(); const mon = new Date(d); mon.setDate(d.getDate()-(day-1)); const sun = new Date(mon); sun.setDate(mon.getDate()+6); setFilters(f => ({ ...f, from: fmt(mon), to: fmt(sun) })); }
+    if (type === 'month') { const first = new Date(d.getFullYear(), d.getMonth(), 1); const last = new Date(d.getFullYear(), d.getMonth()+1, 0); setFilters(f => ({ ...f, from: fmt(first), to: fmt(last) })); }
+  };
   const fetchDashboardStats = async () => {
     try {
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
