@@ -588,6 +588,10 @@ class VasDomAPITester:
                 self.log_test("Logistics Route - No Optimization", True, f"Order preserved: {order}")
             else:
                 self.log_test("Logistics Route - No Optimization", False, f"Expected {expected_order}, got {order}")
+        elif status == 404 and 'геокодировать' in data.get('detail', ''):
+            self.log_test("Logistics Route - No Optimization", False, f"ORS API Key missing - geocoding failed: {data.get('detail', '')}")
+        elif status == 401:
+            self.log_test("Logistics Route - No Optimization", False, f"ORS API Key missing - unauthorized: {data.get('detail', '')}")
         else:
             self.log_test("Logistics Route - No Optimization", False, f"Status: {status}, Data: {data}")
     
