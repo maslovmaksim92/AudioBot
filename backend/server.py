@@ -1269,11 +1269,117 @@ async def ai_upload(files: list[UploadFile] = File(...), chunk_tokens: int = For
     if AsyncSessionLocal is None:
         raise HTTPException(status_code=500, detail='Database is not initialized')
 
-    # Read all supported file types using enhanced parser
+    # Read and collect stats per file
     all_text = ''
+    total_size = 0
+    total_pages = 0
+    file_stats = []
     for f in files:
-        content = await _read_file_content(f)
-        all_text += content + '\n\n'
+        ext = os.path.splitext(f.filename or '')[1].lower()
+        await f.seek(0)
+        raw = await f.read()
+        size_bytes = len(raw)
+        total_size += size_bytes
+        pages = None
+        text = ''
+        try:
+            if ext == '.pdf':
+                reader = PdfReader(io.BytesIO(raw))
+                pages = len(reader.pages)
+                parts = []
+                for p in reader.pages:
+                    try:
+                        parts.append(p.extract_text() or '')
+                    except Exception:
+                        continue
+                text = '\n'.join(parts)
+            elif ext == '.docx':
+                doc = DocxDocument(io.BytesIO(raw))
+                pages = None
+                text = '\n'.join(p.text for p in doc.paragraphs)
+            elif ext == '.xlsx':
+                wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+                rows = 0
+                parts = []
+                for ws in wb.worksheets:
+                    for row in ws.iter_rows(values_only=True):
+                        line = ' '.join([str(c) for c in row if c is not None])
+                        if line:
+                            parts.append(line)
+                        rows += 1
+                pages = rows
+                text = '\n'.join(parts)
+            elif ext == '.txt':
+                text = raw.decode('utf-8', errors='ignore')
+            elif ext == '.zip':
+                # Iterate inside zip
+                try:
+                    zf = zipfile.ZipFile(io.BytesIO(raw))
+                    for name in zf.namelist():
+                        if name.endswith('/'):
+                            continue
+                        sub_ext = os.path.splitext(name)[1].lower()
+                        if sub_ext not in {'.pdf','.docx','.txt','.xlsx'}:
+                            continue
+                        if os.path.isabs(name) or '..' in name:
+                            continue
+                        with zf.open(name) as zf_f:
+                            sub_raw = zf_f.read()
+                            sub_size = len(sub_raw)
+                            sub_pages = None
+                            sub_text = ''
+                            try:
+                                if sub_ext == '.pdf':
+                                    sreader = PdfReader(io.BytesIO(sub_raw))
+                                    sub_pages = len(sreader.pages)
+                                    sparts = []
+                                    for sp in sreader.pages:
+                                        try:
+                                            sparts.append(sp.extract_text() or '')
+                                        except Exception:
+                                            continue
+                                    sub_text = '\n'.join(sparts)
+                                elif sub_ext == '.docx':
+                                    sdoc = DocxDocument(io.BytesIO(sub_raw))
+                                    sub_text = '\n'.join(p.text for p in sdoc.paragraphs)
+                                elif sub_ext == '.xlsx':
+                                    swb = load_workbook(io.BytesIO(sub_raw), read_only=True, data_only=True)
+                                    srows = 0
+                                    sparts = []
+                                    for ws in swb.worksheets:
+                                        for row in ws.iter_rows(values_only=True):
+                                            line = ' '.join([str(c) for c in row if c is not None])
+                                            if line:
+                                                sparts.append(line)
+                                            srows += 1
+                                    sub_pages = srows
+                                    sub_text = '\n'.join(sparts)
+                                elif sub_ext == '.txt':
+                                    sub_text = sub_raw.decode('utf-8', errors='ignore')
+                            except Exception:
+                                pass
+                            file_stats.append({
+                                'name': name,
+                                'ext': sub_ext,
+                                'size_bytes': sub_size,
+                                'pages': sub_pages,
+                                'text_chars': len(sub_text or '')
+                            })
+                            all_text += (sub_text or '') + '\n\n'
+                except Exception:
+                    pass
+                continue
+        except Exception:
+            text = ''
+        file_stats.append({
+            'name': f.filename,
+            'ext': ext,
+            'size_bytes': size_bytes,
+            'pages': pages,
+            'text_chars': len(text or '')
+        })
+        total_pages += (pages or 0)
+        all_text += (text or '') + '\n\n'
 
     if not all_text.strip():
         raise HTTPException(status_code=400, detail='Не удалось извлечь текст')
@@ -1284,12 +1390,31 @@ async def ai_upload(files: list[UploadFile] = File(...), chunk_tokens: int = For
     upload_id = str(uuid4())
     # store temp in DB
     async with AsyncSessionLocal() as s:
-        meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
+        meta = {
+            'filenames': [f.filename for f in files],
+            'summary': preview,
+            'chunks': chunks,  # сохраняем все чанки
+            'chunks_count': len(chunks),
+            'total_size_bytes': total_size,
+            'total_pages': total_pages,
+            'file_stats': file_stats,
+            'chunk_tokens': int(chunk_tokens),
+            'overlap': int(overlap)
+        }
         tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
         s.add(tmp)
         await s.commit()
 
-    return {"upload_id": upload_id, "preview": preview, "chunks": len(chunks)}
+    return {
+        'upload_id': upload_id,
+        'preview': preview,
+        'chunks': len(chunks),
+        'stats': {
+            'total_size_bytes': total_size,
+            'total_pages': total_pages,
+            'file_stats': file_stats
+        }
+    }
 
 @api_router.post('/ai-knowledge/save')
 async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt'), db: AsyncSession = Depends(get_db)):
