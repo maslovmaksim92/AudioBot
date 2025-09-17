@@ -73,7 +73,7 @@ const Meetings = () => {
   };
 
   return (
-    <div className="pt-2 px-4 pb-6 max-w-6xl mx-auto">
+    <div className="pt-0 px-3 pb-4 max-w-6xl mx-auto">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold gradient-text">Планёрка (онлайн транскрипция)</h1>
         <div className="flex items-center gap-2">
