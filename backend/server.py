@@ -97,18 +97,18 @@ async def init_db():
         return
     engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
     AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-    async with engine.begin() as conn:
-        # Enable pgvector extension and create tables
-        try:
-            await conn.execute(sa_text('CREATE EXTENSION IF NOT EXISTS vector'))
-        except Exception as e:
-            logger.info(f'pgvector extension ensure error (may be already enabled): {e}')
-        await conn.run_sync(Base.metadata.create_all)
-        # Create IVFFLAT index if not exists (best-effort)
-        try:
-            await conn.execute(sa_text('CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=100)'))
-        except Exception as e:
-            logger.info(f'Index creation note: {e}')
+    # Run Alembic migrations programmatically
+    try:
+        import subprocess, os
+        env = os.environ.copy()
+        # Ensure alembic.ini path
+        alembic_ini = str((ROOT_DIR / 'alembic.ini').resolve())
+        if not os.path.exists(alembic_ini):
+            alembic_ini = 'alembic.ini'
+        subprocess.run(['alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False)
+        logger.info('Alembic migrations executed')
+    except Exception as e:
+        logger.warning(f'Alembic run error (continuing): {e}')
 
 async def get_db():
     if AsyncSessionLocal is None:
