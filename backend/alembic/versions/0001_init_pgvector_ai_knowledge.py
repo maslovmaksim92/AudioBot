@@ -30,7 +30,8 @@ def upgrade():
         sa.Column('embedding', Vector(3072))
     )
     op.create_index('ix_ai_chunks_document_id', 'ai_chunks', ['document_id'])
-    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=100)")
+    # Default lists=200 per tuning
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=200)")
     op.create_table(
         'ai_uploads_temp',
         sa.Column('upload_id', sa.String(), primary_key=True),
