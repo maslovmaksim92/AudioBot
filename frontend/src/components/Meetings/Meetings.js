@@ -20,10 +20,13 @@ const Meetings = () => {
         recognition.interimResults = true;
         recognition.onresult = (event) => {
           let finalText = '';
+          let interimText = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             const res = event.results[i];
             if (res.isFinal) finalText += res[0].transcript.trim() + '.';
+            else interimText += res[0].transcript;
           }
+          if (interimText) setInterim(interimText.trim()); else setInterim('');
           if (finalText) setTranscript(prev => [...prev, finalText]);
         };
         recognition.onerror = () => {};
