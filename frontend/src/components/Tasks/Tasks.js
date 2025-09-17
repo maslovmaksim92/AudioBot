@@ -4,7 +4,9 @@ import { CalendarClock, Send, Clock } from 'lucide-react';
 const Tasks = () => {
   const [text, setText] = useState('Пришли мне отчёт завтра в 12:00 в Telegram');
   const [time, setTime] = useState('');
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ai_tasks') || '[]'); } catch { return []; }
+  });
 
   const addTask = async () => {
     if (!text.trim()) return;
