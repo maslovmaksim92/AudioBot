@@ -1111,6 +1111,186 @@ async def get_house_details(house_id: int, include_url: bool = True):
 
 
 # ============================================================================
+# AI KNOWLEDGE ROUTES (UPLOAD/SAVE/LIST/SEARCH/DELETE)
+# ============================================================================
+from fastapi import Form
+import aiofiles
+import tiktoken
+
+ALLOWED_EXT = {'.pdf', '.docx', '.txt', '.xlsx', '.zip'}
+MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
+MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
+DEFAULT_TOP_K = 10
+
+from emergentintegrations.llm.embeddings import LlmEmbeddings
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
+
+async def _read_file_content(file: UploadFile) -> str:
+    # Simple extractor (txt); other types parsed later inline
+    ext = os.path.splitext(file.filename or '')[1].lower()
+    if ext == '.txt':
+        return (await file.read()).decode('utf-8', errors='ignore')
+    return ''
+
+async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> list[str]:
+    enc = tiktoken.get_encoding('cl100k_base')
+    toks = enc.encode(text)
+    chunks = []
+    i = 0
+    while i < len(toks):
+        window = toks[i:i+target_tokens]
+        chunks.append(enc.decode(window))
+        i += max(1, target_tokens - overlap)
+    return chunks
+
+async def _ensure_sizes(files: list[UploadFile]):
+    total = 0
+    for f in files:
+        await f.seek(0, 2)  # end
+        size = f.tell()
+        await f.seek(0)
+        if size > MAX_FILE_MB * 1024 * 1024:
+            raise HTTPException(status_code=413, detail=f"Файл {f.filename} превышает {MAX_FILE_MB}MB")
+        total += size
+    if total > MAX_TOTAL_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Общий размер превышает {MAX_TOTAL_MB}MB")
+
+async def _summarize(text: str) -> str:
+    if not EMERGENT_LLM_KEY:
+        return text[:500]
+    chat = LlmChat(api_key=EMERGENT_LLM_KEY).with_model('openai', 'gpt-4.1-mini')
+    prompt = f"Суммируй кратко ключевые пункты (до 120 слов):\n{text[:6000]}"
+    try:
+        resp = await chat.complete_async(messages=[UserMessage(text=prompt)], temperature=0.2)
+        return getattr(resp.choices[0].message, 'content', '') or ''
+    except Exception as e:
+        logger.warning(f'Summary error: {e}')
+        return text[:500]
+
+async def _embed_texts(texts: list[str]) -> list[list[float]]:
+    if not EMERGENT_LLM_KEY:
+        # fallback: zeros
+        return [[0.0]*3072 for _ in texts]
+    emb = LlmEmbeddings(api_key=EMERGENT_LLM_KEY).with_model('openai','text-embedding-3-large')
+    # batch sequentially to be safe
+    res: list[list[float]] = []
+    for t in texts:
+        try:
+            r = await emb.embed_async(t)
+            res.append(list(r.embedding))
+        except Exception as e:
+            logger.error(f'Embedding error: {e}')
+            res.append([0.0]*3072)
+    return res
+
+@api_router.post('/ai-knowledge/upload')
+async def ai_upload(files: list[UploadFile] = File(...)):
+    if not files:
+        raise HTTPException(status_code=400, detail='Нет файлов')
+    # validate names/ext
+    for f in files:
+        ext = os.path.splitext(f.filename or '')[1].lower()
+        if ext not in ALLOWED_EXT:
+            raise HTTPException(status_code=400, detail=f'Недопустимый формат: {ext}')
+    await _ensure_sizes(files)
+
+    # For MVP: читаем только TXT, остальные — заглушка
+    all_text = ''
+    for f in files:
+        ext = os.path.splitext(f.filename or '')[1].lower()
+        if ext == '.txt':
+            all_text += await _read_file_content(f) + '\n\n'
+        else:
+            # TODO: PDF/DOCX/XLSX парсинг
+            content = (await f.read()).decode('utf-8', errors='ignore') if ext != '.zip' else ''
+            all_text += content + '\n\n'
+
+    if not all_text.strip():
+        raise HTTPException(status_code=400, detail='Не удалось извлечь текст')
+
+    chunks = await _split_into_chunks(all_text)
+    preview = await _summarize(all_text)
+
+    upload_id = str(uuid4())
+    # store temp in DB
+    async with AsyncSessionLocal() as s:
+        meta = {"filenames":[f.filename for f in files], "chunks": chunks[:50]}  # ограничим превью
+        tmp = AIUploadTemp(upload_id=upload_id, meta=meta, expires_at=datetime.now(timezone.utc)+timedelta(hours=6))
+        s.add(tmp)
+        await s.commit()
+
+    return {"upload_id": upload_id, "preview": preview, "chunks": len(chunks)}
+
+@api_router.post('/ai-knowledge/save')
+async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt')):
+    # fetch temp
+    async with AsyncSessionLocal() as s:
+        tmp = await s.get(AIUploadTemp, upload_id)
+        if not tmp:
+            raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
+        meta = tmp.meta
+        chunks = meta.get('chunks', [])
+        # embed
+        vectors = await _embed_texts(chunks)
+        doc_id = str(uuid4())
+        doc = AIDocument(id=doc_id, filename=filename, mime='text/plain', size_bytes=None, summary='См. превью при загрузке')
+        s.add(doc)
+        for idx,(text,v) in enumerate(zip(chunks, vectors)):
+            s.add(AIChunk(id=str(uuid4()), document_id=doc_id, chunk_index=idx, content=text, embedding=v))
+        # delete temp
+        await s.delete(tmp)
+        await s.commit()
+    return {"document_id": doc_id}
+
+@api_router.get('/ai-knowledge/documents')
+async def ai_docs_list():
+    async with AsyncSessionLocal() as s:
+        rows = (await s.execute(sa_text('SELECT id, filename, mime, size_bytes, summary, created_at, pages FROM ai_documents ORDER BY created_at DESC LIMIT 200'))).all()
+        docs = []
+        for r in rows:
+            rid, filename, mime, size_bytes, summary, created_at, pages = r
+            docs.append({"id": rid, "filename": filename, "mime": mime, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages})
+        return {"documents": docs}
+
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = DEFAULT_TOP_K
+
+@api_router.post('/ai-knowledge/search')
+async def ai_search(req: SearchRequest):
+    if not req.query.strip():
+        raise HTTPException(status_code=400, detail='query пуст')
+    # embed query
+    qv = (await _embed_texts([req.query]))[0]
+    # cosine search
+    async with AsyncSessionLocal() as s:
+        sql = sa_text('''
+            SELECT c.document_id, c.chunk_index, c.content,
+                   1 - (c.embedding <=> :qv) as score,
+                   d.filename
+            FROM ai_chunks c
+            JOIN ai_documents d ON d.id = c.document_id
+            ORDER BY c.embedding <=> :qv
+            LIMIT :k
+        ''')
+        rows = (await s.execute(sql, {"qv": qv, "k": req.top_k})).all()
+        results = []
+        for r in rows:
+            doc_id, idx, content, score, filename = r
+            results.append({"document_id": doc_id, "chunk_index": idx, "content": content, "score": float(score), "filename": filename})
+        return {"results": results}
+
+@api_router.delete('/ai-knowledge/document/{doc_id}')
+async def ai_delete(doc_id: str):
+    async with AsyncSessionLocal() as s:
+        await s.execute(sa_text('DELETE FROM ai_chunks WHERE document_id=:id'), {"id": doc_id})
+        await s.execute(sa_text('DELETE FROM ai_documents WHERE id=:id'), {"id": doc_id})
+        await s.commit()
+    return {"ok": True}
+
+# ============================================================================
 # LOGISTICS ROUTES (ORS)
 # ============================================================================
 @api_router.post("/logistics/route", response_model=LogisticsRouteResponse)
