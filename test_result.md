@@ -188,9 +188,7 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Verify /api/logistics/route builds routes (ORS), optimize=true reorders points, returns geometry/summary/steps"
-##     - "Verify /api/cleaning/houses supports filters brigade, management_company, cleaning_date and date_from/date_to; pagination returns bottom-only pages with correct total/pages"
-##     - "Verify /api/cleaning/house/{id}/details includes bitrix_url and details payload is stable"
+##     - "Logistics route endpoint (/api/logistics/route)"
 ##   stuck_tasks:
 ##     - "Past 503 Bitrix24 instabilities; verify fallbacks don't break responses"
 ##   test_all: false
