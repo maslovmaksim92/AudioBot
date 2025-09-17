@@ -163,6 +163,18 @@ const Dashboard = () => {
   );
 
   if (loading) {
+      {/* Filters row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input placeholder="Бригада" value={filters.brigade} onChange={e=>setFilters(f=>({...f, brigade:e.target.value}))} className="p-2 border rounded-lg text-sm" />
+        <input placeholder="УК" value={filters.mc} onChange={e=>setFilters(f=>({...f, mc:e.target.value}))} className="p-2 border rounded-lg text-sm" />
+        <input type="date" value={filters.from} onChange={e=>setFilters(f=>({...f, from:e.target.value}))} className="p-2 border rounded-lg text-sm" />
+        <input type="date" value={filters.to} onChange={e=>setFilters(f=>({...f, to:e.target.value}))} className="p-2 border rounded-lg text-sm" />
+        <button onClick={()=>applyPreset('today')} className="px-2 py-1 bg-gray-100 rounded text-xs">Сегодня</button>
+        <button onClick={()=>applyPreset('tomorrow')} className="px-2 py-1 bg-gray-100 rounded text-xs">Завтра</button>
+        <button onClick={()=>applyPreset('week')} className="px-2 py-1 bg-gray-100 rounded text-xs">Неделя</button>
+        <button onClick={()=>applyPreset('month')} className="px-2 py-1 bg-gray-100 rounded text-xs">Месяц</button>
+      </div>
+
     return (
       <div className="p-8 flex justify-center items-center min-h-96">
         <div className="flex items-center space-x-3">
