@@ -319,7 +319,28 @@ const Training = () => {
             {results.map((r, idx) => (
               <div key={idx} className="bg-gray-50 rounded p-3">
                 <div className="text-xs text-gray-600 mb-1">Документ: {r.filename} • Чанк #{r.chunk_index} • Релевантность: {(r.score*100).toFixed(1)}%</div>
-                <div className="text-sm text-gray-900 whitespace-pre-wrap">{r.content}</div>
+                <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                  {(() => {
+                    const q = (query || '').trim();
+                    if (!q) return r.content;
+                    try {
+                      const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                      const re = new RegExp(esc, 'gi');
+                      const parts = String(r.content || '').split(re);
+                      const matches = String(r.content || '').match(re) || [];
+                      const out = [];
+                      for (let i = 0; i < parts.length; i++) {
+                        out.push(parts[i]);
+                        if (i < matches.length) {
+                          out.push(<mark key={`m${i}`} className="bg-yellow-200 text-gray-900 px-0.5 rounded">{matches[i]}</mark>);
+                        }
+                      }
+                      return out;
+                    } catch {
+                      return r.content;
+                    }
+                  })()}
+                </div>
               </div>
             ))}
           </div>
