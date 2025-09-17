@@ -1254,7 +1254,7 @@ async def _embed_texts(texts: list[str]) -> list[list[float]]:
     return res
 
 @api_router.post('/ai-knowledge/upload')
-async def ai_upload(files: list[UploadFile] = File(...)):
+async def ai_upload(files: list[UploadFile] = File(...), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
     if not files:
         raise HTTPException(status_code=400, detail='Нет файлов')
     # validate names/ext
