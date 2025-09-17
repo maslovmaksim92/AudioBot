@@ -15,6 +15,7 @@ import {
   DoorOpen,
   ExternalLink
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import { ru } from 'date-fns/locale';
 import { format } from 'date-fns';
