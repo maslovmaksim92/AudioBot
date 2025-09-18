@@ -262,10 +262,11 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "AI Knowledge Base endpoints after move to app/routers/ai_knowledge.py"
-##     - "Legacy endpoint compatibility after AI Knowledge refactor"
-##     - "Database initialization graceful handling"
+##     - "AI Knowledge Base endpoints deployment to production"
+##     - "Dynamic import and router configuration on deployed backend"
+##     - "Production smoke test validation"
 ##   stuck_tasks: 
+##     - "AI Knowledge endpoints return 404 on production - not deployed despite dynamic import fixes"
 ##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
 ##     - "React Router client-side routing returns 404 on direct route access"
