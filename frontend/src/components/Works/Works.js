@@ -220,7 +220,6 @@ const Works = () => {
                 <div className="text-lg font-semibold">{house.amount_monthly.toLocaleString('ru-RU', { style: 'currency', currency: house.currency || 'RUB', maximumFractionDigits: 0 })}</div>
               </div>
             )}
-            </div>
 
             {/* Инфо */}
             <div className="space-y-2 text-sm mb-3">
