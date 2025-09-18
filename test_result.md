@@ -262,12 +262,12 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Diagnostics endpoints deployment to production (db-check, db-install-vector)"
-##     - "AI Knowledge router full deployment verification"
-##     - "Production database configuration and pgvector setup"
+##     - "DATABASE_URL sslmode parameter configuration fix"
+##     - "Production database connection string validation"
+##     - "AI Knowledge diagnostics endpoints working correctly"
 ##   stuck_tasks: 
-##     - "Diagnostics endpoints (db-check, db-install-vector) return 404 on production - not deployed"
-##     - "AI Knowledge router partially deployed - old endpoints work but new diagnostics missing"
+##     - "DATABASE_URL has invalid sslmode parameter - needs production environment fix"
+##     - "AI Knowledge router fully deployed - diagnostics endpoints working but database connection fails"
 ##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
 ##     - "React Router client-side routing returns 404 on direct route access"
