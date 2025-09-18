@@ -19,7 +19,7 @@ const monthMeta = {
 const Works = () => {
   const [houses, setHouses] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, pages: 0 });
-  const [filters, setFilters] = useState({ brigades: [], management_companies: [], statuses: [] });
+  const [filters, setFilters] = useState({ brigades: [], statuses: [] });
   const [loading, setLoading] = useState(false);
   const [activeFilters, setActiveFilters] = useState({ brigade: '', management_company: '', status: '', search: '', cleaning_date: '' });
   const [notification, setNotification] = useState(null);
