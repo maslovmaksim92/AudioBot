@@ -286,6 +286,18 @@ class FiltersResponse(BaseModel):
     management_companies: List[str] = []
     statuses: List[str] = []
 
+# Типовые поля "type" для расписаний (используются для маппинга enum -> метка)
+TYPE_FIELDS: List[str] = [
+    "UF_CRM_1741592855565",  # september_1 type
+    "UF_CRM_1741592945060",  # september_2 type
+    "UF_CRM_1741593047994",  # october_1 type
+    "UF_CRM_1741593115407",  # october_2 type
+    "UF_CRM_1741593210242",  # november_1 type
+    "UF_CRM_1741593285121",  # november_2 type
+    "UF_CRM_1741593387667",  # december_1 type
+    "UF_CRM_1741593452062",  # december_2 type
+]
+
 @api_router.get("/cleaning/filters", response_model=FiltersResponse)
 async def get_filters():
     try:
