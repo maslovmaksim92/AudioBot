@@ -286,3 +286,82 @@ async def status(upload_id: str):
             meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
             return StatusResponse(status=meta.get('status') or 'ready')
     return StatusResponse(status='done')
+
+# ===== Utilities for DB diagnostics =====
+class DbCheckResponse(BaseModel):
+    connected: bool
+    pgvector_available: bool
+    pgvector_installed: bool
+    ai_tables: List[str]
+    embedding_dims: Optional[int] = None
+    errors: List[str] = []
+
+@router.get('/db-check', response_model=DbCheckResponse)
+async def db_check():
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    errors: List[str] = []
+    ai_tables: List[str] = []
+    connected = False
+    pgvector_available = False
+    pgvector_installed = False
+    dims: Optional[int] = None
+    try:
+        async with AsyncSessionLocal() as db:
+            # Connection check
+            try:
+                await db.execute(sa_text('SELECT 1'))
+                connected = True
+            except Exception as e:
+                errors.append(f'connect: {e}')
+            # Available extensions
+            try:
+                row = (await db.execute(sa_text("SELECT default_version FROM pg_available_extensions WHERE name='vector'"))).first()
+                pgvector_available = bool(row)
+            except Exception as e:
+                errors.append(f'available: {e}')
+            # Installed extension
+            try:
+                row2 = (await db.execute(sa_text("SELECT extversion FROM pg_extension WHERE extname='vector'"))).first()
+                pgvector_installed = bool(row2)
+            except Exception as e:
+                errors.append(f'installed: {e}')
+            # AI tables
+            try:
+                rows = (await db.execute(sa_text("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'ai_%'"))).all()
+                ai_tables = [r[0] for r in rows] if rows else []
+            except Exception as e:
+                errors.append(f'ai_tables: {e}')
+            # Embedding dims
+            try:
+                if 'ai_chunks' in ai_tables:
+                    dims = await _detect_vector_dims(db)
+            except Exception as e:
+                errors.append(f'dims: {e}')
+    except Exception as e:
+        errors.append(f'session: {e}')
+    return DbCheckResponse(
+        connected=connected,
+        pgvector_available=pgvector_available,
+        pgvector_installed=pgvector_installed,
+        ai_tables=ai_tables,
+        embedding_dims=dims,
+        errors=errors
+    )
+
+class DbInstallRequest(BaseModel):
+    confirm: bool = False
+
+@router.post('/db-install-vector')
+async def db_install_vector(req: DbInstallRequest):
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    if not req.confirm:
+        raise HTTPException(status_code=400, detail='confirm=false')
+    async with AsyncSessionLocal() as db:
+        try:
+            await db.execute(sa_text('CREATE EXTENSION IF NOT EXISTS vector'))
+            await db.commit()
+            return {'ok': True}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
