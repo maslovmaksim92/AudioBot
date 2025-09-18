@@ -563,12 +563,32 @@ async def get_house_details(house_id: int):
         if deal.get("COMPANY_ID"):
             cresp = await bitrix._call("crm.company.get", {"id": deal["COMPANY_ID"]})
             company_details = cresp.get("result") or {}
+        # Contacts: try to get primary contact linked to deal
         contact_details = {}
-        cid = deal.get("CONTACT_ID")
-        if cid:
+        primary_contact_id = None
+        try:
+            link_resp = await bitrix._call("crm.deal.contact.items.get", {"id": house_id})
+            links = link_resp.get("result") or []
+            if isinstance(links, dict):
+                links = [links]
+            # Prefer primary contact
+            for l in links:
+                if str(l.get("IS_PRIMARY") or l.get("PRIMARY") or l.get("IS_PRIMARY_CONTACT") or "").upper() in ("Y","YES","TRUE","1"):
+                    primary_contact_id = l.get("CONTACT_ID")
+                    break
+            if not primary_contact_id and links:
+                primary_contact_id = links[0].get("CONTACT_ID")
+        except Exception:
+            primary_contact_id = None
+        # Fallback to CONTACT_ID field if link API failed
+        if not primary_contact_id:
+            cid = deal.get("CONTACT_ID")
             if isinstance(cid, list) and cid:
-                cid = cid[0]
-            cresp = await bitrix._call("crm.contact.get", {"id": cid})
+                primary_contact_id = cid[0]
+            elif isinstance(cid, (str,int)):
+                primary_contact_id = cid
+        if primary_contact_id:
+            cresp = await bitrix._call("crm.contact.get", {"id": primary_contact_id})
             contact_details = cresp.get("result") or {}
         base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
         # Человекочитаемые типы в деталях
