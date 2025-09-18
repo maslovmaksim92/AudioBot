@@ -263,6 +263,8 @@
 ##   stuck_tasks: 
 ##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
+##     - "React Router client-side routing returns 404 on direct route access"
+##     - "Web server not configured for SPA fallback routing"
 ##   test_all: false
 ##   test_priority: "high_first"
 
