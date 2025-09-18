@@ -536,7 +536,7 @@ async def get_house_details(house_id: int):
                 cid = cid[0]
             cresp = await bitrix._call("crm.contact.get", {"id": cid})
             contact_details = cresp.get("result") or {}
-        base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+        base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
         # Человекочитаемые типы в деталях
         cd = _build_cleaning_dates(deal)
         try:
