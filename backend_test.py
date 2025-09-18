@@ -2196,4 +2196,21 @@ def main():
     return 0 if len(tester.failed_tests) == 0 else 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Use the backend URL from frontend environment
+    backend_url = "https://bitrix-audio.preview.emergentagent.com"
+    
+    print("🧠 VasDom AudioBot - AI Knowledge Review Request Testing")
+    print("=" * 80)
+    print(f"Backend URL: {backend_url}")
+    print("Testing new AI Training endpoints moved to app/routers/ai_knowledge.py")
+    print("=" * 80)
+    
+    tester = VasDomAPITester(backend_url)
+    success = tester.run_ai_knowledge_review_tests()
+    
+    if success:
+        print("\n🎉 ALL TESTS PASSED!")
+        sys.exit(0)
+    else:
+        print(f"\n❌ {len(tester.failed_tests)} TESTS FAILED")
+        sys.exit(1)
