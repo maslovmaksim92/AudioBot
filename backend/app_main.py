@@ -537,6 +537,22 @@ async def get_house_details(house_id: int):
             cresp = await bitrix._call("crm.contact.get", {"id": cid})
             contact_details = cresp.get("result") or {}
         base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+        # Человекочитаемые типы в деталях
+        cd = _build_cleaning_dates(deal)
+        try:
+            enum_map = await bitrix._get_userfield_enums(TYPE_FIELDS)
+            for key, block in cd.items():
+                if not isinstance(block, dict):
+                    continue
+                t = str(block.get("type") or "")
+                if t.isdigit():
+                    for field_code, mapping in enum_map.items():
+                        if t in mapping:
+                            block["type"] = mapping[t]
+                            break
+        except Exception:
+            pass
+        periodicity = _compute_periodicity(cd)
         return {
             "house": {
                 "id": deal.get("ID"),
@@ -547,7 +563,9 @@ async def get_house_details(house_id: int):
                 "floors": int(deal.get("UF_CRM_1669704631166") or 0),
                 "brigade": deal.get("ASSIGNED_BY_NAME", ""),
                 "status": deal.get("STAGE_ID", ""),
-                "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else ""
+                "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else "",
+                "cleaning_dates": cd,
+                "periodicity": periodicity
             },
             "management_company": {
                 "id": company_details.get("ID", ""),
