@@ -304,10 +304,31 @@ TYPE_FIELDS: List[str] = [
 @api_router.get("/cleaning/filters", response_model=FiltersResponse)
 async def get_filters():
     try:
-        # Только УК и статусы — фильтр по бригадам убран по требованию
-        deals = await bitrix.deals(limit=1000)
+        # Только БРИГАДЫ и СТАТУСЫ. УК убираем из фильтров
+        deals = await bitrix.deals_full()
+        brigades_set = set()
+        for d in deals:
+            b = d.get("ASSIGNED_BY_NAME") or ""
+            if not b and d.get("ASSIGNED_BY_ID"):
+                try:
+                    uid = str(d.get("ASSIGNED_BY_ID"))
+                    if uid not in bitrix._user_cache:
+                        uresp = await bitrix._call("user.get", {"ID": uid})
+                        uitems = uresp.get("result") or []
+                        if isinstance(uitems, dict):
+                            uitems = [uitems]
+                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
+                    u = bitrix._user_cache.get(uid) or {}
+                    full_name = (u.get("LAST_NAME","") + " " + (u.get("NAME") or "") + (" "+u.get("SECOND_NAME","") if u.get("SECOND_NAME") else "")).strip()
+                    if full_name:
+                        b = full_name
+                except Exception:
+                    b = ""
+            if b:
+                brigades_set.add(b)
+        brigades = sorted(brigades_set)
         statuses = sorted({(d.get("STAGE_ID") or "") for d in deals if d.get("STAGE_ID")})
-        return FiltersResponse(brigades=[], management_companies=[], statuses=statuses)
+        return FiltersResponse(brigades=brigades, management_companies=[], statuses=statuses)
     except Exception as e:
         logger.error(f"filters error: {e}")
         return FiltersResponse(brigades=[], management_companies=[], statuses=[])
