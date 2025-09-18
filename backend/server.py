@@ -93,7 +93,12 @@ async def init_db():
         alembic_ini = str((ROOT_DIR / 'alembic.ini').resolve())
         if not os.path.exists(alembic_ini):
             alembic_ini = 'alembic.ini'
-        subprocess.run(['alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False)
+        # Run Alembic with working directory set to backend/ so script_location=alembic resolves
+        try:
+            subprocess.run(['alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False, cwd=str(ROOT_DIR))
+        except Exception as _:
+            # Fallback to module execution
+            subprocess.run(['python', '-m', 'alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False, cwd=str(ROOT_DIR))
         logger.info('Alembic migrations executed')
     except Exception as e:
         logger.warning(f'Alembic run error: {e}')
