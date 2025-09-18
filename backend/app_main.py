@@ -452,6 +452,10 @@ async def get_houses(
             search = None
         # В FastAPI лучше читать из request.query_params, но не хотим ломать сигнатуру. Оставим фильтрацию ниже.
 
+        # Apply search by address/title if provided
+        if search:
+            s = search.lower()
+            raw = [d for d in raw if s in str(d.get("UF_CRM_1669561599956") or d.get("TITLE") or "").lower() or s in str(d.get("TITLE") or "").lower()]
         deals = [d for d in raw if ok(d)]
         total_count = len(deals)
         page = max(1, page)
