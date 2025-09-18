@@ -1069,31 +1069,155 @@ startxref
         except Exception as e:
             return False, {"error": str(e)}, 0
 
-    def run_comprehensive_test(self):
-        """Run all tests focusing on AI Knowledge Base endpoints"""
-        print("🚀 Starting VasDom AudioBot API Testing")
+    def test_crm_cleaning_filters(self):
+        """Test CRM cleaning filters endpoint as per review request"""
+        print("\n🏠 Testing CRM Cleaning Filters...")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            # Check required structure: brigades, management_companies, statuses
+            required_fields = ['brigades', 'management_companies', 'statuses']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                # Verify all fields are arrays
+                type_errors = []
+                for field in required_fields:
+                    if not isinstance(data[field], list):
+                        type_errors.append(f"{field} should be array, got {type(data[field])}")
+                
+                if not type_errors:
+                    brigades_count = len(data['brigades'])
+                    companies_count = len(data['management_companies'])
+                    statuses_count = len(data['statuses'])
+                    
+                    self.log_test("CRM Filters - Structure", True, 
+                                f"brigades: {brigades_count}, management_companies: {companies_count}, statuses: {statuses_count}")
+                else:
+                    self.log_test("CRM Filters - Structure", False, f"Type errors: {type_errors}")
+            else:
+                self.log_test("CRM Filters - Structure", False, f"Missing fields: {missing_fields}")
+        elif status == 500:
+            # Bitrix unavailable is acceptable
+            detail = data.get('detail', '')
+            if 'Bitrix' in detail or 'битрикс' in detail.lower():
+                self.log_test("CRM Filters - Bitrix Unavailable", True, f"Bitrix unavailable (acceptable): {detail}")
+            else:
+                self.log_test("CRM Filters - Structure", False, f"500 error: {detail}")
+        else:
+            self.log_test("CRM Filters - Structure", False, f"Status: {status}, Data: {data}")
+
+    def test_crm_houses_endpoint(self):
+        """Test CRM houses endpoint as per review request"""
+        print("\n🏠 Testing CRM Houses Endpoint...")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'page': 1, 'limit': 50})
+        
+        if success and status == 200:
+            # Check required structure
+            required_fields = ['houses', 'total', 'page', 'limit', 'pages']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                houses = data['houses']
+                if isinstance(houses, list):
+                    self.log_test("CRM Houses - Response Structure", True, 
+                                f"houses: {len(houses)}, total: {data['total']}, page: {data['page']}, limit: {data['limit']}, pages: {data['pages']}")
+                    
+                    # Check house object structure if houses exist
+                    if houses:
+                        house = houses[0]
+                        required_house_fields = ['id', 'title', 'address', 'apartments', 'entrances', 'floors', 'cleaning_dates', 'periodicity', 'bitrix_url']
+                        missing_house_fields = [field for field in required_house_fields if field not in house]
+                        
+                        if not missing_house_fields:
+                            self.log_test("CRM Houses - House Object Structure", True, 
+                                        f"House ID {house['id']}: all required fields present")
+                        else:
+                            self.log_test("CRM Houses - House Object Structure", False, 
+                                        f"Missing house fields: {missing_house_fields}")
+                else:
+                    self.log_test("CRM Houses - Response Structure", False, f"houses should be array, got {type(houses)}")
+            else:
+                self.log_test("CRM Houses - Response Structure", False, f"Missing fields: {missing_fields}")
+        elif status == 500:
+            # Bitrix unavailable is acceptable
+            detail = data.get('detail', '')
+            if 'Bitrix' in detail or 'битрикс' in detail.lower():
+                self.log_test("CRM Houses - Bitrix Unavailable", True, f"Bitrix unavailable (acceptable): {detail}")
+            else:
+                self.log_test("CRM Houses - Response Structure", False, f"500 error: {detail}")
+        else:
+            self.log_test("CRM Houses - Response Structure", False, f"Status: {status}, Data: {data}")
+
+    def test_crm_house_details(self):
+        """Test CRM house details endpoint as per review request"""
+        print("\n🏠 Testing CRM House Details...")
+        
+        # First get a house ID from houses list
+        success, houses_data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
+        test_house_id = None
+        
+        if success and status == 200 and houses_data.get('houses'):
+            test_house_id = houses_data['houses'][0]['id']
+            print(f"   Using house ID {test_house_id} for testing")
+        else:
+            # Use fallback ID
+            test_house_id = 13112
+            print(f"   Using fallback house ID {test_house_id}")
+        
+        # Test house details
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{test_house_id}/details')
+        
+        if success and status == 200:
+            # Check response structure according to server.py
+            if isinstance(data, dict):
+                self.log_test("CRM House Details - Valid Response", True, 
+                            f"House ID {test_house_id}: details retrieved successfully")
+            else:
+                self.log_test("CRM House Details - Valid Response", False, 
+                            f"Expected dict response, got {type(data)}")
+        elif status == 500:
+            # Bitrix unavailable is acceptable
+            detail = data.get('detail', '')
+            if 'Bitrix' in detail or 'битрикс' in detail.lower():
+                self.log_test("CRM House Details - Bitrix Unavailable", True, f"Bitrix unavailable (acceptable): {detail}")
+            else:
+                self.log_test("CRM House Details - Valid Response", False, f"500 error: {detail}")
+        else:
+            self.log_test("CRM House Details - Valid Response", False, f"Status: {status}, Data: {data}")
+
+    def run_review_request_tests(self):
+        """Run tests specifically requested in the review request"""
+        print("🚀 Starting VasDom AudioBot Backend Testing")
         print(f"📍 Testing URL: {self.base_url}")
-        print("🎯 Focus: AI Knowledge Base Endpoints Testing")
+        print("🎯 Focus: AI Training & CRM Endpoints per Review Request")
         print("=" * 60)
         
-        # Test core endpoints
-        self.test_root_endpoint()
-        stats_success, stats_data = self.test_dashboard_stats()
+        # CRM (Bitrix) Tests
+        print("\n🏠 CRM (BITRIX) ENDPOINTS TESTING")
+        print("-" * 40)
         
-        # Main focus: AI Knowledge Base endpoints
-        ai_knowledge_success = self.test_ai_knowledge_endpoints()
+        # 1) GET /api/cleaning/filters
+        self.test_crm_cleaning_filters()
         
-        # Test existing endpoints to ensure they still work
-        logistics_success = self.test_logistics_route_endpoint()
-        houses_success, houses_data = self.test_cleaning_houses()
-        house_details_success, house_details_data = self.test_house_details_endpoint()
-        self.test_bitrix_fallback_behavior()
-        filters_success, filters_data = self.test_cleaning_filters()
-        ai_success, ai_response = self.test_ai_chat()
+        # 2) GET /api/cleaning/houses?page=1&limit=50
+        self.test_crm_houses_endpoint()
+        
+        # 3) GET /api/cleaning/house/{id}/details
+        self.test_crm_house_details()
+        
+        # AI Training Tests
+        print("\n🧠 AI TRAINING ENDPOINTS TESTING")
+        print("-" * 40)
+        
+        # 4-8) AI Knowledge endpoints
+        self.test_ai_knowledge_endpoints()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY - AI KNOWLEDGE BASE FOCUS")
+        print("📊 REVIEW REQUEST TEST SUMMARY")
         print("=" * 60)
         print(f"Total Tests: {self.tests_run}")
         print(f"Passed: {self.tests_passed}")
@@ -1105,25 +1229,21 @@ startxref
             for test in self.failed_tests:
                 print(f"  - {test['name']}: {test['details']}")
         
-        # Print key findings for AI Knowledge Base
-        print(f"\n🧠 AI KNOWLEDGE BASE RESULTS:")
+        # Categorize results
+        crm_tests = [t for t in self.failed_tests if 'CRM ' in t['name']]
         ai_tests = [t for t in self.failed_tests if 'AI ' in t['name']]
-        if not ai_tests and ai_knowledge_success:
-            print(f"  ✅ All AI Knowledge Base tests PASSED")
-        else:
-            print(f"  ❌ AI Knowledge Base tests FAILED: {len(ai_tests)} failures")
-            if not ai_knowledge_success:
-                print(f"  ⚠️  Endpoints not implemented or not accessible")
         
-        # Print key findings for logistics route (existing functionality)
-        print(f"\n🎯 LOGISTICS ROUTE RESULTS:")
-        logistics_tests = [t for t in self.failed_tests if 'Logistics Route' in t['name']]
-        if not logistics_tests and logistics_success:
-            print(f"  ✅ All logistics route tests PASSED")
+        print(f"\n🏠 CRM ENDPOINTS RESULTS:")
+        if not crm_tests:
+            print(f"  ✅ All CRM tests PASSED")
         else:
-            print(f"  ❌ Logistics route tests FAILED: {len(logistics_tests)} failures")
-            if not logistics_success:
-                print(f"  ⚠️  Endpoint not implemented or not accessible")
+            print(f"  ❌ CRM tests FAILED: {len(crm_tests)} failures")
+        
+        print(f"\n🧠 AI TRAINING ENDPOINTS RESULTS:")
+        if not ai_tests:
+            print(f"  ✅ All AI Training tests PASSED")
+        else:
+            print(f"  ❌ AI Training tests FAILED: {len(ai_tests)} failures")
         
         return len(self.failed_tests) == 0
 
