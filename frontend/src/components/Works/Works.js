@@ -21,7 +21,7 @@ const Works = () => {
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, pages: 0 });
   const [filters, setFilters] = useState({ brigades: [], statuses: [] });
   const [loading, setLoading] = useState(false);
-  const [activeFilters, setActiveFilters] = useState({ brigade: '', status: '', search: '', cleaning_date: '' });
+  const [activeFilters, setActiveFilters] = useState({ brigade: '', status: '', search: '', cleaning_date: '', date_from: '', date_to: '' });
   const [notification, setNotification] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [houseDetails, setHouseDetails] = useState(null);
