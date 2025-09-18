@@ -196,13 +196,16 @@
 ##     implemented: true
 ##     working: false
 ##     file: "/app/backend/server.py"
-##     stuck_count: 0
+##     stuck_count: 1
 ##     priority: "high"
 ##     needs_retesting: false
 ##     status_history:
 ##         -working: false
 ##         -agent: "testing"
 ##         -comment: "✅ REVIEW REQUEST BACKEND TESTING COMPLETE - Deployed backend testing at https://audiobot-qci2.onrender.com completed with 83.3% success rate (5/6 tests passed). DETAILED RESULTS: 1) ❌ GET /api/cleaning/house/12966/details: Returns 200 ✓ but house.periodicity = 'индивидуальная' instead of expected '2 раза + подметания' ❌. However, cleaning_dates format is correct ✅ - all dates in YYYY-MM-DD format (sample: ['2025-09-01', '2025-09-15', '2025-09-08', '2025-09-22']). House details: ID=12966, Address='Калуга, улица Гурьянова, 10 к.3', Bitrix URL='https://vas-dom.bitrix24.ru/crm/deal/details/12966/'. 2) ✅ GET /api/cleaning/filters: All requirements met - brigades not empty (12 found: ['1 бригада', '3 бригада', '4 бригада', '5 бригада', '6 бригада']), management_companies = [] (empty array) ✓, statuses present (3 found: ['C34:NEW', 'C34:UC_FTNJX3', 'C34:UC_PG9Y90']) ✓. 3) ✅ GET /api/cleaning/houses?brigade='1 бригада': Exact filtering works perfectly - all 5 houses have exact brigade match ✓. Sample JSON: {ID: 4798, Title: 'Малоярославецкая ulitsa 10, 248012 Калуга Калужская область, Россия', Brigade: '1 бригада', Address: 'Малоярославецкая ulitsa 10, 248012 россия, 248012 Калуга Калужская область, Россия|54.579575;36.248313|4208'}. CRITICAL ISSUE: House 12966 periodicity calculation appears incorrect - shows 'индивидуальная' instead of expected '2 раза + подметания' based on cleaning schedule data. All other functionality working correctly."
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ PERIODICITY FIX NOT DEPLOYED - Retested deployed backend at https://audiobot-qci2.onrender.com after reported fix. Results: 83.3% success rate (5/6 tests passed). CRITICAL ISSUE PERSISTS: GET /api/cleaning/house/12966/details still returns house.periodicity = 'индивидуальная' instead of expected '2 раза + подметания' ❌. Date format is correct ✅ - all dates in YYYY-MM-DD format (sample: ['2025-09-01', '2025-09-15', '2025-09-08', '2025-09-22']). House details: ID=12966, Address='Калуга, улица Гурьянова, 10 к.3', Bitrix URL='https://vas-dom.bitrix24.ru/crm/deal/details/12966/'. Regression tests PASSED ✅: GET /api/cleaning/filters returns brigades non-empty (12 found), management_companies=[] (empty), statuses present (3 found). Brigade filtering works perfectly - all 5 houses for '1 бригада' have exact match. THE PERIODICITY CALCULATION FIX HAS NOT BEEN DEPLOYED TO PRODUCTION. The deployed version still uses the old logic that incorrectly calculates house 12966 as 'индивидуальная' instead of '2 раза + подметания'."
 
 ## frontend:
 ##   - task: "Works list uses brigade name field"
