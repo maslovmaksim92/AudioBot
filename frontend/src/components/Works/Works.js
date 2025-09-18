@@ -134,7 +134,7 @@ const Works = () => {
       </div>
 
       <div className="card-modern mb-4 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
           <input
             type="text"
             placeholder="Адрес / название дома"
