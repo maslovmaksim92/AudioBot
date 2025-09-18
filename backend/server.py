@@ -114,6 +114,9 @@ class BitrixService:
         self._uf_enums: Dict[str, Dict[str, str]] = {}
         self._uf_enums_ts: int = 0
         self._uf_enums_ttl = int(os.environ.get('BITRIX_UF_ENUMS_TTL', '900'))  # 15 минут по умолчанию
+        # small caches for users and companies to avoid repeated calls per page
+        self._user_cache: Dict[str, Dict[str, Any]] = {}
+        self._company_cache: Dict[str, Dict[str, Any]] = {}
 
     async def _call(self, method: str, params: Dict = None) -> Dict:
         if not self.webhook_url:
