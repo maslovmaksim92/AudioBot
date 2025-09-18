@@ -492,7 +492,7 @@ async def get_houses(
                 title=d.get("TITLE", "Без названия"),
                 address=address,
                 brigade=d.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
-                management_company=d.get("COMPANY_TITLE", ""),
+                management_company=(d.get("COMPANY_TITLE") or "Не указана"),
                 status=d.get("STAGE_ID") or "",
                 apartments=int(d.get("UF_CRM_1669704529022") or 0),
                 entrances=int(d.get("UF_CRM_1669705507390") or 0),
