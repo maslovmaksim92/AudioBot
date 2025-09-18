@@ -1,0 +1,256 @@
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+import os, io, json, zipfile, logging
+from datetime import datetime, timezone, timedelta
+from uuid import uuid4
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy import text as sa_text
+
+from openai import AsyncOpenAI
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+import tiktoken
+from PyPDF2 import PdfReader
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
+
+logger = logging.getLogger("ai_knowledge_router")
+
+router = APIRouter(prefix="/api/ai-knowledge", tags=["AI Knowledge"])
+
+# ENV / DB
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
+
+ALLOWED_EXT = {'.pdf', '.docx', '.txt', '.xlsx', '.zip'}
+MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
+MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
+
+engine = None
+AsyncSessionLocal = None
+
+# initialize local engine/session (separate from server.py to avoid circular imports)
+if DATABASE_URL:
+    try:
+        engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
+        AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    except Exception as e:
+        logger.warning(f"DB init in ai_knowledge.py failed: {e}")
+
+# Helpers
+async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> List[str]:
+    enc = tiktoken.get_encoding('cl100k_base')
+    toks = enc.encode(text)
+    chunks: List[str] = []
+    i = 0
+    while i < len(toks):
+        window = toks[i:i+target_tokens]
+        chunks.append(enc.decode(window))
+        i += max(1, target_tokens - overlap)
+    return chunks
+
+async def _summarize(text: str, max_chars: int = 2000) -> str:
+    if not EMERGENT_LLM_KEY:
+        return (text or '')[:max_chars]
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"ai_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message="Ты помощник. Кратко опиши содержимое документа на русском, до 2000 символов, выдели ключевые темы, без выдумок.").with_model('openai','gpt-5-mini')
+        prompt = f"Сделай краткое описание (до {max_chars} символов).\n\nТекст:\n{text[:8000]}\n\nОписание:"
+        resp = await chat.send_message(UserMessage(text=prompt))
+        s = (resp or '')
+        if len(s) > max_chars:
+            s = s[:max_chars-1] + '…'
+        return s
+    except Exception as e:
+        logger.warning(f"LLM preview error: {e}")
+        return (text or '')[:max_chars]
+
+async def _embed_texts_small(texts: List[str]) -> List[List[float]]:
+    # text-embedding-3-small: 1536 dims
+    dims = 1536
+    if not OPENAI_API_KEY:
+        return [[0.0]*dims for _ in texts]
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    out: List[List[float]] = []
+    for t in texts:
+        try:
+            r = await client.embeddings.create(model='text-embedding-3-small', input=t)
+            out.append(r.data[0].embedding)
+        except Exception as e:
+            logger.error(f"Embedding error: {e}")
+            out.append([0.0]*dims)
+    return out
+
+# Models
+class StatusResponse(BaseModel):
+    status: str
+    detail: Optional[str] = None
+
+# Preview endpoint (one file per request recommended)
+@router.post('/preview')
+async def preview(file: UploadFile = File(...), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    if not file:
+        raise HTTPException(status_code=400, detail='Файл не передан')
+    ext = os.path.splitext(file.filename or '')[1].lower()
+    if ext not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail=f'Недопустимый формат: {ext}')
+
+    raw = await file.read()
+    size_mb = len(raw) / (1024*1024)
+    if size_mb > MAX_FILE_MB:
+        raise HTTPException(status_code=413, detail='Файл превышает 50MB')
+
+    # Extract text
+    text = ''
+    pages = None
+    try:
+        if ext == '.txt':
+            text = raw.decode('utf-8', errors='ignore')
+        elif ext == '.pdf':
+            reader = PdfReader(io.BytesIO(raw))
+            pages = len(reader.pages)
+            parts = []
+            for p in reader.pages:
+                try:
+                    parts.append(p.extract_text() or '')
+                except Exception:
+                    continue
+            text = '\n'.join(parts)
+        elif ext == '.docx':
+            doc = DocxDocument(io.BytesIO(raw))
+            text = '\n'.join(p.text for p in doc.paragraphs)
+        elif ext == '.xlsx':
+            wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+            rows = 0
+            parts = []
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    line = ' '.join([str(c) for c in row if c is not None])
+                    if line:
+                        parts.append(line)
+                    rows += 1
+            pages = rows
+            text = '\n'.join(parts)
+        elif ext == '.zip':
+            # For preview: read supported inner files and concat
+            txt = []
+            try:
+                zf = zipfile.ZipFile(io.BytesIO(raw))
+                for name in zf.namelist():
+                    if name.endswith('/'):
+                        continue
+                    sub_ext = os.path.splitext(name)[1].lower()
+                    if sub_ext not in {'.pdf','.docx','.txt','.xlsx'}:
+                        continue
+                    if os.path.isabs(name) or '..' in name:
+                        continue
+                    with zf.open(name) as zf_f:
+                        sub_raw = zf_f.read()
+                        try:
+                            if sub_ext == '.txt':
+                                txt.append(sub_raw.decode('utf-8', errors='ignore'))
+                            elif sub_ext == '.pdf':
+                                sreader = PdfReader(io.BytesIO(sub_raw))
+                                sparts = []
+                                for sp in sreader.pages:
+                                    try:
+                                        sparts.append(sp.extract_text() or '')
+                                    except Exception:
+                                        continue
+                                txt.append('\n'.join(sparts))
+                            elif sub_ext == '.docx':
+                                sdoc = DocxDocument(io.BytesIO(sub_raw))
+                                txt.append('\n'.join(p.text for p in sdoc.paragraphs))
+                            elif sub_ext == '.xlsx':
+                                swb = load_workbook(io.BytesIO(sub_raw), read_only=True, data_only=True)
+                                sparts = []
+                                for ws in swb.worksheets:
+                                    for row in ws.iter_rows(values_only=True):
+                                        line = ' '.join([str(c) for c in row if c is not None])
+                                        if line:
+                                            sparts.append(line)
+                                txt.append('\n'.join(sparts))
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+            text = '\n\n'.join(txt)
+    except Exception:
+        text = ''
+
+    chunks = await _split_into_chunks(text or '', target_tokens=int(chunk_tokens), overlap=int(overlap))
+    desc = await _summarize(text or '', max_chars=2000)
+
+    upload_id = str(uuid4())
+    async with AsyncSessionLocal() as s:
+        meta = {
+            'filename': file.filename,
+            'summary': desc,
+            'chunks': chunks,
+            'chunks_count': len(chunks),
+            'size_bytes': len(raw),
+            'pages': pages,
+            'chunk_tokens': int(chunk_tokens),
+            'overlap': int(overlap),
+            'status': 'ready'
+        }
+        await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m::jsonb, :exp)'),
+                        {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)})
+        await s.commit()
+
+    return {
+        'upload_id': upload_id,
+        'preview': desc,
+        'chunks': len(chunks),
+        'stats': {
+            'total_size_bytes': len(raw),
+            'total_pages': pages or 0,
+            'file_stats': [{'name': file.filename, 'ext': ext, 'size_bytes': len(raw), 'pages': pages, 'text_chars': len(text or '')}]
+        }
+    }
+
+# Study endpoint: persist to pgvector with category
+@router.post('/study')
+async def study(upload_id: str = Form(...), filename: str = Form('document.txt'), category: str = Form('Клининг')):
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    async with AsyncSessionLocal() as db:
+        row = (await db.execute(sa_text('SELECT meta FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})).first()
+        if not row:
+            raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
+        raw_meta = row[0]
+        meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
+        chunks: List[str] = meta.get('chunks') or []
+        vectors = await _embed_texts_small(chunks)
+        doc_id = str(uuid4())
+        summary = meta.get('summary') or ''
+        size_bytes = int(meta.get('size_bytes') or 0)
+        pages = meta.get('pages')
+        # Save document (store category in mime field suffix for simplicity)
+        mime = f"text/plain; category={category}"
+        await db.execute(sa_text('INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (:i,:fn,:mime,:sz,:sm,:pg,:ca)'),
+                         {"i": doc_id, "fn": filename, "mime": mime, "sz": size_bytes, "sm": summary[:500], "pg": pages, "ca": datetime.now(timezone.utc)})
+        for idx, (text, v) in enumerate(zip(chunks, vectors)):
+            await db.execute(sa_text('INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (:i,:d,:x,:c,:e)'),
+                             {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v})
+        # Update status and remove temp
+        await db.execute(sa_text("DELETE FROM ai_uploads_temp WHERE upload_id=:id"), {"id": upload_id})
+        await db.commit()
+    return {"document_id": doc_id, "chunks": len(chunks), "category": category}
+
+# Status endpoint: checks temp table presence
+@router.get('/status', response_model=StatusResponse)
+async def status(upload_id: str):
+    if AsyncSessionLocal is None:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    async with AsyncSessionLocal() as db:
+        row = (await db.execute(sa_text('SELECT meta FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})).first()
+        if row:
+            raw_meta = row[0]
+            meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
+            return StatusResponse(status=meta.get('status') or 'ready')
+    return StatusResponse(status='done')

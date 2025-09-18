@@ -10,161 +10,160 @@ const fmtBytes = (bytes = 0) => {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
 
+const categories = ['Маркетинг','Бухгалтерия','HR','Офис','Клининг','Строительство'];
+
 const SectionTitle = ({ children }) => (
   <h2 className="text-lg font-semibold mb-3 text-gray-900">{children}</h2>
 );
 
-function highlightText(text, query) {
-  const q = (query || '').trim();
-  if (!q) return text;
-  try {
-    // Подсвечиваем все слова длиннее 3 символов
-    const words = q.split(/\s+/).filter(w => w && w.length > 3);
-    if (words.length === 0) return text;
-    const esc = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    const re = new RegExp(`(${esc})`, 'gi');
-    const parts = String(text || '').split(re);
-    return parts.map((part, idx) => (
-      re.test(part)
-        ? <mark key={`m${idx}`} className="bg-yellow-200 text-gray-900 px-0.5 rounded">{part}</mark>
-        : <React.Fragment key={idx}>{part}</React.Fragment>
-    ));
-  } catch {
-    return text;
-  }
-}
+const QueueItem = ({ item, onCategory, onStudy, onRemove }) => {
+  return (
+    <div className="border rounded-lg p-3 bg-gray-50">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="text-sm text-gray-900 font-medium">{item.file?.name}</div>
+        <div className="text-xs text-gray-600">{fmtBytes(item.file?.size || 0)}</div>
+      </div>
+      <div className="mt-2 text-xs text-gray-600">Статус: {item.status}</div>
+      {item.preview && (
+        <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap bg-white p-2 rounded border">
+          {(item.preview || '').slice(0, 400)}{(item.preview || '').length > 400 ? '…' : ''}
+        </div>
+      )}
+      <div className="mt-2 flex flex-col md:flex-row gap-2 md:items-center">
+        <select
+          value={item.category || ''}
+          onChange={(e)=>onCategory(item.id, e.target.value)}
+          className="px-2 py-1 border rounded text-sm"
+        >
+          <option value="">Выберите категорию…</option>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <button
+          onClick={() => onStudy(item.id)}
+          disabled={!item.uploadId || !item.category || item.status === 'изучено' || item.processing}
+          className="px-3 py-1.5 rounded bg-green-600 text-white disabled:opacity-50"
+        >
+          {item.processing ? 'Обучение…' : 'Обучить'}
+        </button>
+        <button onClick={() => onRemove(item.id)} className="px-3 py-1.5 rounded bg-gray-300 text-gray-800">Убрать</button>
+      </div>
+    </div>
+  );
+};
 
-const Training = () => {
+function Training() {
   const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [queue, setQueue] = useState([]); // {id,file,preview,uploadId,category,status,processing}
   const [status, setStatus] = useState('');
-
-  const [preview, setPreview] = useState('');
-  const [uploadId, setUploadId] = useState('');
-  const [chunksCount, setChunksCount] = useState(0);
-  const [stats, setStats] = useState(null);
-
   const [chunkTokens, setChunkTokens] = useState(1200);
   const [overlap, setOverlap] = useState(200);
-
-  const [saving, setSaving] = useState(false);
+  const [messages, setMessages] = useState([]); // mini-chat
 
   const [documents, setDocuments] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
 
   const [query, setQuery] = useState('');
   const [topK, setTopK] = useState(10);
-  const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
 
-  const xhrRef = useRef(null);
+  const uploadPreviewXHR = useRef(null);
 
-  const canUpload = useMemo(() => files && files.length > 0 && !uploading, [files, uploading]);
+  const canProcess = useMemo(() => queue.some(it => !!it.uploadId && !!it.category && it.status !== 'изучено' && !it.processing), [queue]);
 
   const handleFileChange = (e) => {
     const list = Array.from(e.target.files || []);
-    setFiles(list);
-    setPreview('');
-    setUploadId('');
-    setChunksCount(0);
-    setStats(null);
-    setStatus('Файлы выбраны. Нажмите «Анализировать».');
-  };
-
-  const handleUpload = async () => {
-    if (!BASE_URL) {
-      alert('REACT_APP_BACKEND_URL не задан.');
+    if (!list.length) return;
+    // Проверка лимитов: 50МБ/файл, 200МБ суммарно
+    const tooBig = list.find(f => (f.size||0) > 50*1024*1024);
+    const total = list.reduce((a,f)=>a+(f.size||0), 0);
+    if (tooBig) {
+      setStatus('Один из файлов превышает 50 МБ');
       return;
     }
-    if (!files.length) return;
-    setUploading(true);
-    setProgress(0);
-    setStatus('Загрузка и анализ...');
+    if (total > 200*1024*1024) {
+      setStatus('Суммарный размер превышает 200 МБ');
+      return;
+    }
+    setFiles(list);
+    const q = list.map(f => ({ id: crypto.randomUUID(), file: f, preview: '', uploadId: '', category: '', status: 'ожидает', processing: false }));
+    setQueue(q);
+    setMessages([]);
+    setStatus('Файлы добавлены в очередь. Запускаю предпросмотр…');
+    // Запускаем последовательный предпросмотр
+    sequentialPreview(q);
+  };
 
+  const sequentialPreview = async (items) => {
+    for (const it of items) {
+      await doPreview(it.id, it.file);
+    }
+    setStatus('Предпросмотр завершён. Выберите категории и запустите обучение.');
+  };
+
+  const doPreview = async (id, file) => {
+    if (!BASE_URL) { setStatus('REACT_APP_BACKEND_URL не задан.'); return; }
     const form = new FormData();
-    files.forEach((f) => form.append('files', f));
+    form.append('file', file);
     form.append('chunk_tokens', String(chunkTokens));
     form.append('overlap', String(overlap));
-
     try {
-      await new Promise((resolve, reject) => {
+      const data = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhrRef.current = xhr;
-        xhr.open('POST', `${BASE_URL}/api/ai-knowledge/upload`, true);
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable) {
-            const p = Math.round((ev.loaded / ev.total) * 100);
-            setProgress(p);
-          }
-        };
+        uploadPreviewXHR.current = xhr;
+        xhr.open('POST', `${BASE_URL}/api/ai-knowledge/preview`, true);
         xhr.onreadystatechange = () => {
           if (xhr.readyState === 4) {
             if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const data = JSON.parse(xhr.responseText || '{}');
-                setPreview(data.preview || '');
-                setUploadId(data.upload_id || '');
-                setChunksCount(data.chunks || 0);
-                setStats(data.stats || null);
-                setStatus('Анализ завершён. Проверьте превью и сохраните.');
-              } catch (e) {
-                reject(e);
-                return;
-              }
-              resolve();
+              try { resolve(JSON.parse(xhr.responseText||'{}')); } catch (e) { reject(e); }
             } else {
-              try {
-                const err = JSON.parse(xhr.responseText || '{}');
-                reject(new Error(err.detail || `Ошибка ${xhr.status}`));
-              } catch (e) {
-                reject(new Error(`Ошибка ${xhr.status}`));
-              }
+              try { const err = JSON.parse(xhr.responseText||'{}'); reject(new Error(err.detail||`Ошибка ${xhr.status}`)); } catch(_) { reject(new Error(`Ошибка ${xhr.status}`)); }
             }
           }
         };
-        xhr.onerror = () => reject(new Error('Ошибка сети при загрузке'));
+        xhr.onerror = () => reject(new Error('Ошибка сети'));
         xhr.send(form);
       });
-    } catch (err) {
-      setStatus(String(err.message || err));
-    } finally {
-      setUploading(false);
+      setQueue(prev => prev.map(x => x.id===id ? { ...x, preview: data.preview||'', uploadId: data.upload_id||'', status: 'готов' } : x));
+      setMessages(prev => [...prev, {type:'info', text:`AI‑превью готово: ${file.name} (чанков: ${data.chunks||0})`}]);
+    } catch (e) {
+      setQueue(prev => prev.map(x => x.id===id ? { ...x, status: 'ошибка предпросмотра' } : x));
+      setMessages(prev => [...prev, {type:'error', text:`Ошибка предпросмотра ${file.name}: ${e.message||e}`}]);
     }
   };
 
-  const handleSave = async () => {
-    if (!uploadId) return;
-    if (!BASE_URL) {
-      alert('REACT_APP_BACKEND_URL не задан.');
-      return;
-    }
-    setSaving(true);
-    setStatus('Сохранение в базу знаний...');
+  const onCategory = (id, cat) => setQueue(prev => prev.map(x => x.id===id ? { ...x, category: cat } : x));
+
+  const onStudy = async (id) => {
+    const it = queue.find(q => q.id===id);
+    if (!it || !it.uploadId || !it.category) return;
+    if (!BASE_URL) return;
+    setQueue(prev => prev.map(x => x.id===id ? { ...x, processing: true } : x));
     try {
       const form = new FormData();
-      form.append('upload_id', uploadId);
-      form.append('filename', files?.[0]?.name || 'document.txt');
-      const res = await fetch(`${BASE_URL}/api/ai-knowledge/save`, {
-        method: 'POST',
-        body: form,
-      });
+      form.append('upload_id', it.uploadId);
+      form.append('filename', it.file?.name || 'document.txt');
+      form.append('category', it.category);
+      const res = await fetch(`${BASE_URL}/api/ai-knowledge/study`, { method: 'POST', body: form });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+        const err = await res.json().catch(()=>({}));
         throw new Error(err.detail || `Ошибка ${res.status}`);
       }
       const data = await res.json();
-      setStatus(`Сохранено. document_id=${data.document_id}`);
-      setUploadId('');
-      setPreview('');
-      setChunksCount(0);
-      setStats(null);
-      setFiles([]);
+      setQueue(prev => prev.map(x => x.id===id ? { ...x, processing: false, status: 'изучено' } : x));
+      setMessages(prev => [...prev, {type:'success', text:`Изучено: ${it.file?.name} • Чанков: ${data.chunks} • Документ: ${data.document_id}`}]);
       await fetchDocs();
     } catch (e) {
-      setStatus(String(e.message || e));
-    } finally {
-      setSaving(false);
+      setQueue(prev => prev.map(x => x.id===id ? { ...x, processing: false, status: 'ошибка обучения' } : x));
+      setMessages(prev => [...prev, {type:'error', text:`Ошибка обучения ${it.file?.name}: ${e.message||e}`}]);
+    }
+  };
+
+  const studyAll = async () => {
+    for (const it of queue) {
+      if (!it.uploadId || !it.category || it.status === 'изучено') continue;
+      // eslint-disable-next-line no-await-in-loop
+      await onStudy(it.id);
     }
   };
 
@@ -175,34 +174,10 @@ const Training = () => {
       const res = await fetch(`${BASE_URL}/api/ai-knowledge/documents`);
       const data = await res.json();
       setDocuments(data.documents || []);
-    } catch (_) {
+    } catch (e) {
       // ignore
     } finally {
       setLoadingDocs(false);
-    }
-  };
-
-  const doSearch = async () => {
-    if (!query.trim()) return;
-    if (!BASE_URL) return;
-    setSearching(true);
-    setResults([]);
-    try {
-      const res = await fetch(`${BASE_URL}/api/ai-knowledge/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, top_k: Number(topK) || 10 }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Ошибка ${res.status}`);
-      }
-      const data = await res.json();
-      setResults(data.results || []);
-    } catch (e) {
-      setStatus(String(e.message || e));
-    } finally {
-      setSearching(false);
     }
   };
 
@@ -218,104 +193,69 @@ const Training = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDocs();
-    return () => {
-      if (xhrRef.current) try { xhrRef.current.abort(); } catch (_) {}
-    };
-  }, []);
+  const doSearch = async () => {
+    if (!query.trim()) return;
+    if (!BASE_URL) return;
+    setSearching(true);
+    setResults([]);
+    try {
+      const res = await fetch(`${BASE_URL}/api/ai-knowledge/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, top_k: Number(topK) || 10 })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.detail || `Ошибка ${res.status}`);
+      }
+      const data = await res.json();
+      setResults(data.results || []);
+    } catch (e) {
+      setStatus(String(e.message || e));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  useEffect(() => { fetchDocs(); return () => { try { uploadPreviewXHR.current?.abort(); } catch(_) {} } }, []);
 
   return (
     <div className="pt-2 px-4 pb-6 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold gradient-text mb-4">Обучение AI</h1>
 
-      {/* Upload & preview */}
       <div className="bg-white rounded-xl shadow-elegant p-6 mb-6">
-        <SectionTitle>Загрузка файлов</SectionTitle>
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-          <input
-            type="file"
-            multiple
-            accept=".pdf,.docx,.txt,.xlsx,.zip"
-            onChange={handleFileChange}
-            className="block text-sm"
-          />
+        <SectionTitle>Очередь файлов</SectionTitle>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <input type="file" multiple accept=".pdf,.docx,.txt,.xlsx,.zip" onChange={handleFileChange} className="block text-sm" />
           <div className="flex gap-2 items-center">
             <label className="text-xs text-gray-600">Chunk tokens</label>
             <input type="number" className="w-24 px-2 py-1 rounded border border-gray-300" value={chunkTokens} min={300} max={3000} onChange={(e)=>setChunkTokens(Number(e.target.value)||1200)} />
             <label className="text-xs text-gray-600">Overlap</label>
             <input type="number" className="w-20 px-2 py-1 rounded border border-gray-300" value={overlap} min={0} max={500} onChange={(e)=>setOverlap(Number(e.target.value)||200)} />
           </div>
-          <button
-            onClick={handleUpload}
-            disabled={!canUpload}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50"
-          >
-            {uploading ? 'Загрузка...' : 'Анализировать'}
-          </button>
-          {files.length > 0 && (
-            <span className="text-xs text-gray-600">
-              Выбрано: {files.length} • Общий размер: {fmtBytes(files.reduce((a,f)=>a+(f.size||0),0))}
-            </span>
-          )}
+          <button onClick={studyAll} disabled={!canProcess} className="px-4 py-2 rounded-lg bg-indigo-600 text-white disabled:opacity-50">Обучить все</button>
+          {!!status && <div className="text-sm text-gray-700">{status}</div>}
         </div>
-        {uploading && (
-          <div className="mt-3 w-full bg-gray-100 rounded h-2 overflow-hidden">
-            <div className="h-2 bg-blue-600" style={{ width: `${progress}%` }} />
-          </div>
-        )}
-        {!!status && (
-          <div className="mt-3 text-sm text-gray-700">{status}</div>
-        )}
-
-        {preview && (
-          <div className="mt-4">
-            <SectionTitle>AI‑превью</SectionTitle>
-            <div className="text-sm text-gray-800 bg-gray-50 rounded-lg p-3 whitespace-pre-wrap">
-              {(preview || '').slice(0, 500)}{(preview || '').length > 500 ? '…' : ''}
-            </div>
-            <div className="mt-2 text-xs text-gray-600">Чанков: {chunksCount}</div>
-            {stats && (
-              <div className="mt-3">
-                <div className="text-sm font-medium mb-2 text-gray-900">Статистика</div>
-                <div className="text-xs text-gray-700">Суммарный размер: {fmtBytes(stats.total_size_bytes)}</div>
-                <div className="text-xs text-gray-700">Страниц/строк: {stats.total_pages || 0}</div>
-                {Array.isArray(stats.file_stats) && stats.file_stats.length > 0 && (
-                  <div className="mt-2 overflow-x-auto">
-                    <table className="min-w-full text-xs">
-                      <thead>
-                        <tr className="text-left text-gray-600 border-b">
-                          <th className="py-1 pr-3">Файл</th>
-                          <th className="py-1 pr-3">Тип</th>
-                          <th className="py-1 pr-3">Размер</th>
-                          <th className="py-1 pr-3">Страниц/строк</th>
-                          <th className="py-1 pr-3">Символов</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.file_stats.map((fs, i) => (
-                          <tr key={i} className="border-b last:border-b-0">
-                            <td className="py-1 pr-3 text-gray-900">{fs.name}</td>
-                            <td className="py-1 pr-3 text-gray-700">{fs.ext}</td>
-                            <td className="py-1 pr-3 text-gray-700">{fmtBytes(fs.size_bytes)}</td>
-                            <td className="py-1 pr-3 text-gray-700">{fs.pages || 0}</td>
-                            <td className="py-1 pr-3 text-gray-700">{fs.text_chars || 0}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                onClick={handleSave}
-                disabled={!uploadId || saving}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white disabled:opacity-50"
-              >
-                {saving ? 'Сохранение...' : 'Сохранить в базу'}
-              </button>
+        <div className="mt-4 grid gap-3">
+          {queue.length === 0 && <div className="text-sm text-gray-500">Файлы не выбраны</div>}
+          {queue.map(item => (
+            <QueueItem
+              key={item.id}
+              item={item}
+              onCategory={(id, c)=>onCategory(id, c)}
+              onStudy={(id)=>onStudy(id)}
+              onRemove={(id)=>setQueue(prev=>prev.filter(x=>x.id!==id))}
+            />
+          ))}
+        </div>
+        {/* mini chat */}
+        {messages.length > 0 && (
+          <div className="mt-4 bg-gray-50 rounded-lg p-3">
+            <div className="text-sm font-medium text-gray-900 mb-2">Подтверждения</div>
+            <div className="space-y-1 text-sm">
+              {messages.map((m,i)=> (
+                <div key={i} className={m.type==='error' ? 'text-red-700' : m.type==='success' ? 'text-green-700' : 'text-gray-800'}>• {m.text}</div>
+              ))}
             </div>
           </div>
         )}
@@ -363,30 +303,16 @@ const Training = () => {
       <div className="bg-white rounded-xl shadow-elegant p-6">
         <SectionTitle>Семантический поиск</SectionTitle>
         <div className="flex flex-col md:flex-row gap-3 md:items-center">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Введите запрос..."
-            className="flex-1 px-3 py-2 rounded border border-gray-300"
-          />
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={topK}
-            onChange={(e) => setTopK(e.target.value)}
-            className="w-24 px-3 py-2 rounded border border-gray-300"
-          />
-          <button onClick={doSearch} disabled={searching || !query.trim()} className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-50">
-            {searching ? 'Поиск...' : 'Искать'}
-          </button>
+          <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Введите запрос..." className="flex-1 px-3 py-2 rounded border border-gray-300" />
+          <input type="number" min={1} max={50} value={topK} onChange={(e)=>setTopK(e.target.value)} className="w-24 px-3 py-2 rounded border border-gray-300" />
+          <button onClick={doSearch} disabled={searching || !query.trim()} className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-50">{searching ? 'Поиск...' : 'Искать'}</button>
         </div>
         {results.length > 0 && (
           <div className="mt-4 space-y-3">
-            {results.map((r, idx) => (
+            {results.map((r,idx)=> (
               <div key={idx} className="bg-gray-50 rounded p-3">
                 <div className="text-xs text-gray-600 mb-1">Документ: {r.filename} • Чанк #{r.chunk_index} • Релевантность: {(r.score*100).toFixed(1)}%</div>
-                <div className="text-sm text-gray-900 whitespace-pre-wrap">{highlightText(r.content, query)}</div>
+                <div className="text-sm text-gray-900 whitespace-pre-wrap">{r.content}</div>
               </div>
             ))}
           </div>
@@ -394,6 +320,6 @@ const Training = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Training;
