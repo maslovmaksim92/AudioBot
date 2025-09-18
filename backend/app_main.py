@@ -468,6 +468,21 @@ async def get_houses(
         for d in deals_page:
             address = d.get("UF_CRM_1669561599956") or d.get("TITLE") or ""
             cd = _build_cleaning_dates(d)
+            # Подменяем типы на человекочитаемые из enum при наличии
+            try:
+                enum_map = await bitrix._get_userfield_enums(TYPE_FIELDS)
+                for key, block in cd.items():
+                    if not isinstance(block, dict):
+                        continue
+                    t = str(block.get("type") or "")
+                    # если type — это id из enum, попробуем заменить на метку
+                    if t.isdigit():
+                        for field_code, mapping in enum_map.items():
+                            if t in mapping:
+                                block["type"] = mapping[t]
+                                break
+            except Exception:
+                pass
             periodicity = _compute_periodicity(cd)
             houses.append(HouseResponse(
                 id=int(d.get("ID", 0)),
