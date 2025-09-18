@@ -16,12 +16,34 @@ if config.config_file_name is not None:
 # get DATABASE_URL from env (Render)
 db_url = os.environ.get("DATABASE_URL", "")
 if db_url:
-    # Alembic online migrations require a sync driver; if asyncpg is provided, downgrade to sync DSN
-    if db_url.startswith("postgresql+asyncpg://"):
-        db_url_sync = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-        config.set_main_option("sqlalchemy.url", db_url_sync)
-    else:
-        config.set_main_option("sqlalchemy.url", db_url)
+    # normalize URL for sync engine: ensure postgresql:// and sslmode=require
+    from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+    try:
+        raw = db_url.strip().strip("'\"")
+        if raw.startswith('postgresql+asyncpg://'):
+            raw = raw.replace('postgresql+asyncpg://', 'postgresql://', 1)
+        if raw.startswith('postgres://'):
+            raw = raw.replace('postgres://', 'postgresql://', 1)
+        u = urlparse(raw)
+        q = dict(parse_qsl(u.query, keep_blank_values=True))
+        # convert ssl=true to sslmode=require; drop channel_binding
+        if 'ssl' in q:
+            if str(q.get('ssl')).lower() in ('true','1','yes'):
+                q.pop('ssl', None)
+                q['sslmode'] = 'require'
+            else:
+                q.pop('ssl', None)
+        q.pop('channel_binding', None)
+        # validate sslmode
+        if 'sslmode' in q:
+            allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
+            if q['sslmode'] not in allowed:
+                q['sslmode'] = 'require'
+        new_query = urlencode(q, doseq=True)
+        normalized = urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
+        config.set_main_option("sqlalchemy.url", normalized)
+    except Exception:
+        config.set_main_option("sqlalchemy.url", raw)
 
 # add your model's MetaData object here for 'autogenerate' support
 # from myapp import mymodel
