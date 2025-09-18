@@ -397,7 +397,7 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
         has_wash = ("влажная уборка" in t) or ("мытье" in t)
         is_full = ("всех этаж" in t)
         is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
-        has_sweep = ("подмет" in t)
+        has_sweep = ("подмет" in t) or ("подмёт" in t) or ("под-мет" in t)
         return {
             "full_wash": (len(dates) if (has_wash and is_full) else 0),
             "first_floor": (len(dates) if (has_wash and is_first_floor) else 0),
