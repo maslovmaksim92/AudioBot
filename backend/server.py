@@ -603,7 +603,7 @@ async def get_house_details(house_id: int):
             },
             "management_company": {
                 "id": company_details.get("ID", ""),
-                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")),
+                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")) or "Не указана",
                 "phone": (company_details.get("PHONE", [{}])[0].get("VALUE", "") if company_details.get("PHONE") else ""),
                 "email": (company_details.get("EMAIL", [{}])[0].get("VALUE", "") if company_details.get("EMAIL") else ""),
                 "address": company_details.get("ADDRESS", ""),
