@@ -152,14 +152,7 @@ const Works = () => {
             {filters.brigades?.map((b, i) => (<option key={i} value={b}>{b}</option>))}
           </select>
 
-          <select
-            className="w-full p-3 border border-gray-300 rounded-lg bg-white"
-            value={activeFilters.management_company}
-            onChange={(e) => { setActiveFilters(prev => ({ ...prev, management_company: e.target.value })); setPagination(prev => ({...prev, page: 1})); }}
-          >
-            <option value="">Все УК</option>
-            {filters.management_companies?.map((c, i) => (<option key={i} value={c}>{c}</option>))}
-          </select>
+
 
           <DatePicker
             selected={activeFilters.cleaning_date ? new Date(activeFilters.cleaning_date) : null}
