@@ -412,7 +412,8 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
             total["first_floor"] += b["first_floor"]
             total["sweep"] += b["sweep"]
         fw, ff, sw = total["full_wash"], total["first_floor"], total["sweep"]
-        if fw == 2 and sw >= 1:
+        # Приоритет: если есть 2+ полных моек и хотя бы одно подметание — всегда "2 раза + подметания"
+        if fw >= 2 and sw >= 1:
             return "2 раза + подметания"
         if fw == 2 and ff == 0 and sw == 0:
             return "2 раза"
