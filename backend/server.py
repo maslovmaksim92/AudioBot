@@ -50,7 +50,57 @@ app.add_middleware(
 )
 
 # DB
-DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
+def _normalize_db_url(url: str, for_async: bool = True) -> str:
+    try:
+        if not url:
+            return url
+        url = url.strip().strip("'\"")
+        if url.lower().startswith('psql '):
+            # remove accidental 'psql ' prefix pasted from docs
+            url = url[5:].strip().strip("'\"")
+        # Ensure correct scheme
+        if for_async:
+            if url.startswith('postgres://'):
+                url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
+            elif url.startswith('postgresql://') and not url.startswith('postgresql+asyncpg://'):
+                url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        else:
+            if url.startswith('postgres://'):
+                url = url.replace('postgres://', 'postgresql://', 1)
+            elif url.startswith('postgresql+asyncpg://'):
+                url = url.replace('postgresql+asyncpg://', 'postgresql://', 1)
+        # Normalize query params
+        u = urlparse(url)
+        q = dict(parse_qsl(u.query, keep_blank_values=True))
+        # Remove incompatible params
+        q.pop('channel_binding', None)
+        if for_async:
+            # asyncpg expects ssl=true|false, not sslmode
+            q.pop('sslmode', None)
+            if q.get('ssl') is None:
+                q['ssl'] = 'true'
+        else:
+            # psycopg expects sslmode
+            if 'ssl' in q:
+                if str(q.get('ssl')).lower() in ('true', '1', 'yes'):
+                    q.pop('ssl', None)
+                    q['sslmode'] = 'require'
+                else:
+                    q.pop('ssl', None)
+            # fix invalid sslmode values
+            if 'sslmode' in q:
+                allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
+                if q['sslmode'] not in allowed:
+                    q['sslmode'] = 'require'
+        new_query = urlencode(q, doseq=True)
+        return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
+    except Exception:
+        # fail-safe: return original
+        return url
+
+DATABASE_URL = _normalize_db_url(os.environ.get('DATABASE_URL', '').strip(), for_async=True)
 Base = declarative_base()
 engine = None
 AsyncSessionLocal = None
