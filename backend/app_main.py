@@ -380,7 +380,7 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
     if full_wash_dates >= 1 and first_floor_wash_dates >= 1 and wash_dates == (full_wash_dates + first_floor_wash_dates) and sweep_dates == 0:
         return "2 раза + первые этажи"
     if wash_dates == 2 and sweep_dates == 2:
-        return "Мытье 2 раза + подметание 2 раза"
+        return "2 раза + 2 подметания"
     if wash_dates >= 4:
         return "4 раза"
     return "индивидуальная"
