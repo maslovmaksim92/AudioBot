@@ -21,6 +21,7 @@ from sqlalchemy import text as sa_text
 
 # pgvector typedef (declared in Alembic), not used in ORM here
 # from pgvector.sqlalchemy import Vector
+# Обновлено: под text-embedding-3-small используется размерность 1536 (см. Alembic 0003)
 
 # LLM / Files
 from emergentintegrations.llm.chat import LlmChat, UserMessage
