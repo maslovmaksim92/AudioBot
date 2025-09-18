@@ -212,7 +212,7 @@ const Works = () => {
             <div className="space-y-2 text-sm mb-3">
               <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-blue-600"/><span className="font-medium">УК:</span><span>{house.management_company || 'Не указана'}</span></div>
               {house.periodicity && (<div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-purple-600"/><span className="font-medium">Периодичность:</span><span>{house.periodicity}</span></div>)}
-              <div className="flex items-center gap-2"><Users className="w-4 h-4 text-green-600"/><span className="font-medium">Бригада №:</span><span>{house.brigade || 'Не назначена'}</span></div>
+              <div className="flex items-center gap-2"><Users className="w-4 h-4 text-green-600"/><span className="font-medium">Бригада №:</span><span>{house.brigade || 'Бригада не назначена'}</span></div>
             </div>
 
             {/* График уборки */}
