@@ -236,6 +236,17 @@
 ##         -working: false
 ##         -agent: "main"
 ##         -comment: "Planned: input addresses, optimize toggle, render route polyline and steps using react-leaflet."
+##   - task: "Production deployment configuration"
+##     implemented: false
+##     working: false
+##     file: "deployment configuration"
+##     stuck_count: 1
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ CRITICAL DEPLOYMENT ISSUES - Production deployment at https://audiobot-1-cv3f.onrender.com has multiple critical configuration problems: 1) React Router client-side routing not configured - direct access to /works and /dashboard returns 404 ❌, 2) Backend API server not accessible - all /api/* endpoints return 404 'Not Found' ❌, 3) Frontend-backend integration broken - house data cannot load from Bitrix24 ❌. The frontend code appears correct and dashboard shows static KPI data, but dynamic functionality is completely broken. REQUIRED FIXES: 1) Configure web server (nginx/Apache) to serve React app with fallback to index.html for client-side routing, 2) Deploy and configure backend API server with proper routing, 3) Ensure backend environment variables and Bitrix24 integration are properly configured in production."
 
 ## metadata:
 ##   created_by: "main_agent"
