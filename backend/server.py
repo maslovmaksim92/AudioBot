@@ -1041,12 +1041,20 @@ async def ai_delete(doc_id: str, db: AsyncSession = Depends(get_db)):
 app.include_router(api_router)
 
 # Подключаем модульный роутер AI Knowledge, если есть
-try:
-    from app.routers.ai_knowledge import router as ai_router
-    app.include_router(ai_router)
-    logger.info('AI Knowledge router подключен')
-except Exception as e:
-    logger.warning(f'AI Knowledge router не подключен: {e}')
+import importlib
+_ai_router = None
+for mod in ('app.routers.ai_knowledge', 'backend.app.routers.ai_knowledge'):
+    try:
+        _module = importlib.import_module(mod)
+        _ai_router = getattr(_module, 'router', None)
+        if _ai_router:
+            app.include_router(_ai_router)
+            logger.info(f'AI Knowledge router подключен из {mod}')
+            break
+    except Exception as e:
+        continue
+if not _ai_router:
+    logger.warning('AI Knowledge router не подключен: No module found (tried app.routers.ai_knowledge, backend.app.routers.ai_knowledge)')
 
 @app.on_event("startup")
 async def on_startup():
