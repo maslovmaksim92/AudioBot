@@ -67,17 +67,49 @@ async def _summarize(text: str, max_chars: int = 2000) -> str:
         logger.warning(f"LLM preview error: {e}")
         return (text or '')[:max_chars]
 
-async def _embed_texts_small(texts: List[str]) -> List[List[float]]:
-    # text-embedding-3-small: 1536 dims
-    dims = 1536
+async def _detect_vector_dims(db: AsyncSession) -> int:
+    """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536."""
+    try:
+        # Read atttypmod from pg_attribute; vector dims stored as (atttypmod - 4)
+        sql = """
+        SELECT a.atttypmod
+        FROM pg_attribute a
+        JOIN pg_class c ON c.oid = a.attrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = current_schema()
+          AND c.relname = 'ai_chunks'
+          AND a.attname = 'embedding'
+          AND a.attnum > 0
+          AND NOT a.attisdropped
+        LIMIT 1
+        """
+        row = (await db.execute(sa_text(sql))).first()
+        if row and isinstance(row[0], int) and row[0] > 4:
+            dims = int(row[0]) - 4
+            if dims in (1536, 3072):
+                return dims
+    except Exception as e:
+        logger.warning(f"Vector dims detection failed: {e}")
+    return 1536
+
+async def _embed_texts_dynamic(texts: List[str], db: AsyncSession) -> List[List[float]]:
+    dims = await _detect_vector_dims(db)
+    model = 'text-embedding-3-small' if dims == 1536 else 'text-embedding-3-large'
     if not OPENAI_API_KEY:
         return [[0.0]*dims for _ in texts]
     client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     out: List[List[float]] = []
     for t in texts:
         try:
-            r = await client.embeddings.create(model='text-embedding-3-small', input=t)
-            out.append(r.data[0].embedding)
+            r = await client.embeddings.create(model=model, input=t)
+            vec = r.data[0].embedding
+            # if model returns unexpected dims, pad/trim to match column
+            if len(vec) != dims:
+                if len(vec) > dims:
+                    vec = vec[:dims]
+                else:
+                    vec = vec + [0.0]*(dims - len(vec))
+            out.append(vec)
         except Exception as e:
             logger.error(f"Embedding error: {e}")
             out.append([0.0]*dims)
@@ -225,7 +257,7 @@ async def study(upload_id: str = Form(...), filename: str = Form('document.txt')
         raw_meta = row[0]
         meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
         chunks: List[str] = meta.get('chunks') or []
-        vectors = await _embed_texts_small(chunks)
+        vectors = await _embed_texts_dynamic(chunks, db)
         doc_id = str(uuid4())
         summary = meta.get('summary') or ''
         size_bytes = int(meta.get('size_bytes') or 0)
