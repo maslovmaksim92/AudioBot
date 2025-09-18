@@ -311,6 +311,22 @@ async def get_filters():
         return FiltersResponse()
 
 # Helper to build cleaning_dates and periodicity from UF fields
+def _normalize_dates(dates: List[Any]) -> List[str]:
+    out: List[str] = []
+    for val in (dates or []):
+        s = str(val or '').strip()
+        if not s:
+            continue
+        # Форматы: YYYY-MM-DD, YYYY-MM-DDTHH:MM:SS+TZ, YYYY-MM-DD HH:MM:SS
+        if 'T' in s:
+            s = s.split('T')[0]
+        elif ' ' in s and len(s) >= 10:
+            s = s[:10]
+        if len(s) >= 10:
+            s = s[:10]
+        out.append(s)
+    return out
+
 def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
 
@@ -329,7 +345,8 @@ def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     for dates_field, type_field, key in months:
         dates_raw = d.get(dates_field)
         type_raw = d.get(type_field)
-        dates = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
+        dates_list = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
+        dates = _normalize_dates(dates_list)
         label = str(type_raw or "")
         out[key] = {"dates": dates, "type": label}
 
