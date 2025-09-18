@@ -467,7 +467,7 @@ async def get_houses(
         end = start + limit
         deals_page = deals[start:end]
         houses: List[HouseResponse] = []
-        base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+        base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
         for d in deals_page:
             address = d.get("UF_CRM_1669561599956") or d.get("TITLE") or ""
             cd = _build_cleaning_dates(d)
