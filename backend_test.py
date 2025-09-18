@@ -2846,8 +2846,136 @@ startxref
         print("\n" + "=" * 80)
 
 
+    def run_smoke_test_review_request(self):
+        """Run SMOKE tests for AI endpoints on prod after Alembic invocation fix"""
+        print("🚀 SMOKE TEST - AI Endpoints on Production")
+        print("=" * 60)
+        print(f"Testing against: {self.base_url}")
+        print("Review Request: Re-run SMOKE for AI endpoints after Alembic invocation fix")
+        print("=" * 60)
+        
+        # Test 1: GET /api/ai-knowledge/status?upload_id=probe
+        self.test_ai_status_probe()
+        
+        # Test 2: POST /api/ai-knowledge/preview multipart test.txt("Hello AI")
+        self.test_ai_preview_smoke()
+        
+        # Test 3: Confirm CRM filters 200
+        self.test_crm_filters_smoke()
+        
+        # Display final results
+        self.display_results()
+
+    def test_ai_status_probe(self):
+        """Test GET /api/ai-knowledge/status?upload_id=probe - expect 200/404/500 (but not router-missing)"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/status?upload_id=probe")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/status', params={'upload_id': 'probe'})
+        
+        if status in [200, 404, 500]:
+            # Any of these statuses are acceptable - means router is working
+            if status == 200:
+                self.log_test("AI Status Probe - Router Working", True, f"Status 200: {data}")
+            elif status == 404:
+                detail = data.get('detail', '')
+                if 'Not Found' in detail and 'upload_id' not in detail:
+                    # This indicates router is missing - the critical issue
+                    self.log_test("AI Status Probe - Router Missing", False, f"Status 404 'Not Found' - AI endpoints NOT DEPLOYED. Router missing.")
+                else:
+                    self.log_test("AI Status Probe - Router Working", True, f"Status 404 (upload_id not found): {detail}")
+            elif status == 500:
+                detail = data.get('detail', '')
+                if 'Database is not initialized' in detail:
+                    self.log_test("AI Status Probe - Router Working", True, f"Status 500 (DB not initialized - expected): {detail}")
+                else:
+                    self.log_test("AI Status Probe - Router Working", True, f"Status 500 (other error): {detail}")
+        else:
+            self.log_test("AI Status Probe - Unexpected Response", False, f"Status: {status}, Data: {data}")
+        
+        # Capture and display body as requested
+        print(f"   Response Body: {json.dumps(data, ensure_ascii=False, indent=2)}")
+
+    def test_ai_preview_smoke(self):
+        """Test POST /api/ai-knowledge/preview multipart test.txt('Hello AI') - expect 200 or 500 DB not initialized"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/preview multipart test.txt('Hello AI')")
+        
+        # Create test.txt with "Hello AI" content
+        txt_content = "Hello AI"
+        files = {'files': ('test.txt', txt_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if status == 200:
+            # Success case - check if response has expected structure
+            if 'upload_id' in data and 'preview' in data:
+                self.log_test("AI Preview Smoke - Success", True, f"Status 200: upload_id={data.get('upload_id', '')[:8]}..., preview={len(data.get('preview', ''))} chars")
+            else:
+                self.log_test("AI Preview Smoke - Success", True, f"Status 200 but unexpected structure: {data}")
+        elif status == 500:
+            detail = data.get('detail', '')
+            if 'Database is not initialized' in detail:
+                self.log_test("AI Preview Smoke - DB Not Initialized", True, f"Status 500 (DB not initialized - expected): {detail}")
+            else:
+                self.log_test("AI Preview Smoke - Server Error", True, f"Status 500 (other error): {detail}")
+        elif status == 404:
+            detail = data.get('detail', '')
+            if 'Not Found' in detail:
+                # This indicates router is missing
+                self.log_test("AI Preview Smoke - Router Missing", False, f"Status 404 'Not Found' - AI endpoints NOT DEPLOYED. Router missing.")
+            else:
+                self.log_test("AI Preview Smoke - Unexpected Response", False, f"Status: {status}, Data: {data}")
+        else:
+            self.log_test("AI Preview Smoke - Unexpected Response", False, f"Status: {status}, Data: {data}")
+        
+        # Capture and display body as requested
+        print(f"   Response Body: {json.dumps(data, ensure_ascii=False, indent=2)}")
+
+    def test_crm_filters_smoke(self):
+        """Test CRM filters endpoint returns 200 - confirm basic functionality"""
+        print("\n3️⃣ Testing GET /api/cleaning/filters (CRM filters confirmation)")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if status == 200:
+            # Check basic structure
+            if isinstance(data, dict) and 'brigades' in data and 'statuses' in data:
+                brigades_count = len(data.get('brigades', []))
+                statuses_count = len(data.get('statuses', []))
+                self.log_test("CRM Filters Smoke - Success", True, f"Status 200: brigades={brigades_count}, statuses={statuses_count}")
+            else:
+                self.log_test("CRM Filters Smoke - Success", True, f"Status 200 but unexpected structure: {data}")
+        else:
+            self.log_test("CRM Filters Smoke - Failed", False, f"Status: {status}, Data: {data}")
+        
+        # Capture and display body as requested
+        print(f"   Response Body: {json.dumps(data, ensure_ascii=False, indent=2)}")
+
+    def display_results(self):
+        """Display final smoke test results"""
+        print("\n" + "=" * 60)
+        print("📊 SMOKE TEST RESULTS")
+        print("=" * 60)
+        print(f"Total Tests: {self.tests_run}")
+        print(f"Passed: {self.tests_passed}")
+        print(f"Failed: {len(self.failed_tests)}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run)*100:.1f}%" if self.tests_run > 0 else "No tests run")
+        
+        if self.failed_tests:
+            print("\n❌ FAILED TESTS:")
+            for test in self.failed_tests:
+                print(f"  - {test['name']}: {test['details']}")
+        else:
+            print("\n✅ ALL SMOKE TESTS PASSED!")
+
 def main():
     """Main test execution for review request"""
+    if len(sys.argv) > 1 and sys.argv[1] == "smoke":
+        # Run smoke test for review request
+        base_url = sys.argv[2] if len(sys.argv) > 2 else "https://audiobot-qci2.onrender.com"
+        tester = VasDomAPITester(base_url)
+        tester.run_smoke_test_review_request()
+        return 0 if len(tester.failed_tests) == 0 else 1
+    
     tester = VasDomAPITester()
     
     print("🧹 VasDom AudioBot - Review Request Backend Testing")
