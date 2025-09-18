@@ -443,15 +443,6 @@ async def get_houses(
                     return False
             return True
 
-        # Поиск по адресу/названию (server-side)
-        search = None
-        try:
-            # получаем из Query напрямую, но безопасно
-            search = locals().get('search')  # not reliable in FastAPI
-        except Exception:
-            search = None
-        # В FastAPI лучше читать из request.query_params, но не хотим ломать сигнатуру. Оставим фильтрацию ниже.
-
         # Apply search by address/title if provided
         if search:
             s = search.lower()
