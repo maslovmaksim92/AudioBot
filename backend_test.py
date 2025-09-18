@@ -17,6 +17,7 @@ class VasDomAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
+        self.ai_endpoints_deployed = None  # Track AI endpoint deployment status
         
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test result"""
