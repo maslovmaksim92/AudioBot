@@ -301,58 +301,26 @@ async def get_filters():
 # Helper to build cleaning_dates and periodicity from UF fields
 def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
-    # September 2025
-    if d.get("UF_CRM_1741592774017") or d.get("UF_CRM_1741592855565"):
-        dates = d.get("UF_CRM_1741592774017");
-        out["september_1"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741592855565") or "")
-        }
-    if d.get("UF_CRM_1741592892232") or d.get("UF_CRM_1741592945060"):
-        dates = d.get("UF_CRM_1741592892232");
-        out["september_2"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741592945060") or "")
-        }
-    # October 2025
-    if d.get("UF_CRM_1741593004888") or d.get("UF_CRM_1741593047994"):
-        dates = d.get("UF_CRM_1741593004888");
-        out["october_1"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593047994") or "")
-        }
-    if d.get("UF_CRM_1741593067418") or d.get("UF_CRM_1741593115407"):
-        dates = d.get("UF_CRM_1741593067418");
-        out["october_2"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593115407") or "")
-        }
-    # November 2025
-    if d.get("UF_CRM_1741593156926") or d.get("UF_CRM_1741593210242"):
-        dates = d.get("UF_CRM_1741593156926");
-        out["november_1"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593210242") or "")
-        }
-    if d.get("UF_CRM_1741593231558") or d.get("UF_CRM_1741593285121"):
-        dates = d.get("UF_CRM_1741593231558");
-        out["november_2"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593285121") or "")
-        }
-    # December 2025
-    if d.get("UF_CRM_1741593340713") or d.get("UF_CRM_1741593387667"):
-        dates = d.get("UF_CRM_1741593340713");
-        out["december_1"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593387667") or "")
-        }
-    if d.get("UF_CRM_1741593408621") or d.get("UF_CRM_1741593452062"):
-        dates = d.get("UF_CRM_1741593408621");
-        out["december_2"] = {
-            "dates": dates if isinstance(dates, list) else ([dates] if dates else []),
-            "type": str(d.get("UF_CRM_1741593452062") or "")
-        }
+
+    # Поля months: [(dates_field, type_field, key)]
+    months = [
+        ("UF_CRM_1741592774017", "UF_CRM_1741592855565", "september_1"),
+        ("UF_CRM_1741592892232", "UF_CRM_1741592945060", "september_2"),
+        ("UF_CRM_1741593004888", "UF_CRM_1741593047994", "october_1"),
+        ("UF_CRM_1741593067418", "UF_CRM_1741593115407", "october_2"),
+        ("UF_CRM_1741593156926", "UF_CRM_1741593210242", "november_1"),
+        ("UF_CRM_1741593231558", "UF_CRM_1741593285121", "november_2"),
+        ("UF_CRM_1741593340713", "UF_CRM_1741593387667", "december_1"),
+        ("UF_CRM_1741593408621", "UF_CRM_1741593452062", "december_2"),
+    ]
+
+    for dates_field, type_field, key in months:
+        dates_raw = d.get(dates_field)
+        type_raw = d.get(type_field)
+        dates = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
+        label = str(type_raw or "")
+        out[key] = {"dates": dates, "type": label}
+
     return out
 
 def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
