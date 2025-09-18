@@ -2562,21 +2562,32 @@ def main():
     return 0 if len(tester.failed_tests) == 0 else 1
 
 if __name__ == "__main__":
-    # Use the backend URL from frontend environment
-    backend_url = "https://bitrix-audio.preview.emergentagent.com"
+    tester = VasDomAPITester()
     
-    print("🧠 VasDom AudioBot - AI Knowledge Review Request Testing")
-    print("=" * 80)
-    print(f"Backend URL: {backend_url}")
-    print("Testing new AI Training endpoints moved to app/routers/ai_knowledge.py")
-    print("=" * 80)
+    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST")
+    print("=" * 60)
+    print(f"Testing deployed backend: {tester.base_url}")
+    print("Scope: AI Training + CRM regression + Logistics (optional)")
+    print("=" * 60)
     
-    tester = VasDomAPITester(backend_url)
-    success = tester.run_ai_knowledge_review_tests()
+    # Run review request tests
+    tester.test_review_request_deployed_backend()
     
-    if success:
-        print("\n🎉 ALL TESTS PASSED!")
-        sys.exit(0)
-    else:
-        print(f"\n❌ {len(tester.failed_tests)} TESTS FAILED")
-        sys.exit(1)
+    # Print summary
+    print("\n" + "=" * 60)
+    print("🎯 TEST SUMMARY")
+    print("=" * 60)
+    print(f"Total tests run: {tester.tests_run}")
+    print(f"Tests passed: {tester.tests_passed}")
+    print(f"Tests failed: {tester.tests_run - tester.tests_passed}")
+    print(f"Success rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%")
+    
+    if tester.failed_tests:
+        print("\n❌ FAILED TESTS:")
+        for i, test in enumerate(tester.failed_tests, 1):
+            print(f"{i}. {test['name']}: {test['details']}")
+    
+    print("\n✅ Testing completed!")
+    
+    # Exit with appropriate code
+    sys.exit(0 if tester.tests_run == tester.tests_passed else 1)
