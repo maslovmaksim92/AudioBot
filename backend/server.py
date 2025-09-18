@@ -490,12 +490,44 @@ async def get_houses(
             except Exception:
                 pass
             periodicity = _compute_periodicity(cd)
+            # Brigade from user id if name missed
+            brig_name = d.get("ASSIGNED_BY_NAME") or ""
+            if not brig_name and d.get("ASSIGNED_BY_ID"):
+                try:
+                    uid = str(d.get("ASSIGNED_BY_ID"))
+                    if uid not in bitrix._user_cache:
+                        uresp = await bitrix._call("user.get", {"ID": uid})
+                        uitems = uresp.get("result") or []
+                        if isinstance(uitems, dict):
+                            uitems = [uitems]
+                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
+                    u = bitrix._user_cache.get(uid) or {}
+                    brig_name = u.get("NAME") and ((u.get("LAST_NAME","") + " " + u.get("NAME","") + (" "+u.get("SECOND_NAME",""))).strip()) or ""
+                except Exception:
+                    pass
+            if not brig_name:
+                brig_name = "Бригада не назначена"
+
+            # Company enriched title if available
+            mc_title = d.get("COMPANY_TITLE") or ""
+            if not mc_title and d.get("COMPANY_ID"):
+                try:
+                    cid = str(d.get("COMPANY_ID"))
+                    if cid not in bitrix._company_cache:
+                        cresp = await bitrix._call("crm.company.get", {"id": cid})
+                        bitrix._company_cache[cid] = cresp.get("result") or {}
+                    mc_title = bitrix._company_cache[cid].get("TITLE") or ""
+                except Exception:
+                    pass
+            if not mc_title:
+                mc_title = "Не указана"
+
             houses.append(HouseResponse(
                 id=int(d.get("ID", 0)),
                 title=d.get("TITLE", "Без названия"),
                 address=address,
-                brigade=d.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
-                management_company=(d.get("COMPANY_TITLE") or "Не указана"),
+                brigade=brig_name,
+                management_company=mc_title,
                 status=d.get("STAGE_ID") or "",
                 apartments=int(d.get("UF_CRM_1669704529022") or 0),
                 entrances=int(d.get("UF_CRM_1669705507390") or 0),
