@@ -76,11 +76,11 @@ const Dashboard = () => {
       changeType: 'neutral'
     },
     {
-      title: 'Сотрудников',
-      value: stats.employees?.toLocaleString() || '0',
-      icon: Users,
+      title: 'Этажей',
+      value: stats.total_floors?.toLocaleString() || '0',
+      icon: Activity,
       gradient: 'from-purple-500 to-pink-500',
-      change: `${stats.active_brigades} активных бригад`,
+      change: `Среднее: ${Math.round((stats.total_floors || 0) / (stats.total_houses || 1))} на дом`,
       changeType: 'neutral'
     },
     {
