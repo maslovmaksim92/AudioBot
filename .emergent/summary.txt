@@ -1,60 +1,79 @@
 <analysis>
-The AI engineer's work, guided by user feedback, has progressed through two major phases: Logistics and AI Training. Initially, the user requested a Google Maps integration for Logistics, but then shifted to Yandex, and finally to a free OpenRouteService (ORS) due to cost. The AI successfully implemented ORS integration, creating backend endpoints () for route calculation with optimization, and a frontend React component () using  to visualize routes on OpenStreetMap. This involved handling address geocoding, distance/duration calculation, and error management.
-
-Upon user verification of Logistics, the focus shifted to Phase 2: AI Training. The user specified using PostgreSQL with  for knowledge storage,  for embeddings, and  for summarization, all via the Emergent LLM key. The AI installed necessary backend dependencies (PyPDF2, python-docx, openpyxl, aiofiles, tiktoken) and outlined API endpoints () for file upload (PDF, DOCX, TXT, XLSX up to 10MB), text extraction, chunking, embedding, summarization, and semantic search. The current task involves implementing these backend components and updating the frontend  to interact with the new backend. The last action was a failed backend code modification due to a linting error.
+The AI engineer's work transitioned from implementing Logistics (OpenRouteService) to AI Training. Key challenges included migrating from MongoDB to PostgreSQL (), addressing syntax errors and file corruption in  by refactoring with  and a shim, and ensuring Bitrix24 integration for Works (Houses) data remained stable despite these changes and intermittent Bitrix API issues. The user repeatedly emphasized the importance of the Works section's functionality. The AI successfully integrated Alembic for migrations, LLM (OpenAI text-embedding-3-large, GPT-4.1-mini) via  for text processing, and developed a comprehensive AI Training backend and partial frontend. Recent efforts focused on fixing Bitrix data loading, enhancing pagination and filtering for Works, and implementing a voice chat (WebSocket) for AIChat. The primary issue persists in Works data loading and specific field display after the last interaction.
 </analysis>
 
 <product_requirements>
-The VasDom AudioBot is a cleaning company management system that integrates Bitrix24 CRM, an AI assistant, and a Telegram bot. The goal is to streamline managing cleaning objects, tasks, employees, and communications. Implemented features include:
-1.  **Works (Houses) Tab**: Displays 490 houses from Bitrix24, showing address, apartments, entrances, floors, brigade, management company, cleaning schedules, and Периодичность. It supports pagination, full schedule/details modals, Bitrix24 links, copy address, and CSV export, with UI/UX refinements.
-2.  **Dashboard**: Includes quick filters (brigade, company, date range), a Today block with real-time Bitrix data, status graphs, and compact KPI cards.
-3.  **AI Chat**: Features a Talk Online button for real-time voice conversation using OpenAI Realtime (STT+TTS), providing both text and natural voice responses.
-4.  **Meetings**: Offers live transcription using server-side Realtime, summarization, and text export functionality, with mobile layout improvements.
-5.  **AI Training**: Currently being implemented. The goal is to allow file uploads (PDF, DOCX, TXT, XLSX up to 10MB), AI processing (text extraction, chunking, embeddings via , summarization via ), and saving to a PostgreSQL +  knowledge base for semantic search.
-6.  **AI Tasks**: Users can set tasks (e.g., send report tomorrow 12:00 in Telegram), managed by  with Telegram notifications.
-7.  **Logistics**: Implemented using OpenRouteService (ORS) for calculating optimal routes based on cleaning schedules and addresses, with frontend map visualization using .
-8.  **UI/UX Refinements**: General reduction of empty space, consistent spacing, and overall design improvements across the application.
+The VasDom AudioBot manages cleaning operations, integrating Bitrix24 CRM, an AI assistant, and a Telegram bot.
+Key features include:
+1.  **Works (Houses) Tab**: Displays Bitrix24 house data (address, apartments, entrances, floors, brigade, management company, cleaning schedules, Периодичность) with pagination, filters, and detailed modals. The user consistently emphasized this tab's functionality and accurate Bitrix data loading.
+2.  **Dashboard**: Quick filters, Today block with real-time Bitrix data, status graphs, and compact KPI cards.
+3.  **AI Chat**: Real-time voice conversation using OpenAI STT/TTS (Talk Online), now includes WebSocket integration.
+4.  **Meetings**: Live transcription, summarization, text export, with mobile layout improvements.
+5.  **AI Training**: Currently being implemented. Requires file uploads (PDF, DOCX, TXT, XLSX, ZIP up to 50MB/file, 200MB/request total), AI processing (text extraction, chunking ~1000-1500 tokens, embeddings via , summarization via ), and saving to a PostgreSQL () knowledge base for semantic search (top_k=200 lists for index, 500-1000 chars for preview, 3+ char word highlighting). Also includes document listing, deletion, and advanced chunking controls.
+6.  **AI Tasks**: Task setting (e.g., Telegram reports) managed by .
+7.  **Logistics**: OpenRouteService integration for optimal route calculation and map visualization.
+8.  **UI/UX Refinements**: General design improvements and consistent spacing.
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, PostgreSQL (, ), Pydantic, , usage: websockets [--version | <uri>], , , , PyPDF2, python-docx, openpyxl, aiofiles, tiktoken, OpenRouteService.
--   **Frontend**: React 19, React Router, TailwindCSS, Shadcn/UI, Axios, , , WebRTC, , .
--   **Integrations**: Bitrix24 CRM API, OpenAI Realtime (STT/TTS), Emergent LLM SDK (for OpenAI embeddings/summary), Telegram Bot API, OpenRouteService API.
--   **Architecture**: Monorepo, Kubernetes, Supervisor, Caching, Asynchronous processing.
+-   **Backend**: FastAPI, PostgreSQL (, , SQLAlchemy Async, Alembic), Pydantic, , usage: websockets [--version | <uri>], , , , PyPDF2, python-docx, openpyxl, aiofiles, tiktoken, OpenRouteService,  (for LLMs), AsyncOpenAI.
+-   **Frontend**: React 19, React Router, TailwindCSS, Shadcn/UI, Axios, , .
+-   **Integrations**: Bitrix24 CRM API, OpenAI Realtime (STT/TTS), Emergent LLM SDK, Telegram Bot API, OpenRouteService API.
 </key_technical_concepts>
 
 <code_architecture>
 
 
 **Key Files and Changes:**
--   : Main FastAPI entry point. Modified to include the new  router. Integration of  router is pending.
--    (assumed new file): Created to handle OpenRouteService API calls, route optimization logic, and error handling for .
--   : New component created for the logistics UI, including address input, Optimize order toggle, route building, and displaying results.
--   : New component created to render OpenStreetMap tiles, point markers, and the route polyline using .
--   : Main React component. Updated to include the new  route.
--   : Sidebar navigation updated to include a link to the Logistics section.
--   : Updated to include  and  dependencies.
--   : Updated to include dependencies for file parsing and embeddings (PyPDF2, python-docx, openpyxl, aiofiles, tiktoken).
--    (assumed new file): Will contain the endpoints for AI Training (, , etc.). Currently in planning/initial implementation.
--   : This component will be updated to interact with the new AI knowledge base backend for file uploads, preview, saving, listing, and searching.
+-   : Originally the main entry point. Experienced file corruption. Refactored to import  and register all routers. It now acts as a shim/orchestrator, ensuring compatibility and managing router inclusion (including , , , ).
+-   : A new, temporarily introduced file, intended to contain the core FastAPI application instance and logic, now imported by .
+-   : Created for AI Training endpoints (, , , , ). Handles file parsing, chunking, summarization, embedding generation, and database interactions.
+-   : Created for Voice API endpoints (, ), handling token issuance and WebSocket connections.
+-   : Contains the logic for interacting with the Bitrix24 CRM API, specifically for fetching Works (houses) data, filters, and dashboard statistics. This file has undergone significant revisions to align with the  branch's working logic.
+-   : Directory for database migrations. New migrations (, ) were created to initialize  extension, , ,  tables, and set up  indexes.
+-   : Updated to support file uploads (drag & drop), display AI previews (summary, stats), saving to DB, listing documents, semantic search with highlighting, and controls for chunking parameters (, ).
+-   : Critically updated to correctly fetch and display houses from Bitrix24, implement pagination for more than 50 houses, and add filtering by address/name.
+-   : Modified to include client-side logic for connecting to the new voice WebSocket endpoints, obtaining a token, and sending/receiving chat messages via WS for Online Voice functionality.
+-    and : Updated with new dependencies like SQLAlchemy, , , etc.
 </code_architecture>
 
 <pending_tasks>
--   **Training (PostgreSQL Integration)**: Complete full integration of knowledge base storage into PostgreSQL using , including database models, migrations, async services for text extraction, batch embeddings, summarization, and saving.
--   **Training (Frontend UI Update)**: Update the  component to interact with the new backend endpoints, including file upload with progress, preview of AI understanding, confirmation to save, display of saved knowledge, and semantic search functionality.
--   **UI Refinements**: Continued reduction of any lingering empty space on specific screens, particularly on PC layouts, based on user-provided screenshots (mentioned in initial system prompt, not directly in current trajectory).
--   **Meetings UX (Mobile)**: Further mobile adaptation/refinement of the Meetings section for optimal usability (mentioned in initial system prompt, not directly in current trajectory).
+-   **Works (Houses) Data Loading**:
+    -   Address the issue where Works data is loading but specific fields like Периодичность and Тип уборки are incorrect or missing.
+    -   Correct the Open in Bitrix link URL.
+-   **AI Training (Backend)**: Finalize batch indexing of large ZIPs with detailed reports.
+-   **AI Training (Frontend)**: Further refine text preview and statistics for each document, and UX for search results (e.g., compact cards).
+-   **Alembic Migrations**: Ensure index  lists parameter (currently 200) is robustly managed and applied.
 </pending_tasks>
 
 <current_work>
-The AI engineer has successfully implemented the **Logistics** feature using OpenRouteService. This involved:
--   **Backend**: Creating a new router (likely ) to handle  requests, processing addresses, calling the ORS API for route calculation (with optional optimization), and returning structured data including distance, duration, order, and geometry. Error handling for insufficient points (400) and geocoding failures (404) is in place.
--   **Frontend**: Developing a new  component that allows users to input multiple addresses, toggle route optimization, and display the calculated route. A  component, integrating  and , was created to visualize the route on an OpenStreetMap, showing markers and a polyline. The main  and  were updated to include the new  route and sidebar link.
+The AI engineer has recently focused on resolving critical issues with the Works (Houses) tab and enhancing the AIChat's voice functionality, while also ensuring the AI Training module is functional and isolated.
 
-The project is currently transitioning to **Phase 2: AI Training**. The user confirmed the use of PostgreSQL with  for knowledge storage,  for embeddings, and  for summarization via Emergent LLM. Backend dependencies for file parsing (PyPDF2, python-docx, openpyxl, aiofiles, tiktoken) have been installed and added to . The AI has outlined the architecture for new AI knowledge endpoints (, , , ) supporting various document formats up to 10 MB. The immediate preceding action was an attempt to modify backend code related to this, which resulted in a linting error.
+**Works (Houses) Tab:**
+-   The backend ( and ) has been restructured to reliably fetch house data directly from Bitrix24 CRM, mirroring a previously working codebase ( branch).
+-   Endpoints (, , ) are configured to query Bitrix24 with specific field IDs (e.g.,  for address).
+-   Pagination has been fixed to allow loading more than 50 houses (up to 1000) by correctly passing / to Bitrix24.
+-   A new filter by Адрес/название has been implemented, performing server-side filtering on the Bitrix data.
+-   The frontend () includes a Показывать selector for pagination limits and an input field for address/name filtering.
+-   Despite these efforts, the user reports that while houses load, the data (specifically Периодичность and Тип уборки) is still incorrect, and the Open in Bitrix link is malformed.
+
+**AI Chat (Voice):**
+-   A new backend router () with  (for issuing session tokens) and  (for WebSocket connections, currently an echo server) has been integrated.
+-   The frontend () has been updated to connect to these new WebSocket endpoints. The Онлайн-голос button now initiates token retrieval and establishes a WS connection, sending chat messages via WS and displaying echo responses using text-to-speech.
+
+**AI Training Module:**
+-   The module is isolated in , using PostgreSQL with  for storage.
+-   Alembic migrations are in place for database schema management (including  index with ).
+-   File upload, text extraction, AI summarization (GPT-4.1-mini), embedding generation (text-embedding-3-large), saving, listing, searching (with highlighting), and deletion functionalities are implemented.
+-   Frontend () provides UI for these features, including chunking controls.
+-   The module is confirmed to work on the Render environment where , , and  are properly configured.
+
+**Overall System Stability:**
+-   The  file, which was previously corrupted, has been restored and now correctly imports  and registers all routers, ensuring proper application startup.
+-   Efforts have been made to add explicit error logging and handling for Bitrix24 requests to prevent silent failures and empty data display.
 </current_work>
 
 <optional_next_step>
-Resolve the linting error in the backend and proceed with implementing the  models, async text extraction, batch embeddings, and summarization for the AI Training feature.
+Fix the incorrect data display for Периодичность and Тип уборки and the malformed Bitrix link in the Works section.
 </optional_next_step>
 
