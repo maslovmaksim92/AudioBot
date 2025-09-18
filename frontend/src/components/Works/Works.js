@@ -100,6 +100,22 @@ const Works = () => {
     }
   };
 
+  const saveComment = async (houseId, target, comment) => {
+    if (!comment || !comment.trim()) return;
+    try {
+      const r = await fetch(`${BACKEND_URL}/api/cleaning/house/${houseId}/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, comment })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      showNotification('Комментарий сохранён', 'success');
+    } catch (e) {
+      console.error('save comment error', e);
+      showNotification('Не удалось сохранить комментарий', 'error');
+    }
+  };
+
   const renderMonthBlock = (key, block) => {
     if (!block?.dates || block.dates.length === 0) return null;
     const meta = monthMeta[key] || { title: key, color: 'gray' };
