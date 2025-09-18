@@ -242,9 +242,9 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Review Request Backend Testing on Deployed App"
+##     - "House 12966 periodicity calculation fix deployment"
 ##   stuck_tasks: 
-##     - "House 12966 periodicity calculation issue"
+##     - "House 12966 periodicity calculation issue - fix not deployed to production"
 ##   test_all: false
 ##   test_priority: "high_first"
 
