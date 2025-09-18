@@ -149,6 +149,42 @@ class BitrixService:
                 break
         return items
 
+    async def _get_userfield_enums(self, field_codes: List[str]) -> Dict[str, Dict[str, str]]:
+        """
+        Загрузка и кеширование перечислений (enum) для пользовательских полей сделок Bitrix.
+        Возвращает структуру { FIELD_CODE: { enum_id(str): label(str) } }.
+        """
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        if self._uf_enums and (now_ts - self._uf_enums_ts) < self._uf_enums_ttl:
+            return {fc: self._uf_enums.get(fc, {}) for fc in field_codes}
+        if not self.webhook_url:
+            return {fc: {} for fc in field_codes}
+        out: Dict[str, Dict[str, str]] = {fc: {} for fc in field_codes}
+        try:
+            resp = await self._call("crm.deal.userfield.list", {})
+            if not resp.get("ok"):
+                return out
+            items = resp.get("result") or []
+            if isinstance(items, dict):
+                items = [items]
+            for uf in items:
+                code = uf.get("FIELD_NAME") or uf.get("FIELD_CODE") or uf.get("XML_ID")
+                if code in field_codes:
+                    values = uf.get("LIST") or []
+                    mapping: Dict[str, str] = {}
+                    for v in values:
+                        vid = str(v.get("ID") or v.get("XML_ID") or v.get("VALUE") or "")
+                        label = str(v.get("VALUE") or v.get("LABEL") or v.get("NAME") or vid)
+                        if vid:
+                            mapping[vid] = label
+                    out[code] = mapping
+            # кэшируем полный словарь; далее будем отдавать подмножества
+            self._uf_enums = out
+            self._uf_enums_ts = now_ts
+        except Exception as e:
+            logger.warning(f"UF enums load error: {e}")
+        return out
+
     async def deals(self, limit=500) -> List[Dict]:
         now = int(datetime.now(timezone.utc).timestamp())
         if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
