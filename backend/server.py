@@ -1036,7 +1036,16 @@ async def ai_delete(doc_id: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
     return {"ok": True}
 
+# Подключаем основной /api роутер
 app.include_router(api_router)
+
+# Подключаем модульный роутер AI Knowledge, если есть
+try:
+    from app.routers.ai_knowledge import router as ai_router
+    app.include_router(ai_router)
+    logger.info('AI Knowledge router подключен')
+except Exception as e:
+    logger.warning(f'AI Knowledge router не подключен: {e}')
 
 @app.on_event("startup")
 async def on_startup():
