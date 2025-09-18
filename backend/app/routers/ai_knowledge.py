@@ -21,7 +21,7 @@ logger = logging.getLogger("ai_knowledge_router")
 router = APIRouter(prefix="/api/ai-knowledge", tags=["AI Knowledge"])
 
 # ENV / DB
-DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+RAW_DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
 
@@ -31,6 +31,36 @@ MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
 
 engine = None
 AsyncSessionLocal = None
+
+# Normalize DB URL locally to avoid asyncpg/sslmode issues
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
+def _normalize_db_url(url: str) -> str:
+    try:
+        if not url:
+            return url
+        url = url.strip().strip("'\"")
+        if url.lower().startswith('psql '):
+            url = url[5:].strip().strip("'\"")
+        # ensure async driver
+        if url.startswith('postgres://'):
+            url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
+        elif url.startswith('postgresql://') and not url.startswith('postgresql+asyncpg://'):
+            url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        u = urlparse(url)
+        q = dict(parse_qsl(u.query, keep_blank_values=True))
+        # remove/convert params
+        q.pop('channel_binding', None)
+        if 'sslmode' in q:
+            q.pop('sslmode', None)
+        if q.get('ssl') is None:
+            q['ssl'] = 'true'
+        new_query = urlencode(q, doseq=True)
+        return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
+    except Exception:
+        return url
+
+DATABASE_URL = _normalize_db_url(RAW_DATABASE_URL)
 
 # initialize local engine/session (separate from server.py to avoid circular imports)
 if DATABASE_URL:
