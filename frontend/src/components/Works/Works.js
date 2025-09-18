@@ -47,8 +47,8 @@
           <input
             type="text"
             placeholder="Адрес / название дома"
-            value={activeFilters.search}
-            onChange={(e)=>{ setActiveFilters(prev=>({...prev, search: e.target.value})); setPagination(prev=>({...prev, page:1})); }}
+            value={activeFilters.search || ''}
+            onChange={(e)=>{ setActiveFilters(prev=>({...prev, search: e.target.value })); setPagination(prev=>({...prev, page:1})); }}
             className="w-full p-3 border border-gray-300 rounded-lg bg-white"
           />
 
