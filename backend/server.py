@@ -797,7 +797,7 @@ async def _embed_texts(texts: List[str]) -> List[List[float]]:
     out = []
     for t in texts:
         try:
-            r = await client.embeddings.create(model='text-embedding-3-large', input=t)
+            r = await client.embeddings.create(model='text-embedding-3-small', input=t)
             out.append(r.data[0].embedding)
         except Exception as e:
             logger.error(f"Embedding error: {e}")
