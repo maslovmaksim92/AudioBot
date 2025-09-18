@@ -348,10 +348,10 @@ def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
-    wash_dates = 0
-    sweep_dates = 0
-    full_wash_dates = 0
-    first_floor_wash_dates = 0
+    full_wash = 0      # мытьё всех этажей
+    first_floor = 0    # мытьё 1-го этажа
+    sweep = 0          # подметание
+
     for key in ["september_1","september_2","october_1","october_2","november_1","november_2","december_1","december_2"]:
         block = cleaning_dates.get(key) or {}
         t = str(block.get("type") or "").lower()
@@ -359,24 +359,24 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
         if not isinstance(dates, list):
             dates = []
         has_wash = ("влажная уборка" in t) or ("мытье" in t)
-        has_sweep = ("подмет" in t)
         is_full = ("всех этаж" in t)
         is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
-        if has_wash:
-            wash_dates += len(dates)
-        if has_sweep:
-            sweep_dates += len(dates)
+        has_sweep = ("подмет" in t)
         if has_wash and is_full:
-            full_wash_dates += len(dates)
+            full_wash += len(dates)
         if has_wash and is_first_floor:
-            first_floor_wash_dates += len(dates)
-    if wash_dates == 2 and sweep_dates == 0:
-        return "2 раза"
-    if full_wash_dates >= 1 and first_floor_wash_dates >= 1 and wash_dates == (full_wash_dates + first_floor_wash_dates) and sweep_dates == 0:
-        return "2 раза + первые этажи"
-    if wash_dates == 2 and sweep_dates == 2:
+            first_floor += len(dates)
+        if has_sweep:
+            sweep += len(dates)
+
+    # Приоритеты определения ярлыка
+    if full_wash == 2 and sweep == 2:
         return "2 раза + 2 подметания"
-    if wash_dates >= 4:
+    if full_wash == 2 and first_floor == 0 and sweep == 0:
+        return "2 раза"
+    if full_wash >= 1 and first_floor >= 1 and sweep == 0:
+        return "2 раза + первые этажи"
+    if full_wash >= 4:
         return "4 раза"
     return "индивидуальная"
 
