@@ -1193,6 +1193,145 @@ startxref
         else:
             self.log_test("CRM House Details - Valid Response", False, f"Status: {status}, Data: {data}")
 
+    def test_production_diagnostics_after_url_normalization(self):
+        """Test production diagnostics after URL normalization logic added - Review Request"""
+        print("\n🔍 PRODUCTION DIAGNOSTICS TESTING - URL NORMALIZATION REVIEW")
+        print("=" * 70)
+        print(f"Base URL: {self.base_url}")
+        print("Testing AI Knowledge diagnostics endpoints after URL normalization fix")
+        print("-" * 70)
+        
+        # Test 1: GET /api/ai-knowledge/db-check
+        db_status = self.test_db_check_endpoint()
+        
+        # Test 2: Analyze db-check results and determine next steps
+        if db_status:
+            connected = db_status.get('connected', False)
+            pgvector_available = db_status.get('pgvector_available', False)
+            pgvector_installed = db_status.get('pgvector_installed', False)
+            
+            print(f"\n📊 Database Status Analysis:")
+            print(f"   Connected: {connected}")
+            print(f"   PGVector Available: {pgvector_available}")
+            print(f"   PGVector Installed: {pgvector_installed}")
+            
+            if not connected:
+                print("   ⚠️  Database not connected - likely env issue (normalize only fixes runtime URL if provided)")
+                self.log_test("DB Analysis - Connection Status", False, 
+                            "Database not connected. Render env must be updated if DATABASE_URL still has old format.")
+            elif connected and pgvector_available and not pgvector_installed:
+                print("   🔧 Database connected but pgvector not installed - attempting installation")
+                # Test 3: POST /api/ai-knowledge/db-install-vector
+                self.test_db_install_vector_endpoint()
+                # Test 4: Re-check after installation
+                self.test_db_check_after_install()
+            elif connected and pgvector_available and pgvector_installed:
+                print("   ✅ Database fully configured and ready")
+                self.log_test("DB Analysis - Full Setup", True, "Database connected with pgvector installed")
+            else:
+                print("   ❓ Unexpected database state")
+                self.log_test("DB Analysis - Unexpected State", False, 
+                            f"Unexpected state: connected={connected}, available={pgvector_available}, installed={pgvector_installed}")
+        else:
+            print("   ❌ Could not retrieve database status")
+            self.log_test("DB Analysis - Status Retrieval", False, "Failed to get database status from db-check endpoint")
+        
+        return True
+
+    def test_db_check_endpoint(self):
+        """Test GET /api/ai-knowledge/db-check endpoint"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            # Check if response has expected diagnostic fields
+            expected_fields = ['connected', 'pgvector_available', 'pgvector_installed']
+            missing_fields = [field for field in expected_fields if field not in data]
+            
+            if not missing_fields:
+                connected = data.get('connected', False)
+                pgvector_available = data.get('pgvector_available', False)
+                pgvector_installed = data.get('pgvector_installed', False)
+                errors = data.get('errors', [])
+                
+                # Log detailed diagnostic info
+                diagnostic_info = f"connected={connected}, pgvector_available={pgvector_available}, pgvector_installed={pgvector_installed}"
+                if errors:
+                    diagnostic_info += f", errors={len(errors)}"
+                
+                self.log_test("DB Check - Endpoint Response", True, diagnostic_info)
+                
+                # Log specific errors if any
+                if errors:
+                    print(f"   🔍 Database Errors Found ({len(errors)}):")
+                    for i, error in enumerate(errors[:3]):  # Show first 3 errors
+                        print(f"      {i+1}. {error}")
+                    if len(errors) > 3:
+                        print(f"      ... and {len(errors) - 3} more errors")
+                
+                return data
+            else:
+                self.log_test("DB Check - Endpoint Response", False, f"Missing diagnostic fields: {missing_fields}")
+        elif status == 404:
+            self.log_test("DB Check - Endpoint Exists", False, "db-check endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            if 'sslmode' in detail.lower():
+                self.log_test("DB Check - SSL Mode Error", True, f"Expected sslmode error (URL normalization issue): {detail}")
+            else:
+                self.log_test("DB Check - Endpoint Response", False, f"500 error: {detail}")
+        else:
+            self.log_test("DB Check - Endpoint Response", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_db_install_vector_endpoint(self):
+        """Test POST /api/ai-knowledge/db-install-vector endpoint"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/db-install-vector")
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector')
+        
+        if success and status == 200:
+            # Check if installation was successful
+            if data.get('success') or data.get('installed'):
+                self.log_test("DB Install Vector - Success", True, f"pgvector installation successful: {data}")
+            else:
+                self.log_test("DB Install Vector - Response", False, f"Unexpected success response: {data}")
+        elif status == 404:
+            self.log_test("DB Install Vector - Endpoint Exists", False, "db-install-vector endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            if 'sslmode' in detail.lower():
+                self.log_test("DB Install Vector - SSL Mode Error", True, f"Expected sslmode error (URL normalization issue): {detail}")
+            elif 'permission' in detail.lower() or 'privilege' in detail.lower():
+                self.log_test("DB Install Vector - Permission Error", True, f"Expected permission error (database user lacks CREATE EXTENSION): {detail}")
+            else:
+                self.log_test("DB Install Vector - Error", False, f"500 error: {detail}")
+        else:
+            self.log_test("DB Install Vector - Response", False, f"Status: {status}, Data: {data}")
+
+    def test_db_check_after_install(self):
+        """Re-test db-check after attempting pgvector installation"""
+        print("\n3️⃣ Re-testing GET /api/ai-knowledge/db-check after installation attempt")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            connected = data.get('connected', False)
+            pgvector_available = data.get('pgvector_available', False)
+            pgvector_installed = data.get('pgvector_installed', False)
+            
+            if connected and pgvector_available and pgvector_installed:
+                self.log_test("DB Check After Install - Full Setup", True, "Database now fully configured with pgvector")
+            elif connected and pgvector_available and not pgvector_installed:
+                self.log_test("DB Check After Install - Install Failed", False, "pgvector installation failed - check permissions")
+            else:
+                status_info = f"connected={connected}, available={pgvector_available}, installed={pgvector_installed}"
+                self.log_test("DB Check After Install - Status", True, f"Post-install status: {status_info}")
+        else:
+            self.log_test("DB Check After Install - Request Failed", False, f"Status: {status}, Data: {data}")
+
     def test_ai_knowledge_new_endpoints(self):
         """Test new AI Knowledge endpoints moved to app/routers/ai_knowledge.py"""
         print("\n🧠 Testing New AI Knowledge Endpoints (Review Request)")
