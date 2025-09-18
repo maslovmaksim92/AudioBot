@@ -3845,7 +3845,10 @@ if __name__ == "__main__":
     print("=" * 60)
     
     # Run review request diagnostics tests
-    success = tester.run_review_request_diagnostics_tests()
+    success = tester.test_review_request_diagnostics()
+    
+    # Display results
+    tester.display_results()
     
     # Exit with appropriate code
     sys.exit(0 if success else 1)
