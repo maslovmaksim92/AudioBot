@@ -259,6 +259,7 @@
 ##     - "Production deployment configuration issues"
 ##     - "React Router client-side routing setup"
 ##     - "Backend API server deployment"
+##     - "Web server configuration for SPA routing"
 ##   stuck_tasks: 
 ##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
