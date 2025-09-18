@@ -189,6 +189,9 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ COMPREHENSIVE TESTING COMPLETE - All 18 test scenarios PASSED (100% success rate). Tested all review request requirements: 1) GET /api/cleaning/filters structure validation ✓, 2) GET /api/cleaning/houses with pagination, search (fixed bug), date filters, periodicity validation ✓, 3) GET /api/cleaning/house/{id}/details with human-readable types and proper 404 handling ✓, 4) Bitrix stability testing ✓. Fixed critical search functionality bug during testing. All endpoints working correctly with real Bitrix24 data integration."
+##         -working: true
+##         -agent: "testing"
+##         -comment: "✅ CLEANING MODULE REVIEW REQUEST TESTING COMPLETE - All 17 specific correction tests PASSED (100% success rate). VERIFIED CORRECTIONS: 1) GET /api/cleaning/houses: management_company returns 'Не указана' for empty values ✓, brigade returns 'Бригада не назначена' when no ASSIGNED_BY_NAME ✓, cleaning_dates.*.dates in YYYY-MM-DD format (no T/TZ) ✓, periodicity follows rules ('2 раза', '2 раза + первые этажи', '2 раза + 2 подметания', '4 раза', 'индивидуальная') ✓, bitrix_url format https://vas-dom.bitrix24.ru/crm/deal/details/{ID}/ ✓. 2) GET /api/cleaning/house/{id}/details: Returns 200 for valid ID with house/management_company/senior_resident structure ✓, dates normalized YYYY-MM-DD ✓, periodicity calculated ✓, bitrix_url present ✓, returns 404 for non-existent ID ✓. 3) Bitrix stability: No 500 errors, safe fallback data ✓. FIXED DURING TESTING: house.brigade fallback in details endpoint. Sample responses show correct 'Не указана' and 'Бригада не назначена' fallbacks working properly."
 ##     implemented: true
 ##     working: true
 ##     file: "/app/backend/server.py"
