@@ -310,11 +310,25 @@ async def get_filters():
         logger.error(f"filters error: {e}")
         return FiltersResponse()
 
-# Helper to build cleaning_dates and periodicity from UF fields
+# Helper functions for cleaning dates
+def _normalize_dates(dates: List[Any]) -> List[str]:
+    out: List[str] = []
+    for val in (dates or []):
+        s = str(val or '').strip()
+        if not s:
+            continue
+        # Отрезаем время/таймзону, оставляем YYYY-MM-DD
+        if 'T' in s:
+            s = s.split('T')[0]
+        elif ' ' in s and len(s) >= 10:
+            s = s[:10]
+        if len(s) >= 10:
+            s = s[:10]
+        out.append(s)
+    return out
+
 def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
-
-    # Поля months: [(dates_field, type_field, key)]
     months = [
         ("UF_CRM_1741592774017", "UF_CRM_1741592855565", "september_1"),
         ("UF_CRM_1741592892232", "UF_CRM_1741592945060", "september_2"),
@@ -325,14 +339,12 @@ def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
         ("UF_CRM_1741593340713", "UF_CRM_1741593387667", "december_1"),
         ("UF_CRM_1741593408621", "UF_CRM_1741593452062", "december_2"),
     ]
-
     for dates_field, type_field, key in months:
         dates_raw = d.get(dates_field)
         type_raw = d.get(type_field)
-        dates = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
-        label = str(type_raw or "")
-        out[key] = {"dates": dates, "type": label}
-
+        dates_list = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
+        dates = _normalize_dates(dates_list)
+        out[key] = {"dates": dates, "type": str(type_raw or "")}
     return out
 
 def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
