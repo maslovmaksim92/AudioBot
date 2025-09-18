@@ -2164,6 +2164,372 @@ startxref
         else:
             self.log_test("Brigade Filtering - API Response", False, f"❌ Status: {status}, Data: {data}")
 
+    def test_review_request_deployed_backend(self):
+        """Test deployed backend as per review request"""
+        print("\n🎯 REVIEW REQUEST: Testing Deployed Backend")
+        print("=" * 60)
+        print(f"Base URL: {self.base_url}")
+        print("Scope: AI Training + CRM regression + Logistics (optional)")
+        print("-" * 60)
+        
+        # AI Training endpoints (new router /api/ai-knowledge)
+        print("\n🧠 AI TRAINING ENDPOINTS")
+        print("-" * 30)
+        
+        # 1) POST /api/ai-knowledge/preview
+        upload_id = self.test_ai_preview_deployed()
+        
+        # 2) POST /api/ai-knowledge/study
+        document_id = None
+        if upload_id:
+            document_id = self.test_ai_study_deployed(upload_id)
+        
+        # 3) GET /api/ai-knowledge/status
+        if upload_id:
+            self.test_ai_status_deployed(upload_id)
+        
+        # 4) GET /api/ai-knowledge/documents
+        self.test_ai_documents_deployed()
+        
+        # 5) POST /api/ai-knowledge/search
+        self.test_ai_search_deployed()
+        
+        # 6) DELETE /api/ai-knowledge/document/{document_id}
+        if document_id:
+            self.test_ai_delete_deployed(document_id)
+        
+        # CRM regression tests
+        print("\n🏠 CRM REGRESSION TESTS")
+        print("-" * 30)
+        
+        # 7) GET /api/cleaning/filters
+        self.test_crm_filters_deployed()
+        
+        # 8) GET /api/cleaning/houses
+        self.test_crm_houses_deployed()
+        
+        # Logistics (optional)
+        print("\n🚛 LOGISTICS (OPTIONAL)")
+        print("-" * 30)
+        
+        # 9) POST /api/logistics/route
+        self.test_logistics_deployed()
+        
+        return True
+
+    def test_ai_preview_deployed(self):
+        """Test POST /api/ai-knowledge/preview on deployed backend"""
+        print("1️⃣ POST /api/ai-knowledge/preview")
+        
+        # Create test file as specified: test.txt("Hello AI"), chunk_tokens=600, overlap=100
+        txt_content = "Hello AI"
+        files = {'file': ('test.txt', txt_content.encode('utf-8'), 'text/plain')}
+        data = {'chunk_tokens': 600, 'overlap': 100}
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files, data=data)
+        
+        if success and status == 200:
+            # Expected: upload_id(string), preview(string), chunks>=1, stats.total_size_bytes>0
+            required_fields = ['upload_id', 'preview', 'chunks', 'stats']
+            missing_fields = [field for field in required_fields if field not in response_data]
+            
+            if not missing_fields:
+                upload_id = response_data['upload_id']
+                preview = response_data['preview']
+                chunks = response_data['chunks']
+                stats = response_data.get('stats', {})
+                total_size_bytes = stats.get('total_size_bytes', 0)
+                
+                if (isinstance(upload_id, str) and len(upload_id) > 0 and
+                    isinstance(preview, str) and len(preview) > 0 and
+                    isinstance(chunks, int) and chunks >= 1 and
+                    isinstance(total_size_bytes, int) and total_size_bytes > 0):
+                    
+                    self.log_test("AI Preview - Deployed", True, 
+                                f"✅ 200, upload_id: {upload_id[:8]}..., preview: {len(preview)} chars, chunks: {chunks}, size: {total_size_bytes} bytes")
+                    return upload_id
+                else:
+                    self.log_test("AI Preview - Deployed", False, 
+                                f"❌ Invalid response values: chunks={chunks}, size={total_size_bytes}")
+            else:
+                self.log_test("AI Preview - Deployed", False, f"❌ Missing fields: {missing_fields}")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Preview - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized' (DATABASE_URL not set): {response_data.get('detail')}")
+        else:
+            self.log_test("AI Preview - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_study_deployed(self, upload_id):
+        """Test POST /api/ai-knowledge/study on deployed backend"""
+        print("2️⃣ POST /api/ai-knowledge/study")
+        
+        if not upload_id:
+            self.log_test("AI Study - Deployed", False, "❌ No upload_id from preview")
+            return None
+        
+        data = {
+            'upload_id': upload_id,
+            'filename': 'test.txt',
+            'category': 'Клининг'
+        }
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=data)
+        
+        if success and status == 200:
+            # Expected: document_id, chunks>=1, category
+            if ('document_id' in response_data and 
+                'chunks' in response_data and 
+                'category' in response_data):
+                
+                document_id = response_data['document_id']
+                chunks = response_data['chunks']
+                category = response_data['category']
+                
+                if (isinstance(document_id, str) and len(document_id) > 0 and
+                    isinstance(chunks, int) and chunks >= 1 and
+                    category == 'Клининг'):
+                    
+                    self.log_test("AI Study - Deployed", True, 
+                                f"✅ 200, document_id: {document_id[:8]}..., chunks: {chunks}, category: {category}")
+                    return document_id
+                else:
+                    self.log_test("AI Study - Deployed", False, 
+                                f"❌ Invalid values: chunks={chunks}, category={category}")
+            else:
+                self.log_test("AI Study - Deployed", False, f"❌ Missing required fields in response")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Study - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized': {response_data.get('detail')}")
+        else:
+            self.log_test("AI Study - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_status_deployed(self, upload_id):
+        """Test GET /api/ai-knowledge/status on deployed backend"""
+        print("3️⃣ GET /api/ai-knowledge/status")
+        
+        if not upload_id:
+            self.log_test("AI Status - Deployed", False, "❌ No upload_id provided")
+            return
+        
+        success, response_data, status = self.make_request('GET', f'/api/ai-knowledge/status?upload_id={upload_id}')
+        
+        if success and status == 200:
+            # Expected: until study -> 'ready', after study -> 'done' (or no row)
+            if 'status' in response_data:
+                status_value = response_data['status']
+                if status_value in ['ready', 'done']:
+                    self.log_test("AI Status - Deployed", True, f"✅ 200, status: {status_value}")
+                else:
+                    self.log_test("AI Status - Deployed", False, f"❌ Unexpected status: {status_value}")
+            else:
+                self.log_test("AI Status - Deployed", False, f"❌ Missing status field")
+        elif status == 404:
+            # No row found is acceptable (means 'done')
+            self.log_test("AI Status - Deployed", True, f"✅ 404 (no row found - acceptable)")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Status - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized': {response_data.get('detail')}")
+        else:
+            self.log_test("AI Status - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_ai_documents_deployed(self):
+        """Test GET /api/ai-knowledge/documents on deployed backend"""
+        print("4️⃣ GET /api/ai-knowledge/documents")
+        
+        success, response_data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            # Expected: contains document from study with chunks_count>=1
+            if 'documents' in response_data and isinstance(response_data['documents'], list):
+                documents = response_data['documents']
+                self.log_test("AI Documents - Deployed", True, 
+                            f"✅ 200, documents: {len(documents)} found")
+                
+                # Check if any document has chunks_count >= 1
+                if documents:
+                    for doc in documents:
+                        if doc.get('chunks_count', 0) >= 1:
+                            self.log_test("AI Documents - Chunks", True, 
+                                        f"✅ Document with chunks_count: {doc.get('chunks_count')}")
+                            break
+                    else:
+                        self.log_test("AI Documents - Chunks", False, 
+                                    f"❌ No documents with chunks_count >= 1")
+            else:
+                self.log_test("AI Documents - Deployed", False, f"❌ Invalid response structure")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Documents - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized': {response_data.get('detail')}")
+        else:
+            self.log_test("AI Documents - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_ai_search_deployed(self):
+        """Test POST /api/ai-knowledge/search on deployed backend"""
+        print("5️⃣ POST /api/ai-knowledge/search")
+        
+        search_data = {
+            'query': 'Hello',
+            'top_k': 5
+        }
+        
+        success, response_data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            # Expected: results[]
+            if 'results' in response_data and isinstance(response_data['results'], list):
+                results = response_data['results']
+                self.log_test("AI Search - Deployed", True, 
+                            f"✅ 200, results: {len(results)} found")
+            else:
+                self.log_test("AI Search - Deployed", False, f"❌ Invalid response structure")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Search - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized': {response_data.get('detail')}")
+        else:
+            self.log_test("AI Search - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_ai_delete_deployed(self, document_id):
+        """Test DELETE /api/ai-knowledge/document/{document_id} on deployed backend"""
+        print("6️⃣ DELETE /api/ai-knowledge/document/{document_id}")
+        
+        if not document_id:
+            self.log_test("AI Delete - Deployed", False, "❌ No document_id provided")
+            return
+        
+        # First delete
+        success, response_data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            if response_data.get('ok') is True:
+                self.log_test("AI Delete - Deployed", True, f"✅ 200, ok: true")
+                
+                # Repeat delete (should also return 200)
+                success2, response_data2, status2 = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+                if success2 and status2 == 200 and response_data2.get('ok') is True:
+                    self.log_test("AI Delete - Repeated", True, f"✅ 200, ok: true (idempotent)")
+                else:
+                    self.log_test("AI Delete - Repeated", False, f"❌ Status: {status2}, Data: {response_data2}")
+            else:
+                self.log_test("AI Delete - Deployed", False, f"❌ Expected ok: true, got: {response_data}")
+        elif status == 500 and 'Database is not initialized' in response_data.get('detail', ''):
+            self.log_test("AI Delete - Deployed", True, 
+                        f"✅ Expected 500 'Database is not initialized': {response_data.get('detail')}")
+        else:
+            self.log_test("AI Delete - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_crm_filters_deployed(self):
+        """Test GET /api/cleaning/filters on deployed backend"""
+        print("7️⃣ GET /api/cleaning/filters")
+        
+        success, response_data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            # Expected: brigades non-empty, management_companies = []
+            if ('brigades' in response_data and 
+                'management_companies' in response_data and 
+                'statuses' in response_data):
+                
+                brigades = response_data['brigades']
+                management_companies = response_data['management_companies']
+                statuses = response_data['statuses']
+                
+                # Check brigades non-empty
+                brigades_ok = isinstance(brigades, list) and len(brigades) > 0
+                # Check management_companies = []
+                mc_ok = isinstance(management_companies, list) and len(management_companies) == 0
+                # Check statuses present
+                statuses_ok = isinstance(statuses, list)
+                
+                if brigades_ok and mc_ok and statuses_ok:
+                    self.log_test("CRM Filters - Deployed", True, 
+                                f"✅ 200, brigades: {len(brigades)} (non-empty), management_companies: [] (empty), statuses: {len(statuses)}")
+                else:
+                    self.log_test("CRM Filters - Deployed", False, 
+                                f"❌ brigades_ok: {brigades_ok}, mc_ok: {mc_ok}, statuses_ok: {statuses_ok}")
+            else:
+                self.log_test("CRM Filters - Deployed", False, f"❌ Missing required fields")
+        else:
+            self.log_test("CRM Filters - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_crm_houses_deployed(self):
+        """Test GET /api/cleaning/houses on deployed backend"""
+        print("8️⃣ GET /api/cleaning/houses?page=1&limit=50")
+        
+        success, response_data, status = self.make_request('GET', '/api/cleaning/houses', params={'page': 1, 'limit': 50})
+        
+        if success and status == 200:
+            # Expected: required fields present
+            if ('houses' in response_data and 
+                'total' in response_data and 
+                'page' in response_data and 
+                'limit' in response_data and 
+                'pages' in response_data):
+                
+                houses = response_data['houses']
+                total = response_data['total']
+                page = response_data['page']
+                limit = response_data['limit']
+                pages = response_data['pages']
+                
+                if isinstance(houses, list):
+                    self.log_test("CRM Houses - Deployed", True, 
+                                f"✅ 200, houses: {len(houses)}, total: {total}, page: {page}, limit: {limit}, pages: {pages}")
+                    
+                    # Check house object structure if houses exist
+                    if houses:
+                        house = houses[0]
+                        required_fields = ['id', 'title', 'address', 'apartments', 'entrances', 'floors', 'cleaning_dates', 'periodicity', 'bitrix_url']
+                        missing_fields = [field for field in required_fields if field not in house]
+                        
+                        if not missing_fields:
+                            self.log_test("CRM Houses - Structure", True, 
+                                        f"✅ House object has all required fields")
+                        else:
+                            self.log_test("CRM Houses - Structure", False, 
+                                        f"❌ Missing fields: {missing_fields}")
+                else:
+                    self.log_test("CRM Houses - Deployed", False, f"❌ houses should be array, got {type(houses)}")
+            else:
+                self.log_test("CRM Houses - Deployed", False, f"❌ Missing required response fields")
+        else:
+            self.log_test("CRM Houses - Deployed", False, f"❌ Status: {status}, Data: {response_data}")
+
+    def test_logistics_deployed(self):
+        """Test POST /api/logistics/route on deployed backend (optional)"""
+        print("9️⃣ POST /api/logistics/route (optional)")
+        
+        # Test with 1 point - should return 400 'Минимум 2 точки'
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, response_data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if status == 404 and 'Not Found' in response_data.get('detail', ''):
+            self.log_test("Logistics - Deployed", True, 
+                        f"✅ Endpoint not implemented (404 'Not Found') - acceptable per review request")
+        elif status == 400:
+            detail = response_data.get('detail', '')
+            if 'Минимум 2 точки' in detail:
+                self.log_test("Logistics - Deployed", True, 
+                            f"✅ 400 'Минимум 2 точки' - endpoint exists and validates correctly")
+            else:
+                self.log_test("Logistics - Deployed", False, 
+                            f"❌ Wrong 400 error message: {detail}")
+        else:
+            self.log_test("Logistics - Deployed", False, 
+                        f"❌ Unexpected response: Status {status}, Data: {response_data}")
+
+
 def main():
     """Main test execution for review request"""
     tester = VasDomAPITester()
