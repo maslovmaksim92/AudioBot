@@ -2967,43 +2967,256 @@ startxref
         else:
             print("\n✅ ALL SMOKE TESTS PASSED!")
 
+    def test_ai_db_diagnostics_flow(self):
+        """Test AI DB diagnostics and full AI flow as per review request"""
+        print("\n🔍 SMOKE TEST: AI DB Diagnostics and AI Flow")
+        print("=" * 60)
+        print("Review Request: Re-run SMOKE on prod https://audiobot-qci2.onrender.com")
+        print("1) GET /api/ai-knowledge/db-check — parse JSON. If 404, report; if 500, capture detail.")
+        print("2) If pgvector_available=true and installed=false, POST /api/ai-knowledge/db-install-vector {confirm:true} then re-check.")
+        print("3) Try full AI flow if DB OK: preview (test.txt), study (Клининг), documents, search, delete.")
+        print("4) Confirm CRM filters 200.")
+        print("-" * 60)
+        
+        # Step 1: GET /api/ai-knowledge/db-check
+        db_status = self.test_ai_db_check()
+        
+        # Step 2: Install pgvector if needed
+        if db_status and db_status.get('pgvector_available') and not db_status.get('installed'):
+            print("\n🔧 pgvector available but not installed - attempting installation...")
+            install_success = self.test_ai_db_install_vector()
+            if install_success:
+                # Re-check after installation
+                db_status = self.test_ai_db_check()
+        
+        # Step 3: Try full AI flow if DB is OK
+        if db_status and db_status.get('database_initialized'):
+            print("\n🧠 Database OK - Testing full AI flow...")
+            self.test_full_ai_flow()
+        else:
+            print("\n❌ Database not initialized - skipping AI flow tests")
+        
+        # Step 4: Confirm CRM filters 200
+        print("\n🏠 Testing CRM filters...")
+        self.test_crm_filters_200()
+        
+        return True
+
+    def test_ai_db_check(self):
+        """Test GET /api/ai-knowledge/db-check endpoint"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if status == 404:
+            self.log_test("AI DB Check - Endpoint Missing", False, "GET /api/ai-knowledge/db-check returns 404 - endpoint not deployed")
+            return None
+        elif status == 500:
+            detail = data.get('detail', '')
+            self.log_test("AI DB Check - Server Error", False, f"500 error: {detail}")
+            return None
+        elif success and status == 200:
+            # Parse JSON response
+            try:
+                # Expected fields: database_initialized, pgvector_available, installed, etc.
+                db_initialized = data.get('database_initialized', False)
+                pgvector_available = data.get('pgvector_available', False)
+                installed = data.get('installed', False)
+                
+                self.log_test("AI DB Check - Success", True, 
+                            f"DB initialized: {db_initialized}, pgvector available: {pgvector_available}, installed: {installed}")
+                return data
+            except Exception as e:
+                self.log_test("AI DB Check - JSON Parse Error", False, f"Failed to parse JSON: {e}")
+                return None
+        else:
+            self.log_test("AI DB Check - Unexpected Response", False, f"Status: {status}, Data: {data}")
+            return None
+
+    def test_ai_db_install_vector(self):
+        """Test POST /api/ai-knowledge/db-install-vector endpoint"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/db-install-vector")
+        
+        install_data = {'confirm': True}
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', install_data)
+        
+        if status == 404:
+            self.log_test("AI DB Install Vector - Endpoint Missing", False, "POST /api/ai-knowledge/db-install-vector returns 404 - endpoint not deployed")
+            return False
+        elif status == 500:
+            detail = data.get('detail', '')
+            self.log_test("AI DB Install Vector - Server Error", False, f"500 error: {detail}")
+            return False
+        elif success and status == 200:
+            # Check if installation was successful
+            success_flag = data.get('success', False)
+            message = data.get('message', '')
+            
+            if success_flag:
+                self.log_test("AI DB Install Vector - Success", True, f"pgvector installed successfully: {message}")
+                return True
+            else:
+                self.log_test("AI DB Install Vector - Failed", False, f"Installation failed: {message}")
+                return False
+        else:
+            self.log_test("AI DB Install Vector - Unexpected Response", False, f"Status: {status}, Data: {data}")
+            return False
+
+    def test_full_ai_flow(self):
+        """Test full AI flow: preview -> study -> documents -> search -> delete"""
+        print("\n3️⃣ Testing Full AI Flow")
+        
+        # Step 3a: Preview (test.txt)
+        upload_id = self.test_ai_flow_preview()
+        
+        # Step 3b: Study (Клининг)
+        document_id = None
+        if upload_id:
+            document_id = self.test_ai_flow_study(upload_id)
+        
+        # Step 3c: Documents
+        self.test_ai_flow_documents()
+        
+        # Step 3d: Search
+        self.test_ai_flow_search()
+        
+        # Step 3e: Delete
+        if document_id:
+            self.test_ai_flow_delete(document_id)
+
+    def test_ai_flow_preview(self):
+        """Test AI flow preview step with test.txt"""
+        print("   3a) Testing preview (test.txt)")
+        
+        txt_content = "This is a test document for VasDom AudioBot AI system testing."
+        files = {'file': ('test.txt', txt_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            upload_id = data.get('upload_id')
+            if upload_id:
+                self.log_test("AI Flow - Preview", True, f"Preview successful, upload_id: {upload_id[:8]}...")
+                return upload_id
+            else:
+                self.log_test("AI Flow - Preview", False, "No upload_id in response")
+        else:
+            self.log_test("AI Flow - Preview", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_ai_flow_study(self, upload_id):
+        """Test AI flow study step with category Клининг"""
+        print("   3b) Testing study (Клининг)")
+        
+        data = {
+            'upload_id': upload_id,
+            'filename': 'test.txt',
+            'category': 'Клининг'
+        }
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=data)
+        
+        if success and status == 200:
+            document_id = response_data.get('document_id')
+            if document_id:
+                self.log_test("AI Flow - Study", True, f"Study successful, document_id: {document_id[:8]}...")
+                return document_id
+            else:
+                self.log_test("AI Flow - Study", False, "No document_id in response")
+        else:
+            self.log_test("AI Flow - Study", False, f"Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_flow_documents(self):
+        """Test AI flow documents listing"""
+        print("   3c) Testing documents")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            documents = data.get('documents', [])
+            self.log_test("AI Flow - Documents", True, f"Documents retrieved: {len(documents)} found")
+        else:
+            self.log_test("AI Flow - Documents", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_flow_search(self):
+        """Test AI flow search functionality"""
+        print("   3d) Testing search")
+        
+        search_data = {'query': 'test', 'top_k': 5}
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            results = data.get('results', [])
+            self.log_test("AI Flow - Search", True, f"Search successful: {len(results)} results")
+        else:
+            self.log_test("AI Flow - Search", False, f"Status: {status}, Data: {data}")
+
+    def test_ai_flow_delete(self, document_id):
+        """Test AI flow document deletion"""
+        print("   3e) Testing delete")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            ok = data.get('ok', False)
+            if ok:
+                self.log_test("AI Flow - Delete", True, f"Document deleted successfully: {document_id[:8]}...")
+            else:
+                self.log_test("AI Flow - Delete", False, f"Delete failed: {data}")
+        else:
+            self.log_test("AI Flow - Delete", False, f"Status: {status}, Data: {data}")
+
+    def test_crm_filters_200(self):
+        """Test CRM filters return 200 status"""
+        print("\n4️⃣ Testing CRM filters 200")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            brigades = data.get('brigades', [])
+            management_companies = data.get('management_companies', [])
+            statuses = data.get('statuses', [])
+            
+            self.log_test("CRM Filters - 200 Status", True, 
+                        f"Filters OK: brigades={len(brigades)}, companies={len(management_companies)}, statuses={len(statuses)}")
+        else:
+            self.log_test("CRM Filters - 200 Status", False, f"Status: {status}, Data: {data}")
+
+    def run_smoke_test_ai_diagnostics(self):
+        """Run SMOKE test for AI DB diagnostics and AI flow as per review request"""
+        print("🚀 SMOKE TEST: AI DB Diagnostics and AI Flow")
+        print("=" * 60)
+        print(f"Testing URL: {self.base_url}")
+        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        
+        # Run AI DB diagnostics and flow test
+        self.test_ai_db_diagnostics_flow()
+        
+        # Print summary
+        self.print_summary()
+
 def main():
-    """Main test execution for review request"""
-    if len(sys.argv) > 1 and sys.argv[1] == "smoke":
-        # Run smoke test for review request
-        base_url = sys.argv[2] if len(sys.argv) > 2 else "https://audiobot-qci2.onrender.com"
-        tester = VasDomAPITester(base_url)
-        tester.run_smoke_test_review_request()
-        return 0 if len(tester.failed_tests) == 0 else 1
-    
-    tester = VasDomAPITester()
-    
-    print("🧹 VasDom AudioBot - Review Request Backend Testing")
-    print("📍 Testing URL:", tester.base_url)
-    print("🎯 Review Request: Specific backend tests on deployed app")
-    print("=" * 80)
-    
-    # Run specific review request tests
-    tester.test_review_request_specific()
-    
-    # Print detailed summary
-    print("\n" + "=" * 80)
-    print("📊 REVIEW REQUEST TEST RESULTS")
-    print("=" * 80)
-    print(f"Total Tests: {tester.tests_run}")
-    print(f"Passed: {tester.tests_passed}")
-    print(f"Failed: {len(tester.failed_tests)}")
-    print(f"Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%" if tester.tests_run > 0 else "No tests run")
-    
-    if tester.failed_tests:
-        print("\n❌ FAILED TESTS DETAILS:")
-        for i, test in enumerate(tester.failed_tests, 1):
-            print(f"{i}. {test['name']}")
-            print(f"   Details: {test['details']}")
+    """Main function to run tests"""
+    if len(sys.argv) > 1:
+        base_url = sys.argv[1]
     else:
-        print("\n✅ ALL TESTS PASSED!")
+        base_url = "https://audiobot-qci2.onrender.com"
     
-    return 0 if len(tester.failed_tests) == 0 else 1
+    tester = VasDomAPITester(base_url)
+    
+    # Check if we should run smoke test specifically
+    if len(sys.argv) > 2 and sys.argv[2] == "smoke":
+        tester.run_smoke_test_ai_diagnostics()
+    else:
+        tester.run_comprehensive_tests()
+
+if __name__ == "__main__":
+    main()
+
 
     def run_review_request_tests(self):
         """Run specific tests as per review request"""
