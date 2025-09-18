@@ -262,15 +262,15 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Production deployment configuration issues"
-##     - "React Router client-side routing setup"
-##     - "Backend API server deployment"
-##     - "Web server configuration for SPA routing"
+##     - "AI Knowledge Base endpoints after move to app/routers/ai_knowledge.py"
+##     - "Legacy endpoint compatibility after AI Knowledge refactor"
+##     - "Database initialization graceful handling"
 ##   stuck_tasks: 
 ##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
 ##     - "React Router client-side routing returns 404 on direct route access"
 ##     - "Web server not configured for SPA fallback routing"
+##     - "POST /api/logistics/route endpoint not implemented"
 ##   test_all: false
 ##   test_priority: "high_first"
 
