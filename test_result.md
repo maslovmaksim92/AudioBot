@@ -228,9 +228,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Cleaning houses: periodicity label, type enum mapping, Bitrix URL"
-##   stuck_tasks:
-##     - "Past 503 Bitrix24 instabilities; verify fallbacks don't break responses"
+##     - "Cleaning houses: periodicity label, type enum mapping, Bitrix URL - COMPLETED ✅"
+##   stuck_tasks: []
 ##   test_all: false
 ##   test_priority: "high_first"
 
