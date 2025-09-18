@@ -228,7 +228,7 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "AI Knowledge Base: upload/search/list/save/delete (/api/ai-knowledge/*)"
+##     - "Cleaning houses: periodicity label, type enum mapping, Bitrix URL"
 ##   stuck_tasks:
 ##     - "Past 503 Bitrix24 instabilities; verify fallbacks don't break responses"
 ##   test_all: false
