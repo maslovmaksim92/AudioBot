@@ -178,7 +178,17 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ PASSED - All review request requirements validated: 1) GET /api/cleaning/houses supports brigade, management_company, cleaning_date=2025-09-05, and date_from=2025-09-01&date_to=2025-09-30 filters with correct pagination schema {houses[], total, page, limit, pages} as integers. 2) House objects contain all required fields: id, title, address, brigade (string), management_company (string), periodicity (string), cleaning_dates (object), bitrix_url (string). 3) GET /api/cleaning/house/{id}/details includes house.bitrix_url and returns 404 (not 500) for invalid IDs. 4) Bitrix 503 fallbacks work - endpoints return stable response shapes without 500 errors. 100% pass rate on all review requirements."
-##   - task: "Logistics route endpoint (/api/logistics/route)"
+##   - task: "Comprehensive Cleaning Module Testing per Review Request"
+##     implemented: true
+##     working: true
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: true
+##         -agent: "testing"
+##         -comment: "✅ COMPREHENSIVE TESTING COMPLETE - All 18 test scenarios PASSED (100% success rate). Tested all review request requirements: 1) GET /api/cleaning/filters structure validation ✓, 2) GET /api/cleaning/houses with pagination, search (fixed bug), date filters, periodicity validation ✓, 3) GET /api/cleaning/house/{id}/details with human-readable types and proper 404 handling ✓, 4) Bitrix stability testing ✓. Fixed critical search functionality bug during testing. All endpoints working correctly with real Bitrix24 data integration."
 ##     implemented: true
 ##     working: true
 ##     file: "/app/backend/server.py"
