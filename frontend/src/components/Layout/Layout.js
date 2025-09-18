@@ -115,7 +115,7 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className="lg:pl-72 pt-0">
         {/* Top bar */}
         <div className="sticky top-0 z-40 flex items-center justify-between bg-white/90 backdrop-blur border-b border-gray-200 px-3 py-0 shadow-sm">
           <button
