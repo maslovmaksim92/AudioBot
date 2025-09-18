@@ -510,7 +510,15 @@ async def get_house_details(house_id: int):
         dresp = await bitrix._call("crm.deal.get", {"id": house_id, "select": [
             "ID","TITLE","COMPANY_ID","COMPANY_TITLE","CONTACT_ID",
             "ASSIGNED_BY_NAME","ASSIGNED_BY_ID","STAGE_ID","UF_CRM_1669561599956",
-            "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166"
+            "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
+            "UF_CRM_1741592774017","UF_CRM_1741592855565",
+            "UF_CRM_1741592892232","UF_CRM_1741592945060",
+            "UF_CRM_1741593004888","UF_CRM_1741593047994",
+            "UF_CRM_1741593067418","UF_CRM_1741593115407",
+            "UF_CRM_1741593156926","UF_CRM_1741593210242",
+            "UF_CRM_1741593231558","UF_CRM_1741593285121",
+            "UF_CRM_1741593340713","UF_CRM_1741593387667",
+            "UF_CRM_1741593408621","UF_CRM_1741593452062"
         ]})
         deal = dresp.get("result") or {}
         if isinstance(deal, list) and deal:
