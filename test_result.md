@@ -242,8 +242,11 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "House 12966 periodicity calculation fix deployment"
+##     - "Production deployment configuration issues"
+##     - "React Router client-side routing setup"
+##     - "Backend API server deployment"
 ##   stuck_tasks: 
+##     - "Production deployment has critical routing and API issues"
 ##     - "House 12966 periodicity calculation issue - fix not deployed to production"
 ##   test_all: false
 ##   test_priority: "high_first"
