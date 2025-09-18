@@ -423,6 +423,83 @@ async def get_filters():
         logger.error(f"Error retrieving filters: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка получения фильтров: {str(e)}")
 
+@api_router.get("/cleaning/house/{house_id}/details")
+async def get_house_details(house_id: int):
+    try:
+        # Get deal details with enrichment
+        params = {
+            "select": [
+                "ID", "TITLE", "COMPANY_ID", "COMPANY_TITLE", "CONTACT_ID",
+                "ASSIGNED_BY_NAME", "ASSIGNED_BY_ID", "STAGE_ID", 
+                "UF_CRM_1669561599956",  # Address
+                "UF_CRM_1669704529022",  # Apartments
+                "UF_CRM_1669705507390",  # Entrances
+                "UF_CRM_1669704631166"   # Floors
+            ],
+            "filter": {"ID": house_id, "CATEGORY_ID": "34"}
+        }
+        
+        response = await bitrix_service._make_request("crm.deal.get", {"id": house_id})
+        if not response.get("ok"):
+            logger.warning(f"crm.deal.get failed for ID {house_id}: {response.get('error')}")
+            raise HTTPException(status_code=404, detail="Дом не найден")
+        
+        deal = response.get("result") or {}
+        if isinstance(deal, list) and deal:
+            deal = deal[0]
+        if not deal:
+            raise HTTPException(status_code=404, detail="Дом не найден")
+        
+        # Enrich deal data
+        enriched_deal = await bitrix_service._enrich_deal_data(deal)
+        
+        # Get company details
+        company_details = {}
+        if deal.get("COMPANY_ID"):
+            company_details = await bitrix_service.get_company_details(deal["COMPANY_ID"])
+        
+        # Get contact details
+        contact_details = {}
+        cid = deal.get("CONTACT_ID")
+        if cid:
+            if isinstance(cid, list) and cid:
+                cid = cid[0]
+            contact_details = await bitrix_service.get_contact_details(cid)
+        
+        base_url = bitrix_service.base_url.replace('/rest','') if bitrix_service.base_url else ''
+        brigade_name = enriched_deal.get("BRIGADE_NAME_ENRICHED") or deal.get("ASSIGNED_BY_NAME") or "Бригада не назначена"
+        
+        return {
+            "house": {
+                "id": int(deal.get("ID", 0)),
+                "title": deal.get("TITLE", ""),
+                "address": deal.get("UF_CRM_1669561599956", ""),
+                "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
+                "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
+                "floors": int(deal.get("UF_CRM_1669704631166") or 0),
+                "brigade": brigade_name,
+                "status": deal.get("STAGE_ID", ""),
+                "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else ""
+            },
+            "management_company": {
+                "id": company_details.get("ID", ""),
+                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")),
+                "phone": (company_details.get("PHONE", [{}])[0].get("VALUE", "") if company_details.get("PHONE") else ""),
+                "email": (company_details.get("EMAIL", [{}])[0].get("VALUE", "") if company_details.get("EMAIL") else ""),
+                "address": company_details.get("ADDRESS", "")
+            },
+            "senior_resident": {
+                "name": contact_details.get("NAME", "") + " " + contact_details.get("LAST_NAME", ""),
+                "phone": (contact_details.get("PHONE", [{}])[0].get("VALUE", "") if contact_details.get("PHONE") else ""),
+                "email": (contact_details.get("EMAIL", [{}])[0].get("VALUE", "") if contact_details.get("EMAIL") else "")
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving house details for ID {house_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения деталей дома: {str(e)}")
+
 # Root
 @api_router.get("/")
 async def root():
