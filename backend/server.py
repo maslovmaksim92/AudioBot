@@ -595,7 +595,7 @@ async def get_house_details(house_id: int):
                 "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
                 "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
                 "floors": int(deal.get("UF_CRM_1669704631166") or 0),
-                "brigade": deal.get("ASSIGNED_BY_NAME", ""),
+                "brigade": deal.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
                 "status": deal.get("STAGE_ID", ""),
                 "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else "",
                 "cleaning_dates": cd,
