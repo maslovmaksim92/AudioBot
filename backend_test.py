@@ -1621,21 +1621,186 @@ startxref
                 self.log_test(f"Bitrix Stability {endpoint} ℹ", True, 
                             f"Status {status} (may be acceptable fallback behavior)")
 
+    def test_review_request_specific(self):
+        """Test specific scenarios from the review request"""
+        print("🎯 REVIEW REQUEST SPECIFIC TESTS")
+        print("=" * 60)
+        print("Base URL: https://audiobot-qci2.onrender.com")
+        print("Testing specific scenarios as requested")
+        print("-" * 60)
+        
+        # Test 1: GET /api/cleaning/house/12966/details
+        self.test_house_12966_details()
+        
+        # Test 2: GET /api/cleaning/filters
+        filters_data = self.test_cleaning_filters_specific()
+        
+        # Test 3: GET /api/cleaning/houses?brigade=<first_brigade>
+        if filters_data:
+            self.test_brigade_filtering(filters_data)
+        
+        return True
+
+    def test_house_12966_details(self):
+        """Test GET /api/cleaning/house/12966/details - expect 200 and house.periodicity == '2 раза + подметания'"""
+        print("\n1️⃣ Testing GET /api/cleaning/house/12966/details")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/house/12966/details')
+        
+        if success and status == 200:
+            # Check if response has house object
+            if 'house' in data:
+                house = data['house']
+                
+                # Check periodicity
+                periodicity = house.get('periodicity', '')
+                if periodicity == '2 раза + подметания':
+                    self.log_test("House 12966 - Periodicity Check", True, f"✅ periodicity = '{periodicity}'")
+                else:
+                    self.log_test("House 12966 - Periodicity Check", False, f"❌ Expected '2 раза + подметания', got '{periodicity}'")
+                
+                # Check cleaning_dates format
+                cleaning_dates = house.get('cleaning_dates', {})
+                date_format_errors = []
+                
+                for period_key in ['september_1', 'september_2']:
+                    if period_key in cleaning_dates:
+                        period_data = cleaning_dates[period_key]
+                        if isinstance(period_data, dict) and 'dates' in period_data:
+                            dates = period_data['dates']
+                            if isinstance(dates, list):
+                                for date in dates:
+                                    # Check YYYY-MM-DD format
+                                    if not (isinstance(date, str) and len(date) == 10 and date.count('-') == 2):
+                                        date_format_errors.append(f"{period_key}: '{date}' not in YYYY-MM-DD format")
+                
+                if not date_format_errors:
+                    self.log_test("House 12966 - Date Format Check", True, "✅ All dates in YYYY-MM-DD format")
+                    
+                    # Show sample dates
+                    sample_dates = []
+                    for period_key in ['september_1', 'september_2']:
+                        if period_key in cleaning_dates and 'dates' in cleaning_dates[period_key]:
+                            dates = cleaning_dates[period_key]['dates']
+                            if dates:
+                                sample_dates.extend(dates[:2])  # Take first 2 dates from each period
+                    
+                    if sample_dates:
+                        print(f"   📅 Sample dates: {sample_dates}")
+                else:
+                    self.log_test("House 12966 - Date Format Check", False, f"❌ Date format errors: {date_format_errors}")
+                
+                # Show full response sample
+                print(f"   🏠 House ID: {house.get('id')}")
+                print(f"   📍 Address: {house.get('address', 'N/A')}")
+                print(f"   🔧 Periodicity: {house.get('periodicity', 'N/A')}")
+                print(f"   🔗 Bitrix URL: {house.get('bitrix_url', 'N/A')}")
+                
+            else:
+                self.log_test("House 12966 - Response Structure", False, "❌ Missing 'house' object in response")
+        else:
+            self.log_test("House 12966 - API Response", False, f"❌ Status: {status}, Data: {data}")
+
+    def test_cleaning_filters_specific(self):
+        """Test GET /api/cleaning/filters - brigades not empty, management_companies = [], statuses present"""
+        print("\n2️⃣ Testing GET /api/cleaning/filters")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            # Check brigades not empty
+            brigades = data.get('brigades', [])
+            if isinstance(brigades, list) and len(brigades) > 0:
+                self.log_test("Filters - Brigades Not Empty", True, f"✅ Found {len(brigades)} brigades")
+                print(f"   👥 Sample brigades: {brigades[:5]}")
+            else:
+                self.log_test("Filters - Brigades Not Empty", False, f"❌ Brigades empty or invalid: {brigades}")
+            
+            # Check management_companies is empty array
+            management_companies = data.get('management_companies', None)
+            if isinstance(management_companies, list) and len(management_companies) == 0:
+                self.log_test("Filters - Management Companies Empty", True, "✅ management_companies = [] (empty array)")
+            else:
+                self.log_test("Filters - Management Companies Empty", False, f"❌ Expected [], got: {management_companies}")
+            
+            # Check statuses present
+            statuses = data.get('statuses', [])
+            if isinstance(statuses, list) and len(statuses) > 0:
+                self.log_test("Filters - Statuses Present", True, f"✅ Found {len(statuses)} statuses")
+                print(f"   📊 Sample statuses: {statuses[:3]}")
+            else:
+                self.log_test("Filters - Statuses Present", False, f"❌ Statuses empty or invalid: {statuses}")
+            
+            return data
+        else:
+            self.log_test("Filters - API Response", False, f"❌ Status: {status}, Data: {data}")
+            return None
+
+    def test_brigade_filtering(self, filters_data):
+        """Test GET /api/cleaning/houses?brigade=<first_brigade> - exact match filtering"""
+        print("\n3️⃣ Testing Brigade Filtering")
+        
+        brigades = filters_data.get('brigades', [])
+        if not brigades:
+            self.log_test("Brigade Filtering - No Brigades", False, "❌ No brigades available for testing")
+            return
+        
+        # Use first brigade for testing
+        test_brigade = brigades[0]
+        print(f"   🎯 Testing with brigade: '{test_brigade}'")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'brigade': test_brigade, 'limit': 20})
+        
+        if success and status == 200:
+            houses = data.get('houses', [])
+            if isinstance(houses, list):
+                # Check that all houses have exact brigade match
+                exact_matches = 0
+                mismatches = []
+                
+                for house in houses:
+                    house_brigade = house.get('brigade', '')
+                    if house_brigade == test_brigade:
+                        exact_matches += 1
+                    else:
+                        mismatches.append(f"House {house.get('id')}: '{house_brigade}' != '{test_brigade}'")
+                
+                if len(houses) > 0 and exact_matches == len(houses):
+                    self.log_test("Brigade Filtering - Exact Match", True, f"✅ All {len(houses)} houses have exact brigade match")
+                    
+                    # Show sample JSON
+                    if houses:
+                        sample_house = houses[0]
+                        print(f"   📋 Sample house JSON:")
+                        print(f"      ID: {sample_house.get('id')}")
+                        print(f"      Title: {sample_house.get('title', 'N/A')}")
+                        print(f"      Brigade: '{sample_house.get('brigade', 'N/A')}'")
+                        print(f"      Address: {sample_house.get('address', 'N/A')}")
+                        
+                elif len(houses) == 0:
+                    self.log_test("Brigade Filtering - No Results", True, f"✅ No houses found for brigade '{test_brigade}' (acceptable)")
+                else:
+                    self.log_test("Brigade Filtering - Exact Match", False, f"❌ {exact_matches}/{len(houses)} exact matches. Mismatches: {mismatches[:3]}")
+            else:
+                self.log_test("Brigade Filtering - Response Structure", False, f"❌ Invalid houses array: {type(houses)}")
+        else:
+            self.log_test("Brigade Filtering - API Response", False, f"❌ Status: {status}, Data: {data}")
+
 def main():
-    """Main test execution for Cleaning module review request"""
+    """Main test execution for review request"""
     tester = VasDomAPITester()
     
-    print("🧹 VasDom AudioBot - Cleaning Module Backend Testing")
+    print("🧹 VasDom AudioBot - Review Request Backend Testing")
     print("📍 Testing URL:", tester.base_url)
-    print("🎯 Review Request: Testing after changes in /app/backend/app_main.py")
+    print("🎯 Review Request: Specific backend tests on deployed app")
     print("=" * 80)
     
-    # Run comprehensive cleaning module tests
-    tester.test_cleaning_module_comprehensive()
+    # Run specific review request tests
+    tester.test_review_request_specific()
     
     # Print detailed summary
     print("\n" + "=" * 80)
-    print("📊 CLEANING MODULE TEST RESULTS")
+    print("📊 REVIEW REQUEST TEST RESULTS")
     print("=" * 80)
     print(f"Total Tests: {tester.tests_run}")
     print(f"Passed: {tester.tests_passed}")
@@ -1647,16 +1812,8 @@ def main():
         for i, test in enumerate(tester.failed_tests, 1):
             print(f"{i}. {test['name']}")
             print(f"   Details: {test['details']}")
-    
-    # Categorize results by test type
-    filter_tests = [t for t in tester.failed_tests if 'Filter' in t['name']]
-    house_tests = [t for t in tester.failed_tests if 'House' in t['name']]
-    stability_tests = [t for t in tester.failed_tests if 'Stability' in t['name']]
-    
-    print(f"\n📋 RESULTS BY CATEGORY:")
-    print(f"🔍 Filters: {'✅ PASSED' if not filter_tests else f'❌ {len(filter_tests)} FAILED'}")
-    print(f"🏠 Houses: {'✅ PASSED' if not house_tests else f'❌ {len(house_tests)} FAILED'}")
-    print(f"🛡️ Stability: {'✅ PASSED' if not stability_tests else f'❌ {len(stability_tests)} FAILED'}")
+    else:
+        print("\n✅ ALL TESTS PASSED!")
     
     return 0 if len(tester.failed_tests) == 0 else 1
 
