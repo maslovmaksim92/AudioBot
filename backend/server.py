@@ -484,12 +484,42 @@ async def get_houses(
             return HousesResponse(houses=houses[start:end], total=total_count, page=page, limit=limit, pages=pages)
 
         # In-memory filtering for rich fields
-        def ok(d):
-            if brigade and brigade not in (d.get("ASSIGNED_BY_NAME") or ""):
+        async def resolved_brigade(d: Dict[str, Any]) -> str:
+            b = d.get("ASSIGNED_BY_NAME") or ""
+            if not b and d.get("ASSIGNED_BY_ID"):
+                try:
+                    uid = str(d.get("ASSIGNED_BY_ID"))
+                    if uid not in bitrix._user_cache:
+                        uresp = await bitrix._call("user.get", {"ID": uid})
+                        uitems = uresp.get("result") or []
+                        if isinstance(uitems, dict):
+                            uitems = [uitems]
+                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
+                    u = bitrix._user_cache.get(uid) or {}
+                    b = u.get("NAME") and ((u.get("LAST_NAME","") + " " + u.get("NAME","") + (" "+u.get("SECOND_NAME",""))).strip()) or ""
+                except Exception:
+                    b = ""
+            return b
+
+        async def resolved_company(d: Dict[str, Any]) -> str:
+            mc = d.get("COMPANY_TITLE") or ""
+            if not mc and d.get("COMPANY_ID"):
+                try:
+                    cid = str(d.get("COMPANY_ID"))
+                    if cid not in bitrix._company_cache:
+                        cresp = await bitrix._call("crm.company.get", {"id": cid})
+                        bitrix._company_cache[cid] = cresp.get("result") or {}
+                    mc = bitrix._company_cache[cid].get("TITLE") or ""
+                except Exception:
+                    mc = ""
+            return mc
+
+        async def ok(d):
+            if brigade and brigade != await resolved_brigade(d):
                 return False
             if status and status != (d.get("STAGE_ID") or ""):
                 return False
-            if management_company and management_company not in (d.get("COMPANY_TITLE") or ""):
+            if management_company and management_company != await resolved_company(d):
                 return False
             cd = _build_cleaning_dates(d)
             if cleaning_date:
