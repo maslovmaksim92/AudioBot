@@ -3720,18 +3720,132 @@ if __name__ == "__main__":
         
         print("\n" + "=" * 80)
 
+    def test_review_request_diagnostics(self):
+        """Test specific diagnostics endpoints as per review request"""
+        print("\n🔍 REVIEW REQUEST DIAGNOSTICS TESTING")
+        print("=" * 70)
+        print(f"Base URL: {self.base_url}")
+        print("Testing specific diagnostics endpoints:")
+        print("1) GET /api/ai-knowledge/db-dsn")
+        print("2) GET /api/ai-knowledge/db-check")
+        print("-" * 70)
+        
+        # Test 1: GET /api/ai-knowledge/db-dsn
+        dsn_result = self.test_db_dsn_endpoint()
+        
+        # Test 2: GET /api/ai-knowledge/db-check  
+        check_result = self.test_db_check_endpoint_review()
+        
+        print("\n📋 REVIEW REQUEST RESULTS SUMMARY:")
+        print("=" * 50)
+        if dsn_result:
+            print("✅ db-dsn endpoint: WORKING")
+        else:
+            print("❌ db-dsn endpoint: FAILED")
+            
+        if check_result:
+            print("✅ db-check endpoint: WORKING")
+        else:
+            print("❌ db-check endpoint: FAILED")
+        
+        return dsn_result and check_result
+
+    def test_db_dsn_endpoint(self):
+        """Test GET /api/ai-knowledge/db-dsn endpoint - capture JSON with specific fields"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
+        
+        if success and status == 200:
+            # Check for expected fields from review request
+            expected_fields = ['raw_present', 'raw_contains_sslmode', 'raw', 'normalized']
+            missing_fields = [field for field in expected_fields if field not in data]
+            
+            if not missing_fields:
+                # Extract specific sub-fields
+                raw = data.get('raw', {})
+                normalized = data.get('normalized', {})
+                
+                raw_scheme = raw.get('scheme', 'N/A')
+                raw_query = raw.get('query', 'N/A')
+                normalized_query = normalized.get('query', 'N/A')
+                
+                diagnostic_info = f"raw_present={data.get('raw_present')}, raw_contains_sslmode={data.get('raw_contains_sslmode')}, raw.scheme={raw_scheme}, raw.query={raw_query}, normalized.query={normalized_query}"
+                
+                self.log_test("DB DSN - Endpoint Response", True, diagnostic_info)
+                
+                # Print full JSON for review request
+                print(f"   📄 Full JSON Response:")
+                print(f"   {json.dumps(data, indent=2, ensure_ascii=False)}")
+                
+                return data
+            else:
+                self.log_test("DB DSN - Endpoint Response", False, f"Missing expected fields: {missing_fields}")
+        elif status == 404:
+            self.log_test("DB DSN - Endpoint Exists", False, "db-dsn endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            self.log_test("DB DSN - Endpoint Response", False, f"500 error: {detail}")
+        else:
+            self.log_test("DB DSN - Endpoint Response", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_db_check_endpoint_review(self):
+        """Test GET /api/ai-knowledge/db-check endpoint for review request"""
+        print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            # Print full JSON for review request
+            print(f"   📄 Full JSON Response:")
+            print(f"   {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check basic structure
+            if isinstance(data, dict):
+                self.log_test("DB Check - Endpoint Response", True, f"Response received with {len(data)} fields")
+                return data
+            else:
+                self.log_test("DB Check - Endpoint Response", False, f"Expected dict response, got {type(data)}")
+        elif status == 404:
+            self.log_test("DB Check - Endpoint Exists", False, "db-check endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            self.log_test("DB Check - Endpoint Response", False, f"500 error: {detail}")
+        else:
+            self.log_test("DB Check - Endpoint Response", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def run_review_request_diagnostics_tests(self):
+        """Run specific tests for the review request diagnostics"""
+        print("🚀 Starting Review Request Diagnostics Testing")
+        print("=" * 60)
+        print(f"Base URL: {self.base_url}")
+        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        
+        # Run specific diagnostics tests
+        success = self.test_review_request_diagnostics()
+        
+        # Display results
+        self.display_results()
+        
+        return success
+
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
     
-    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST")
+    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST DIAGNOSTICS")
     print("=" * 60)
     print(f"Testing deployed backend: {tester.base_url}")
-    print("Goal: Verify AI endpoints presence; if 404, skip to CRM tests")
+    print("Goal: Test specific diagnostics endpoints db-dsn and db-check")
     print("=" * 60)
     
-    # Run review request tests
-    tester.run_review_request_tests()
+    # Run review request diagnostics tests
+    success = tester.run_review_request_diagnostics_tests()
     
     # Exit with appropriate code
-    sys.exit(0 if tester.tests_run == tester.tests_passed else 1)
+    sys.exit(0 if success else 1)
