@@ -395,3 +395,44 @@ async def db_install_vector(req: DbInstallRequest):
             return {'ok': True}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+# DSN diagnostics (sanitized)
+@router.get('/db-dsn')
+async def db_dsn():
+    from urllib.parse import urlparse, parse_qsl
+    raw = (os.environ.get('DATABASE_URL', '') or '').strip()
+    norm = _normalize_db_url(raw)
+    def parse_info(u: str):
+        try:
+            p = urlparse(u)
+            q = dict(parse_qsl(p.query, keep_blank_values=True))
+            # mask user and password
+            username = (p.username or '')
+            if username:
+                if len(username) > 3:
+                    username_mask = username[:2] + '***'
+                else:
+                    username_mask = '***'
+            else:
+                username_mask = ''
+            # build masked netloc
+            host = p.hostname or ''
+            port = p.port
+            dbname = (p.path or '').lstrip('/')
+            return {
+                'scheme': p.scheme,
+                'host': host,
+                'port': port,
+                'database': dbname,
+                'username': username_mask,
+                'query': q
+            }
+        except Exception:
+            return {'error': 'parse_failed'}
+    return {
+        'raw_present': bool(raw),
+        'raw_contains_sslmode': ('sslmode=' in raw.lower()),
+        'raw': parse_info(raw) if raw else None,
+        'normalized_contains_sslmode': ('sslmode=' in norm.lower()),
+        'normalized': parse_info(norm) if norm else None
+    }
