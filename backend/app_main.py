@@ -110,6 +110,10 @@ class BitrixService:
         self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
         self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
         self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
+        # cache for userfield enums: {field_code: {enum_id(str): label(str)}}
+        self._uf_enums: Dict[str, Dict[str, str]] = {}
+        self._uf_enums_ts: int = 0
+        self._uf_enums_ttl = int(os.environ.get('BITRIX_UF_ENUMS_TTL', '900'))  # 15 минут по умолчанию
 
     async def _call(self, method: str, params: Dict = None) -> Dict:
         if not self.webhook_url:
