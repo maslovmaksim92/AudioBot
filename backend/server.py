@@ -286,7 +286,7 @@ class HousesResponse(BaseModel):
 
 class FiltersResponse(BaseModel):
     brigades: List[str] = []
-    management_companies: List[str] = []
+    management_companies: List[str] = []  # устарело для UI, возвращаем [] для совместимости
     statuses: List[str] = []
 
 # Типовые поля "type" для расписаний (используются для маппинга enum -> метка)
