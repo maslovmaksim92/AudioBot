@@ -351,11 +351,21 @@ def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
-    full_wash = 0      # мытьё всех этажей
-    first_floor = 0    # мытьё 1-го этажа
-    sweep = 0          # подметание
+    """
+    Рассчитываем периодичность по месяцам (берём первую подходящую схему по приоритету):
+    1) 2 раза + подметание — если в выбранном месяце есть 2 полных мойки и есть подметание (любое кол-во)
+    2) 2 раза — если в месяце 2 полных мойки, без подметания и без 1-го этажа
+    3) 2 раза + первые этажи — если есть мытьё всех этажей и мытьё 1-го этажа (без подметания)
+    4) 4 раза — если 4 и более полных мойки (без подметания)
+    Иначе — индивидуальная.
+    """
+    months_order = [
+        "september_1","september_2","october_1","october_2","november_1","november_2","december_1","december_2"
+    ]
 
-    for key in ["september_1","september_2","october_1","october_2","november_1","november_2","december_1","december_2"]:
+    # Считаем помесячно
+    monthly = {}
+    for key in months_order:
         block = cleaning_dates.get(key) or {}
         t = str(block.get("type") or "").lower()
         dates = block.get("dates") or []
@@ -365,27 +375,37 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
         is_full = ("всех этаж" in t)
         is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
         has_sweep = ("подмет" in t)
-        if has_wash and is_full:
-            full_wash += len(dates)
-        if has_wash and is_first_floor:
-            first_floor += len(dates)
-        if has_sweep:
-            sweep += len(dates)
+        monthly[key] = {
+            "full_wash": (len(dates) if (has_wash and is_full) else 0),
+            "first_floor": (len(dates) if (has_wash and is_first_floor) else 0),
+            "sweep": (len(dates) if has_sweep else 0),
+        }
 
-    # Новый приоритет правил по вашему требованию:
-    # 1) Если есть подметание при стандартных 2 полных мойках — показываем "2 раза + подметание" (без указания количества подметаний)
-    if full_wash == 2 and sweep >= 1:
-        return "2 раза + подметание"
-    # 2) Чистые 2 полные мойки без подметания и без 1-го этажа
-    if full_wash == 2 and first_floor == 0 and sweep == 0:
-        return "2 раза"
-    # 3) Мытьё всех этажей + мытьё первого этажа (без подметания)
-    if full_wash >= 1 and first_floor >= 1 and sweep == 0:
-        return "2 раза + первые этажи"
-    # 4) 4 и более полных мойки
-    if full_wash >= 4 and sweep == 0:
-        return "4 раза"
-    # Если иной состав — считаем индивидуальной
+    def decide(m):
+        fw = m["full_wash"]; ff = m["first_floor"]; sw = m["sweep"]
+        if fw == 2 and sw >= 1:
+            return "2 раза + подметание"
+        if fw == 2 and ff == 0 and sw == 0:
+            return "2 раза"
+        if fw >= 1 and ff >= 1 and sw == 0:
+            return "2 раза + первые этажи"
+        if fw >= 4 and sw == 0:
+            return "4 раза"
+        return None
+
+    # Пробуем сначала сентябрь, затем остальные
+    # Сентябрь
+    for key in ["september_1","september_2"]:
+        if key in monthly:
+            res = decide(monthly[key])
+            if res:
+                return res
+    # Прочие месяцы
+    for key in ["october_1","october_2","november_1","november_2","december_1","december_2"]:
+        if key in monthly:
+            res = decide(monthly[key])
+            if res:
+                return res
     return "индивидуальная"
 
 @api_router.get("/cleaning/houses", response_model=HousesResponse)
