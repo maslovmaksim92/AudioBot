@@ -386,7 +386,7 @@ async def get_houses(
         raw = await bitrix.deals_full()
         if not raw:
             basic = await bitrix.deals(limit=1000)
-            base_url = bitrix.webhook_url.replace('/rest','') if bitrix.webhook_url else ''
+            base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
             houses: List[HouseResponse] = []
             for d in basic:
                 houses.append(HouseResponse(
