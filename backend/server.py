@@ -352,20 +352,23 @@ def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
 
 def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
     """
-    Рассчитываем периодичность по месяцам (берём первую подходящую схему по приоритету):
-    1) 2 раза + подметание — если в выбранном месяце есть 2 полных мойки и есть подметание (любое кол-во)
-    2) 2 раза — если в месяце 2 полных мойки, без подметания и без 1-го этажа
-    3) 2 раза + первые этажи — если есть мытьё всех этажей и мытьё 1-го этажа (без подметания)
-    4) 4 раза — если 4 и более полных мойки (без подметания)
-    Иначе — индивидуальная.
+    Рассчитываем периодичность помесячно, агрегируя обе недели месяца
+    (например, september_1 + september_2) и затем выбираем ярлык по приоритету.
+    Приоритет (как обсуждали):
+      1) 2 раза + подметание — если суммарно за месяц 2 полных мойки и есть подметание (любое кол-во)
+      2) 2 раза — если суммарно 2 полных мойки, без подметания и без 1-го этажа
+      3) 2 раза + первые этажи — если есть мытьё всех этажей и 1-го этажа (без подметания)
+      4) 4 раза — если 4 и более полных мойки (без подметания)
+      иначе — индивидуальная
     """
-    months_order = [
-        "september_1","september_2","october_1","october_2","november_1","november_2","december_1","december_2"
-    ]
+    groups = {
+        'september': ["september_1","september_2"],
+        'october': ["october_1","october_2"],
+        'november': ["november_1","november_2"],
+        'december': ["december_1","december_2"],
+    }
 
-    # Считаем помесячно
-    monthly = {}
-    for key in months_order:
+    def calc_block(key: str) -> Dict[str, int]:
         block = cleaning_dates.get(key) or {}
         t = str(block.get("type") or "").lower()
         dates = block.get("dates") or []
@@ -375,14 +378,20 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
         is_full = ("всех этаж" in t)
         is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
         has_sweep = ("подмет" in t)
-        monthly[key] = {
+        return {
             "full_wash": (len(dates) if (has_wash and is_full) else 0),
             "first_floor": (len(dates) if (has_wash and is_first_floor) else 0),
             "sweep": (len(dates) if has_sweep else 0),
         }
 
-    def decide(m):
-        fw = m["full_wash"]; ff = m["first_floor"]; sw = m["sweep"]
+    def decide_month(keys: List[str]) -> Optional[str]:
+        total = {"full_wash":0, "first_floor":0, "sweep":0}
+        for k in keys:
+            b = calc_block(k)
+            total["full_wash"] += b["full_wash"]
+            total["first_floor"] += b["first_floor"]
+            total["sweep"] += b["sweep"]
+        fw, ff, sw = total["full_wash"], total["first_floor"], total["sweep"]
         if fw == 2 and sw >= 1:
             return "2 раза + подметание"
         if fw == 2 and ff == 0 and sw == 0:
@@ -393,19 +402,11 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
             return "4 раза"
         return None
 
-    # Пробуем сначала сентябрь, затем остальные
-    # Сентябрь
-    for key in ["september_1","september_2"]:
-        if key in monthly:
-            res = decide(monthly[key])
-            if res:
-                return res
-    # Прочие месяцы
-    for key in ["october_1","october_2","november_1","november_2","december_1","december_2"]:
-        if key in monthly:
-            res = decide(monthly[key])
-            if res:
-                return res
+    # Сначала сентябрь, затем остальные
+    for month in ["september","october","november","december"]:
+        res = decide_month(groups[month])
+        if res:
+            return res
     return "индивидуальная"
 
 @api_router.get("/cleaning/houses", response_model=HousesResponse)
