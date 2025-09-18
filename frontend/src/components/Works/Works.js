@@ -55,7 +55,7 @@ const Works = () => {
     try {
       const r = await fetch(`${BACKEND_URL}/api/cleaning/filters`);
       const data = await r.json();
-      setFilters(data || { brigades: [], management_companies: [], statuses: [] });
+      setFilters(data || { brigades: [], statuses: [] });
     } catch (e) {
       console.error('filters error', e);
     }
