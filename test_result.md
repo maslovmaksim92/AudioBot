@@ -195,6 +195,17 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ CLEANING MODULE REVIEW REQUEST TESTING COMPLETE - All 17 specific correction tests PASSED (100% success rate). VERIFIED CORRECTIONS: 1) GET /api/cleaning/houses: management_company returns 'Не указана' for empty values ✓, brigade returns 'Бригада не назначена' when no ASSIGNED_BY_NAME ✓, cleaning_dates.*.dates in YYYY-MM-DD format (no T/TZ) ✓, periodicity follows rules ('2 раза', '2 раза + первые этажи', '2 раза + 2 подметания', '4 раза', 'индивидуальная') ✓, bitrix_url format https://vas-dom.bitrix24.ru/crm/deal/details/{ID}/ ✓. 2) GET /api/cleaning/house/{id}/details: Returns 200 for valid ID with house/management_company/senior_resident structure ✓, dates normalized YYYY-MM-DD ✓, periodicity calculated ✓, bitrix_url present ✓, returns 404 for non-existent ID ✓. 3) Bitrix stability: No 500 errors, safe fallback data ✓. FIXED DURING TESTING: house.brigade fallback in details endpoint. Sample responses show correct 'Не указана' and 'Бригада не назначена' fallbacks working properly."
+##   - task: "AI Knowledge diagnostics endpoints (db-check, db-install-vector)"
+##     implemented: true
+##     working: false
+##     file: "/app/backend/app/routers/ai_knowledge.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: false
+##         -agent: "testing"
+##         -comment: "✅ DIAGNOSTICS ENDPOINTS DEPLOYED AND WORKING - Production testing at https://audiobot-qci2.onrender.com confirms diagnostics endpoints are properly deployed and functional. GET /api/ai-knowledge/db-check returns Status 200 with full diagnostic JSON including connected, pgvector_available, pgvector_installed, ai_tables, embedding_dims, and errors arrays. POST /api/ai-knowledge/db-install-vector returns Status 500 with proper error handling. ❌ ROOT CAUSE IDENTIFIED: DATABASE_URL has invalid sslmode parameter. The error '`sslmode` parameter must be one of: disable, allow, prefer, require, verify-ca, verify-full' indicates the PostgreSQL connection string contains an unrecognized sslmode value. This is a production environment configuration issue, not a code issue. The diagnostics endpoints are working correctly and properly reporting the database connection problem. VERBATIM ERROR RESPONSES: db-check shows connected=false with 4 sslmode errors, db-install-vector returns 500 with detail='`sslmode` parameter must be one of: disable, allow, prefer, require, verify-ca, verify-full'. Fix required: Update production DATABASE_URL environment variable with valid sslmode parameter (disable, allow, prefer, require, verify-ca, verify-full)."
 ##   - task: "Review Request Backend Testing on Deployed App"
 ##     implemented: true
 ##     working: false
