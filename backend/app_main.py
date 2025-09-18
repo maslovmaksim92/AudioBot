@@ -340,7 +340,7 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
     sweep_dates = 0
     full_wash_dates = 0
     first_floor_wash_dates = 0
-    for key in ["september_1","september_2"]:
+    for key in ["september_1","september_2","october_1","october_2","november_1","november_2","december_1","december_2"]:
         block = cleaning_dates.get(key) or {}
         t = str(block.get("type") or "").lower()
         dates = block.get("dates") or []
