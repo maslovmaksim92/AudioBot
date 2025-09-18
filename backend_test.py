@@ -1250,7 +1250,7 @@ startxref
 def main():
     """Main test execution"""
     tester = VasDomAPITester()
-    success = tester.run_comprehensive_test()
+    success = tester.run_review_request_tests()
     
     return 0 if success else 1
 
