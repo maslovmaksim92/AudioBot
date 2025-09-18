@@ -193,7 +193,7 @@ class BitrixService:
         if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
             return self._deals_cache["data"]
         items = await self._list_all("crm.deal.list", {
-            "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID"],
+            "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID","OPPORTUNITY","CURRENCY_ID"],
             "filter": {"CATEGORY_ID":"34"},
             "order": {"ID":"DESC"},
             "limit": min(limit,1000)
