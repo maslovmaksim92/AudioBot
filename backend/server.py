@@ -463,6 +463,8 @@ async def get_houses(
                     apartments=int(d.get("UF_CRM_1669704529022") or 0),
                     entrances=int(d.get("UF_CRM_1669705507390") or 0),
                     floors=int(d.get("UF_CRM_1669704631166") or 0),
+                    amount_monthly=(float(d.get("OPPORTUNITY")) if d.get("OPPORTUNITY") not in (None, "") else None),
+                    currency=(str(d.get("CURRENCY_ID")) if d.get("CURRENCY_ID") else None),
                     cleaning_dates={},
                     periodicity="индивидуальная",
                     bitrix_url=f"{base_url}/crm/deal/details/{d.get('ID')}/"
