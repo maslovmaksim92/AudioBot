@@ -507,6 +507,37 @@ async def get_houses(
         logger.error(f"get_houses error: {e}")
         return HousesResponse(houses=[], total=0, page=page, limit=limit, pages=0)
 
+@api_router.post('/cleaning/house/{house_id}/comment')
+async def save_house_comment(house_id: int, payload: Dict[str, str]):
+    target = (payload.get('target') or '').strip()  # 'company' | 'contact'
+    comment = (payload.get('comment') or '').strip()
+    if not comment:
+        raise HTTPException(status_code=400, detail='comment пуст')
+    try:
+        dresp = await bitrix._call('crm.deal.get', {'id': house_id, 'select': ['ID','COMPANY_ID','CONTACT_ID']})
+        deal = dresp.get('result') or {}
+        if not deal:
+            raise HTTPException(status_code=404, detail='Дом не найден')
+        updated = False
+        if target in ('company','both') and deal.get('COMPANY_ID'):
+            await bitrix._call('crm.company.update', {'id': deal['COMPANY_ID'], 'fields': {'COMMENTS': comment}})
+            updated = True
+        if target in ('contact','both'):
+            cid = deal.get('CONTACT_ID')
+            if isinstance(cid, list):
+                cid = cid[0] if cid else None
+            if cid:
+                await bitrix._call('crm.contact.update', {'id': cid, 'fields': {'COMMENTS': comment}})
+                updated = True
+        if not updated:
+            raise HTTPException(status_code=400, detail='нет цели для комментария')
+        return {'ok': True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'save_house_comment error: {e}')
+        raise HTTPException(status_code=500, detail='Ошибка сохранения комментария')
+
 @api_router.get("/cleaning/house/{house_id}/details")
 async def get_house_details(house_id: int):
     try:
