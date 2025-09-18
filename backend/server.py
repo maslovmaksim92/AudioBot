@@ -372,15 +372,20 @@ def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
         if has_sweep:
             sweep += len(dates)
 
-    # Приоритеты определения ярлыка
-    if full_wash == 2 and sweep == 2:
-        return "2 раза + 2 подметания"
+    # Новый приоритет правил по вашему требованию:
+    # 1) Если есть подметание при стандартных 2 полных мойках — показываем "2 раза + подметание" (без указания количества подметаний)
+    if full_wash == 2 and sweep >= 1:
+        return "2 раза + подметание"
+    # 2) Чистые 2 полные мойки без подметания и без 1-го этажа
     if full_wash == 2 and first_floor == 0 and sweep == 0:
         return "2 раза"
+    # 3) Мытьё всех этажей + мытьё первого этажа (без подметания)
     if full_wash >= 1 and first_floor >= 1 and sweep == 0:
         return "2 раза + первые этажи"
-    if full_wash >= 4:
+    # 4) 4 и более полных мойки
+    if full_wash >= 4 and sweep == 0:
         return "4 раза"
+    # Если иной состав — считаем индивидуальной
     return "индивидуальная"
 
 @api_router.get("/cleaning/houses", response_model=HousesResponse)
