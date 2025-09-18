@@ -186,7 +186,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="pt-0 px-4 pb-4 max-w-7xl mx-auto space-y-4">
+    <div className="pt-0 px-2 pb-2 max-w-7xl mx-auto space-y-4">
       {/* Header */}
       <PageHeader />
       <div className="hidden">
