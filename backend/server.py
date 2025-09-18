@@ -769,6 +769,9 @@ async def get_house_details(house_id: int):
         raise HTTPException(status_code=500, detail="Ошибка получения деталей дома")
 
 # ========================= AI KNOWLEDGE =========================
+# ВНИМАНИЕ: С 09.2025 логика AI-обучения перенесена в отдельный router app/routers/ai_knowledge.py
+# Здесь остаются только общие утилиты для совместимости.
+
 ALLOWED_EXT = {'.pdf','.docx','.txt','.xlsx','.zip'}
 MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
 MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
