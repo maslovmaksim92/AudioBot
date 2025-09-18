@@ -377,6 +377,7 @@ async def get_houses(
     cleaning_date: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     limit: int = Query(50),
     offset: int = Query(0),
     page: int = Query(1)
