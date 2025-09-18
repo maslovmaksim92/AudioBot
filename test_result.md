@@ -239,8 +239,9 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Cleaning houses: periodicity label, type enum mapping, Bitrix URL - COMPLETED ✅"
-##   stuck_tasks: []
+##     - "Review Request Backend Testing on Deployed App"
+##   stuck_tasks: 
+##     - "House 12966 periodicity calculation issue"
 ##   test_all: false
 ##   test_priority: "high_first"
 
