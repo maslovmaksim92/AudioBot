@@ -306,9 +306,8 @@ async def get_filters():
     try:
         # Только УК и статусы — фильтр по бригадам убран по требованию
         deals = await bitrix.deals(limit=1000)
-        companies = sorted({(d.get("COMPANY_TITLE") or "") for d in deals if (d.get("COMPANY_TITLE") or "").strip()})
         statuses = sorted({(d.get("STAGE_ID") or "") for d in deals if d.get("STAGE_ID")})
-        return FiltersResponse(brigades=[], management_companies=companies, statuses=statuses)
+        return FiltersResponse(brigades=[], management_companies=[], statuses=statuses)
     except Exception as e:
         logger.error(f"filters error: {e}")
         return FiltersResponse(brigades=[], management_companies=[], statuses=[])
