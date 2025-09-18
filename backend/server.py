@@ -551,7 +551,10 @@ async def get_houses(
         if search:
             s = search.lower()
             raw = [d for d in raw if s in str(d.get("UF_CRM_1669561599956") or d.get("TITLE") or "").lower() or s in str(d.get("TITLE") or "").lower()]
-        deals = [d for d in raw if ok(d)]
+        deals = []
+        for d in raw:
+            if await ok(d):
+                deals.append(d)
         total_count = len(deals)
         page = max(1, page)
         limit = max(1, min(1000, limit))
