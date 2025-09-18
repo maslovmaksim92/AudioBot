@@ -2967,6 +2967,54 @@ startxref
         else:
             print("\n✅ ALL SMOKE TESTS PASSED!")
 
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
+        print(f"Total Tests: {self.tests_run}")
+        print(f"Passed: {self.tests_passed}")
+        print(f"Failed: {len(self.failed_tests)}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run)*100:.1f}%" if self.tests_run > 0 else "No tests run")
+        
+        if self.failed_tests:
+            print("\n❌ FAILED TESTS:")
+            for test in self.failed_tests:
+                print(f"  - {test['name']}: {test['details']}")
+        else:
+            print("\n✅ ALL TESTS PASSED!")
+
+    def run_comprehensive_tests(self):
+        """Run all comprehensive tests"""
+        print("🚀 Starting VasDom AudioBot Backend API Testing")
+        print("=" * 60)
+        print(f"Testing URL: {self.base_url}")
+        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        
+        # Core API tests
+        self.test_root_endpoint()
+        self.test_dashboard_stats()
+        
+        # CRM/Cleaning tests
+        self.test_cleaning_filters()
+        self.test_cleaning_houses()
+        self.test_house_details_endpoint()
+        self.test_bitrix_fallback_behavior()
+        
+        # AI Knowledge tests
+        self.test_ai_knowledge_endpoints()
+        
+        # Logistics tests
+        self.test_logistics_route_endpoint()
+        
+        # Display requirements tests
+        self.test_houses_display_requirements()
+        self.test_bitrix24_integration()
+        
+        # Print summary
+        self.print_summary()
+
     def test_ai_db_diagnostics_flow(self):
         """Test AI DB diagnostics and full AI flow as per review request"""
         print("\n🔍 SMOKE TEST: AI DB Diagnostics and AI Flow")
