@@ -16,7 +16,12 @@ if config.config_file_name is not None:
 # get DATABASE_URL from env (Render)
 db_url = os.environ.get("DATABASE_URL", "")
 if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+    # Alembic online migrations require a sync driver; if asyncpg is provided, downgrade to sync DSN
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url_sync = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        config.set_main_option("sqlalchemy.url", db_url_sync)
+    else:
+        config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here for 'autogenerate' support
 # from myapp import mymodel
