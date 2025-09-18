@@ -161,6 +161,12 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ PASSED - House details endpoint returns house.brigade as string (e.g., '4 бригада' for house 13112). Correctly returns 404 for non-existent houses (not 500). Brigade name resolution working with proper fallbacks."
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ FAILED - House details endpoint missing from server.py. Found endpoint in app_main.py but not in the active server.py file. Need to implement GET /api/cleaning/house/{id}/details endpoint."
+##         -working: true
+##         -agent: "testing"
+##         -comment: "✅ PASSED - House details endpoint now implemented and working correctly. Fixed missing endpoint implementation in server.py. Returns proper house details structure with all required fields including bitrix_url. Brigade name enrichment working correctly. Endpoint returns 200 for valid house IDs and proper error handling for invalid IDs."
 ##   - task: "Updated filters and pagination validation per review request"
 ##     implemented: true
 ##     working: true
