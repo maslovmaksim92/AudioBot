@@ -304,9 +304,42 @@ TYPE_FIELDS: List[str] = [
 @api_router.get("/cleaning/filters", response_model=FiltersResponse)
 async def get_filters():
     try:
-        deals = await bitrix.deals(limit=1000)
-        brigades = sorted({d.get("ASSIGNED_BY_NAME", "") for d in deals if d.get("ASSIGNED_BY_NAME")})
-        companies = sorted({d.get("COMPANY_TITLE", "") for d in deals if d.get("COMPANY_TITLE")})
+        deals = await bitrix.deals_full()
+        brigades_set = set()
+        companies_set = set()
+        for d in deals:
+            # Brigade
+            b = d.get("ASSIGNED_BY_NAME") or ""
+            if not b and d.get("ASSIGNED_BY_ID"):
+                try:
+                    uid = str(d.get("ASSIGNED_BY_ID"))
+                    if uid not in bitrix._user_cache:
+                        uresp = await bitrix._call("user.get", {"ID": uid})
+                        uitems = uresp.get("result") or []
+                        if isinstance(uitems, dict):
+                            uitems = [uitems]
+                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
+                    u = bitrix._user_cache.get(uid) or {}
+                    b = u.get("NAME") and ((u.get("LAST_NAME","") + " " + u.get("NAME","") + (" "+u.get("SECOND_NAME",""))).strip()) or ""
+                except Exception:
+                    b = ""
+            if b:
+                brigades_set.add(b)
+            # Management company
+            mc = d.get("COMPANY_TITLE") or ""
+            if not mc and d.get("COMPANY_ID"):
+                try:
+                    cid = str(d.get("COMPANY_ID"))
+                    if cid not in bitrix._company_cache:
+                        cresp = await bitrix._call("crm.company.get", {"id": cid})
+                        bitrix._company_cache[cid] = cresp.get("result") or {}
+                    mc = bitrix._company_cache[cid].get("TITLE") or ""
+                except Exception:
+                    mc = ""
+            if mc:
+                companies_set.add(mc)
+        brigades = sorted(brigades_set)
+        companies = sorted(companies_set)
         statuses = sorted({d.get("STAGE_ID", "") for d in deals if d.get("STAGE_ID")})
         return FiltersResponse(brigades=brigades, management_companies=companies, statuses=statuses)
     except Exception as e:
