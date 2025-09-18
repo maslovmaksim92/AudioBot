@@ -213,6 +213,15 @@ const Works = () => {
               </div>
             </div>
 
+            {/* Стоимость (ежемесячно) */}
+            {typeof house.amount_monthly !== 'undefined' && house.amount_monthly !== null && (
+              <div className="mb-3">
+                <div className="text-sm text-gray-600">Ежемесячно:</div>
+                <div className="text-lg font-semibold">{house.amount_monthly.toLocaleString('ru-RU', { style: 'currency', currency: house.currency || 'RUB', maximumFractionDigits: 0 })}</div>
+              </div>
+            )}
+            </div>
+
             {/* Инфо */}
             <div className="space-y-2 text-sm mb-3">
               <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-blue-600"/><span className="font-medium">УК:</span><span>{house.management_company || 'Не указана'}</span></div>
