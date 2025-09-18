@@ -3818,22 +3818,6 @@ if __name__ == "__main__":
         
         return None
 
-    def run_review_request_diagnostics_tests(self):
-        """Run specific tests for the review request diagnostics"""
-        print("🚀 Starting Review Request Diagnostics Testing")
-        print("=" * 60)
-        print(f"Base URL: {self.base_url}")
-        print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
-        
-        # Run specific diagnostics tests
-        success = self.test_review_request_diagnostics()
-        
-        # Display results
-        self.display_results()
-        
-        return success
-
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
