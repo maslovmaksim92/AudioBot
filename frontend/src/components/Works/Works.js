@@ -169,6 +169,16 @@ const Works = () => {
           />
         </div>
 
+        {/* Быстрые фильтры */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="text-sm text-gray-500">Быстро:</span>
+          <button className="btn-chip" onClick={()=>{ const v=format(new Date(),'yyyy-MM-dd'); setActiveFilters(p=>({...p, cleaning_date:v})); setPagination(p=>({...p,page:1})); }}>Сегодня</button>
+          <button className="btn-chip" onClick={()=>{ const d=new Date(); d.setDate(d.getDate()+1); const v=format(d,'yyyy-MM-dd'); setActiveFilters(p=>({...p, cleaning_date:v})); setPagination(p=>({...p,page:1})); }}>Завтра</button>
+          <button className="btn-chip" onClick={()=>{ const from=new Date(); const to=new Date(); to.setDate(to.getDate()+7); setActiveFilters(p=>({...p, cleaning_date:'', date_from:format(from,'yyyy-MM-dd'), date_to:format(to,'yyyy-MM-dd')})); setPagination(p=>({...p,page:1})); }}>Неделя</button>
+          <button className="btn-chip" onClick={()=>{ const now=new Date(); const from=new Date(now.getFullYear(), now.getMonth(), 1); const to=new Date(now.getFullYear(), now.getMonth()+1, 0); setActiveFilters(p=>({...p, cleaning_date:'', date_from:format(from,'yyyy-MM-dd'), date_to:format(to,'yyyy-MM-dd')})); setPagination(p=>({...p,page:1})); }}>Месяц</button>
+          <button className="btn-chip" onClick={()=>{ setActiveFilters(p=>({ brigade:'', status:'', search:'', cleaning_date:'', date_from:'', date_to:'' })); setPagination(p=>({...p,page:1})); }}>Сброс</button>
+        </div>
+
         <div className="flex items-center gap-3 mb-2">
           <span className="text-sm text-gray-500">Показывать:</span>
           {[50,100,200,500,1000].map(n => (
