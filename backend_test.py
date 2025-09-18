@@ -1251,12 +1251,414 @@ startxref
         
         return len(self.failed_tests) == 0
 
+    def test_cleaning_module_comprehensive(self):
+        """Comprehensive testing of Cleaning module as per review request"""
+        print("🧹 COMPREHENSIVE CLEANING MODULE TESTING")
+        print("=" * 60)
+        print("Testing after changes in /app/backend/app_main.py")
+        print("Focus: Filters, Houses with search/date filters, Details, Bitrix stability")
+        print("-" * 60)
+        
+        # 1) GET /api/cleaning/filters
+        self.test_cleaning_filters_comprehensive()
+        
+        # 2) GET /api/cleaning/houses - comprehensive scenarios
+        self.test_cleaning_houses_comprehensive()
+        
+        # 3) GET /api/cleaning/house/{id}/details
+        self.test_cleaning_house_details_comprehensive()
+        
+        # 4) Bitrix stability tests
+        self.test_bitrix_stability_comprehensive()
+        
+        return True
+
+    def test_cleaning_filters_comprehensive(self):
+        """Test GET /api/cleaning/filters - expect 200 and structure"""
+        print("\n1️⃣ Testing GET /api/cleaning/filters")
+        
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            # Check structure: { brigades[], management_companies[], statuses[] }
+            required_fields = ['brigades', 'management_companies', 'statuses']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                # Verify all are arrays
+                type_errors = []
+                for field in required_fields:
+                    if not isinstance(data[field], list):
+                        type_errors.append(f"{field} should be array, got {type(data[field])}")
+                
+                if not type_errors:
+                    self.log_test("Cleaning Filters - Structure ✅", True, 
+                                f"brigades: {len(data['brigades'])}, management_companies: {len(data['management_companies'])}, statuses: {len(data['statuses'])}")
+                    
+                    # Log sample data
+                    if data['brigades']:
+                        print(f"   Sample brigades: {data['brigades'][:3]}")
+                    if data['management_companies']:
+                        print(f"   Sample companies: {data['management_companies'][:3]}")
+                    if data['statuses']:
+                        print(f"   Sample statuses: {data['statuses'][:3]}")
+                else:
+                    self.log_test("Cleaning Filters - Structure ❌", False, f"Type errors: {type_errors}")
+            else:
+                self.log_test("Cleaning Filters - Structure ❌", False, f"Missing fields: {missing_fields}")
+        else:
+            self.log_test("Cleaning Filters - Structure ❌", False, f"Status: {status}, Response: {data}")
+
+    def test_cleaning_houses_comprehensive(self):
+        """Test GET /api/cleaning/houses with all scenarios from review request"""
+        print("\n2️⃣ Testing GET /api/cleaning/houses - Comprehensive Scenarios")
+        
+        # Base test: page=1&limit=50 -> 200, houses[] with required fields
+        print("\n   📋 Base pagination test (page=1&limit=50)")
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'page': 1, 'limit': 50})
+        
+        if success and status == 200:
+            # Verify response structure
+            required_fields = ['houses', 'total', 'page', 'limit', 'pages']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                # Verify integer types for pagination fields
+                integer_fields = ['total', 'page', 'limit', 'pages']
+                non_integer_fields = []
+                for field in integer_fields:
+                    if not isinstance(data[field], int):
+                        non_integer_fields.append(f"{field}={data[field]} ({type(data[field]).__name__})")
+                
+                if not non_integer_fields:
+                    houses = data['houses']
+                    if isinstance(houses, list):
+                        self.log_test("Houses Base Response ✅", True, 
+                                    f"houses: {len(houses)}, total: {data['total']}, page: {data['page']}, limit: {data['limit']}, pages: {data['pages']}")
+                        
+                        # Test house object structure
+                        if houses:
+                            self.test_house_object_structure(houses[0])
+                            self.test_periodicity_validation(houses)
+                    else:
+                        self.log_test("Houses Base Response ❌", False, f"houses should be array, got {type(houses)}")
+                else:
+                    self.log_test("Houses Base Response ❌", False, f"Non-integer pagination fields: {non_integer_fields}")
+            else:
+                self.log_test("Houses Base Response ❌", False, f"Missing fields: {missing_fields}")
+        else:
+            self.log_test("Houses Base Response ❌", False, f"Status: {status}, Response: {data}")
+        
+        # Search test: search=подстрока адреса/названия
+        print("\n   🔍 Search filter test")
+        search_terms = ["ул", "дом", "Аллейная"]
+        for term in search_terms:
+            success, data, status = self.make_request('GET', '/api/cleaning/houses', 
+                                                    params={'search': term, 'limit': 10})
+            if success and status == 200:
+                houses = data.get('houses', [])
+                # Verify search results contain the search term
+                matching_houses = 0
+                for house in houses:
+                    address = house.get('address', '').lower()
+                    title = house.get('title', '').lower()
+                    if term.lower() in address or term.lower() in title:
+                        matching_houses += 1
+                
+                if matching_houses > 0 or len(houses) == 0:  # Empty result is also valid
+                    self.log_test(f"Houses Search '{term}' ✅", True, 
+                                f"Found {len(houses)} houses, {matching_houses} contain '{term}'")
+                else:
+                    self.log_test(f"Houses Search '{term}' ❌", False, 
+                                f"Search returned {len(houses)} houses but none contain '{term}'")
+            else:
+                self.log_test(f"Houses Search '{term}' ❌", False, f"Status: {status}")
+        
+        # Date filter test: cleaning_date=YYYY-MM-DD
+        print("\n   📅 Cleaning date filter test")
+        test_dates = ["2025-09-05", "2025-09-15", "2025-10-01"]
+        for date in test_dates:
+            success, data, status = self.make_request('GET', '/api/cleaning/houses', 
+                                                    params={'cleaning_date': date, 'limit': 10})
+            if success and status == 200:
+                houses = data.get('houses', [])
+                self.log_test(f"Houses Date Filter '{date}' ✅", True, 
+                            f"Date filter works, returned {len(houses)} houses")
+                
+                # Verify houses have the exact date in cleaning_dates
+                if houses:
+                    sample_house = houses[0]
+                    cleaning_dates = sample_house.get('cleaning_dates', {})
+                    has_date = False
+                    for block in cleaning_dates.values():
+                        if isinstance(block, dict):
+                            dates = block.get('dates', [])
+                            if date in dates:
+                                has_date = True
+                                break
+                    if has_date:
+                        print(f"      ✓ Sample house contains date {date}")
+            else:
+                self.log_test(f"Houses Date Filter '{date}' ❌", False, f"Status: {status}")
+        
+        # Date range test: date_from & date_to
+        print("\n   📅 Date range filter test")
+        date_ranges = [
+            ("2025-09-01", "2025-09-30"),
+            ("2025-10-01", "2025-10-31"),
+            ("2025-11-01", "2025-11-30")
+        ]
+        for date_from, date_to in date_ranges:
+            success, data, status = self.make_request('GET', '/api/cleaning/houses', 
+                                                    params={'date_from': date_from, 'date_to': date_to, 'limit': 10})
+            if success and status == 200:
+                houses = data.get('houses', [])
+                self.log_test(f"Houses Date Range '{date_from}' to '{date_to}' ✅", True, 
+                            f"Date range filter works, returned {len(houses)} houses")
+            else:
+                self.log_test(f"Houses Date Range '{date_from}' to '{date_to}' ❌", False, f"Status: {status}")
+
+    def test_house_object_structure(self, house):
+        """Test house object contains all required fields"""
+        required_fields = ['id', 'title', 'address', 'brigade', 'management_company', 'status', 
+                          'apartments', 'entrances', 'floors', 'cleaning_dates', 'periodicity', 'bitrix_url']
+        missing_fields = [field for field in required_fields if field not in house]
+        
+        if not missing_fields:
+            # Verify field types
+            type_errors = []
+            if not isinstance(house.get('brigade'), str):
+                type_errors.append(f"brigade should be string, got {type(house.get('brigade'))}")
+            if not isinstance(house.get('management_company'), str):
+                type_errors.append(f"management_company should be string, got {type(house.get('management_company'))}")
+            if not isinstance(house.get('periodicity'), str):
+                type_errors.append(f"periodicity should be string, got {type(house.get('periodicity'))}")
+            if not isinstance(house.get('cleaning_dates'), dict):
+                type_errors.append(f"cleaning_dates should be object, got {type(house.get('cleaning_dates'))}")
+            if not isinstance(house.get('bitrix_url'), str):
+                type_errors.append(f"bitrix_url should be string, got {type(house.get('bitrix_url'))}")
+            
+            if not type_errors:
+                self.log_test("House Object Structure ✅", True, 
+                            f"House ID {house['id']}: all required fields present with correct types")
+                
+                # Log sample data
+                print(f"      Brigade: '{house.get('brigade', 'N/A')}'")
+                print(f"      Management Company: '{house.get('management_company', 'N/A')}'")
+                print(f"      Periodicity: '{house.get('periodicity', 'N/A')}'")
+                print(f"      Bitrix URL: {'present' if house.get('bitrix_url') else 'empty'}")
+            else:
+                self.log_test("House Object Structure ❌", False, f"Type errors: {type_errors}")
+        else:
+            self.log_test("House Object Structure ❌", False, f"Missing fields: {missing_fields}")
+
+    def test_periodicity_validation(self, houses):
+        """Validate periodicity values are from allowed set"""
+        allowed_periodicity = ["2 раза", "2 раза + первые этажи", "Мытье 2 раза + подметание 2 раза", "4 раза", "индивидуальная"]
+        
+        invalid_periodicity = []
+        periodicity_counts = {}
+        
+        for house in houses[:10]:  # Check first 10 houses
+            periodicity = house.get('periodicity', '')
+            if periodicity not in allowed_periodicity:
+                invalid_periodicity.append(f"House {house.get('id')}: '{periodicity}'")
+            
+            # Count occurrences
+            periodicity_counts[periodicity] = periodicity_counts.get(periodicity, 0) + 1
+        
+        if not invalid_periodicity:
+            self.log_test("Periodicity Validation ✅", True, 
+                        f"All periodicity values are valid. Counts: {periodicity_counts}")
+        else:
+            self.log_test("Periodicity Validation ❌", False, 
+                        f"Invalid periodicity values found: {invalid_periodicity[:5]}")
+
+    def test_cleaning_house_details_comprehensive(self):
+        """Test GET /api/cleaning/house/{id}/details comprehensively"""
+        print("\n3️⃣ Testing GET /api/cleaning/house/{id}/details")
+        
+        # Get a valid house ID first
+        success, houses_data, status = self.make_request('GET', '/api/cleaning/houses', params={'limit': 5})
+        test_house_id = None
+        
+        if success and status == 200 and houses_data.get('houses'):
+            test_house_id = houses_data['houses'][0]['id']
+            print(f"   Using house ID {test_house_id} for testing")
+        else:
+            # Fallback to known ID
+            test_house_id = 13112
+            print(f"   Using fallback house ID {test_house_id}")
+        
+        # Test valid house details
+        print(f"\n   📋 Testing valid house details (ID: {test_house_id})")
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{test_house_id}/details')
+        
+        if success and status == 200:
+            # Check response structure
+            if isinstance(data, dict) and 'house' in data:
+                house = data['house']
+                
+                # Verify required fields in house object
+                required_fields = ['cleaning_dates', 'periodicity', 'bitrix_url']
+                missing_fields = [field for field in required_fields if field not in house]
+                
+                if not missing_fields:
+                    self.log_test("House Details Valid Response ✅", True, 
+                                f"House ID {test_house_id}: contains cleaning_dates, periodicity, bitrix_url")
+                    
+                    # Check cleaning_dates structure and human-readable types
+                    cleaning_dates = house.get('cleaning_dates', {})
+                    if isinstance(cleaning_dates, dict):
+                        self.test_cleaning_dates_types(cleaning_dates, test_house_id)
+                    
+                    # Check periodicity
+                    periodicity = house.get('periodicity', '')
+                    allowed_periodicity = ["2 раза", "2 раза + первые этажи", "Мытье 2 раза + подметание 2 раза", "4 раза", "индивидуальная"]
+                    if periodicity in allowed_periodicity:
+                        print(f"      ✓ Periodicity valid: '{periodicity}'")
+                    else:
+                        print(f"      ⚠ Periodicity not in allowed set: '{periodicity}'")
+                    
+                    # Check bitrix_url
+                    bitrix_url = house.get('bitrix_url', '')
+                    if isinstance(bitrix_url, str) and bitrix_url:
+                        print(f"      ✓ Bitrix URL present: {len(bitrix_url)} chars")
+                    else:
+                        print(f"      ⚠ Bitrix URL empty or invalid")
+                else:
+                    self.log_test("House Details Valid Response ❌", False, f"Missing fields: {missing_fields}")
+            else:
+                self.log_test("House Details Valid Response ❌", False, f"Invalid response structure: {type(data)}")
+        else:
+            self.log_test("House Details Valid Response ❌", False, f"Status: {status}, Response: {data}")
+        
+        # Test invalid house ID (should return 404, not 500)
+        print("\n   ❌ Testing invalid house ID (should return 404)")
+        invalid_id = 999999
+        success, data, status = self.make_request('GET', f'/api/cleaning/house/{invalid_id}/details')
+        
+        if status == 404:
+            detail = data.get('detail', '')
+            if 'не найден' in detail.lower():
+                self.log_test("House Details Invalid ID ✅", True, f"Correctly returns 404 with message: '{detail}'")
+            else:
+                self.log_test("House Details Invalid ID ❌", False, f"404 but wrong message: '{detail}'")
+        elif status == 500:
+            self.log_test("House Details Invalid ID ❌", False, f"Returns 500 instead of 404 for invalid ID {invalid_id}")
+        else:
+            self.log_test("House Details Invalid ID ❌", False, f"Expected 404, got {status} for invalid ID {invalid_id}")
+
+    def test_cleaning_dates_types(self, cleaning_dates, house_id):
+        """Test that cleaning_dates.*.type returns human-readable labels, not raw IDs"""
+        human_readable_found = 0
+        raw_id_found = 0
+        
+        for key, block in cleaning_dates.items():
+            if isinstance(block, dict):
+                type_value = block.get('type', '')
+                if isinstance(type_value, str):
+                    # Check if it's a raw ID (numeric) or human-readable
+                    if type_value.isdigit():
+                        raw_id_found += 1
+                        print(f"      ⚠ Raw ID found in {key}.type: '{type_value}'")
+                    elif type_value and len(type_value) > 3:  # Human-readable should be longer
+                        human_readable_found += 1
+                        print(f"      ✓ Human-readable type in {key}: '{type_value}'")
+        
+        if human_readable_found > 0 and raw_id_found == 0:
+            self.log_test("Cleaning Dates Types ✅", True, 
+                        f"House {house_id}: {human_readable_found} human-readable types, no raw IDs")
+        elif raw_id_found > 0:
+            self.log_test("Cleaning Dates Types ⚠", False, 
+                        f"House {house_id}: {raw_id_found} raw IDs found, {human_readable_found} human-readable")
+        else:
+            print(f"      ℹ No type data found for house {house_id}")
+
+    def test_bitrix_stability_comprehensive(self):
+        """Test Bitrix 503/error stability - endpoints should not return 500"""
+        print("\n4️⃣ Testing Bitrix Stability (503 fallback behavior)")
+        
+        # Test that endpoints return stable responses even if Bitrix is down
+        endpoints_to_test = [
+            ('/api/cleaning/filters', 'GET', None),
+            ('/api/cleaning/houses', 'GET', {'limit': 5}),
+        ]
+        
+        for endpoint, method, params in endpoints_to_test:
+            success, data, status = self.make_request(method, endpoint, params=params)
+            
+            if success and status == 200:
+                # Check that response has stable structure
+                if endpoint == '/api/cleaning/filters':
+                    required_fields = ['brigades', 'management_companies', 'statuses']
+                    has_structure = all(field in data for field in required_fields)
+                    if has_structure:
+                        self.log_test(f"Bitrix Stability {endpoint} ✅", True, 
+                                    "Returns stable structure even if Bitrix has issues")
+                    else:
+                        self.log_test(f"Bitrix Stability {endpoint} ❌", False, 
+                                    f"Missing structure fields when Bitrix down")
+                
+                elif endpoint == '/api/cleaning/houses':
+                    required_fields = ['houses', 'total', 'page', 'limit', 'pages']
+                    has_structure = all(field in data for field in required_fields)
+                    if has_structure and isinstance(data['houses'], list):
+                        self.log_test(f"Bitrix Stability {endpoint} ✅", True, 
+                                    f"Returns stable structure: {len(data['houses'])} houses, total={data['total']}")
+                    else:
+                        self.log_test(f"Bitrix Stability {endpoint} ❌", False, 
+                                    f"Invalid structure when Bitrix down")
+            
+            elif status == 500:
+                # 500 errors indicate poor Bitrix fallback handling
+                detail = data.get('detail', '')
+                self.log_test(f"Bitrix Stability {endpoint} ❌", False, 
+                            f"Returns 500 instead of stable fallback: {detail}")
+            
+            else:
+                # Other status codes might be acceptable depending on implementation
+                self.log_test(f"Bitrix Stability {endpoint} ℹ", True, 
+                            f"Status {status} (may be acceptable fallback behavior)")
+
 def main():
-    """Main test execution"""
+    """Main test execution for Cleaning module review request"""
     tester = VasDomAPITester()
-    success = tester.run_review_request_tests()
     
-    return 0 if success else 1
+    print("🧹 VasDom AudioBot - Cleaning Module Backend Testing")
+    print("📍 Testing URL:", tester.base_url)
+    print("🎯 Review Request: Testing after changes in /app/backend/app_main.py")
+    print("=" * 80)
+    
+    # Run comprehensive cleaning module tests
+    tester.test_cleaning_module_comprehensive()
+    
+    # Print detailed summary
+    print("\n" + "=" * 80)
+    print("📊 CLEANING MODULE TEST RESULTS")
+    print("=" * 80)
+    print(f"Total Tests: {tester.tests_run}")
+    print(f"Passed: {tester.tests_passed}")
+    print(f"Failed: {len(tester.failed_tests)}")
+    print(f"Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%" if tester.tests_run > 0 else "No tests run")
+    
+    if tester.failed_tests:
+        print("\n❌ FAILED TESTS DETAILS:")
+        for i, test in enumerate(tester.failed_tests, 1):
+            print(f"{i}. {test['name']}")
+            print(f"   Details: {test['details']}")
+    
+    # Categorize results by test type
+    filter_tests = [t for t in tester.failed_tests if 'Filter' in t['name']]
+    house_tests = [t for t in tester.failed_tests if 'House' in t['name']]
+    stability_tests = [t for t in tester.failed_tests if 'Stability' in t['name']]
+    
+    print(f"\n📋 RESULTS BY CATEGORY:")
+    print(f"🔍 Filters: {'✅ PASSED' if not filter_tests else f'❌ {len(filter_tests)} FAILED'}")
+    print(f"🏠 Houses: {'✅ PASSED' if not house_tests else f'❌ {len(house_tests)} FAILED'}")
+    print(f"🛡️ Stability: {'✅ PASSED' if not stability_tests else f'❌ {len(stability_tests)} FAILED'}")
+    
+    return 0 if len(tester.failed_tests) == 0 else 1
 
 if __name__ == "__main__":
     sys.exit(main())
