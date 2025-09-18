@@ -2530,6 +2530,321 @@ startxref
             self.log_test("Logistics - Deployed", False, 
                         f"❌ Unexpected response: Status {status}, Data: {response_data}")
 
+    def run_review_request_tests(self):
+        """Run specific tests as per review request"""
+        print("=" * 80)
+        print("🚀 REVIEW REQUEST BACKEND TESTING")
+        print(f"Base URL: {self.base_url}")
+        print("Goal: Verify presence of AI endpoints; if still 404, report clearly and skip to CRM tests")
+        print("=" * 80)
+        
+        # Step A: Probe router
+        print("\n📡 STEP A: Probing Router")
+        print("-" * 40)
+        self.probe_root_endpoint()
+        ai_status_result = self.probe_ai_knowledge_status()
+        
+        # Step B: Determine AI module deployment status
+        print("\n🧠 STEP B: AI Module Deployment Status")
+        print("-" * 40)
+        if self.ai_endpoints_deployed is False:
+            print("❌ AI MODULE NOT DEPLOYED - Continuing with CRM-only tests")
+        else:
+            print("✅ AI MODULE DEPLOYED - Will test AI endpoints")
+        
+        # Step C: CRM tests (always run)
+        print("\n🏠 STEP C: CRM Tests")
+        print("-" * 40)
+        self.test_crm_cleaning_filters_review()
+        self.test_crm_houses_endpoint_review()
+        
+        # Step D: Logistics optional
+        print("\n🚛 STEP D: Logistics Tests (Optional)")
+        print("-" * 40)
+        self.test_logistics_route_review()
+        
+        # AI tests if deployed
+        if self.ai_endpoints_deployed:
+            print("\n🧠 AI KNOWLEDGE TESTS")
+            print("-" * 40)
+            self.test_ai_knowledge_endpoints_review()
+        
+        # Final summary
+        self.print_final_summary()
+    
+    def probe_root_endpoint(self):
+        """Probe GET /api/ (root)"""
+        success, data, status = self.make_request('GET', '/api/')
+        
+        if success and status == 200:
+            if 'message' in data and 'VasDom AudioBot API' in data['message']:
+                self.log_test("Root API Endpoint (/api/)", True, f"Status: {status}, Message: {data['message']}, Version: {data.get('version', 'N/A')}")
+            else:
+                self.log_test("Root API Endpoint (/api/)", False, f"Status: {status}, Unexpected response: {data}")
+        else:
+            self.log_test("Root API Endpoint (/api/)", False, f"Status: {status}, Data: {data}")
+    
+    def probe_ai_knowledge_status(self):
+        """Probe GET /api/ai-knowledge/status?upload_id=x"""
+        test_upload_id = "test_probe_id"
+        success, data, status = self.make_request('GET', f'/api/ai-knowledge/status', params={'upload_id': test_upload_id})
+        
+        if status == 404 and success and 'Not Found' in str(data):
+            self.log_test("AI Knowledge Status Probe", False, f"Status: {status} - AI endpoints NOT DEPLOYED")
+            self.ai_endpoints_deployed = False
+        elif status in [200, 404, 500]:
+            # Any of these statuses indicate the endpoint exists
+            detail = data.get('detail', '')
+            if 'Database is not initialized' in detail:
+                self.log_test("AI Knowledge Status Probe", True, f"Status: {status} - AI endpoints DEPLOYED (DB not initialized)")
+            elif 'upload_id не найден' in detail or 'not found' in detail.lower():
+                self.log_test("AI Knowledge Status Probe", True, f"Status: {status} - AI endpoints DEPLOYED (upload_id not found - expected)")
+            else:
+                self.log_test("AI Knowledge Status Probe", True, f"Status: {status} - AI endpoints DEPLOYED")
+            self.ai_endpoints_deployed = True
+        else:
+            self.log_test("AI Knowledge Status Probe", False, f"Status: {status} - Unexpected response: {data}")
+            self.ai_endpoints_deployed = False
+        
+        return status, data
+    
+    def test_crm_cleaning_filters_review(self):
+        """Test GET /api/cleaning/filters - expect 200; brigades non-empty; management_companies=[]"""
+        success, data, status = self.make_request('GET', '/api/cleaning/filters')
+        
+        if success and status == 200:
+            # Check structure
+            required_fields = ['brigades', 'management_companies', 'statuses']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                brigades = data['brigades']
+                management_companies = data['management_companies']
+                statuses = data['statuses']
+                
+                # Verify brigades non-empty
+                brigades_ok = isinstance(brigades, list) and len(brigades) > 0
+                # Verify management_companies = []
+                mc_ok = isinstance(management_companies, list) and len(management_companies) == 0
+                # Verify statuses present
+                statuses_ok = isinstance(statuses, list)
+                
+                if brigades_ok and mc_ok and statuses_ok:
+                    self.log_test("CRM Filters Review", True, 
+                                f"✅ brigades: {len(brigades)} (non-empty), management_companies: [] (empty), statuses: {len(statuses)}")
+                    
+                    # Show sample brigades
+                    sample_brigades = brigades[:5] if len(brigades) > 5 else brigades
+                    print(f"   Sample brigades: {sample_brigades}")
+                    return True, data
+                else:
+                    errors = []
+                    if not brigades_ok:
+                        errors.append(f"brigades should be non-empty list, got {len(brigades) if isinstance(brigades, list) else type(brigades)}")
+                    if not mc_ok:
+                        errors.append(f"management_companies should be empty list, got {len(management_companies) if isinstance(management_companies, list) else type(management_companies)}")
+                    if not statuses_ok:
+                        errors.append(f"statuses should be list, got {type(statuses)}")
+                    
+                    self.log_test("CRM Filters Review", False, f"Validation errors: {'; '.join(errors)}")
+            else:
+                self.log_test("CRM Filters Review", False, f"Missing fields: {missing_fields}")
+        else:
+            self.log_test("CRM Filters Review", False, f"Status: {status}, Data: {data}")
+        
+        return False, {}
+    
+    def test_crm_houses_endpoint_review(self):
+        """Test GET /api/cleaning/houses?page=1&limit=50 - expect 200; verify structure and required fields"""
+        success, data, status = self.make_request('GET', '/api/cleaning/houses', params={'page': 1, 'limit': 50})
+        
+        if success and status == 200:
+            # Check response structure
+            required_fields = ['houses', 'total', 'page', 'limit', 'pages']
+            missing_fields = [field for field in required_fields if field not in data]
+            
+            if not missing_fields:
+                houses = data['houses']
+                total = data['total']
+                page = data['page']
+                limit = data['limit']
+                pages = data['pages']
+                
+                # Verify types
+                if (isinstance(houses, list) and isinstance(total, int) and 
+                    isinstance(page, int) and isinstance(limit, int) and isinstance(pages, int)):
+                    
+                    self.log_test("CRM Houses Structure", True, 
+                                f"✅ houses: {len(houses)}, total: {total}, page: {page}, limit: {limit}, pages: {pages}")
+                    
+                    # Check house object structure if houses exist
+                    if houses:
+                        house = houses[0]
+                        required_house_fields = ['id', 'title', 'address', 'apartments', 'entrances', 'floors', 'cleaning_dates', 'periodicity', 'bitrix_url']
+                        missing_house_fields = [field for field in required_house_fields if field not in house]
+                        
+                        if not missing_house_fields:
+                            self.log_test("CRM House Object Fields", True, 
+                                        f"✅ House ID {house['id']}: all required fields present")
+                            
+                            # Show sample house data
+                            sample_data = {
+                                'id': house['id'],
+                                'title': house['title'][:50] + '...' if len(house['title']) > 50 else house['title'],
+                                'brigade': house.get('brigade', 'N/A'),
+                                'management_company': house.get('management_company', 'N/A'),
+                                'periodicity': house.get('periodicity', 'N/A')
+                            }
+                            print(f"   Sample house: {json.dumps(sample_data, ensure_ascii=False)}")
+                            return True, data
+                        else:
+                            self.log_test("CRM House Object Fields", False, f"Missing house fields: {missing_house_fields}")
+                    else:
+                        self.log_test("CRM Houses Structure", False, "No houses returned")
+                else:
+                    type_errors = []
+                    if not isinstance(houses, list):
+                        type_errors.append(f"houses should be list, got {type(houses)}")
+                    if not isinstance(total, int):
+                        type_errors.append(f"total should be int, got {type(total)}")
+                    if not isinstance(page, int):
+                        type_errors.append(f"page should be int, got {type(page)}")
+                    if not isinstance(limit, int):
+                        type_errors.append(f"limit should be int, got {type(limit)}")
+                    if not isinstance(pages, int):
+                        type_errors.append(f"pages should be int, got {type(pages)}")
+                    
+                    self.log_test("CRM Houses Structure", False, f"Type errors: {'; '.join(type_errors)}")
+            else:
+                self.log_test("CRM Houses Structure", False, f"Missing fields: {missing_fields}")
+        else:
+            self.log_test("CRM Houses Structure", False, f"Status: {status}, Data: {data}")
+        
+        return False, {}
+    
+    def test_logistics_route_review(self):
+        """Test POST /api/logistics/route with 1 point - if endpoint exists → 400 'Минимум 2 точки'; otherwise 404 acceptable"""
+        test_data = {
+            "points": [
+                {"address": "Москва, Красная площадь"}
+            ],
+            "optimize": False,
+            "profile": "driving-car",
+            "language": "ru"
+        }
+        
+        success, data, status = self.make_request('POST', '/api/logistics/route', test_data)
+        
+        if status == 404:
+            # 404 is acceptable - endpoint not implemented
+            self.log_test("Logistics Route Review", True, f"✅ Status: {status} - Endpoint not implemented (acceptable)")
+        elif status == 400:
+            # Check if it's the expected validation error
+            detail = data.get('detail', '')
+            if 'Минимум 2 точки' in detail:
+                self.log_test("Logistics Route Review", True, f"✅ Status: {status} - Correct validation error: {detail}")
+            else:
+                self.log_test("Logistics Route Review", False, f"Status: {status} - Wrong error message: {detail}")
+        else:
+            self.log_test("Logistics Route Review", False, f"Status: {status} - Unexpected response: {data}")
+    
+    def test_ai_knowledge_endpoints_review(self):
+        """Test AI Knowledge endpoints if they are deployed"""
+        if not self.ai_endpoints_deployed:
+            print("⏭️  Skipping AI Knowledge tests - endpoints not deployed")
+            return
+        
+        print("🧠 Testing AI Knowledge Endpoints...")
+        
+        # Test key endpoints
+        self.test_ai_knowledge_documents_review()
+        self.test_ai_knowledge_search_review()
+    
+    def test_ai_knowledge_documents_review(self):
+        """Test GET /api/ai-knowledge/documents"""
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            if 'documents' in data and isinstance(data['documents'], list):
+                docs_count = len(data['documents'])
+                self.log_test("AI Knowledge Documents", True, f"✅ Retrieved {docs_count} documents")
+            else:
+                self.log_test("AI Knowledge Documents", False, f"Invalid response structure: {data}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Knowledge Documents", True, f"✅ Expected 500 'Database is not initialized': {data.get('detail')}")
+        else:
+            self.log_test("AI Knowledge Documents", False, f"Status: {status}, Data: {data}")
+    
+    def test_ai_knowledge_search_review(self):
+        """Test POST /api/ai-knowledge/search"""
+        search_data = {
+            'query': 'test',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            if 'results' in data and isinstance(data['results'], list):
+                results_count = len(data['results'])
+                self.log_test("AI Knowledge Search", True, f"✅ Search returned {results_count} results")
+            else:
+                self.log_test("AI Knowledge Search", False, f"Invalid response structure: {data}")
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Knowledge Search", True, f"✅ Expected 500 'Database is not initialized': {data.get('detail')}")
+        else:
+            self.log_test("AI Knowledge Search", False, f"Status: {status}, Data: {data}")
+    
+    def print_final_summary(self):
+        """Print final test summary with clear pass/fail per step"""
+        print("\n" + "=" * 80)
+        print("📊 FINAL SUMMARY")
+        print("=" * 80)
+        
+        print(f"Total Tests Run: {self.tests_run}")
+        print(f"Tests Passed: {self.tests_passed}")
+        print(f"Tests Failed: {len(self.failed_tests)}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run*100):.1f}%" if self.tests_run > 0 else "No tests run")
+        
+        print("\n📋 STEP-BY-STEP RESULTS:")
+        print("-" * 40)
+        
+        # Step A: Router probing
+        root_passed = any("Root API Endpoint" in test['name'] for test in self.failed_tests) == False
+        ai_status_passed = self.ai_endpoints_deployed is not None
+        print(f"A) Router Probing: {'✅ PASS' if root_passed and ai_status_passed else '❌ FAIL'}")
+        print(f"   - GET /api/: {'✅' if root_passed else '❌'}")
+        print(f"   - GET /api/ai-knowledge/status: {'✅' if ai_status_passed else '❌'}")
+        
+        # Step B: AI Module Status
+        if self.ai_endpoints_deployed is True:
+            print("B) AI Module Status: ✅ DEPLOYED")
+        elif self.ai_endpoints_deployed is False:
+            print("B) AI Module Status: ❌ NOT DEPLOYED")
+        else:
+            print("B) AI Module Status: ❓ UNKNOWN")
+        
+        # Step C: CRM Tests
+        crm_filters_passed = not any("CRM Filters Review" in test['name'] for test in self.failed_tests)
+        crm_houses_passed = not any("CRM Houses Structure" in test['name'] for test in self.failed_tests)
+        print(f"C) CRM Tests: {'✅ PASS' if crm_filters_passed and crm_houses_passed else '❌ FAIL'}")
+        print(f"   - GET /api/cleaning/filters: {'✅' if crm_filters_passed else '❌'}")
+        print(f"   - GET /api/cleaning/houses: {'✅' if crm_houses_passed else '❌'}")
+        
+        # Step D: Logistics Tests
+        logistics_passed = not any("Logistics Route Review" in test['name'] for test in self.failed_tests)
+        print(f"D) Logistics Tests: {'✅ PASS' if logistics_passed else '❌ FAIL'}")
+        print(f"   - POST /api/logistics/route: {'✅' if logistics_passed else '❌'}")
+        
+        if self.failed_tests:
+            print("\n❌ FAILED TESTS:")
+            print("-" * 40)
+            for i, test in enumerate(self.failed_tests, 1):
+                print(f"{i}. {test['name']}")
+                print(f"   Details: {test['details']}")
+        
+        print("\n" + "=" * 80)
+
 
 def main():
     """Main test execution for review request"""
