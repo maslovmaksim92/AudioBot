@@ -273,6 +273,8 @@ class HouseResponse(BaseModel):
     apartments: int = 0
     entrances: int = 0
     floors: int = 0
+    amount_monthly: float | None = None
+    currency: str | None = None
     cleaning_dates: Dict[str, Any] = {}
     periodicity: Optional[str] = "индивидуальная"
     bitrix_url: Optional[str] = ""
