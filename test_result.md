@@ -240,13 +240,16 @@
 ##     implemented: false
 ##     working: false
 ##     file: "deployment configuration"
-##     stuck_count: 1
+##     stuck_count: 2
 ##     priority: "high"
 ##     needs_retesting: true
 ##     status_history:
 ##         -working: false
 ##         -agent: "testing"
 ##         -comment: "❌ CRITICAL DEPLOYMENT ISSUES - Production deployment at https://audiobot-1-cv3f.onrender.com has multiple critical configuration problems: 1) React Router client-side routing not configured - direct access to /works and /dashboard returns 404 ❌, 2) Backend API server not accessible - all /api/* endpoints return 404 'Not Found' ❌, 3) Frontend-backend integration broken - house data cannot load from Bitrix24 ❌. The frontend code appears correct and dashboard shows static KPI data, but dynamic functionality is completely broken. REQUIRED FIXES: 1) Configure web server (nginx/Apache) to serve React app with fallback to index.html for client-side routing, 2) Deploy and configure backend API server with proper routing, 3) Ensure backend environment variables and Bitrix24 integration are properly configured in production."
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ PRODUCTION DEPLOYMENT STILL BROKEN - Retested production UI at https://audiobot-1-cv3f.onrender.com with same critical issues persisting. DETAILED FINDINGS: 1) ✅ Main page loads successfully with working sidebar navigation and dashboard KPIs (492 houses, 30,331 apartments, 2,885 floors) ✓. 2) ❌ React Router client-side routing BROKEN: Direct navigation to /works returns 404 'Not Found' ❌, Direct navigation to /dashboard returns 404 'Not Found' ❌. 3) ❌ All required test scenarios FAILED: Cannot access 'Работы (Дома)' header - route returns 404 ❌, No house cards loading - 0 cards found ❌, Missing required labels ('УК:', 'Периодичность:', 'Бригада №:') - 0 labels found ❌, Cannot test Bitrix24 links or 'Детали' modal - no cards available ❌, Cannot verify currency format or spacing - no content loaded ❌. 4) ✅ Sidebar navigation present with 'Дома' menu item visible but clicking leads to 404 ✓. CONSOLE ERRORS: Multiple 404 resource loading failures for /works and /dashboard routes. ROOT CAUSE: Production web server (likely nginx/Apache) not configured to serve React SPA with fallback to index.html for client-side routing. The React app builds correctly but server configuration prevents proper routing. URGENT FIXES NEEDED: 1) Configure web server to serve index.html for all non-API routes, 2) Ensure backend API server is deployed and accessible, 3) Verify frontend-backend integration in production environment."
 
 ## metadata:
 ##   created_by: "main_agent"
