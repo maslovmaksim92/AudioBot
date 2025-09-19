@@ -4522,7 +4522,7 @@ if __name__ == "__main__":
     print("=" * 70)
     
     # Run the focused review request test
-    tester.test_review_request_psycopg2_binary()
+    tester.test_review_request_diagnostics_after_scrubbing_pgsslmode()
     
     # Print final summary
     print("\n" + "=" * 70)
