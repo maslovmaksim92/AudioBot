@@ -4350,6 +4350,167 @@ Modern automation systems streamline all operational processes."""
         print("   🎉 Quick AI Flow test completed")
         return True
 
+    def test_review_request_psycopg2_binary(self):
+        """Test review request: Quick re-check after adding psycopg2-binary"""
+        print("\n🔍 REVIEW REQUEST: Quick re-check after adding psycopg2-binary")
+        print("=" * 70)
+        print(f"Base URL: {self.base_url}")
+        print("Testing sequence: db-check → install (if needed) → AI flow")
+        print("-" * 70)
+        
+        # Step 1: GET /api/ai-knowledge/db-check — expect connected true now
+        print("\n1️⃣ Step 1: Database Connection Check")
+        db_status = self.test_db_check_endpoint_focused()
+        
+        if not db_status:
+            print("❌ Cannot proceed - db-check endpoint failed")
+            return False
+        
+        connected = db_status.get('connected', False)
+        pgvector_installed = db_status.get('pgvector_installed', False)
+        errors = db_status.get('errors', [])
+        
+        # Step 2: If connected and pgvector not installed, POST install and re-check
+        if connected and not pgvector_installed:
+            print("\n2️⃣ Step 2: Installing PGVector Extension")
+            install_success = self.test_db_install_vector_focused()
+            
+            if install_success:
+                print("\n2️⃣b Step 2b: Re-checking after installation")
+                db_status_after = self.test_db_check_endpoint_focused()
+                if db_status_after and db_status_after.get('pgvector_installed', False):
+                    print("✅ PGVector installation successful")
+                    pgvector_installed = True
+                else:
+                    print("❌ PGVector installation may have failed")
+        elif connected and pgvector_installed:
+            print("\n✅ Step 2: PGVector already installed, skipping installation")
+        elif not connected:
+            print(f"\n❌ Step 2: Cannot install PGVector - database not connected")
+            if errors:
+                print(f"   Database errors: {errors}")
+            return False
+        
+        # Step 3: If ready, run quick AI flow preview->study->documents->search->delete
+        if connected and pgvector_installed:
+            print("\n3️⃣ Step 3: Quick AI Flow Test")
+            self.test_ai_flow_sequence_focused()
+        else:
+            print(f"\n❌ Step 3: Cannot test AI flow - prerequisites not met (connected={connected}, pgvector={pgvector_installed})")
+        
+        return True
+    
+    def test_db_check_endpoint_focused(self):
+        """Focused test for db-check endpoint"""
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            connected = data.get('connected', False)
+            pgvector_available = data.get('pgvector_available', False)
+            pgvector_installed = data.get('pgvector_installed', False)
+            errors = data.get('errors', [])
+            
+            status_msg = f"connected={connected}, pgvector_available={pgvector_available}, pgvector_installed={pgvector_installed}"
+            if errors:
+                status_msg += f", errors={len(errors)}"
+            
+            self.log_test("DB Check - Connection Status", connected, status_msg)
+            
+            if errors:
+                print(f"   ⚠️  Database errors detected:")
+                for error in errors[:3]:  # Show first 3 errors
+                    print(f"      - {error}")
+            
+            return data
+        else:
+            self.log_test("DB Check - Endpoint", False, f"Status: {status}, Data: {data}")
+            return None
+    
+    def test_db_install_vector_focused(self):
+        """Focused test for db-install-vector endpoint"""
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', {})
+        
+        if success and status == 200:
+            result = data.get('result', '')
+            self.log_test("DB Install Vector - Success", True, f"Result: {result}")
+            return True
+        elif status == 422:
+            # Validation error is expected if no body provided, try with proper body
+            install_data = {"confirm": True}
+            success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', install_data)
+            if success and status == 200:
+                result = data.get('result', '')
+                self.log_test("DB Install Vector - Success", True, f"Result: {result}")
+                return True
+            else:
+                self.log_test("DB Install Vector - After Retry", False, f"Status: {status}, Data: {data}")
+        else:
+            self.log_test("DB Install Vector - Failed", False, f"Status: {status}, Data: {data}")
+        
+        return False
+    
+    def test_ai_flow_sequence_focused(self):
+        """Test quick AI flow: preview->study->documents->search->delete"""
+        print("   🔄 Testing AI Flow Sequence...")
+        
+        # Step 1: Preview (upload)
+        txt_content = "Test document for VasDom AudioBot AI system. This contains information about cleaning schedules and brigade management."
+        files = {'files': ('test_flow.txt', txt_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if not (success and status == 200 and 'upload_id' in data):
+            self.log_test("AI Flow - Preview", False, f"Preview failed: Status {status}")
+            return False
+        
+        upload_id = data['upload_id']
+        self.log_test("AI Flow - Preview", True, f"Upload ID: {upload_id[:8]}...")
+        
+        # Step 2: Study (save)
+        study_data = {
+            'upload_id': upload_id,
+            'filename': 'test_flow_document.txt',
+            'category': 'Testing'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=study_data)
+        
+        if not (success and status == 200 and 'document_id' in data):
+            self.log_test("AI Flow - Study", False, f"Study failed: Status {status}")
+            return False
+        
+        document_id = data['document_id']
+        self.log_test("AI Flow - Study", True, f"Document ID: {document_id[:8]}...")
+        
+        # Step 3: Documents (list)
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200 and 'documents' in data:
+            docs_count = len(data['documents'])
+            self.log_test("AI Flow - Documents", True, f"Found {docs_count} documents")
+        else:
+            self.log_test("AI Flow - Documents", False, f"Documents list failed: Status {status}")
+        
+        # Step 4: Search
+        search_data = {'query': 'VasDom', 'top_k': 5}
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200 and 'results' in data:
+            results_count = len(data['results'])
+            self.log_test("AI Flow - Search", True, f"Found {results_count} search results")
+        else:
+            self.log_test("AI Flow - Search", False, f"Search failed: Status {status}")
+        
+        # Step 5: Delete
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200 and data.get('ok'):
+            self.log_test("AI Flow - Delete", True, f"Document deleted successfully")
+        else:
+            self.log_test("AI Flow - Delete", False, f"Delete failed: Status {status}")
+        
+        return True
+
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
