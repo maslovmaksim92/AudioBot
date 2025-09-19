@@ -1,13 +1,21 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import os, io, json, zipfile, logging
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy import text as sa_text
-import asyncpg
+# Psycopg3 async (preferred for Neon)
+try:
+    from psycopg_pool import AsyncConnectionPool
+    from psycopg.rows import dict_row
+    import psycopg
+    PSYCOPG_AVAILABLE = True
+except Exception as e:
+    PSYCOPG_AVAILABLE = False
+    AsyncConnectionPool = None
+    dict_row = None
+    psycopg = None
 
 from openai import AsyncOpenAI
 from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -22,7 +30,7 @@ logger = logging.getLogger("ai_knowledge_router")
 router = APIRouter(prefix="/api/ai-knowledge", tags=["AI Knowledge"])
 
 # ENV / DB
-RAW_DATABASE_URL = (os.environ.get('DATABASE_URL_OVERRIDE') or os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
+RAW_DATABASE_URL = (os.environ.get('NEON_DATABASE_URL') or '').strip()
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
 
@@ -30,79 +38,59 @@ ALLOWED_EXT = {'.pdf', '.docx', '.txt', '.xlsx', '.zip'}
 MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
 MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
 
-engine = None
-AsyncSessionLocal = None
-
-# Normalize DB URL locally to avoid asyncpg/sslmode issues
+# Normalize DB URL for psycopg3 (libpq-style)
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
-def _normalize_db_url(url: str) -> str:
+def _normalize_db_url_psycopg(url: str) -> str:
     try:
         if not url:
             return url
         url = url.strip().strip("'\"")
         if url.lower().startswith('psql '):
             url = url[5:].strip().strip("'\"")
-        # Remove any leading garbage before scheme
-        for marker in ('postgresql+asyncpg://', 'postgresql://', 'postgres://'):
-            idx = url.find(marker)
-            if idx > 0:
-                url = url[idx:]
-                break
-        # ensure async driver
-        if url.startswith('postgres://'):
-            url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
-        elif url.startswith('postgresql://') and not url.startswith('postgresql+asyncpg://'):
-            url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
-        elif not url.startswith('postgresql+asyncpg://'):
-            url = 'postgresql+asyncpg://' + url.split('://',1)[-1]
+        # Ensure scheme is postgresql://
+        if url.startswith('postgresql+asyncpg://'):
+            url = url.replace('postgresql+asyncpg://', 'postgresql://', 1)
+        elif url.startswith('postgres://'):
+            url = url.replace('postgres://', 'postgresql://', 1)
+        elif not url.startswith('postgresql://'):
+            url = 'postgresql://' + url.split('://', 1)[-1]
         u = urlparse(url)
         q = dict(parse_qsl(u.query, keep_blank_values=True))
-        # remove/convert params
+        # Drop incompatible/irrelevant params
         q.pop('channel_binding', None)
+        # Convert ssl=true/false to sslmode
+        if 'ssl' in q:
+            sval = str(q.get('ssl')).lower()
+            q.pop('ssl', None)
+            if sval in ('true', '1', 'yes', 'on'):
+                q['sslmode'] = 'require'
+            elif sval in ('false', '0', 'no', 'off'):
+                q['sslmode'] = 'disable'
+        allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
         if 'sslmode' in q:
-            q.pop('sslmode', None)
-        if q.get('ssl') is None:
-            q['ssl'] = 'true'
+            if str(q['sslmode']).lower() not in allowed:
+                q['sslmode'] = 'require'
+        else:
+            # Default for managed Postgres like Neon
+            q['sslmode'] = 'require'
         new_query = urlencode(q, doseq=True)
         return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
     except Exception:
         return url
 
-DATABASE_URL = _normalize_db_url(RAW_DATABASE_URL)
+DATABASE_URL = _normalize_db_url_psycopg(RAW_DATABASE_URL)
 
-from urllib.parse import urlparse, urlunparse, quote
-
-def _build_clean_async_url(url: str) -> str:
+# Psycopg3 async pool
+pg_pool: Optional[AsyncConnectionPool] = None
+if PSYCOPG_AVAILABLE and DATABASE_URL:
     try:
-        p = urlparse(url)
-        scheme = 'postgresql+asyncpg'
-        username = p.username or ''
-        password = p.password or ''
-        host = p.hostname or ''
-        port = f":{p.port}" if p.port else ''
-        auth = ''
-        if username:
-            u = quote(username, safe='')
-            if password:
-                pw = quote(password, safe='')
-                auth = f"{u}:{pw}@"
-            else:
-                auth = f"{u}@"
-        netloc = f"{auth}{host}{port}"
-        path = p.path or ''
-        return urlunparse((scheme, netloc, path, '', '', ''))
-    except Exception:
-        return url
-
-# initialize local engine/session (separate from server.py to avoid circular imports)
-if DATABASE_URL:
-    try:
-        clean_url = _build_clean_async_url(DATABASE_URL)
-        engine = create_async_engine(clean_url, echo=False, pool_pre_ping=True, future=True, connect_args={"ssl": True})
-        AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+        # keep pool small; Neon serverless prefers many short connections
+        pg_pool = AsyncConnectionPool(conninfo=DATABASE_URL, min_size=1, max_size=int(os.environ.get('AI_PG_MAX_POOL', '5')))
+        logger.info('AI Knowledge: psycopg3 async pool initialized')
     except Exception as e:
-        logger.warning(f"DB init in ai_knowledge.py failed: {e}")
+        logger.warning(f"AI Knowledge: psycopg3 pool init failed: {e}")
+        pg_pool = None
 
 # Helpers
 async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> List[str]:
@@ -131,33 +119,39 @@ async def _summarize(text: str, max_chars: int = 2000) -> str:
         logger.warning(f"LLM preview error: {e}")
         return (text or '')[:max_chars]
 
-async def _detect_vector_dims(db: AsyncSession) -> int:
+async def _detect_vector_dims() -> int:
     """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536."""
+    if not pg_pool:
+        return 1536
     try:
-        # Read atttypmod from pg_attribute; vector dims stored as (atttypmod - 4)
-        sql = """
-        SELECT a.atttypmod
-        FROM pg_attribute a
-        JOIN pg_class c ON c.oid = a.attrelid
-        JOIN pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = current_schema()
-          AND c.relname = 'ai_chunks'
-          AND a.attname = 'embedding'
-          AND a.attnum > 0
-          AND NOT a.attisdropped
-        LIMIT 1
-        """
-        row = (await db.execute(sa_text(sql))).first()
-        if row and isinstance(row[0], int) and row[0] > 4:
-            dims = int(row[0]) - 4
-            if dims in (1536, 3072):
-                return dims
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT a.atttypmod AS atttypmod
+                    FROM pg_attribute a
+                    JOIN pg_class c ON c.oid = a.attrelid
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = current_schema()
+                      AND c.relname = 'ai_chunks'
+                      AND a.attname = 'embedding'
+                      AND a.attnum > 0
+                      AND NOT a.attisdropped
+                    LIMIT 1
+                    """
+                )
+                row = await cur.fetchone()
+                if row and isinstance(row.get('atttypmod'), int) and row['atttypmod'] > 4:
+                    dims = int(row['atttypmod']) - 4
+                    if dims in (1536, 3072):
+                        return dims
     except Exception as e:
         logger.warning(f"Vector dims detection failed: {e}")
     return 1536
 
-async def _embed_texts_dynamic(texts: List[str], db: AsyncSession) -> List[List[float]]:
-    dims = await _detect_vector_dims(db)
+async def _embed_texts_dynamic(texts: List[str]) -> List[List[float]]:
+    dims = await _detect_vector_dims()
     model = 'text-embedding-3-small' if dims == 1536 else 'text-embedding-3-large'
     if not OPENAI_API_KEY:
         return [[0.0]*dims for _ in texts]
@@ -167,7 +161,6 @@ async def _embed_texts_dynamic(texts: List[str], db: AsyncSession) -> List[List[
         try:
             r = await client.embeddings.create(model=model, input=t)
             vec = r.data[0].embedding
-            # if model returns unexpected dims, pad/trim to match column
             if len(vec) != dims:
                 if len(vec) > dims:
                     vec = vec[:dims]
@@ -187,7 +180,7 @@ class StatusResponse(BaseModel):
 # Preview endpoint (one file per request recommended)
 @router.post('/preview')
 async def preview(file: UploadFile = File(...), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
-    if AsyncSessionLocal is None:
+    if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
     if not file:
         raise HTTPException(status_code=400, detail='Файл не передан')
@@ -282,21 +275,29 @@ async def preview(file: UploadFile = File(...), chunk_tokens: int = Form(1200), 
     desc = await _summarize(text or '', max_chars=2000)
 
     upload_id = str(uuid4())
-    async with AsyncSessionLocal() as s:
-        meta = {
-            'filename': file.filename,
-            'summary': desc,
-            'chunks': chunks,
-            'chunks_count': len(chunks),
-            'size_bytes': len(raw),
-            'pages': pages,
-            'chunk_tokens': int(chunk_tokens),
-            'overlap': int(overlap),
-            'status': 'ready'
-        }
-        await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m::jsonb, :exp)'),
-                        {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)})
-        await s.commit()
+    try:
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                meta = {
+                    'filename': file.filename,
+                    'summary': desc,
+                    'chunks': chunks,
+                    'chunks_count': len(chunks),
+                    'size_bytes': len(raw),
+                    'pages': pages,
+                    'chunk_tokens': int(chunk_tokens),
+                    'overlap': int(overlap),
+                    'status': 'ready'
+                }
+                await cur.execute(
+                    'INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (%(id)s, %(m)s::jsonb, %(exp)s)',
+                    {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)}
+                )
+                await conn.commit()
+    except Exception as e:
+        logger.error(f"DB insert preview error: {e}")
+        raise HTTPException(status_code=500, detail='Database write error')
 
     return {
         'upload_id': upload_id,
@@ -312,43 +313,65 @@ async def preview(file: UploadFile = File(...), chunk_tokens: int = Form(1200), 
 # Study endpoint: persist to pgvector with category
 @router.post('/study')
 async def study(upload_id: str = Form(...), filename: str = Form('document.txt'), category: str = Form('Клининг')):
-    if AsyncSessionLocal is None:
+    if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
-    async with AsyncSessionLocal() as db:
-        row = (await db.execute(sa_text('SELECT meta FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})).first()
-        if not row:
-            raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
-        raw_meta = row[0]
-        meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
-        chunks: List[str] = meta.get('chunks') or []
-        vectors = await _embed_texts_dynamic(chunks, db)
-        doc_id = str(uuid4())
-        summary = meta.get('summary') or ''
-        size_bytes = int(meta.get('size_bytes') or 0)
-        pages = meta.get('pages')
-        # Save document (store category in mime field suffix for simplicity)
-        mime = f"text/plain; category={category}"
-        await db.execute(sa_text('INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (:i,:fn,:mime,:sz,:sm,:pg,:ca)'),
-                         {"i": doc_id, "fn": filename, "mime": mime, "sz": size_bytes, "sm": summary[:500], "pg": pages, "ca": datetime.now(timezone.utc)})
-        for idx, (text, v) in enumerate(zip(chunks, vectors)):
-            await db.execute(sa_text('INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (:i,:d,:x,:c,:e)'),
-                             {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v})
-        # Update status and remove temp
-        await db.execute(sa_text("DELETE FROM ai_uploads_temp WHERE upload_id=:id"), {"id": upload_id})
-        await db.commit()
-    return {"document_id": doc_id, "chunks": len(chunks), "category": category}
+    try:
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                row = None
+                try:
+                    await cur.execute('SELECT meta FROM ai_uploads_temp WHERE upload_id=%(id)s', {"id": upload_id})
+                    row = await cur.fetchone()
+                except Exception as e:
+                    logger.error(f"read temp error: {e}")
+                if not row:
+                    raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
+                raw_meta = row.get('meta')
+                meta = raw_meta if isinstance(raw_meta, dict) else (json.loads(raw_meta) if isinstance(raw_meta, str) else {})
+                chunks: List[str] = meta.get('chunks') or []
+                vectors = await _embed_texts_dynamic(chunks)
+                doc_id = str(uuid4())
+                summary = meta.get('summary') or ''
+                size_bytes = int(meta.get('size_bytes') or 0)
+                pages = meta.get('pages')
+                mime = f"text/plain; category={category}"
+                await cur.execute(
+                    'INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (%(i)s,%(fn)s,%(mime)s,%(sz)s,%(sm)s,%(pg)s,%(ca)s)',
+                    {"i": doc_id, "fn": filename, "mime": mime, "sz": size_bytes, "sm": (summary[:500] if isinstance(summary, str) else None), "pg": pages, "ca": datetime.now(timezone.utc)}
+                )
+                for idx, (text, v) in enumerate(zip(chunks, vectors)):
+                    await cur.execute(
+                        'INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (%(i)s,%(d)s,%(x)s,%(c)s,%(e)s)',
+                        {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v}
+                    )
+                await cur.execute('DELETE FROM ai_uploads_temp WHERE upload_id=%(id)s', {"id": upload_id})
+                await conn.commit()
+        return {"document_id": doc_id, "chunks": len(chunks), "category": category}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"study error: {e}")
+        raise HTTPException(status_code=500, detail='Database write error')
 
 # Status endpoint: checks temp table presence
 @router.get('/status', response_model=StatusResponse)
 async def status(upload_id: str):
-    if AsyncSessionLocal is None:
+    if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
-    async with AsyncSessionLocal() as db:
-        row = (await db.execute(sa_text('SELECT meta FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})).first()
-        if row:
-            raw_meta = row[0]
-            meta = json.loads(raw_meta) if isinstance(raw_meta, str) else raw_meta
-            return StatusResponse(status=meta.get('status') or 'ready')
+    try:
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                await cur.execute('SELECT meta FROM ai_uploads_temp WHERE upload_id=%(id)s', {"id": upload_id})
+                row = await cur.fetchone()
+                if row:
+                    raw_meta = row.get('meta')
+                    meta = raw_meta if isinstance(raw_meta, dict) else (json.loads(raw_meta) if isinstance(raw_meta, str) else {})
+                    return StatusResponse(status=meta.get('status') or 'ready')
+    except Exception as e:
+        logger.error(f"status error: {e}")
+        raise HTTPException(status_code=500, detail='Database read error')
     return StatusResponse(status='done')
 
 # ===== Utilities for DB diagnostics =====
@@ -362,62 +385,64 @@ class DbCheckResponse(BaseModel):
 
 @router.get('/db-check', response_model=DbCheckResponse)
 async def db_check():
-    # Direct asyncpg connect to avoid any URL/sslmode issues
     errors: List[str] = []
     ai_tables: List[str] = []
     connected = False
     pgvector_available = False
     pgvector_installed = False
     dims: Optional[int] = None
+    if not pg_pool:
+        return DbCheckResponse(
+            connected=False,
+            pgvector_available=False,
+            pgvector_installed=False,
+            ai_tables=[],
+            embedding_dims=None,
+            errors=['pool_not_initialized']
+        )
     try:
-        # Build clean DSN
-        from urllib.parse import urlparse
-        p = urlparse(DATABASE_URL)
-        user = p.username
-        password = p.password
-        host = p.hostname
-        port = p.port or 5432
-        database = (p.path or '').lstrip('/')
-        conn = await asyncpg.connect(user=user, password=password, host=host, port=port, database=database, ssl=True)
-        try:
-            # Connection check
-            try:
-                await conn.execute('SELECT 1')
-                connected = True
-            except Exception as e:
-                errors.append(f'connect: {e}')
-            # Available extensions
-            try:
-                row = await conn.fetchrow("SELECT default_version FROM pg_available_extensions WHERE name='vector'")
-                pgvector_available = bool(row)
-            except Exception as e:
-                errors.append(f'available: {e}')
-            # Installed extension
-            try:
-                row2 = await conn.fetchrow("SELECT extversion FROM pg_extension WHERE extname='vector'")
-                pgvector_installed = bool(row2)
-            except Exception as e:
-                errors.append(f'installed: {e}')
-            # AI tables
-            try:
-                rows = await conn.fetch("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'ai_%'")
-                ai_tables = [r['table_name'] for r in rows] if rows else []
-            except Exception as e:
-                errors.append(f'ai_tables: {e}')
-            # Embedding dims
-            try:
-                if 'ai_chunks' in ai_tables:
-                    rowd = await conn.fetchrow("""
-                        SELECT a.atttypmod FROM pg_attribute a
-                        JOIN pg_class c ON c.oid = a.attrelid
-                        WHERE c.relname = 'ai_chunks' AND a.attname = 'embedding'
-                    """)
-                    if rowd and rowd['atttypmod'] and rowd['atttypmod'] > 4:
-                        dims = int(rowd['atttypmod']) - 4
-            except Exception as e:
-                errors.append(f'dims: {e}')
-        finally:
-            await conn.close()
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                try:
+                    await cur.execute('SELECT 1')
+                    await cur.fetchone()
+                    connected = True
+                except Exception as e:
+                    errors.append(f'connect: {e}')
+                try:
+                    await cur.execute("SELECT default_version FROM pg_available_extensions WHERE name='vector'")
+                    row = await cur.fetchone()
+                    pgvector_available = bool(row)
+                except Exception as e:
+                    errors.append(f'available: {e}')
+                try:
+                    await cur.execute("SELECT extversion FROM pg_extension WHERE extname='vector'")
+                    row2 = await cur.fetchone()
+                    pgvector_installed = bool(row2)
+                except Exception as e:
+                    errors.append(f'installed: {e}')
+                try:
+                    await cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'ai_%'")
+                    rows = await cur.fetchall()
+                    ai_tables = [r['table_name'] for r in rows] if rows else []
+                except Exception as e:
+                    errors.append(f'ai_tables: {e}')
+                try:
+                    if 'ai_chunks' in ai_tables:
+                        await cur.execute(
+                            """
+                            SELECT a.atttypmod AS atttypmod
+                            FROM pg_attribute a
+                            JOIN pg_class c ON c.oid = a.attrelid
+                            WHERE c.relname = 'ai_chunks' AND a.attname = 'embedding'
+                            """
+                        )
+                        rowd = await cur.fetchone()
+                        if rowd and rowd.get('atttypmod') and rowd['atttypmod'] > 4:
+                            dims = int(rowd['atttypmod']) - 4
+                except Exception as e:
+                    errors.append(f'dims: {e}')
     except Exception as e:
         errors.append(f'session: {e}')
     return DbCheckResponse(
@@ -434,30 +459,29 @@ class DbInstallRequest(BaseModel):
 
 @router.post('/db-install-vector')
 async def db_install_vector(req: DbInstallRequest):
-    if AsyncSessionLocal is None:
+    if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
     if not req.confirm:
         raise HTTPException(status_code=400, detail='confirm=false')
-    async with AsyncSessionLocal() as db:
-        try:
-            await db.execute(sa_text('CREATE EXTENSION IF NOT EXISTS vector'))
-            await db.commit()
-            return {'ok': True}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        async with pg_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('CREATE EXTENSION IF NOT EXISTS vector')
+                await conn.commit()
+                return {'ok': True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # DSN diagnostics (sanitized)
 @router.get('/db-dsn')
 async def db_dsn():
     from urllib.parse import urlparse, parse_qsl
-    raw = (os.environ.get('DATABASE_URL_OVERRIDE') or os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
-    norm = _normalize_db_url(raw)
-    env_sslmode = os.environ.get('PGSSLMODE')
+    raw = (os.environ.get('NEON_DATABASE_URL') or '').strip()
+    norm = _normalize_db_url_psycopg(raw)
     def parse_info(u: str):
         try:
             p = urlparse(u)
             q = dict(parse_qsl(p.query, keep_blank_values=True))
-            # mask user and password
             username = (p.username or '')
             if username:
                 if len(username) > 3:
@@ -485,5 +509,4 @@ async def db_dsn():
         'raw': parse_info(raw) if raw else None,
         'normalized_contains_sslmode': ('sslmode=' in norm.lower()),
         'normalized': parse_info(norm) if norm else None,
-        'env_sslmode': env_sslmode
     }
