@@ -4358,11 +4358,8 @@ if __name__ == "__main__":
     print("Goal: Test specific diagnostics endpoints db-dsn and db-check")
     print("=" * 60)
     
-    # Run review request diagnostics tests
-    success = tester.test_review_request_diagnostics()
-    
-    # Display results
-    tester.display_results()
+    # Run comprehensive tests with review request focus
+    passed, total = tester.run_comprehensive_tests()
     
     # Exit with appropriate code
-    sys.exit(0 if success else 1)
+    sys.exit(0 if passed == total else 1)
