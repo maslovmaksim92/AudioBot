@@ -140,16 +140,16 @@ class VasDomAPITester:
         # 6) GET /api/ai-knowledge/db-check (repeat)
         self.test_db_check_repeat()
         
-        # Documents/search tests
+        # Documents/search tests (these are in server.py, not the new router)
         print("\n📚 DOCUMENTS/SEARCH TESTS:")
         
-        # 7) GET /api/ai-knowledge/documents
+        # 7) GET /api/ai-knowledge/documents (from server.py)
         self.test_ai_documents_endpoint()
         
-        # 8) POST /api/ai-knowledge/search
+        # 8) POST /api/ai-knowledge/search (from server.py)
         self.test_ai_search_endpoint()
         
-        # 9) DELETE /api/ai-knowledge/document/{document_id}
+        # 9) DELETE /api/ai-knowledge/document/{document_id} (from server.py)
         self.test_ai_delete_endpoint()
         
         # CRM regression tests
