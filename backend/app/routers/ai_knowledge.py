@@ -362,8 +362,7 @@ class DbCheckResponse(BaseModel):
 
 @router.get('/db-check', response_model=DbCheckResponse)
 async def db_check():
-    if AsyncSessionLocal is None:
-        raise HTTPException(status_code=500, detail='Database is not initialized')
+    # Direct asyncpg connect to avoid any URL/sslmode issues
     errors: List[str] = []
     ai_tables: List[str] = []
     connected = False
@@ -371,37 +370,54 @@ async def db_check():
     pgvector_installed = False
     dims: Optional[int] = None
     try:
-        async with AsyncSessionLocal() as db:
+        # Build clean DSN
+        from urllib.parse import urlparse
+        p = urlparse(DATABASE_URL)
+        user = p.username
+        password = p.password
+        host = p.hostname
+        port = p.port or 5432
+        database = (p.path or '').lstrip('/')
+        conn = await asyncpg.connect(user=user, password=password, host=host, port=port, database=database, ssl=True)
+        try:
             # Connection check
             try:
-                await db.execute(sa_text('SELECT 1'))
+                await conn.execute('SELECT 1')
                 connected = True
             except Exception as e:
                 errors.append(f'connect: {e}')
             # Available extensions
             try:
-                row = (await db.execute(sa_text("SELECT default_version FROM pg_available_extensions WHERE name='vector'"))).first()
+                row = await conn.fetchrow("SELECT default_version FROM pg_available_extensions WHERE name='vector'")
                 pgvector_available = bool(row)
             except Exception as e:
                 errors.append(f'available: {e}')
             # Installed extension
             try:
-                row2 = (await db.execute(sa_text("SELECT extversion FROM pg_extension WHERE extname='vector'"))).first()
+                row2 = await conn.fetchrow("SELECT extversion FROM pg_extension WHERE extname='vector'")
                 pgvector_installed = bool(row2)
             except Exception as e:
                 errors.append(f'installed: {e}')
             # AI tables
             try:
-                rows = (await db.execute(sa_text("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'ai_%'"))).all()
-                ai_tables = [r[0] for r in rows] if rows else []
+                rows = await conn.fetch("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name LIKE 'ai_%'")
+                ai_tables = [r['table_name'] for r in rows] if rows else []
             except Exception as e:
                 errors.append(f'ai_tables: {e}')
             # Embedding dims
             try:
                 if 'ai_chunks' in ai_tables:
-                    dims = await _detect_vector_dims(db)
+                    rowd = await conn.fetchrow("""
+                        SELECT a.atttypmod FROM pg_attribute a
+                        JOIN pg_class c ON c.oid = a.attrelid
+                        WHERE c.relname = 'ai_chunks' AND a.attname = 'embedding'
+                    """)
+                    if rowd and rowd['atttypmod'] and rowd['atttypmod'] > 4:
+                        dims = int(rowd['atttypmod']) - 4
             except Exception as e:
                 errors.append(f'dims: {e}')
+        finally:
+            await conn.close()
     except Exception as e:
         errors.append(f'session: {e}')
     return DbCheckResponse(
