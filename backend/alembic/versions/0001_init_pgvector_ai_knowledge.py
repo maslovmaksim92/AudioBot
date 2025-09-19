@@ -30,8 +30,8 @@ def upgrade():
         sa.Column('embedding', Vector(1536))
     )
     op.create_index('ix_ai_chunks_document_id', 'ai_chunks', ['document_id'])
-    # Default lists=200 per tuning
-    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=200)")
+    # On Neon free, IVFFLAT doesn't allow dims>2000; 1536 is fine. Use smaller lists to be safe.
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_chunks_embedding ON ai_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists=50)")
     op.create_table(
         'ai_uploads_temp',
         sa.Column('upload_id', sa.String(), primary_key=True),
