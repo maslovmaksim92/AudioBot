@@ -1057,11 +1057,11 @@ startxref
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, params=params, timeout=30)
+                response = requests.get(url, headers=headers, params=params, timeout=60)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=30)
+                response = requests.post(url, json=data, headers=headers, timeout=60)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=30)
+                response = requests.delete(url, headers=headers, timeout=60)
             else:
                 return False, {}, 0
                 
