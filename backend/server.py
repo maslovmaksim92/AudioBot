@@ -146,11 +146,21 @@ class AIUploadTemp(Base):
     meta = Column(Text, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
 
+def _scrub_ssl_env():
+    # Remove libpq-style SSL env that can confuse asyncpg
+    removed = []
+    for k in ('PGSSLMODE','PGSSL','PGSSLCERT','PGSSLKEY','PGSSLROOTCERT'):
+        if os.environ.pop(k, None) is not None:
+            removed.append(k)
+    if removed:
+        logger.warning(f'Removed SSL-related env vars to avoid conflicts: {",".join(removed)}')
+
 async def init_db():
     global engine, AsyncSessionLocal
     if not DATABASE_URL:
         logger.warning('DATABASE_URL is not configured; DB features disabled')
         return
+    _scrub_ssl_env()
     engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
     AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
     # Alembic migrations
