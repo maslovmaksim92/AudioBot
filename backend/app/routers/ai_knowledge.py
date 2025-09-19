@@ -42,11 +42,19 @@ def _normalize_db_url(url: str) -> str:
         url = url.strip().strip("'\"")
         if url.lower().startswith('psql '):
             url = url[5:].strip().strip("'\"")
+        # Remove any leading garbage before scheme
+        for marker in ('postgresql+asyncpg://', 'postgresql://', 'postgres://'):
+            idx = url.find(marker)
+            if idx > 0:
+                url = url[idx:]
+                break
         # ensure async driver
         if url.startswith('postgres://'):
             url = url.replace('postgres://', 'postgresql+asyncpg://', 1)
         elif url.startswith('postgresql://') and not url.startswith('postgresql+asyncpg://'):
             url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+        elif not url.startswith('postgresql+asyncpg://'):
+            url = 'postgresql+asyncpg://' + url.split('://',1)[-1]
         u = urlparse(url)
         q = dict(parse_qsl(u.query, keep_blank_values=True))
         # remove/convert params
