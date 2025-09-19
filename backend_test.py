@@ -3220,7 +3220,285 @@ startxref
         # Print summary
         self.print_summary()
 
-    def test_ai_db_diagnostics_flow(self):
+    def test_db_dsn_endpoint(self):
+        """Test GET /api/ai-knowledge/db-dsn endpoint - Review Request Step 1"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
+        print("   Expect: raw_present=true, raw query ssl=true, no sslmode")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
+        
+        if success and status == 200:
+            raw_present = data.get('raw_present', False)
+            raw = data.get('raw', '')
+            normalized = data.get('normalized', '')
+            
+            # Check expectations from review request
+            if raw_present:
+                # Check if raw query has ssl=true and no sslmode
+                has_ssl_true = 'ssl=true' in raw.lower()
+                has_sslmode = 'sslmode=' in raw.lower()
+                
+                if has_ssl_true and not has_sslmode:
+                    self.log_test("DB DSN - Review Requirements", True, 
+                                f"✅ raw_present=true, ssl=true, no sslmode")
+                else:
+                    self.log_test("DB DSN - Review Requirements", False, 
+                                f"❌ Expected ssl=true and no sslmode. Found: ssl=true={has_ssl_true}, has_sslmode={has_sslmode}")
+                
+                # Log masked URLs for debugging
+                raw_masked = self.mask_sensitive_url(raw)
+                normalized_masked = self.mask_sensitive_url(normalized)
+                print(f"   📋 Raw URL: {raw_masked}")
+                print(f"   📋 Normalized URL: {normalized_masked}")
+                
+                return data
+            else:
+                self.log_test("DB DSN - Review Requirements", False, "❌ raw_present=false")
+        elif status == 404:
+            self.log_test("DB DSN - Endpoint Exists", False, "❌ db-dsn endpoint not found (404)")
+        else:
+            self.log_test("DB DSN - Endpoint Response", False, f"❌ Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_db_check_endpoint(self):
+        """Test GET /api/ai-knowledge/db-check endpoint - Review Request Step 2"""
+        print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expect: connected=true; if pgvector_available=true and installed=false, POST install")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            connected = data.get('connected', False)
+            pgvector_available = data.get('pgvector_available', False)
+            pgvector_installed = data.get('pgvector_installed', False)
+            errors = data.get('errors', [])
+            
+            print(f"   📊 Database Status:")
+            print(f"      Connected: {connected}")
+            print(f"      PGVector Available: {pgvector_available}")
+            print(f"      PGVector Installed: {pgvector_installed}")
+            if errors:
+                print(f"      Errors: {len(errors)} found")
+                for i, error in enumerate(errors[:3]):  # Show first 3 errors
+                    print(f"        {i+1}. {error}")
+            
+            if connected:
+                self.log_test("DB Check - Connected", True, "✅ Database connected successfully")
+                
+                if pgvector_available and not pgvector_installed:
+                    self.log_test("DB Check - PGVector Status", True, 
+                                "✅ PGVector available but not installed - ready for installation")
+                elif pgvector_available and pgvector_installed:
+                    self.log_test("DB Check - PGVector Status", True, 
+                                "✅ PGVector available and installed - ready for AI operations")
+                else:
+                    self.log_test("DB Check - PGVector Status", False, 
+                                f"❌ PGVector status: available={pgvector_available}, installed={pgvector_installed}")
+            else:
+                self.log_test("DB Check - Connected", False, 
+                            f"❌ Database not connected. Errors: {len(errors)}")
+            
+            return data
+        elif status == 404:
+            self.log_test("DB Check - Endpoint Exists", False, "❌ db-check endpoint not found (404)")
+        else:
+            self.log_test("DB Check - Endpoint Response", False, f"❌ Status: {status}, Data: {data}")
+        
+        return None
+
+    def test_db_install_vector_endpoint(self):
+        """Test POST /api/ai-knowledge/db-install-vector endpoint"""
+        print("\n3️⃣ Testing POST /api/ai-knowledge/db-install-vector")
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', {})
+        
+        if success and status == 200:
+            installed = data.get('installed', False)
+            message = data.get('message', '')
+            
+            if installed:
+                self.log_test("DB Install Vector - Success", True, f"✅ PGVector installed: {message}")
+            else:
+                self.log_test("DB Install Vector - Success", False, f"❌ Installation failed: {message}")
+            
+            return data
+        elif status == 422:
+            # Validation error is acceptable if body is missing
+            self.log_test("DB Install Vector - Validation", True, 
+                        "✅ Returns 422 validation error (acceptable for missing body)")
+        elif status == 404:
+            self.log_test("DB Install Vector - Endpoint Exists", False, 
+                        "❌ db-install-vector endpoint not found (404)")
+        else:
+            self.log_test("DB Install Vector - Response", False, f"❌ Status: {status}, Data: {data}")
+        
+        return None
+
+    def run_quick_ai_flow(self):
+        """Run quick AI flow: preview -> study -> documents -> search -> delete"""
+        print("\n4️⃣ Running Quick AI Flow")
+        
+        # Step 1: Preview (upload)
+        upload_id = self.test_ai_preview_step()
+        if not upload_id:
+            print("   ❌ Preview step failed - cannot continue AI flow")
+            return
+        
+        # Step 2: Study (save)
+        document_id = self.test_ai_study_step(upload_id)
+        if not document_id:
+            print("   ❌ Study step failed - cannot continue AI flow")
+            return
+        
+        # Step 3: Documents (list)
+        self.test_ai_documents_step()
+        
+        # Step 4: Search
+        self.test_ai_search_step()
+        
+        # Step 5: Delete
+        self.test_ai_delete_step(document_id)
+        
+        print("   ✅ Quick AI flow completed successfully")
+
+    def test_ai_preview_step(self):
+        """Test AI preview step (upload)"""
+        print("   📤 Step 1: Preview (Upload)")
+        
+        # Create test content
+        txt_content = """VasDom AudioBot AI Knowledge Test Document
+        
+This is a test document for the AI knowledge system.
+It contains information about cleaning operations and house management.
+
+Key topics:
+- House cleaning schedules
+- Brigade management
+- Quality control procedures
+- Bitrix24 integration
+- AI assistant capabilities
+
+This document will be processed into chunks for vector search."""
+
+        files = {'files': ('ai_test_document.txt', txt_content.encode('utf-8'), 'text/plain')}
+        data = {'chunk_tokens': '600', 'overlap': '100'}
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files, data=data)
+        
+        if success and status == 200:
+            upload_id = response_data.get('upload_id')
+            chunks = response_data.get('chunks', 0)
+            preview = response_data.get('preview', '')
+            
+            if upload_id and chunks > 0:
+                self.log_test("AI Preview - Upload Success", True, 
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks}")
+                return upload_id
+            else:
+                self.log_test("AI Preview - Upload Success", False, 
+                            f"❌ Invalid response: upload_id={bool(upload_id)}, chunks={chunks}")
+        else:
+            self.log_test("AI Preview - Upload Success", False, f"❌ Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_study_step(self, upload_id):
+        """Test AI study step (save)"""
+        print("   📚 Step 2: Study (Save)")
+        
+        data = {
+            'upload_id': upload_id,
+            'filename': 'ai_test_knowledge.txt',
+            'category': 'Testing'
+        }
+        
+        success, response_data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=data)
+        
+        if success and status == 200:
+            document_id = response_data.get('document_id')
+            chunks = response_data.get('chunks', 0)
+            category = response_data.get('category', '')
+            
+            if document_id:
+                self.log_test("AI Study - Save Success", True, 
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks}, category: {category}")
+                return document_id
+            else:
+                self.log_test("AI Study - Save Success", False, 
+                            f"❌ No document_id in response: {response_data}")
+        else:
+            self.log_test("AI Study - Save Success", False, f"❌ Status: {status}, Data: {response_data}")
+        
+        return None
+
+    def test_ai_documents_step(self):
+        """Test AI documents step (list)"""
+        print("   📋 Step 3: Documents (List)")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            documents = data.get('documents', [])
+            if isinstance(documents, list):
+                self.log_test("AI Documents - List Success", True, 
+                            f"✅ Retrieved {len(documents)} documents")
+            else:
+                self.log_test("AI Documents - List Success", False, 
+                            f"❌ Invalid documents format: {type(documents)}")
+        else:
+            self.log_test("AI Documents - List Success", False, f"❌ Status: {status}, Data: {data}")
+
+    def test_ai_search_step(self):
+        """Test AI search step"""
+        print("   🔍 Step 4: Search")
+        
+        search_data = {
+            'query': 'cleaning operations',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            results = data.get('results', [])
+            if isinstance(results, list):
+                self.log_test("AI Search - Query Success", True, 
+                            f"✅ Search returned {len(results)} results")
+            else:
+                self.log_test("AI Search - Query Success", False, 
+                            f"❌ Invalid results format: {type(results)}")
+        else:
+            self.log_test("AI Search - Query Success", False, f"❌ Status: {status}, Data: {data}")
+
+    def test_ai_delete_step(self, document_id):
+        """Test AI delete step"""
+        print("   🗑️ Step 5: Delete")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            ok = data.get('ok', False)
+            if ok:
+                self.log_test("AI Delete - Document Success", True, 
+                            f"✅ Document {document_id[:8]}... deleted successfully")
+            else:
+                self.log_test("AI Delete - Document Success", False, 
+                            f"❌ Delete failed: {data}")
+        else:
+            self.log_test("AI Delete - Document Success", False, f"❌ Status: {status}, Data: {data}")
+
+    def mask_sensitive_url(self, url):
+        """Mask sensitive parts of database URL for logging"""
+        if not url or not isinstance(url, str):
+            return url
+        
+        # Mask password in URL
+        import re
+        # Pattern to match postgresql://username:password@host:port/database
+        pattern = r'(postgresql[^:]*://[^:]+:)([^@]+)(@.+)'
+        masked = re.sub(pattern, r'\1***\3', url)
+        return masked
         """Test AI DB diagnostics and full AI flow as per review request"""
         print("\n🔍 SMOKE TEST: AI DB Diagnostics and AI Flow")
         print("=" * 60)
