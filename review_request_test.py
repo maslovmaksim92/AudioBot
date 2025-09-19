@@ -73,7 +73,114 @@ class ReviewRequestTester:
         except Exception as e:
             return False, {"error": str(e)}, 0
 
-    def test_ai_knowledge_preview(self):
+    def test_db_check_endpoint(self):
+        """Test GET /api/ai-knowledge/db-check endpoint"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expect: connected=true using asyncpg")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            # Capture JSON as requested
+            print(f"\n📋 CAPTURED JSON RESPONSE:")
+            print(json.dumps(data, indent=2))
+            
+            # Check expected fields
+            connected = data.get('connected', False)
+            pgvector_available = data.get('pgvector_available', False)
+            pgvector_installed = data.get('pgvector_installed', False)
+            errors = data.get('errors', [])
+            
+            if connected:
+                self.log_test("DB Check - Connection", True, f"Database connected using asyncpg")
+            else:
+                self.log_test("DB Check - Connection", False, f"Database not connected. Errors: {errors[:2]}")
+            
+            if pgvector_available:
+                self.log_test("DB Check - PGVector Available", True, "pgvector extension available")
+            else:
+                self.log_test("DB Check - PGVector Available", False, "pgvector extension not available")
+            
+            return data
+        else:
+            self.log_test("DB Check - Endpoint", False, f"Status: {status}, Data: {data}")
+            return None
+
+    def test_db_install_vector_endpoint(self):
+        """Test POST /api/ai-knowledge/db-install-vector endpoint"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/db-install-vector")
+        print("   Expect: Installation attempt or validation error")
+        
+        # POST with empty body to test validation
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', {})
+        
+        print(f"\n📋 INSTALL RESPONSE:")
+        print(f"Status: {status}")
+        print(f"Data: {json.dumps(data, indent=2)}")
+        
+        if status == 422:
+            # Validation error is expected for empty body
+            self.log_test("DB Install - Validation", True, f"Correctly returns 422 for missing body: {data.get('detail', '')}")
+            return True
+        elif status == 200:
+            self.log_test("DB Install - Installation", True, f"pgvector installation successful")
+            return True
+        else:
+            self.log_test("DB Install - Endpoint", False, f"Status: {status}")
+        
+        return False
+
+    def run_review_request_diagnostics(self):
+        """Run diagnostics with direct asyncpg connection as per review request"""
+        print("🔍 REVIEW REQUEST: AI Knowledge Diagnostics with Direct AsyncPG")
+        print("=" * 70)
+        print(f"Base URL: {self.base_url}")
+        print("Testing: GET /api/ai-knowledge/db-check — expect connected true (using asyncpg)")
+        print("=" * 70)
+        
+        # Step 1: Test GET /api/ai-knowledge/db-check
+        db_status = self.test_db_check_endpoint()
+        
+        # Step 2: If available true and installed false, test POST install
+        if db_status:
+            connected = db_status.get('connected', False)
+            pgvector_available = db_status.get('pgvector_available', False)
+            pgvector_installed = db_status.get('pgvector_installed', False)
+            
+            print(f"\n📊 Database Status Summary:")
+            print(f"   Connected: {connected}")
+            print(f"   PGVector Available: {pgvector_available}")
+            print(f"   PGVector Installed: {pgvector_installed}")
+            
+            if pgvector_available and not pgvector_installed:
+                print("   🔧 Attempting pgvector installation...")
+                self.test_db_install_vector_endpoint()
+            elif pgvector_available and pgvector_installed:
+                print("   ✅ pgvector already installed")
+            else:
+                print("   ❌ pgvector not available or connection failed")
+        
+        # Print summary
+        self.print_summary()
+        return self.tests_passed == self.tests_run
+
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 70)
+        print("📊 TEST SUMMARY")
+        print("=" * 70)
+        print(f"Tests Run: {self.tests_run}")
+        print(f"Tests Passed: {self.tests_passed}")
+        print(f"Tests Failed: {len(self.failed_tests)}")
+        
+        if self.failed_tests:
+            print("\n❌ FAILED TESTS:")
+            for test in self.failed_tests:
+                print(f"   • {test['name']}: {test['details']}")
+        
+        success_rate = (self.tests_passed / self.tests_run * 100) if self.tests_run > 0 else 0
+        print(f"\nSuccess Rate: {success_rate:.1f}%")
+        print("=" * 70)
         """Test 1: POST /api/ai-knowledge/preview"""
         print("\n1️⃣ POST /api/ai-knowledge/preview")
         
