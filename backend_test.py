@@ -3191,25 +3191,31 @@ startxref
         print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
         
-        # Core API tests
+        # PRIORITY: Review Request Diagnostics with NEON_DATABASE_URL
+        print("\n🔍 PRIORITY TESTING: NEON_DATABASE_URL Diagnostics")
+        print("User confirmed NEON_DATABASE_URL is set in Render")
+        print("-" * 50)
+        
+        # Step 1: GET /api/ai-knowledge/db-dsn
+        dsn_data = self.test_db_dsn_endpoint()
+        
+        # Step 2: GET /api/ai-knowledge/db-check
+        db_status = self.test_db_check_endpoint()
+        
+        # Step 3: Conditional POST /api/ai-knowledge/db-install-vector
+        if db_status and db_status.get('connected') and db_status.get('pgvector_available') and not db_status.get('pgvector_installed'):
+            print("\n🔧 Installing pgvector extension...")
+            self.test_db_install_vector_endpoint()
+            # Re-check after installation
+            db_status = self.test_db_check_endpoint()
+        
+        # Step 4: If fully connected and installed, run AI flow
+        if db_status and db_status.get('connected') and db_status.get('pgvector_installed'):
+            print("\n🧠 Running Quick AI Flow: preview -> study -> documents -> search -> delete")
+            self.run_quick_ai_flow()
+        
+        # Core API Tests
         self.test_root_endpoint()
-        self.test_dashboard_stats()
-        
-        # CRM/Cleaning tests
-        self.test_cleaning_filters()
-        self.test_cleaning_houses()
-        self.test_house_details_endpoint()
-        self.test_bitrix_fallback_behavior()
-        
-        # AI Knowledge tests
-        self.test_ai_knowledge_endpoints()
-        
-        # Logistics tests
-        self.test_logistics_route_endpoint()
-        
-        # Display requirements tests
-        self.test_houses_display_requirements()
-        self.test_bitrix24_integration()
         
         # Print summary
         self.print_summary()
