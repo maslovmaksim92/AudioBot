@@ -3192,6 +3192,40 @@ startxref
         else:
             print("\n✅ ALL TESTS PASSED!")
 
+    def run_review_request_diagnostics(self):
+        """Run diagnostics with direct asyncpg connection as per review request"""
+        print("🔍 REVIEW REQUEST: AI Knowledge Diagnostics with Direct AsyncPG")
+        print("=" * 70)
+        print(f"Base URL: {self.base_url}")
+        print("Testing: GET /api/ai-knowledge/db-check - expect connected true (using asyncpg)")
+        print("=" * 70)
+        
+        # Step 1: Test GET /api/ai-knowledge/db-check
+        db_status = self.test_db_check_endpoint_review_request()
+        
+        # Step 2: If available true and installed false, test POST install
+        if db_status:
+            connected = db_status.get('connected', False)
+            pgvector_available = db_status.get('pgvector_available', False)
+            pgvector_installed = db_status.get('pgvector_installed', False)
+            
+            print(f"\n📊 Database Status:")
+            print(f"   Connected: {connected}")
+            print(f"   PGVector Available: {pgvector_available}")
+            print(f"   PGVector Installed: {pgvector_installed}")
+            
+            if pgvector_available and not pgvector_installed:
+                print("   🔧 Attempting pgvector installation...")
+                self.test_db_install_vector_review_request()
+            elif pgvector_available and pgvector_installed:
+                print("   ✅ pgvector already installed")
+            else:
+                print("   ❌ pgvector not available or connection failed")
+        
+        # Print summary
+        self.print_summary()
+        return self.tests_passed == self.tests_run
+
     def run_comprehensive_tests(self):
         """Run all comprehensive tests"""
         print("🚀 Starting VasDom AudioBot Backend API Testing")
