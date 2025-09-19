@@ -478,4 +478,18 @@ class ReviewRequestTester:
 
 if __name__ == "__main__":
     tester = ReviewRequestTester()
-    tester.run_full_test()
+    
+    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST: Direct AsyncPG Diagnostics")
+    print("=" * 70)
+    print(f"Testing deployed backend: {tester.base_url}")
+    print("Goal: GET /api/ai-knowledge/db-check — expect connected true (using asyncpg)")
+    print("      If available true and installed false, POST install")
+    print("=" * 70)
+    
+    # Run the review request diagnostics
+    success = tester.run_review_request_diagnostics()
+    
+    if success:
+        print("\n🎉 Review request testing completed successfully!")
+    else:
+        print("\n❌ Review request testing completed with failures.")
