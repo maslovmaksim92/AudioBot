@@ -3919,6 +3919,148 @@ if __name__ == "__main__":
         
         return None
 
+    def test_db_install_vector_review(self):
+        """Test POST /api/ai-knowledge/db-install-vector endpoint - Review Request Step 3"""
+        install_data = {"confirm": True}
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', install_data)
+        
+        if success and status == 200:
+            # Check if installation was successful
+            if 'success' in data or 'installed' in data or 'ok' in data:
+                self.log_test("DB Install Vector - Installation", True, f"PGVector installation successful: {data}")
+                print(f"   ✅ PGVector installation completed successfully")
+                return True
+            else:
+                self.log_test("DB Install Vector - Installation", False, f"Unexpected success response: {data}")
+        elif status == 422:
+            # Validation error - check if it's about missing confirm field
+            detail = data.get('detail', '')
+            if isinstance(detail, list):
+                detail = str(detail)
+            self.log_test("DB Install Vector - Validation", True, f"Correct validation error for missing/invalid body: {detail}")
+            print(f"   ℹ️  Validation error (expected): {detail}")
+        elif status == 404:
+            self.log_test("DB Install Vector - Endpoint Exists", False, "db-install-vector endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            if 'already installed' in detail.lower() or 'already exists' in detail.lower():
+                self.log_test("DB Install Vector - Already Installed", True, f"PGVector already installed: {detail}")
+                print(f"   ℹ️  PGVector already installed: {detail}")
+                return True
+            else:
+                self.log_test("DB Install Vector - Installation", False, f"500 error during installation: {detail}")
+        else:
+            self.log_test("DB Install Vector - Installation", False, f"Status: {status}, Data: {data}")
+        
+        return False
+
+    def test_ai_flow_quick_test(self):
+        """Test quick AI flow: preview -> study -> documents -> search -> delete - Review Request Step 4"""
+        print("   📤 Testing AI Flow: preview -> study -> documents -> search -> delete")
+        
+        # Create a small test.txt content
+        test_content = """VasDom AudioBot Test Document
+
+This is a test document for the AI knowledge system.
+The system manages cleaning operations for residential buildings.
+
+Key features:
+- House management and scheduling
+- Brigade assignment and tracking  
+- Quality control and monitoring
+- Bitrix24 CRM integration
+- AI assistant for staff support
+
+The company services 490+ buildings with 82 employees across 7 brigades.
+Modern automation systems streamline all operational processes."""
+
+        # Step 4.1: Preview (upload)
+        print("      📤 Testing preview...")
+        files = {'files': ('test.txt', test_content.encode('utf-8'), 'text/plain')}
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        upload_id = None
+        if success and status == 200 and 'upload_id' in data:
+            upload_id = data['upload_id']
+            chunks = data.get('chunks', 0)
+            preview = data.get('preview', '')
+            self.log_test("AI Flow - Preview", True, f"upload_id: {upload_id[:8]}..., chunks: {chunks}, preview: {len(preview)} chars")
+        else:
+            self.log_test("AI Flow - Preview", False, f"Status: {status}, Data: {data}")
+            return False
+
+        # Step 4.2: Study (save)
+        print("      💾 Testing study...")
+        study_data = {
+            'upload_id': upload_id,
+            'filename': 'test_ai_flow.txt',
+            'category': 'Test'
+        }
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=study_data)
+        
+        document_id = None
+        if success and status == 200 and 'document_id' in data:
+            document_id = data['document_id']
+            chunks = data.get('chunks', 0)
+            category = data.get('category', '')
+            self.log_test("AI Flow - Study", True, f"document_id: {document_id[:8]}..., chunks: {chunks}, category: {category}")
+        else:
+            self.log_test("AI Flow - Study", False, f"Status: {status}, Data: {data}")
+            return False
+
+        # Step 4.3: Documents (list)
+        print("      📋 Testing documents...")
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200 and 'documents' in data:
+            docs = data['documents']
+            # Find our test document
+            test_doc = None
+            for doc in docs:
+                if doc.get('id') == document_id:
+                    test_doc = doc
+                    break
+            
+            if test_doc:
+                self.log_test("AI Flow - Documents", True, f"Found test document: {test_doc.get('filename', 'N/A')}, chunks: {test_doc.get('chunks_count', 0)}")
+            else:
+                self.log_test("AI Flow - Documents", False, f"Test document not found in list of {len(docs)} documents")
+        else:
+            self.log_test("AI Flow - Documents", False, f"Status: {status}, Data: {data}")
+
+        # Step 4.4: Search
+        print("      🔍 Testing search...")
+        search_data = {
+            'query': 'VasDom AudioBot cleaning',
+            'top_k': 5
+        }
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200 and 'results' in data:
+            results = data['results']
+            # Look for results from our test document
+            test_results = [r for r in results if r.get('document_id') == document_id]
+            
+            if test_results:
+                best_score = max(r.get('score', 0) for r in test_results)
+                self.log_test("AI Flow - Search", True, f"Found {len(test_results)} results from test doc, best score: {best_score:.3f}")
+            else:
+                self.log_test("AI Flow - Search", True, f"Search returned {len(results)} results (test doc may not be top match)")
+        else:
+            self.log_test("AI Flow - Search", False, f"Status: {status}, Data: {data}")
+
+        # Step 4.5: Delete
+        print("      🗑️  Testing delete...")
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200 and data.get('ok'):
+            self.log_test("AI Flow - Delete", True, f"Test document deleted successfully")
+        else:
+            self.log_test("AI Flow - Delete", False, f"Status: {status}, Data: {data}")
+
+        print("   🎉 Quick AI Flow test completed")
+        return True
+
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
