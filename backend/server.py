@@ -117,6 +117,33 @@ def _get_raw_db_url() -> str:
     return url.strip()
 
 DATABASE_URL = _normalize_db_url(_get_raw_db_url(), for_async=True)
+
+from urllib.parse import urlparse, urlunparse, quote
+
+def _build_clean_async_url(url: str) -> str:
+    """Strip query params entirely and force asyncpg scheme, to avoid sslmode in DSN.
+    Keeps username/password/host/port/db only."""
+    try:
+        p = urlparse(url)
+        scheme = 'postgresql+asyncpg'
+        username = p.username or ''
+        password = p.password or ''
+        host = p.hostname or ''
+        port = f":{p.port}" if p.port else ''
+        auth = ''
+        if username:
+            u = quote(username, safe='')
+            if password:
+                pw = quote(password, safe='')
+                auth = f"{u}:{pw}@"
+            else:
+                auth = f"{u}@"
+        netloc = f"{auth}{host}{port}"
+        path = p.path or ''
+        return urlunparse((scheme, netloc, path, '', '', ''))
+    except Exception:
+        return url
+
 Base = declarative_base()
 engine = None
 AsyncSessionLocal = None
