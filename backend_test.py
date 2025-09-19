@@ -4769,13 +4769,22 @@ Key features include:
 if __name__ == "__main__":
     tester = VasDomAPITester()
     
-    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST: psycopg2-binary re-check")
+    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST: Direct AsyncPG Diagnostics")
     print("=" * 70)
     print(f"Testing deployed backend: {tester.base_url}")
-    print("Goal: Test db-check → install (if needed) → AI flow sequence")
+    print("Goal: GET /api/ai-knowledge/db-check — expect connected true (using asyncpg)")
+    print("      If available true and installed false, POST install")
     print("=" * 70)
     
-    # Run the focused review request test
+    # Run the review request diagnostics
+    success = tester.run_review_request_diagnostics()
+    
+    if success:
+        print("\n🎉 Review request testing completed successfully!")
+        sys.exit(0)
+    else:
+        print("\n❌ Review request testing completed with failures.")
+        sys.exit(1)
     tester.test_production_diagnostics_after_url_normalization()
     
     # Print final summary
