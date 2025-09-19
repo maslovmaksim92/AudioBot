@@ -408,8 +408,9 @@ async def db_install_vector(req: DbInstallRequest):
 @router.get('/db-dsn')
 async def db_dsn():
     from urllib.parse import urlparse, parse_qsl
-    raw = (os.environ.get('DATABASE_URL', '') or '').strip()
+    raw = (os.environ.get('DATABASE_URL_OVERRIDE') or os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
     norm = _normalize_db_url(raw)
+    env_sslmode = os.environ.get('PGSSLMODE')
     def parse_info(u: str):
         try:
             p = urlparse(u)
@@ -423,7 +424,6 @@ async def db_dsn():
                     username_mask = '***'
             else:
                 username_mask = ''
-            # build masked netloc
             host = p.hostname or ''
             port = p.port
             dbname = (p.path or '').lstrip('/')
@@ -442,5 +442,6 @@ async def db_dsn():
         'raw_contains_sslmode': ('sslmode=' in raw.lower()),
         'raw': parse_info(raw) if raw else None,
         'normalized_contains_sslmode': ('sslmode=' in norm.lower()),
-        'normalized': parse_info(norm) if norm else None
+        'normalized': parse_info(norm) if norm else None,
+        'env_sslmode': env_sslmode
     }
