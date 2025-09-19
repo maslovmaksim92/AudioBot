@@ -4674,7 +4674,7 @@ if __name__ == "__main__":
     print("=" * 70)
     
     # Run the focused review request test
-    tester.test_review_request_diagnostics_after_scrubbing_pgsslmode()
+    tester.test_production_diagnostics_after_url_normalization()
     
     # Print final summary
     print("\n" + "=" * 70)
