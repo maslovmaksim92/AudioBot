@@ -188,7 +188,8 @@ async def init_db():
         logger.warning('DATABASE_URL is not configured; DB features disabled')
         return
     _scrub_ssl_env()
-    engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
+    clean_url = _build_clean_async_url(DATABASE_URL)
+    engine = create_async_engine(clean_url, echo=False, pool_pre_ping=True, future=True, connect_args={"ssl": True})
     AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
     # Alembic migrations
     try:
