@@ -4515,14 +4515,28 @@ Modern automation systems streamline all operational processes."""
 if __name__ == "__main__":
     tester = VasDomAPITester()
     
-    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST DIAGNOSTICS")
-    print("=" * 60)
+    print("🚀 VasDom AudioBot Backend Testing - REVIEW REQUEST: psycopg2-binary re-check")
+    print("=" * 70)
     print(f"Testing deployed backend: {tester.base_url}")
-    print("Goal: Test specific diagnostics endpoints db-dsn and db-check")
-    print("=" * 60)
+    print("Goal: Test db-check → install (if needed) → AI flow sequence")
+    print("=" * 70)
     
-    # Run comprehensive tests with review request focus
-    passed, total = tester.run_comprehensive_tests()
+    # Run the focused review request test
+    tester.test_review_request_psycopg2_binary()
+    
+    # Print final summary
+    print("\n" + "=" * 70)
+    print("📊 FINAL TEST SUMMARY")
+    print("=" * 70)
+    print(f"Tests Run: {tester.tests_run}")
+    print(f"Tests Passed: {tester.tests_passed}")
+    print(f"Tests Failed: {tester.tests_run - tester.tests_passed}")
+    print(f"Success Rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%" if tester.tests_run > 0 else "No tests run")
+    
+    if tester.failed_tests:
+        print("\n❌ FAILED TESTS:")
+        for i, test in enumerate(tester.failed_tests, 1):
+            print(f"{i}. {test['name']}: {test['details']}")
     
     # Exit with appropriate code
-    sys.exit(0 if passed == total else 1)
+    sys.exit(0 if tester.tests_passed == tester.tests_run else 1)
