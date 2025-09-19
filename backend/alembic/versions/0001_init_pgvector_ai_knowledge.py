@@ -27,7 +27,7 @@ def upgrade():
         sa.Column('document_id', sa.String(), sa.ForeignKey('ai_documents.id', ondelete='CASCADE'), nullable=False),
         sa.Column('chunk_index', sa.Integer(), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
-        sa.Column('embedding', Vector(3072))
+        sa.Column('embedding', Vector(1536))
     )
     op.create_index('ix_ai_chunks_document_id', 'ai_chunks', ['document_id'])
     # Default lists=200 per tuning
