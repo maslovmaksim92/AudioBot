@@ -3785,16 +3785,54 @@ if __name__ == "__main__":
         print("\n🔍 REVIEW REQUEST DIAGNOSTICS TESTING")
         print("=" * 70)
         print(f"Base URL: {self.base_url}")
-        print("Testing specific diagnostics endpoints:")
-        print("1) GET /api/ai-knowledge/db-dsn")
-        print("2) GET /api/ai-knowledge/db-check")
+        print("Testing after user updated DATABASE_URL on Render:")
+        print("1) GET /api/ai-knowledge/db-dsn — capture JSON (raw_present, raw_contains_sslmode, raw, normalized)")
+        print("2) GET /api/ai-knowledge/db-check — capture JSON (connected, pgvector_available, pgvector_installed, errors)")
+        print("3) If connected=true and pgvector_available=true and installed=false, POST /api/ai-knowledge/db-install-vector")
+        print("4) If all green, run quick AI flow: preview -> study -> documents -> search -> delete")
         print("-" * 70)
         
-        # Test 1: GET /api/ai-knowledge/db-dsn
+        # Step 1: GET /api/ai-knowledge/db-dsn
+        print("\n📋 STEP 1: Testing db-dsn endpoint")
         dsn_result = self.test_db_dsn_endpoint()
         
-        # Test 2: GET /api/ai-knowledge/db-check  
+        # Step 2: GET /api/ai-knowledge/db-check  
+        print("\n📊 STEP 2: Testing db-check endpoint")
         check_result = self.test_db_check_endpoint_review()
+        
+        # Step 3: Conditional db-install-vector
+        install_attempted = False
+        if check_result:
+            connected = check_result.get('connected', False)
+            pgvector_available = check_result.get('pgvector_available', False)
+            pgvector_installed = check_result.get('pgvector_installed', False)
+            
+            print(f"\n📊 Database Status Analysis:")
+            print(f"   Connected: {connected}")
+            print(f"   PGVector Available: {pgvector_available}")
+            print(f"   PGVector Installed: {pgvector_installed}")
+            
+            if connected and pgvector_available and not pgvector_installed:
+                print("\n🔧 STEP 3: Attempting pgvector installation...")
+                install_result = self.test_db_install_vector_review()
+                install_attempted = True
+                
+                if install_result:
+                    # Re-check after installation
+                    print("\n🔄 Re-checking database status after installation...")
+                    check_result = self.test_db_check_endpoint_review()
+                    
+            # Step 4: AI Flow test if all green
+            if check_result and check_result.get('connected') and check_result.get('pgvector_installed'):
+                print("\n🧠 STEP 4: Database fully configured - running AI flow test")
+                self.test_ai_flow_quick_test()
+            else:
+                print("\n⚠️  Database not fully ready for AI flow test")
+                if check_result:
+                    print(f"     Connected: {check_result.get('connected', False)}")
+                    print(f"     PGVector Installed: {check_result.get('pgvector_installed', False)}")
+        else:
+            print("\n❌ Could not retrieve database status from db-check endpoint")
         
         print("\n📋 REVIEW REQUEST RESULTS SUMMARY:")
         print("=" * 50)
@@ -3807,6 +3845,9 @@ if __name__ == "__main__":
             print("✅ db-check endpoint: WORKING")
         else:
             print("❌ db-check endpoint: FAILED")
+            
+        if install_attempted:
+            print("ℹ️  db-install-vector: ATTEMPTED")
         
         return dsn_result and check_result
 
