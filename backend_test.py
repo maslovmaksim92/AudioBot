@@ -3234,9 +3234,12 @@ startxref
             
             # Check expectations from review request
             if raw_present:
+                # Ensure raw is a string
+                raw_str = str(raw) if raw else ''
+                
                 # Check if raw query has ssl=true and no sslmode
-                has_ssl_true = 'ssl=true' in raw.lower()
-                has_sslmode = 'sslmode=' in raw.lower()
+                has_ssl_true = 'ssl=true' in raw_str.lower()
+                has_sslmode = 'sslmode=' in raw_str.lower()
                 
                 if has_ssl_true and not has_sslmode:
                     self.log_test("DB DSN - Review Requirements", True, 
@@ -3246,8 +3249,8 @@ startxref
                                 f"❌ Expected ssl=true and no sslmode. Found: ssl=true={has_ssl_true}, has_sslmode={has_sslmode}")
                 
                 # Log masked URLs for debugging
-                raw_masked = self.mask_sensitive_url(raw)
-                normalized_masked = self.mask_sensitive_url(normalized)
+                raw_masked = self.mask_sensitive_url(raw_str)
+                normalized_masked = self.mask_sensitive_url(str(normalized) if normalized else '')
                 print(f"   📋 Raw URL: {raw_masked}")
                 print(f"   📋 Normalized URL: {normalized_masked}")
                 
