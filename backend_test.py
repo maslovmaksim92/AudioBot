@@ -1195,13 +1195,13 @@ startxref
 
     def test_production_diagnostics_after_url_normalization(self):
         """Test production diagnostics after URL normalization logic added - Review Request"""
-        print("\n🔍 PRODUCTION DIAGNOSTICS TESTING - URL NORMALIZATION REVIEW")
+        print("\n🔍 REVIEW REQUEST DIAGNOSTICS - CLEAN ASYNC URL & SSL")
         print("=" * 70)
         print(f"Base URL: {self.base_url}")
-        print("Testing AI Knowledge diagnostics endpoints after URL normalization fix")
+        print("Testing after forcing clean async URL and connect_args ssl")
         print("-" * 70)
         
-        # Test 1: GET /api/ai-knowledge/db-check
+        # Test 1: GET /api/ai-knowledge/db-check - expect connected true now
         db_status = self.test_db_check_endpoint()
         
         # Test 2: Analyze db-check results and determine next steps
@@ -1209,25 +1209,34 @@ startxref
             connected = db_status.get('connected', False)
             pgvector_available = db_status.get('pgvector_available', False)
             pgvector_installed = db_status.get('pgvector_installed', False)
+            errors = db_status.get('errors', [])
             
             print(f"\n📊 Database Status Analysis:")
             print(f"   Connected: {connected}")
             print(f"   PGVector Available: {pgvector_available}")
             print(f"   PGVector Installed: {pgvector_installed}")
+            print(f"   Errors: {len(errors)} - {errors[:3] if errors else 'None'}")
             
-            if not connected:
-                print("   ⚠️  Database not connected - likely env issue (normalize only fixes runtime URL if provided)")
-                self.log_test("DB Analysis - Connection Status", False, 
-                            "Database not connected. Render env must be updated if DATABASE_URL still has old format.")
-            elif connected and pgvector_available and not pgvector_installed:
-                print("   🔧 Database connected but pgvector not installed - attempting installation")
+            if connected and pgvector_available and not pgvector_installed:
+                print("   🔧 Database connected, pgvector available but not installed - attempting installation")
                 # Test 3: POST /api/ai-knowledge/db-install-vector
-                self.test_db_install_vector_endpoint()
-                # Test 4: Re-check after installation
-                self.test_db_check_after_install()
+                install_success = self.test_db_install_vector_endpoint()
+                if install_success:
+                    # Test 4: Re-check after installation
+                    self.test_db_check_after_install()
+                    # Test 5: Run AI flow if everything is ready
+                    self.test_ai_flow_sequence()
+                else:
+                    self.log_test("AI Flow - Prerequisites", False, "pgvector installation failed, cannot run AI flow")
             elif connected and pgvector_available and pgvector_installed:
-                print("   ✅ Database fully configured and ready")
+                print("   ✅ Database fully configured and ready - running AI flow")
                 self.log_test("DB Analysis - Full Setup", True, "Database connected with pgvector installed")
+                # Test 5: Run quick AI flow: preview -> study -> documents -> search -> delete
+                self.test_ai_flow_sequence()
+            elif not connected:
+                print("   ❌ Database not connected - SSL/URL issues persist")
+                self.log_test("DB Analysis - Connection Failed", False, 
+                            f"Database connection failed after URL normalization. Errors: {errors[:2]}")
             else:
                 print("   ❓ Unexpected database state")
                 self.log_test("DB Analysis - Unexpected State", False, 
