@@ -4697,6 +4697,74 @@ Key features include:
             print(f"   ❌ Upload failed: Status {status}")
             self.log_test("Quick AI Flow - Upload", False, f"Upload failed: {status}")
 
+    def test_db_check_endpoint_review_request(self):
+        """Test GET /api/ai-knowledge/db-check endpoint for review request"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expect: connected=true using asyncpg")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            # Capture JSON as requested
+            print(f"   📋 Response JSON: {json.dumps(data, indent=2)}")
+            
+            # Check expected fields
+            connected = data.get('connected', False)
+            pgvector_available = data.get('pgvector_available', False)
+            pgvector_installed = data.get('pgvector_installed', False)
+            errors = data.get('errors', [])
+            
+            if connected:
+                self.log_test("DB Check - Connection", True, f"Database connected using asyncpg")
+            else:
+                self.log_test("DB Check - Connection", False, f"Database not connected. Errors: {errors[:2]}")
+            
+            if pgvector_available:
+                self.log_test("DB Check - PGVector Available", True, "pgvector extension available")
+            else:
+                self.log_test("DB Check - PGVector Available", False, "pgvector extension not available")
+            
+            return data
+        else:
+            self.log_test("DB Check - Endpoint", False, f"Status: {status}, Data: {data}")
+            return None
+
+    def test_db_install_vector_review_request(self):
+        """Test POST /api/ai-knowledge/db-install-vector for review request"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/db-install-vector")
+        print("   Expect: Installation attempt or validation error")
+        
+        # POST with empty body to test validation
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/db-install-vector', {})
+        
+        if status == 422:
+            # Validation error is expected for empty body
+            self.log_test("DB Install - Validation", True, f"Correctly returns 422 for missing body: {data.get('detail', '')}")
+            
+            # Try with proper body if endpoint expects it
+            install_data = {"confirm": True}  # Common pattern for destructive operations
+            success2, data2, status2 = self.make_request('POST', '/api/ai-knowledge/db-install-vector', install_data)
+            
+            if success2 and status2 == 200:
+                self.log_test("DB Install - Installation", True, f"pgvector installation successful: {data2}")
+                return True
+            elif status2 == 500:
+                detail = data2.get('detail', '')
+                if 'already exists' in detail.lower() or 'already installed' in detail.lower():
+                    self.log_test("DB Install - Already Installed", True, f"pgvector already installed: {detail}")
+                    return True
+                else:
+                    self.log_test("DB Install - Installation", False, f"Installation failed: {detail}")
+            else:
+                self.log_test("DB Install - Installation", False, f"Status: {status2}, Data: {data2}")
+        elif status == 200:
+            self.log_test("DB Install - Installation", True, f"pgvector installation successful: {data}")
+            return True
+        else:
+            self.log_test("DB Install - Endpoint", False, f"Status: {status}, Data: {data}")
+        
+        return False
+
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
