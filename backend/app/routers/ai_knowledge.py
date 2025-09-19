@@ -70,10 +70,35 @@ def _normalize_db_url(url: str) -> str:
 
 DATABASE_URL = _normalize_db_url(RAW_DATABASE_URL)
 
+from urllib.parse import urlparse, urlunparse, quote
+
+def _build_clean_async_url(url: str) -> str:
+    try:
+        p = urlparse(url)
+        scheme = 'postgresql+asyncpg'
+        username = p.username or ''
+        password = p.password or ''
+        host = p.hostname or ''
+        port = f":{p.port}" if p.port else ''
+        auth = ''
+        if username:
+            u = quote(username, safe='')
+            if password:
+                pw = quote(password, safe='')
+                auth = f"{u}:{pw}@"
+            else:
+                auth = f"{u}@"
+        netloc = f"{auth}{host}{port}"
+        path = p.path or ''
+        return urlunparse((scheme, netloc, path, '', '', ''))
+    except Exception:
+        return url
+
 # initialize local engine/session (separate from server.py to avoid circular imports)
 if DATABASE_URL:
     try:
-        engine = create_async_engine(DATABASE_URL, echo=False, pool_pre_ping=True, future=True)
+        clean_url = _build_clean_async_url(DATABASE_URL)
+        engine = create_async_engine(clean_url, echo=False, pool_pre_ping=True, future=True, connect_args={"ssl": True})
         AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
     except Exception as e:
         logger.warning(f"DB init in ai_knowledge.py failed: {e}")
