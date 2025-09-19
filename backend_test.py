@@ -2,6 +2,7 @@
 """
 VasDom AudioBot Backend API Testing - psycopg3 async migration
 Testing AI Knowledge endpoints after migration to psycopg3 async
+Review Request: https://audiobot-qci2.onrender.com
 """
 
 import requests
@@ -14,17 +15,9 @@ from typing import Dict, Any, Optional
 
 class VasDomAPITester:
     def __init__(self, base_url=None):
-        # Use environment backend URL
+        # Use the deployed URL from review request
         if base_url is None:
-            # Read from frontend/.env to get the backend URL
-            try:
-                with open('/app/frontend/.env', 'r') as f:
-                    for line in f:
-                        if line.startswith('REACT_APP_BACKEND_URL='):
-                            base_url = line.split('=', 1)[1].strip()
-                            break
-            except:
-                base_url = "https://pgvector-knowledge.preview.emergentagent.com"
+            base_url = "https://audiobot-qci2.onrender.com"
         
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
