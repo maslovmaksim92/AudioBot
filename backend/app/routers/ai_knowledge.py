@@ -21,7 +21,7 @@ logger = logging.getLogger("ai_knowledge_router")
 router = APIRouter(prefix="/api/ai-knowledge", tags=["AI Knowledge"])
 
 # ENV / DB
-RAW_DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+RAW_DATABASE_URL = (os.environ.get('DATABASE_URL_OVERRIDE') or os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or '').strip()
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '').strip()
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
 
