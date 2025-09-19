@@ -1238,15 +1238,70 @@ startxref
         
         return True
 
+    def test_db_dsn_endpoint(self):
+        """Test GET /api/ai-knowledge/db-dsn endpoint - Review Request Step 1"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
+        
+        if success and status == 200:
+            # Check if response has expected DSN fields
+            expected_fields = ['raw_present', 'raw_contains_sslmode', 'raw', 'normalized']
+            missing_fields = [field for field in expected_fields if field not in data]
+            
+            if not missing_fields:
+                raw_present = data.get('raw_present', False)
+                raw_contains_sslmode = data.get('raw_contains_sslmode', False)
+                raw = data.get('raw', '')
+                normalized = data.get('normalized', '')
+                
+                # Log detailed DSN info (mask sensitive parts)
+                raw_masked = self.mask_sensitive_url(raw) if raw else 'N/A'
+                normalized_masked = self.mask_sensitive_url(normalized) if normalized else 'N/A'
+                
+                dsn_info = f"raw_present={raw_present}, raw_contains_sslmode={raw_contains_sslmode}"
+                self.log_test("DB DSN - Endpoint Response", True, dsn_info)
+                
+                print(f"   📋 DSN Analysis:")
+                print(f"      Raw URL Present: {raw_present}")
+                print(f"      Raw Contains sslmode: {raw_contains_sslmode}")
+                print(f"      Raw URL: {raw_masked}")
+                print(f"      Normalized URL: {normalized_masked}")
+                
+                return data
+            else:
+                self.log_test("DB DSN - Endpoint Response", False, f"Missing DSN fields: {missing_fields}")
+        elif status == 404:
+            self.log_test("DB DSN - Endpoint Exists", False, "db-dsn endpoint not found (404) - not deployed")
+        elif status == 500:
+            detail = data.get('detail', '')
+            self.log_test("DB DSN - Endpoint Response", False, f"500 error: {detail}")
+        else:
+            self.log_test("DB DSN - Endpoint Response", False, f"Status: {status}, Data: {data}")
+        
+        return None
+
+    def mask_sensitive_url(self, url):
+        """Mask sensitive parts of database URL for logging"""
+        if not url or not isinstance(url, str):
+            return url
+        
+        # Mask password in URL
+        import re
+        # Pattern to match postgresql://user:password@host:port/db
+        pattern = r'(postgresql[^:]*://[^:]+:)([^@]+)(@.*)'
+        masked = re.sub(pattern, r'\1***\3', url)
+        return masked
+
     def test_db_check_endpoint(self):
-        """Test GET /api/ai-knowledge/db-check endpoint"""
-        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        """Test GET /api/ai-knowledge/db-check endpoint - Review Request Step 2"""
+        print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
         
         success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
         
         if success and status == 200:
             # Check if response has expected diagnostic fields
-            expected_fields = ['connected', 'pgvector_available', 'pgvector_installed']
+            expected_fields = ['connected', 'pgvector_available', 'pgvector_installed', 'errors']
             missing_fields = [field for field in expected_fields if field not in data]
             
             if not missing_fields:
@@ -1262,13 +1317,18 @@ startxref
                 
                 self.log_test("DB Check - Endpoint Response", True, diagnostic_info)
                 
+                print(f"   📊 Database Status:")
+                print(f"      Connected: {connected}")
+                print(f"      PGVector Available: {pgvector_available}")
+                print(f"      PGVector Installed: {pgvector_installed}")
+                
                 # Log specific errors if any
                 if errors:
                     print(f"   🔍 Database Errors Found ({len(errors)}):")
-                    for i, error in enumerate(errors[:3]):  # Show first 3 errors
+                    for i, error in enumerate(errors[:5]):  # Show first 5 errors
                         print(f"      {i+1}. {error}")
-                    if len(errors) > 3:
-                        print(f"      ... and {len(errors) - 3} more errors")
+                    if len(errors) > 5:
+                        print(f"      ... and {len(errors) - 5} more errors")
                 
                 return data
             else:
