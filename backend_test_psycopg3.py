@@ -250,7 +250,7 @@ class VasDomAPITester:
         
         # Create small TXT file
         txt_content = "Hello AI\n\nThis is a test document for VasDom AudioBot AI training system."
-        files = {'files': ('test.txt', txt_content.encode('utf-8'), 'text/plain')}
+        files = {'file': ('test.txt', txt_content.encode('utf-8'), 'text/plain')}  # Single file, not files array
         
         success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
         
@@ -268,6 +268,8 @@ class VasDomAPITester:
             else:
                 details = f"Missing fields: upload_id={bool(upload_id)}, preview={len(preview) if isinstance(preview, str) else type(preview)}, chunks={chunks}, size={total_size_bytes}"
                 self.log_test("AI Preview - Invalid Response", False, details)
+        elif status == 500 and 'Database is not initialized' in data.get('detail', ''):
+            self.log_test("AI Preview - DB Not Initialized", False, f"Database not initialized: {data.get('detail')}")
         else:
             self.log_test("AI Preview Endpoint", False, f"Status: {status}, Data: {data}")
     
