@@ -14,7 +14,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # get DATABASE_URL from env (Render)
-db_url = os.environ.get("DATABASE_URL", "")
+db_url = os.environ.get("DATABASE_URL_OVERRIDE") or os.environ.get("NEON_DATABASE_URL") or os.environ.get("DATABASE_URL") or ""
 if db_url:
     # normalize URL for sync engine: ensure postgresql:// and sslmode=require
     from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
