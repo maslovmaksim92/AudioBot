@@ -1,23 +1,37 @@
 #!/usr/bin/env python3
 """
-VasDom AudioBot Backend API Testing
-Comprehensive testing of all backend endpoints
+VasDom AudioBot Backend API Testing - psycopg3 async migration
+Testing AI Knowledge endpoints after migration to psycopg3 async
 """
 
 import requests
 import sys
 import json
 import time
+import io
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 class VasDomAPITester:
-    def __init__(self, base_url="https://audiobot-qci2.onrender.com"):
+    def __init__(self, base_url=None):
+        # Use environment backend URL
+        if base_url is None:
+            # Read from frontend/.env to get the backend URL
+            try:
+                with open('/app/frontend/.env', 'r') as f:
+                    for line in f:
+                        if line.startswith('REACT_APP_BACKEND_URL='):
+                            base_url = line.split('=', 1)[1].strip()
+                            break
+            except:
+                base_url = "https://pgvector-knowledge.preview.emergentagent.com"
+        
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
-        self.ai_endpoints_deployed = None  # Track AI endpoint deployment status
+        self.upload_id = None  # Store upload_id for flow testing
+        self.document_id = None  # Store document_id for flow testing
         
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test result"""
