@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text as sa_text
+import asyncpg
 
 from openai import AsyncOpenAI
 from emergentintegrations.llm.chat import LlmChat, UserMessage
