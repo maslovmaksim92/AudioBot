@@ -3219,6 +3219,8 @@ startxref
         
         # Print summary
         self.print_summary()
+        
+        return self.tests_passed, self.tests_run
 
     def test_db_dsn_endpoint(self):
         """Test GET /api/ai-knowledge/db-dsn endpoint - Review Request Step 1"""
