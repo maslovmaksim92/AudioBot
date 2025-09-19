@@ -112,8 +112,8 @@ def _normalize_db_url(url: str, for_async: bool = True) -> str:
         return url
 
 def _get_raw_db_url() -> str:
-    # Priority: DATABASE_URL_OVERRIDE > NEON_DATABASE_URL > DATABASE_URL
-    url = os.environ.get('DATABASE_URL_OVERRIDE') or os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or ''
+    # Priority per user: use NEON_DATABASE_URL only
+    url = os.environ.get('NEON_DATABASE_URL') or ''
     return url.strip()
 
 DATABASE_URL = _normalize_db_url(_get_raw_db_url(), for_async=True)
