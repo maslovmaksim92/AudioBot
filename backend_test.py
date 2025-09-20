@@ -561,6 +561,27 @@ class VasDomAPITester:
         else:
             self.log_test("DB Check - Review Request Requirements", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_documents_availability(self):
+        """Check if there are any documents available for search"""
+        print("\n📋 Checking document availability for search")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            documents = data.get('documents', [])
+            print(f"   Documents in database: {len(documents)}")
+            
+            if documents:
+                print("   Available documents:")
+                for i, doc in enumerate(documents[:3], 1):  # Show first 3 documents
+                    filename = doc.get('filename', 'Unknown')
+                    chunks = doc.get('chunks_count', 0)
+                    print(f"   {i}. {filename} ({chunks} chunks)")
+            else:
+                print("   ⚠️ No documents found in database - search may return empty results")
+        else:
+            print(f"   ❌ Failed to check documents: Status {status}")
+
     def test_quick_search_psycopg3(self):
         """Test 2: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} - expecting Status 200 и непустой results[]"""
         print("\n2️⃣ Testing POST /api/ai-knowledge/search")
