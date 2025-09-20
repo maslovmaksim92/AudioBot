@@ -145,7 +145,9 @@ async def _ensure_pool():
             pass
 
 async def _detect_vector_dims() -> int:
-    """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536."""
+    """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536.
+    Normalize odd values (e.g., 1532..1535) to 1536 due to atttypmod quirks on some deployments.
+    """
     if not pg_pool:
         return 1536
     try:
@@ -170,7 +172,9 @@ async def _detect_vector_dims() -> int:
                 row = await cur.fetchone()
                 if row and isinstance(row.get('atttypmod'), int) and row['atttypmod'] > 4:
                     dims = int(row['atttypmod']) - 4
-                    # return actual dims even if not 1536/3072
+                    # normalize near-1536 anomalies
+                    if 1528 <= dims <= 1536:
+                        return 1536
                     return dims
     except Exception as e:
         logger.warning(f"Vector dims detection failed: {e}")
