@@ -2188,5 +2188,26 @@ class VasDomAPITester:
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    # Run the final e2e review request test
-    tester.test_final_e2e_review_request()
+    
+    # Run the specific review request tests
+    if len(sys.argv) > 1:
+        test_type = sys.argv[1].lower()
+        if test_type == "current":
+            tester.test_current_review_request()
+        elif test_type == "mini-flow":
+            tester.test_mini_flow_review_request()
+        elif test_type == "quick":
+            tester.test_quick_review_request()
+        elif test_type == "specific":
+            tester.test_specific_review_request_flow()
+        elif test_type == "review":
+            tester.test_review_request_mini_flow()
+        elif test_type == "production":
+            tester.test_production_review_request()
+        elif test_type == "final":
+            tester.test_final_e2e_review_request()
+        else:
+            tester.run_review_request_tests()
+    else:
+        # Default: run current review request test
+        tester.test_current_review_request()
