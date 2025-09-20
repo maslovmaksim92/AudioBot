@@ -566,11 +566,11 @@ async def search(req: SearchRequest):
     q = (req.query or '').strip()
     if not q:
         return {"results": []}
-    # Build embedding vector
-    qvec = (await _embed_texts_dynamic([q]))[0]
-    # Construct vector literal for pgvector
-    qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
     try:
+        # Build embedding vector
+        qvec = (await _embed_texts_dynamic([q]))[0]
+        # Construct vector literal for pgvector
+        qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
         await _ensure_pool()
         async with pg_pool.connection() as conn:
             conn.row_factory = dict_row
