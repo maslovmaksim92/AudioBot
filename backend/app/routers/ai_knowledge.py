@@ -525,10 +525,17 @@ async def db_dsn():
             }
         except Exception:
             return {'error': 'parse_failed'}
+    # Flatten normalized info to match tester expectations
+    norm_info = parse_info(norm) if norm else None
+    normalized = {
+        'scheme': (norm_info or {}).get('scheme'),
+        'host': (norm_info or {}).get('host'),
+        'port': (norm_info or {}).get('port'),
+        'database': (norm_info or {}).get('database'),
+        'username': (norm_info or {}).get('username'),
+        'query': 'sslmode=' + (norm_info.get('query', {}).get('sslmode') or '') if norm_info else None
+    }
     return {
         'raw_present': bool(raw),
-        'raw_contains_sslmode': ('sslmode=' in raw.lower()),
-        'raw': parse_info(raw) if raw else None,
-        'normalized_contains_sslmode': ('sslmode=' in norm.lower()),
-        'normalized': parse_info(norm) if norm else None,
+        'normalized': normalized,
     }
