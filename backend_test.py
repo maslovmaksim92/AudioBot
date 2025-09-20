@@ -323,29 +323,39 @@ class VasDomAPITester:
             return None
     
     def test_ai_preview(self):
-        """Test 3: POST /api/ai-knowledge/preview - multipart with files, expect upload_id and chunks>0"""
+        """Test 3: POST /api/ai-knowledge/preview - multipart with files key and TXT file, expect upload_id, chunks>0, stats.total_size_bytes>0"""
         print("\n3️⃣ Testing POST /api/ai-knowledge/preview")
         
-        # Create test file content
-        test_content = "Hello AI psycopg3. This is a test document for the VasDom AudioBot system."
+        # Create test file content as specified in review request
+        test_content = "Hello AI psycopg3 end-to-end. This is a comprehensive test document for the VasDom AudioBot system using psycopg3 async database connectivity."
         files = {'files': ('test_psycopg3.txt', test_content.encode('utf-8'), 'text/plain')}
         
         success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
         
         if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
             upload_id = data.get('upload_id')
             chunks = data.get('chunks', 0)
+            stats = data.get('stats', {})
+            total_size_bytes = stats.get('total_size_bytes', 0) if isinstance(stats, dict) else 0
             
-            if upload_id and chunks > 0:
+            if upload_id and chunks > 0 and total_size_bytes > 0:
                 self.log_test("AI Preview - File Upload", True, 
-                            f"upload_id: {upload_id[:8]}..., chunks: {chunks} ✓")
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks} ✓, stats.total_size_bytes: {total_size_bytes} ✓")
                 self.upload_id = upload_id
                 return upload_id
             else:
-                self.log_test("AI Preview - File Upload", False, 
-                            f"Missing upload_id or chunks=0: upload_id={upload_id}, chunks={chunks}")
+                issues = []
+                if not upload_id:
+                    issues.append("missing upload_id")
+                if chunks <= 0:
+                    issues.append(f"chunks={chunks} (expected >0)")
+                if total_size_bytes <= 0:
+                    issues.append(f"stats.total_size_bytes={total_size_bytes} (expected >0)")
+                self.log_test("AI Preview - File Upload", False, f"❌ Issues: {', '.join(issues)}")
         else:
-            self.log_test("AI Preview - File Upload", False, f"Status: {status}, Data: {data}")
+            self.log_test("AI Preview - File Upload", False, f"❌ Status: {status}, Data: {data}")
         
         return None
     
