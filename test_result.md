@@ -366,6 +366,7 @@
 ##     - "Web server not configured for SPA fallback routing"
 ##     - "POST /api/logistics/route endpoint not implemented"
 ##     - "AI Knowledge backend API endpoints returning 500 errors preventing Training UI functionality"
+##     - "Production deployment at https://audiobot-qci2.onrender.com completely broken - returns 404 for main page"
 ##   test_all: false
 ##   test_priority: "high_first"
 
