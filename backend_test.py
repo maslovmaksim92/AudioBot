@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-VasDom AudioBot Backend API Testing - Review Request Testing
-Testing AI Knowledge endpoints after fixes: scrub PGSSL env, sslmode=require, keepalive/timeout, 
-совместимость preview с files, обновлённый ответ db-dsn.
+VasDom AudioBot Backend API Testing - Quick Re-check after sslrootcert
+Testing specific AI Knowledge diagnostics endpoints:
+1) GET /api/ai-knowledge/db-dsn — normalized.query должен содержать строку 'sslmode=require'
+2) GET /api/ai-knowledge/db-check — ожидаем connected=true. Если нет — приложи errors[]
 Base URL: https://audiobot-qci2.onrender.com
 """
 
