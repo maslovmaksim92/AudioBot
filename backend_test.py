@@ -853,7 +853,58 @@ class VasDomAPITester:
         # Final summary
         self.print_summary()
 
+    def test_quick_db_check(self):
+        """Test 1: GET /api/ai-knowledge/db-check - expecting Status 200, connected=true, embedding_dims=1536"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expected: Status 200, connected=true, embedding_dims=1536")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            connected = data.get('connected', False)
+            embedding_dims = data.get('embedding_dims')
+            
+            # Check connected=true
+            connected_ok = connected is True
+            
+            # Check embedding_dims=1536
+            dims_ok = embedding_dims == 1536
+            
+            if connected_ok and dims_ok:
+                self.log_test("DB Check - Review Request Requirements", True, 
+                            f"✅ Status 200 ✓, connected=true ✓, embedding_dims=1536 ✓")
+            else:
+                issues = []
+                if not connected_ok:
+                    issues.append(f"connected={connected} (expected true)")
+                if not dims_ok:
+                    issues.append(f"embedding_dims={embedding_dims} (expected 1536)")
+                self.log_test("DB Check - Review Request Requirements", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            self.log_test("DB Check - Review Request Requirements", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_specific_review_request(self):
+        """Specific review request testing: db-check and search endpoints only"""
+        print(f"🚀 VasDom AudioBot Backend API - Повторный быстрый тест на проде")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing specific endpoints per review request:")
+        print("1) GET /api/ai-knowledge/db-check — ожидаем 200, connected=true, embedding_dims=1536")
+        print("2) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} — ожидаем 200 и results[] (допускается пустой массив)")
+        print("=" * 80)
+        
+        # Test 1: GET /api/ai-knowledge/db-check
+        self.test_quick_db_check()
+        
+        # Test 2: POST /api/ai-knowledge/search
+        self.test_quick_search_psycopg3()
+        
+        # Final summary
+        self.print_summary()
+
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    # Run mini-flow review request test as specified
-    tester.test_mini_flow_review_request()
+    # Run specific review request test as specified
+    tester.test_specific_review_request()
