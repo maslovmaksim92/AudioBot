@@ -215,7 +215,12 @@ function Training() {
     try {
       const res = await fetch(`${BASE_URL}/api/ai-knowledge/document/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Ошибка удаления');
+      // Оптимистично убираем строку сразу, чтобы UI отразил действие
+      setDocuments(prev => (Array.isArray(prev) ? prev.filter(d => d.id !== id) : prev));
+      // Небольшая задержка для консистентности БД перед перечитыванием
+      await new Promise(r => setTimeout(r, 300));
       await fetchDocs();
+      setMessages(prev => [...prev, { type: 'success', text: `Документ удалён: ${id}` }]);
     } catch (e) {
       setStatus(String(e.message || e));
     }
