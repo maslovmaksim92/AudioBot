@@ -1172,12 +1172,14 @@ async def ai_search(req: SearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail='query пуст')
     qv = (await _embed_texts_dynamic([req.query], db))[0]
+    # Convert embedding to pgvector literal string to avoid driver type issues
+    qv_str = '[' + ','.join(str(float(x)) for x in qv) + ']'
     rows = (await db.execute(sa_text('''
-        SELECT c.document_id, c.chunk_index, c.content, 1 - (c.embedding <=> :qv) as score, d.filename
+        SELECT c.document_id, c.chunk_index, c.content, 1 - (c.embedding <=> (:qv)::vector) as score, d.filename
         FROM ai_chunks c JOIN ai_documents d ON d.id = c.document_id
-        ORDER BY c.embedding <=> :qv
+        ORDER BY c.embedding <=> (:qv)::vector
         LIMIT :k
-    '''), {"qv": qv, "k": req.top_k})).all()
+    '''), {"qv": qv_str, "k": req.top_k})).all()
     results = []
     for r in rows:
         doc_id, idx, content, score, filename = r
