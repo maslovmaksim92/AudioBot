@@ -136,11 +136,20 @@ async def _summarize(text: str, max_chars: int = 2000) -> str:
         logger.warning(f"LLM preview error: {e}")
         return (text or '')[:max_chars]
 
+async def _ensure_pool():
+    global pg_pool
+    if pg_pool and hasattr(pg_pool, 'open'):
+        try:
+            await pg_pool.open()
+        except Exception:
+            pass
+
 async def _detect_vector_dims() -> int:
     """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536."""
     if not pg_pool:
         return 1536
     try:
+        await _ensure_pool()
         async with pg_pool.connection() as conn:
             conn.row_factory = dict_row
             async with conn.cursor() as cur:
@@ -161,8 +170,8 @@ async def _detect_vector_dims() -> int:
                 row = await cur.fetchone()
                 if row and isinstance(row.get('atttypmod'), int) and row['atttypmod'] > 4:
                     dims = int(row['atttypmod']) - 4
-                    if dims in (1536, 3072):
-                        return dims
+                    # return actual dims even if not 1536/3072
+                    return dims
     except Exception as e:
         logger.warning(f"Vector dims detection failed: {e}")
     return 1536
