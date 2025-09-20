@@ -519,6 +519,9 @@ class VasDomAPITester:
         # Test 1: GET /api/ai-knowledge/db-check
         self.test_quick_db_check()
         
+        # Check if there are documents in the database first
+        self.test_documents_availability()
+        
         # Test 2: POST /api/ai-knowledge/search
         self.test_quick_search_psycopg3()
         
