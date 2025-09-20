@@ -516,3 +516,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Деплой выполнен пользователем. Запускаю бэкенд‑тесты: db-dsn, db-check, mini‑flow (preview→status→study→documents→search→delete). Затем перейду к доработке UX Training (frontend) без изменения URL/ENV, используя REACT_APP_BACKEND_URL."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Постдеплойный e2e backend‑тест: db-dsn → db-check → preview → status → study → documents → search → delete. Дальше — UX доработки Training (frontend) после подтверждения успешного e2e."
