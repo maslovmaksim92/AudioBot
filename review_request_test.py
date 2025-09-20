@@ -207,7 +207,7 @@ class ReviewRequestTester:
             'category': 'Маркетинг'
         }
         
-        status, response = self.make_request('POST', '/api/ai-knowledge/study', data=form_data)
+        status, response = self.make_request('POST', '/api/ai-knowledge/study', data=form_data, files={})
         
         success = False
         details = ""
