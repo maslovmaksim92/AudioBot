@@ -1944,6 +1944,247 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Final E2E - Delete", False, f"❌ Status: {status} (expected 200)")
 
+    def test_current_review_request(self):
+        """Test the exact mini-flow from current review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Быстрый backend mini‑flow на проде")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing AI Knowledge Mini-Flow per current review request:")
+        print("1) POST /api/ai-knowledge/preview — multipart TXT \"UI backend test psycopg3\" → ожидаем 200: upload_id, chunks>0")
+        print("2) GET /api/ai-knowledge/status?upload_id=<id> — ожидаем 200: status='ready'")
+        print("3) POST /api/ai-knowledge/study — form: upload_id, filename='ui_backend.txt', category='Маркетинг' → ожидаем 200: document_id, chunks>=1")
+        print("4) GET /api/ai-knowledge/documents — ожидаем 200: присутствует ui_backend.txt, chunks_count>=1")
+        print("5) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} → ожидаем 200 и results[] (допускается пуст)")
+        print("6) DELETE /api/ai-knowledge/document/{document_id} — ожидаем 200 {ok:true}")
+        print("=" * 80)
+        
+        # Test 1: POST /api/ai-knowledge/preview
+        upload_id = self.test_current_preview()
+        
+        if upload_id:
+            # Test 2: GET /api/ai-knowledge/status
+            self.test_current_status(upload_id)
+            
+            # Test 3: POST /api/ai-knowledge/study
+            document_id = self.test_current_study(upload_id)
+            
+            if document_id:
+                # Test 4: GET /api/ai-knowledge/documents
+                self.test_current_documents()
+                
+                # Test 5: POST /api/ai-knowledge/search
+                self.test_current_search()
+                
+                # Test 6: DELETE /api/ai-knowledge/document/{document_id}
+                self.test_current_delete(document_id)
+            else:
+                print("❌ Cannot proceed with documents/search/delete tests - no document_id from study")
+        else:
+            print("❌ Cannot proceed with mini-flow tests - no upload_id from preview")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_current_preview(self):
+        """Test 1: POST /api/ai-knowledge/preview - multipart TXT 'UI backend test psycopg3'"""
+        print("\n1️⃣ Testing POST /api/ai-knowledge/preview")
+        print("   Content: 'UI backend test psycopg3'")
+        print("   Expected: 200: upload_id, chunks>0")
+        
+        # Create test file content as specified in review request
+        test_content = "UI backend test psycopg3"
+        files = {'files': ('ui_backend.txt', test_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_id = data.get('upload_id')
+            chunks = data.get('chunks', 0)
+            
+            if upload_id and chunks > 0:
+                self.log_test("Current Review Preview", True, 
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks} ✓")
+                self.upload_id = upload_id
+                return upload_id
+            else:
+                issues = []
+                if not upload_id:
+                    issues.append("missing upload_id")
+                if chunks <= 0:
+                    issues.append(f"chunks={chunks} (expected >0)")
+                self.log_test("Current Review Preview", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Preview", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_current_status(self, upload_id):
+        """Test 2: GET /api/ai-knowledge/status?upload_id=<id> - expect status='ready'"""
+        print(f"\n2️⃣ Testing GET /api/ai-knowledge/status?upload_id={upload_id[:8]}...")
+        print("   Expected: 200: status='ready'")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/status', params={'upload_id': upload_id})
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_status = data.get('status', '')
+            
+            if upload_status == 'ready':
+                self.log_test("Current Review Status", True, "✅ status='ready' ✓")
+            else:
+                self.log_test("Current Review Status", False, f"❌ status='{upload_status}' (expected 'ready')")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Status", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_current_study(self, upload_id):
+        """Test 3: POST /api/ai-knowledge/study - form: upload_id, filename='ui_backend.txt', category='Маркетинг'"""
+        print(f"\n3️⃣ Testing POST /api/ai-knowledge/study")
+        print("   Form: upload_id, filename='ui_backend.txt', category='Маркетинг'")
+        print("   Expected: 200: document_id, chunks>=1")
+        
+        form_data = {
+            'upload_id': upload_id,
+            'filename': 'ui_backend.txt',
+            'category': 'Маркетинг'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            document_id = data.get('document_id')
+            chunks = data.get('chunks', 0)
+            
+            if document_id and chunks >= 1:
+                self.log_test("Current Review Study", True, 
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks} ✓")
+                self.document_id = document_id
+                return document_id
+            else:
+                issues = []
+                if not document_id:
+                    issues.append("missing document_id")
+                if chunks < 1:
+                    issues.append(f"chunks={chunks} (expected >=1)")
+                self.log_test("Current Review Study", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Study", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_current_documents(self):
+        """Test 4: GET /api/ai-knowledge/documents - expect ui_backend.txt present, chunks_count>=1"""
+        print("\n4️⃣ Testing GET /api/ai-knowledge/documents")
+        print("   Expected: 200: присутствует ui_backend.txt, chunks_count>=1")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            
+            documents = data.get('documents', [])
+            print(f"   Total documents: {len(documents)}")
+            
+            if documents:
+                # Find our test document
+                test_doc = None
+                for doc in documents:
+                    if doc.get('filename') == 'ui_backend.txt':
+                        test_doc = doc
+                        break
+                
+                if test_doc:
+                    chunks_count = test_doc.get('chunks_count', 0)
+                    print(f"   Found 'ui_backend.txt': {json.dumps(test_doc, indent=2, ensure_ascii=False)}")
+                    if chunks_count >= 1:
+                        self.log_test("Current Review Documents", True, 
+                                    f"✅ Found 'ui_backend.txt' with chunks_count: {chunks_count} ✓")
+                    else:
+                        self.log_test("Current Review Documents", False, 
+                                    f"❌ Found 'ui_backend.txt' but chunks_count={chunks_count} (expected >=1)")
+                else:
+                    self.log_test("Current Review Documents", False, 
+                                "❌ Test document 'ui_backend.txt' not found in documents list")
+            else:
+                self.log_test("Current Review Documents", False, "❌ No documents found")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Documents", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_current_search(self):
+        """Test 5: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} → expect 200 and results[] (empty allowed)"""
+        print("\n5️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {\"query\":\"psycopg3\",\"top_k\":5}")
+        print("   Expected: 200 и results[] (допускается пуст)")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list):
+                self.log_test("Current Review Search", True, 
+                            f"✅ Status 200 ✓, results[] is array ✓ (размер массива: {len(results)}) - empty allowed per request")
+                
+                # Show example results if any
+                if results:
+                    print(f"   📋 Примеры результатов поиска:")
+                    for i, result in enumerate(results[:2], 1):  # Show first 2 results
+                        print(f"   {i}. {json.dumps(result, indent=2, ensure_ascii=False)}")
+                else:
+                    print("   📋 Results array is empty (допускается пуст)")
+            else:
+                self.log_test("Current Review Search", False, 
+                            f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Search", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_current_delete(self, document_id):
+        """Test 6: DELETE /api/ai-knowledge/document/{document_id} - expect 200 {ok:true}"""
+        print(f"\n6️⃣ Testing DELETE /api/ai-knowledge/document/{document_id[:8]}...")
+        print("   Expected: 200 {ok:true}")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            ok = data.get('ok', False)
+            
+            if ok is True:
+                self.log_test("Current Review Delete", True, "✅ Document deleted successfully {ok:true} ✓")
+            else:
+                self.log_test("Current Review Delete", False, f"❌ Expected ok=true, got ok={ok}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Current Review Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
