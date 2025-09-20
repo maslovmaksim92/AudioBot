@@ -164,7 +164,7 @@ class AIChunk(Base):
     document_id = Column(String, ForeignKey('ai_documents.id', ondelete='CASCADE'), index=True, nullable=False)
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
-    # embedding column created by Alembic as Vector(3072)
+    # embedding column created by Alembic as Vector(1536)
 
 class AIUploadTemp(Base):
     __tablename__ = 'ai_uploads_temp'
