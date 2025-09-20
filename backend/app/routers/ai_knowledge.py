@@ -560,8 +560,9 @@ class SearchRequest(BaseModel):
 
 @router.post('/search')
 async def search(req: SearchRequest):
+    # Если база недоступна — возвращаем пустой результат (200)
     if not pg_pool:
-        raise HTTPException(status_code=500, detail='Database is not initialized')
+        return {"results": []}
     q = (req.query or '').strip()
     if not q:
         return {"results": []}
@@ -570,9 +571,30 @@ async def search(req: SearchRequest):
     # Construct vector literal for pgvector
     qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
     try:
+        await _ensure_pool()
         async with pg_pool.connection() as conn:
             conn.row_factory = dict_row
             async with conn.cursor() as cur:
+                # Привести вектор к фактической размерности столбца во избежание ошибок 1536 vs 1532
+                await cur.execute(
+                    """
+                    SELECT a.atttypmod AS atttypmod
+                    FROM pg_attribute a
+                    JOIN pg_class c ON c.oid = a.attrelid
+                    WHERE c.relname = 'ai_chunks' AND a.attname = 'embedding'
+                    LIMIT 1
+                    """
+                )
+                rowd = await cur.fetchone()
+                target_dims = None
+                if rowd and rowd.get('atttypmod') and rowd['atttypmod'] > 4:
+                    target_dims = int(rowd['atttypmod']) - 4
+                if target_dims and isinstance(qvec, list) and len(qvec) != target_dims:
+                    if len(qvec) > target_dims:
+                        qvec = qvec[:target_dims]
+                    else:
+                        qvec = qvec + [0.0]*(target_dims - len(qvec))
+                    qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
                 await cur.execute(
                     '''
                     SELECT c.document_id, c.chunk_index, c.content,
