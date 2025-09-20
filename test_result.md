@@ -505,3 +505,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Запускаю повторный быстрый тест на проде для поиска: 1) GET /api/ai-knowledge/db-check (connected=true, embedding_dims=1536) 2) POST /api/ai-knowledge/search (200, results[])."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Деплой выполнен пользователем. Запускаю бэкенд‑тесты: db-dsn, db-check, mini‑flow (preview→status→study→documents→search→delete). Затем перейду к доработке UX Training (frontend) без изменения URL/ENV, используя REACT_APP_BACKEND_URL."
