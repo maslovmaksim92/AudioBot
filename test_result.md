@@ -522,3 +522,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Проверяю, что OPENAI_API_KEY применился на проде: короткий backend‑тест поиска с реальными эмбеддингами (preview→study→search)."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Постдеплойный финальный e2e тест AI Training: db-dsn → db-check → preview → status → study → documents → search → delete (с реальными эмбеддингами)."
