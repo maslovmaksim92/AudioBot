@@ -489,3 +489,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Запускаю mini‑flow для AI Training: preview → status → study → documents → search на деплое. Проверю, что search возвращает 200 и непустые results[]."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Запускаю повторный быстрый тест на проде для поиска: 1) GET /api/ai-knowledge/db-check (connected=true, embedding_dims=1536) 2) POST /api/ai-knowledge/search (200, results[])."
