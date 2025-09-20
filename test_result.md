@@ -466,3 +466,7 @@
 ## agent_communication (append):
 - agent: "testing"
 - message: "✅ QUICK RE-TEST FINAL RESULTS - Быстрый повторный тест на деплое https://audiobot-qci2.onrender.com завершен. RESULTS: 1) ✅ GET /api/ai-knowledge/db-check: Status 200, connected=true, embedding_dims=1536 - полностью соответствует требованиям review request ✓, 2) ❌ POST /api/ai-knowledge/search: Status 500 Internal Server Error - не соответствует требованиям (ожидался Status 200 с непустым results[]) ❌. ROOT CAUSE: В базе данных отсутствуют документы (0 documents found), что вызывает Internal Server Error в search endpoint при попытке поиска по пустой базе. Database connectivity полностью восстановлена и embedding_dims исправлен на 1536, но для тестирования search функциональности требуется наличие документов в базе. SUCCESS RATE: 50% (1/2 passed)."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Запускаю mini‑flow для AI Training: preview → status → study → documents → search на деплое. Проверю, что search возвращает 200 и непустые results[]."
