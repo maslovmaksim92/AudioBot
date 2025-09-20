@@ -507,23 +507,38 @@ class VasDomAPITester:
         
         print("\n" + "=" * 80)
 
-    def test_quick_review_request(self):
-        """Quick re-test on deploy as per review request"""
-        print(f"🚀 VasDom AudioBot Backend API - Быстрый повторный тест на деплое")
+    def test_mini_flow_review_request(self):
+        """Mini-flow review request testing as specified"""
+        print(f"🚀 VasDom AudioBot Backend API - Mini‑flow на проде")
         print(f"📍 Base URL: {self.base_url}")
-        print("🔧 Testing specific endpoints per review request:")
-        print("1) GET /api/ai-knowledge/db-check — ожидаем: Status 200, connected=true, embedding_dims=1536")
-        print("2) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} — ожидаем Status 200 и непустой results[]")
+        print("🔧 Testing AI Knowledge Mini-Flow per review request:")
+        print("1) POST /api/ai-knowledge/preview — multipart (files: 1 txt файл с содержимым \"Search mini flow psycopg3 works\") → ожидаем 200: upload_id, chunks>0")
+        print("2) GET /api/ai-knowledge/status?upload_id=<id> — ожидаем 200: status='ready'")
+        print("3) POST /api/ai-knowledge/study — form: upload_id, filename='mini.txt', category='Маркетинг' → ожидаем 200: document_id, chunks>=1")
+        print("4) GET /api/ai-knowledge/documents — ожидаем 200: есть документ из (3)")
+        print("5) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} → ожидаем 200 и непустой results[]")
         print("=" * 80)
         
-        # Test 1: GET /api/ai-knowledge/db-check
-        self.test_quick_db_check()
+        # Test 1: POST /api/ai-knowledge/preview
+        upload_id = self.test_mini_flow_preview()
         
-        # Check if there are documents in the database first
-        self.test_documents_availability()
-        
-        # Test 2: POST /api/ai-knowledge/search
-        self.test_quick_search_psycopg3()
+        if upload_id:
+            # Test 2: GET /api/ai-knowledge/status
+            self.test_mini_flow_status(upload_id)
+            
+            # Test 3: POST /api/ai-knowledge/study
+            document_id = self.test_mini_flow_study(upload_id)
+            
+            if document_id:
+                # Test 4: GET /api/ai-knowledge/documents
+                self.test_mini_flow_documents()
+                
+                # Test 5: POST /api/ai-knowledge/search
+                self.test_mini_flow_search()
+            else:
+                print("❌ Cannot proceed with documents/search tests - no document_id from study")
+        else:
+            print("❌ Cannot proceed with mini-flow tests - no upload_id from preview")
         
         # Final summary
         self.print_summary()
