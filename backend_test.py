@@ -112,23 +112,28 @@ class VasDomAPITester:
             if 'normalized' in data:
                 normalized = data['normalized']
                 if isinstance(normalized, dict):
-                    query = normalized.get('query', '')
+                    query = normalized.get('query', {})
                     
-                    # Check query contains sslmode=require
-                    if 'sslmode=require' in str(query):
-                        self.log_test("DB DSN - sslmode=require in query", True, 
-                                    f"✅ normalized.query содержит 'sslmode=require': {query}")
+                    # Check if query is dict and contains sslmode=require
+                    if isinstance(query, dict):
+                        sslmode_value = query.get('sslmode', '')
+                        if sslmode_value == 'require':
+                            self.log_test("DB DSN - sslmode=require in query", True, 
+                                        f"✅ normalized.query содержит sslmode='require': {query}")
+                        else:
+                            self.log_test("DB DSN - sslmode=require in query", False, 
+                                        f"❌ normalized.query.sslmode='{sslmode_value}' (ожидалось 'require'): {query}")
+                    elif isinstance(query, str):
+                        # Handle case where query might be a string
+                        if 'sslmode=require' in query:
+                            self.log_test("DB DSN - sslmode=require in query", True, 
+                                        f"✅ normalized.query содержит 'sslmode=require': {query}")
+                        else:
+                            self.log_test("DB DSN - sslmode=require in query", False, 
+                                        f"❌ normalized.query НЕ содержит 'sslmode=require': {query}")
                     else:
                         self.log_test("DB DSN - sslmode=require in query", False, 
-                                    f"❌ normalized.query НЕ содержит 'sslmode=require': {query}")
-                elif isinstance(normalized, str):
-                    # Handle case where normalized might be a string
-                    if 'sslmode=require' in normalized:
-                        self.log_test("DB DSN - sslmode=require in query", True, 
-                                    f"✅ normalized содержит 'sslmode=require': {normalized}")
-                    else:
-                        self.log_test("DB DSN - sslmode=require in query", False, 
-                                    f"❌ normalized НЕ содержит 'sslmode=require': {normalized}")
+                                    f"❌ normalized.query имеет неожиданный тип: {type(query)}")
                 else:
                     self.log_test("DB DSN - sslmode=require in query", False, 
                                 f"❌ normalized имеет неожиданный тип: {type(normalized)}")
