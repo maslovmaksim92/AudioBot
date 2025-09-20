@@ -11,6 +11,10 @@ try:
     from psycopg.rows import dict_row
     import psycopg
     PSYCOPG_AVAILABLE = True
+    try:
+        from psycopg.types.json import Json as _PgJson
+    except Exception:
+        _PgJson = None
 except Exception as e:
     PSYCOPG_AVAILABLE = False
     AsyncConnectionPool = None
