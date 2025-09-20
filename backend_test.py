@@ -543,7 +543,202 @@ class VasDomAPITester:
         # Final summary
         self.print_summary()
 
-    def test_quick_db_check(self):
+    def test_mini_flow_preview(self):
+        """Test 1: POST /api/ai-knowledge/preview - multipart with specific content"""
+        print("\n1️⃣ Testing POST /api/ai-knowledge/preview")
+        print("   Content: 'Search mini flow psycopg3 works'")
+        print("   Expected: 200: upload_id, chunks>0")
+        
+        # Create test file content as specified in review request
+        test_content = "Search mini flow psycopg3 works"
+        files = {'files': ('mini.txt', test_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_id = data.get('upload_id')
+            chunks = data.get('chunks', 0)
+            
+            if upload_id and chunks > 0:
+                self.log_test("Mini-Flow Preview", True, 
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks} ✓")
+                self.upload_id = upload_id
+                return upload_id
+            else:
+                issues = []
+                if not upload_id:
+                    issues.append("missing upload_id")
+                if chunks <= 0:
+                    issues.append(f"chunks={chunks} (expected >0)")
+                self.log_test("Mini-Flow Preview", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Mini-Flow Preview", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_mini_flow_status(self, upload_id):
+        """Test 2: GET /api/ai-knowledge/status?upload_id=<id> - expect status='ready'"""
+        print(f"\n2️⃣ Testing GET /api/ai-knowledge/status?upload_id={upload_id[:8]}...")
+        print("   Expected: 200: status='ready'")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/status', params={'upload_id': upload_id})
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_status = data.get('status', '')
+            
+            if upload_status == 'ready':
+                self.log_test("Mini-Flow Status", True, "✅ status='ready' ✓")
+            else:
+                self.log_test("Mini-Flow Status", False, f"❌ status='{upload_status}' (expected 'ready')")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Mini-Flow Status", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_mini_flow_study(self, upload_id):
+        """Test 3: POST /api/ai-knowledge/study - form data with specific parameters"""
+        print(f"\n3️⃣ Testing POST /api/ai-knowledge/study")
+        print("   Form: upload_id, filename='mini.txt', category='Маркетинг'")
+        print("   Expected: 200: document_id, chunks>=1")
+        
+        form_data = {
+            'upload_id': upload_id,
+            'filename': 'mini.txt',
+            'category': 'Маркетинг'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            document_id = data.get('document_id')
+            chunks = data.get('chunks', 0)
+            
+            if document_id and chunks >= 1:
+                self.log_test("Mini-Flow Study", True, 
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks} ✓")
+                self.document_id = document_id
+                return document_id
+            else:
+                issues = []
+                if not document_id:
+                    issues.append("missing document_id")
+                if chunks < 1:
+                    issues.append(f"chunks={chunks} (expected >=1)")
+                self.log_test("Mini-Flow Study", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Mini-Flow Study", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_mini_flow_documents(self):
+        """Test 4: GET /api/ai-knowledge/documents - should show document from study"""
+        print("\n4️⃣ Testing GET /api/ai-knowledge/documents")
+        print("   Expected: 200: есть документ из (3)")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            
+            documents = data.get('documents', [])
+            print(f"   Total documents: {len(documents)}")
+            
+            if documents:
+                # Find our test document
+                test_doc = None
+                for doc in documents:
+                    if doc.get('filename') == 'mini.txt':
+                        test_doc = doc
+                        break
+                
+                if test_doc:
+                    chunks_count = test_doc.get('chunks_count', 0)
+                    print(f"   Found 'mini.txt': {json.dumps(test_doc, indent=2, ensure_ascii=False)}")
+                    self.log_test("Mini-Flow Documents", True, 
+                                f"✅ Found 'mini.txt' with chunks_count: {chunks_count} ✓")
+                else:
+                    self.log_test("Mini-Flow Documents", False, 
+                                "❌ Test document 'mini.txt' not found in documents list")
+            else:
+                self.log_test("Mini-Flow Documents", False, "❌ No documents found")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Mini-Flow Documents", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_mini_flow_search(self):
+        """Test 5: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} - expect 200 and non-empty results[]"""
+        print("\n5️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {\"query\":\"psycopg3\",\"top_k\":5}")
+        print("   Expected: 200 и непустой results[]")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list) and len(results) > 0:
+                self.log_test("Mini-Flow Search", True, 
+                            f"✅ Status 200 ✓, results[] не пуст ✓ (размер массива: {len(results)})")
+                
+                # Show example results as requested
+                print(f"   📋 Примеры результатов поиска:")
+                for i, result in enumerate(results[:2], 1):  # Show first 2 results
+                    print(f"   {i}. {json.dumps(result, indent=2, ensure_ascii=False)}")
+            else:
+                if isinstance(results, list):
+                    self.log_test("Mini-Flow Search", False, 
+                                f"❌ Status 200 ✓, но results[] пуст (размер массива: {len(results)})")
+                else:
+                    self.log_test("Mini-Flow Search", False, 
+                                f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Mini-Flow Search", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_quick_review_request(self):
+        """Quick re-test on deploy as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Быстрый повторный тест на деплое")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing specific endpoints per review request:")
+        print("1) GET /api/ai-knowledge/db-check — ожидаем: Status 200, connected=true, embedding_dims=1536")
+        print("2) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} — ожидаем Status 200 и непустой results[]")
+        print("=" * 80)
+        
+        # Test 1: GET /api/ai-knowledge/db-check
+        self.test_quick_db_check()
+        
+        # Check if there are documents in the database first
+        self.test_documents_availability()
+        
+        # Test 2: POST /api/ai-knowledge/search
+        self.test_quick_search_psycopg3()
+        
+        # Final summary
+        self.print_summary()
         """Test 1: GET /api/ai-knowledge/db-check - expecting Status 200, connected=true, embedding_dims=1536"""
         print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
         print("   Expected: Status 200, connected=true, embedding_dims=1536")
