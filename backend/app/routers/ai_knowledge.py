@@ -544,3 +544,50 @@ async def db_dsn():
         'raw_present': bool(raw),
         'normalized': normalized,
     }
+
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = 10
+
+@router.post('/search')
+async def search(req: SearchRequest):
+    if not pg_pool:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    q = (req.query or '').strip()
+    if not q:
+        return {"results": []}
+    # Build embedding vector
+    qvec = (await _embed_texts_dynamic([q]))[0]
+    # Construct vector literal for pgvector
+    qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
+    try:
+        async with pg_pool.connection() as conn:
+            conn.row_factory = dict_row
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    '''
+                    SELECT c.document_id, c.chunk_index, c.content,
+                           1 - (c.embedding <=> (%(qv)s)::vector) as score,
+                           d.filename
+                    FROM ai_chunks c
+                    JOIN ai_documents d ON d.id = c.document_id
+                    ORDER BY c.embedding <=> (%(qv)s)::vector
+                    LIMIT %(k)s
+                    ''',
+                    {"qv": qvec_str, "k": int(req.top_k)}
+                )
+                rows = await cur.fetchall()
+                results = []
+                for r in rows or []:
+                    results.append({
+                        "document_id": r.get('document_id'),
+                        "chunk_index": r.get('chunk_index'),
+                        "content": r.get('content'),
+                        "score": float(r.get('score') or 0.0),
+                        "filename": r.get('filename')
+                    })
+                return {"results": results}
+    except Exception as e:
+        logger.error(f"search error: {e}")
+        # На пустой базе или при иного рода ошибке — безопасно вернуть пусто
+        return {"results": []}
