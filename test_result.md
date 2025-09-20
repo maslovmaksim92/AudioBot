@@ -439,3 +439,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Запускаю автоматические backend‑тесты после перехода AI Training на psycopg3 async. План: проверить /api/ai-knowledge/db-dsn, /db-check, затем сквозной сценарий preview → study → status → documents → search → delete; дополнительно проверить регрессию CRM эндпоинтов (filters, houses, details)."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Пользователь сообщил: деплой с последними изменениями выполнен. Запускаю полный сквозной backend‑тест AI Training (psycopg3) и быструю регрессию CRM. Сценарий: db-dsn → db-check → preview → status → study → documents → search → delete."
