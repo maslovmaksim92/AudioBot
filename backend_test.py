@@ -97,20 +97,54 @@ class VasDomAPITester:
         except Exception as e:
             return False, {"error": str(e)}, 0
 
-    def test_review_request_quick_check(self):
-        """Quick re-check of AI Knowledge diagnostics after sslrootcert addition"""
-        print("\n🧠 QUICK RE-CHECK: AI KNOWLEDGE DIAGNOSTICS")
+    def test_review_request_ai_knowledge(self):
+        """Run full AI Knowledge flow testing per review request"""
+        print("\n🧠 AI KNOWLEDGE ENDPOINTS (psycopg3)")
         print("=" * 70)
-        print("Testing after adding sslrootcert:")
-        print("1) GET /api/ai-knowledge/db-dsn — normalized.query должен содержать 'sslmode=require'")
-        print("2) GET /api/ai-knowledge/db-check — ожидаем connected=true")
+        print("Testing full AI Knowledge flow:")
+        print("1) db-dsn → 2) db-check → 3) preview → 4) status → 5) study → 6) documents → 7) search → 8) delete")
         print("-" * 70)
         
         # Test 1: GET /api/ai-knowledge/db-dsn
-        self.test_ai_db_dsn_quick()
+        self.test_ai_db_dsn()
         
         # Test 2: GET /api/ai-knowledge/db-check
-        self.test_ai_db_check_quick()
+        db_check_data = self.test_ai_db_check()
+        
+        # Only proceed with AI flow if database is connected
+        if db_check_data and db_check_data.get('connected', False):
+            print("\n✅ Database connected - proceeding with AI flow tests")
+            
+            # Test 3: POST /api/ai-knowledge/preview
+            upload_id = self.test_ai_preview()
+            
+            if upload_id:
+                # Test 4: GET /api/ai-knowledge/status
+                self.test_ai_status(upload_id)
+                
+                # Test 5: POST /api/ai-knowledge/study
+                document_id = self.test_ai_study(upload_id)
+                
+                if document_id:
+                    # Test 6: GET /api/ai-knowledge/documents
+                    self.test_ai_documents()
+                    
+                    # Test 7: POST /api/ai-knowledge/search
+                    self.test_ai_search_psycopg3()
+                    
+                    # Test 8: DELETE /api/ai-knowledge/document/{document_id}
+                    self.test_ai_delete_document_final(document_id)
+                else:
+                    print("❌ Cannot proceed with documents/search/delete tests - no document_id from study")
+            else:
+                print("❌ Cannot proceed with AI flow tests - no upload_id from preview")
+        else:
+            print("❌ Cannot proceed with AI flow tests - database not connected")
+            # Still test the endpoints to see their error responses
+            print("\n⚠️ Testing AI endpoints without database connection:")
+            self.test_ai_preview()
+            self.test_ai_documents()
+            self.test_ai_search_psycopg3()
     
     def test_ai_db_dsn_quick(self):
         """Test 1: GET /api/ai-knowledge/db-dsn - normalized.query должен содержать 'sslmode=require'"""
