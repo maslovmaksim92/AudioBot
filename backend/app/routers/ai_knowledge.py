@@ -374,9 +374,11 @@ async def study(upload_id: str = Form(...), filename: str = Form('document.txt')
                     {"i": doc_id, "fn": filename, "mime": mime, "sz": size_bytes, "sm": (summary[:500] if isinstance(summary, str) else None), "pg": pages, "ca": datetime.now(timezone.utc)}
                 )
                 for idx, (text, v) in enumerate(zip(chunks, vectors)):
+                    # Ensure vector is string literal for pgvector and cast to ::vector to avoid driver type issues
+                    v_str = '[' + ','.join(str(float(x)) for x in (v or [])) + ']'
                     await cur.execute(
-                        'INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (%(i)s,%(d)s,%(x)s,%(c)s,%(e)s)',
-                        {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v}
+                        'INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (%(i)s,%(d)s,%(x)s,%(c)s,(%(e)s)::vector)',
+                        {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v_str}
                     )
                 await cur.execute('DELETE FROM ai_uploads_temp WHERE upload_id=%(id)s', {"id": upload_id})
                 await conn.commit()
