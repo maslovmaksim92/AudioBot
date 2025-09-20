@@ -191,7 +191,7 @@ function Training() {
     try {
       const res = await fetch(`${BASE_URL}/api/ai-knowledge/documents`);
       const data = await res.json();
-      const docs = (data.documents || []).map(d => ({...d, category: parseCategoryFromMime(d.mime)}));
+      const docs = (data.documents || []).map(d => ({...d, category: d.category || parseCategoryFromMime(d.mime)}));
       setDocuments(docs);
     } catch (e) {
       // ignore
