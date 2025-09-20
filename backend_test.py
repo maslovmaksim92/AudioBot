@@ -68,8 +68,15 @@ class VasDomAPITester:
                 response = requests.delete(url, headers=headers, timeout=60)
             else:
                 return False, {}, 0
+            
+            # Try to parse JSON response, but handle non-JSON responses
+            try:
+                response_data = response.json() if response.content else {}
+            except:
+                # If JSON parsing fails, return the text content
+                response_data = {"error": "Non-JSON response", "content": response.text[:500]}
                 
-            return True, response.json() if response.content else {}, response.status_code
+            return True, response_data, response.status_code
             
         except requests.exceptions.Timeout:
             return False, {"error": "Request timeout"}, 0
