@@ -902,7 +902,7 @@ async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int 
 
 async def _embed_texts(texts: List[str]) -> List[List[float]]:
     if not OPENAI_API_KEY:
-        return [[0.0]*3072 for _ in texts]
+        return [[0.0]*1536 for _ in texts]
     client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     out = []
     for t in texts:
@@ -911,7 +911,52 @@ async def _embed_texts(texts: List[str]) -> List[List[float]]:
             out.append(r.data[0].embedding)
         except Exception as e:
             logger.error(f"Embedding error: {e}")
-            out.append([0.0]*3072)
+            out.append([0.0]*1536)
+    return out
+
+async def _detect_vector_dims(db: AsyncSession) -> int:
+    try:
+        row = (await db.execute(sa_text("""
+            SELECT a.atttypmod
+            FROM pg_attribute a
+            JOIN pg_class c ON c.oid = a.attrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = current_schema()
+              AND c.relname = 'ai_chunks'
+              AND a.attname = 'embedding'
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+            LIMIT 1
+        """))).first()
+        if row and isinstance(row[0], int) and row[0] > 4:
+            dims = int(row[0]) - 4
+            return dims
+    except Exception as e:
+        logger.warning(f"Vector dims detection failed: {e}")
+    return 1536
+
+def _pad_or_trim(vec: List[float], dims: int) -> List[float]:
+    if len(vec) == dims:
+        return vec
+    if len(vec) > dims:
+        return vec[:dims]
+    return vec + [0.0] * (dims - len(vec))
+
+async def _embed_texts_dynamic(texts: List[str], db: AsyncSession) -> List[List[float]]:
+    dims = await _detect_vector_dims(db)
+    model = 'text-embedding-3-small' if dims <= 1536 else 'text-embedding-3-large'
+    if not OPENAI_API_KEY:
+        return [[0.0]*dims for _ in texts]
+    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    out: List[List[float]] = []
+    for t in texts:
+        try:
+            r = await client.embeddings.create(model=model, input=t)
+            vec = r.data[0].embedding
+            out.append(_pad_or_trim(vec, dims))
+        except Exception as e:
+            logger.error(f"Embedding error: {e}")
+            out.append([0.0]*dims)
     return out
 
 async def _summarize(text: str) -> str:
