@@ -279,7 +279,19 @@ class ReviewRequestTester:
                 success = True
                 details = f"results[] не пустой ✓ (найдено {len(results)} результатов)"
             else:
-                details = f"results[] пустой (размер: {len(results) if isinstance(results, list) else 'не массив'})"
+                # Since there are existing documents with 'psycopg3' in them, let's check if search is working at all
+                # Try a different search term that might be in the existing documents
+                search_data_alt = {'query': 'mini', 'top_k': 5}
+                status_alt, response_alt = self.make_request('POST', '/api/ai-knowledge/search', data=search_data_alt)
+                
+                if status_alt == 200:
+                    results_alt = response_alt.get('results', [])
+                    if len(results_alt) > 0:
+                        details = f"results[] пустой для 'psycopg3' но поиск работает (найдено {len(results_alt)} результатов для 'mini')"
+                    else:
+                        details = f"results[] пустой для обоих запросов (размер: {len(results)})"
+                else:
+                    details = f"results[] пустой (размер: {len(results) if isinstance(results, list) else 'не массив'})"
         else:
             details = f"Expected 200, got {status}"
         
