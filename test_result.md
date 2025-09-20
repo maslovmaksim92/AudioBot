@@ -353,8 +353,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Production DATABASE_URL sslmode parameter fix in Render environment"
-##     - "AI Knowledge diagnostics endpoints confirmed working - deployment successful"
+##     - "AI Training UI E2E Testing on Production"
+##     - "Backend API endpoints returning 500 errors"
 ##   stuck_tasks: 
 ##     - "DATABASE_URL has invalid sslmode parameter - needs production environment fix in Render"
 ##     - "Production deployment has critical routing and API issues"
@@ -362,6 +362,7 @@
 ##     - "React Router client-side routing returns 404 on direct route access"
 ##     - "Web server not configured for SPA fallback routing"
 ##     - "POST /api/logistics/route endpoint not implemented"
+##     - "AI Knowledge backend API endpoints returning 500 errors preventing Training UI functionality"
 ##   test_all: false
 ##   test_priority: "high_first"
 
