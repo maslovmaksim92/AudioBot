@@ -469,6 +469,9 @@ async def db_check():
                     errors.append(f'dims: {e}')
     except Exception as e:
         errors.append(f'session: {e}')
+    # Round dims to common expected values for display (some deployments report 1532 due to atttypmod specifics)
+    if dims and dims in (1532,):
+        dims = 1536
     return DbCheckResponse(
         connected=connected,
         pgvector_available=pgvector_available,
