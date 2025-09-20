@@ -382,7 +382,13 @@ async def study(upload_id: str = Form(None), filename: str = Form(None), categor
         filename = 'document.txt'
     if not category:
         category = 'Клининг'
-    if not pg_pool:
+    ready = await _ensure_pool()
+    if not (pg_pool and ready):
+        # small retry
+        import asyncio as _asyncio
+        await _asyncio.sleep(0.2)
+        ready = await _ensure_pool()
+    if not (pg_pool and ready):
         raise HTTPException(status_code=500, detail='Database is not initialized')
     try:
         await _ensure_pool()
