@@ -352,9 +352,11 @@ async def preview(file: UploadFile = File(None), files: List[UploadFile] = File(
                     'overlap': int(overlap),
                     'status': 'ready'
                 }
+                # Prefer driver-side JSON adaptation if available
+                payload = _PgJson(meta) if '_PgJson' in globals() and _PgJson else json.dumps(meta, ensure_ascii=False)
                 await cur.execute(
                     'INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (%(id)s, %(m)s::jsonb, %(exp)s)',
-                    {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)}
+                    {"id": upload_id, "m": payload, "exp": datetime.now(timezone.utc)+timedelta(hours=6)}
                 )
                 await conn.commit()
     except Exception as e:
