@@ -225,7 +225,13 @@ class StatusResponse(BaseModel):
 # Preview endpoint (one file per request recommended)
 @router.post('/preview')
 async def preview(file: UploadFile = File(None), files: List[UploadFile] = File(None), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
-    if not pg_pool:
+    ready = await _ensure_pool()
+    if not (pg_pool and ready):
+        # graceful: try once more after short delay
+        import asyncio as _asyncio
+        await _asyncio.sleep(0.2)
+        ready = await _ensure_pool()
+    if not (pg_pool and ready):
         raise HTTPException(status_code=500, detail='Database is not initialized')
     # Support both 'file' and 'files' field names (take the first available)
     picked: Optional[UploadFile] = None
