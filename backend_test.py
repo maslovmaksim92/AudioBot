@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-VasDom AudioBot Backend API Testing - psycopg3 async migration
-Testing AI Knowledge endpoints after migration to psycopg3 async
-Review Request: https://audiobot-qci2.onrender.com
+VasDom AudioBot Backend API Testing - Review Request Testing
+Testing AI Knowledge endpoints after fixes: scrub PGSSL env, sslmode=require, keepalive/timeout, 
+совместимость preview с files, обновлённый ответ db-dsn.
+Base URL: https://audiobot-qci2.onrender.com
 """
 
 import requests
