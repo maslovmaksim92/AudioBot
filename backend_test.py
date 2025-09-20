@@ -607,4 +607,5 @@ class VasDomAPITester:
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    tester.run_review_request_tests()
+    # Run quick review request test as specified
+    tester.test_quick_review_request()
