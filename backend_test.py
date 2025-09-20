@@ -1456,7 +1456,189 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Production Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_specific_review_request_flow(self):
+        """Test the specific review request flow with real embeddings"""
+        print(f"🚀 VasDom AudioBot Backend API - Review Request: Real Embeddings Test")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing AI Knowledge flow with real embeddings (OPENAI_API_KEY set):")
+        print("1) POST /api/ai-knowledge/preview — 200: upload_id, chunks>0 (files: TXT \"OpenAI embeddings test. The keyword is psycopg3. This line should match the search.\")")
+        print("2) POST /api/ai-knowledge/study — 200: document_id, chunks>=1 (FormData)")
+        print("3) POST /api/ai-knowledge/search — 200: body {\"query\":\"psycopg3\",\"top_k\":5} → expect results[] not empty, first element score>0")
+        print("4) DELETE /api/ai-knowledge/document/{document_id} — 200 {ok:true}")
+        print("=" * 80)
+        
+        # Test 1: POST /api/ai-knowledge/preview
+        upload_id = self.test_specific_preview()
+        
+        if upload_id:
+            # Test 2: POST /api/ai-knowledge/study
+            document_id = self.test_specific_study(upload_id)
+            
+            if document_id:
+                # Test 3: POST /api/ai-knowledge/search
+                self.test_specific_search()
+                
+                # Test 4: DELETE /api/ai-knowledge/document/{document_id}
+                self.test_specific_delete(document_id)
+            else:
+                print("❌ Cannot proceed with search/delete tests - no document_id from study")
+        else:
+            print("❌ Cannot proceed with flow tests - no upload_id from preview")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_specific_preview(self):
+        """Test 1: POST /api/ai-knowledge/preview with specific content"""
+        print("\n1️⃣ Testing POST /api/ai-knowledge/preview")
+        print("   Content: 'OpenAI embeddings test. The keyword is psycopg3. This line should match the search.'")
+        print("   Expected: 200: upload_id, chunks>0")
+        
+        # Create test file content as specified in review request
+        test_content = "OpenAI embeddings test. The keyword is psycopg3. This line should match the search."
+        files = {'files': ('embeddings_test.txt', test_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_id = data.get('upload_id')
+            chunks = data.get('chunks', 0)
+            
+            if upload_id and chunks > 0:
+                self.log_test("Specific Preview - Real Embeddings", True, 
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks} ✓")
+                self.upload_id = upload_id
+                return upload_id
+            else:
+                issues = []
+                if not upload_id:
+                    issues.append("missing upload_id")
+                if chunks <= 0:
+                    issues.append(f"chunks={chunks} (expected >0)")
+                self.log_test("Specific Preview - Real Embeddings", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Specific Preview - Real Embeddings", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_specific_study(self, upload_id):
+        """Test 2: POST /api/ai-knowledge/study with FormData"""
+        print(f"\n2️⃣ Testing POST /api/ai-knowledge/study")
+        print("   Form: upload_id, filename='embeddings_test.txt'")
+        print("   Expected: 200: document_id, chunks>=1")
+        
+        form_data = {
+            'upload_id': upload_id,
+            'filename': 'embeddings_test.txt'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            document_id = data.get('document_id')
+            chunks = data.get('chunks', 0)
+            
+            if document_id and chunks >= 1:
+                self.log_test("Specific Study - Real Embeddings", True, 
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks} ✓")
+                self.document_id = document_id
+                return document_id
+            else:
+                issues = []
+                if not document_id:
+                    issues.append("missing document_id")
+                if chunks < 1:
+                    issues.append(f"chunks={chunks} (expected >=1)")
+                self.log_test("Specific Study - Real Embeddings", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Specific Study - Real Embeddings", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_specific_search(self):
+        """Test 3: POST /api/ai-knowledge/search with specific query"""
+        print("\n3️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {\"query\":\"psycopg3\",\"top_k\":5}")
+        print("   Expected: 200: results[] not empty, first element score>0")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list) and len(results) > 0:
+                first_result = results[0]
+                first_score = first_result.get('score', 0) if isinstance(first_result, dict) else 0
+                
+                if first_score > 0:
+                    self.log_test("Specific Search - Real Embeddings", True, 
+                                f"✅ results[] not empty ✓ (count: {len(results)}), first element score: {first_score} > 0 ✓")
+                    
+                    # Show detailed results as requested
+                    print(f"   📋 Search Results Details:")
+                    for i, result in enumerate(results, 1):
+                        if isinstance(result, dict):
+                            score = result.get('score', 0)
+                            content_preview = result.get('content', '')[:100] + '...' if len(result.get('content', '')) > 100 else result.get('content', '')
+                            print(f"   {i}. Score: {score}, Content: {content_preview}")
+                else:
+                    self.log_test("Specific Search - Real Embeddings", False, 
+                                f"❌ results[] not empty ✓ (count: {len(results)}), but first element score: {first_score} <= 0")
+            else:
+                if isinstance(results, list):
+                    self.log_test("Specific Search - Real Embeddings", False, 
+                                f"❌ results[] is empty (count: {len(results)}) - expected not empty")
+                else:
+                    self.log_test("Specific Search - Real Embeddings", False, 
+                                f"❌ results should be array, got {type(results)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Specific Search - Real Embeddings", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_specific_delete(self, document_id):
+        """Test 4: DELETE /api/ai-knowledge/document/{document_id}"""
+        print(f"\n4️⃣ Testing DELETE /api/ai-knowledge/document/{document_id[:8]}...")
+        print("   Expected: 200 {ok:true}")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            ok = data.get('ok', False)
+            
+            if ok is True:
+                self.log_test("Specific Delete - Real Embeddings", True, "✅ Document deleted successfully {ok:true} ✓")
+            else:
+                self.log_test("Specific Delete - Real Embeddings", False, f"❌ Expected ok=true, got ok={ok}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Specific Delete - Real Embeddings", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    # Run the production review request test
-    tester.test_production_review_request()
+    # Run the specific review request test
+    tester.test_specific_review_request_flow()
