@@ -391,6 +391,9 @@ class VasDomAPITester:
                     self.log_test("AI Search - Query Results", False, f"❌ results[] is empty (expected не пуст)")
                 else:
                     self.log_test("AI Search - Query Results", False, f"❌ results should be array, got {type(results)}")
+        elif status == 500:
+            # Handle database connection issues gracefully
+            self.log_test("AI Search - Query Results", False, f"❌ Status: {status} - Database connection issue (expected due to SSL errors)")
         else:
             self.log_test("AI Search - Query Results", False, f"❌ Status: {status}, Data: {data}")
     
