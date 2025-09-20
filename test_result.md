@@ -446,3 +446,11 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Пользователь сообщил: деплой с последними изменениями выполнен. Запускаю полный сквозной backend‑тест AI Training (psycopg3) и быструю регрессию CRM. Сценарий: db-dsn → db-check → preview → status → study → documents → search → delete."
+
+## agent_communication (append):
+- agent: "user"
+- message: "Короткая проверка двух пунктов после последнего коммита: Base URL: https://audiobot-qci2.onrender.com 1) GET /api/ai-knowledge/db-check — embedding_dims теперь должен быть 1536 (если раньше был 1532), connected=true. 2) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} — 200, results[]. Если (2) упадёт, приложи текст ошибки и статус. Не прерывайся на первом сбое."
+
+## agent_communication (append):
+- agent: "testing"
+- message: "✅ REVIEW REQUEST QUICK CHECK COMPLETE - Tested both requested endpoints at https://audiobot-qci2.onrender.com. RESULTS: 1) ✅ GET /api/ai-knowledge/db-check: Status 200 ✓, connected=true ✓, BUT embedding_dims=1532 (expected 1536) ❌. Database connection working correctly with all AI tables present (ai_chunks, ai_documents, ai_uploads_temp). 2) ❌ POST /api/ai-knowledge/search: Status 500 'Internal Server Error' ❌. Search endpoint failing with server error, not returning JSON response. Additional findings: GET /api/ai-knowledge/documents returns empty array (0 documents), suggesting no test data available for search. SUMMARY: Database connectivity restored (connected=true) but embedding dimensions not updated (1532→1536). Search endpoint has critical server error preventing testing. Need to fix embedding_dims and investigate search endpoint 500 error."
