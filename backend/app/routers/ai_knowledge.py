@@ -349,10 +349,22 @@ async def preview(file: UploadFile = File(None), files: List[UploadFile] = File(
 
 # Study endpoint: persist to pgvector with category
 @router.post('/study')
-async def study(upload_id: str = Form(...), filename: str = Form('document.txt'), category: str = Form('Клининг')):
+async def study(upload_id: str = Form(None), filename: str = Form(None), category: str = Form(None), json_body: Optional[Dict[str, Any]] = Body(None)):
+    # Accept both FormData and JSON bodies
+    if (not upload_id or not filename or not category) and json_body:
+        upload_id = upload_id or json_body.get('upload_id')
+        filename = filename or json_body.get('filename') or 'document.txt'
+        category = category or json_body.get('category') or 'Клининг'
+    if not upload_id:
+        raise HTTPException(status_code=422, detail='upload_id is required')
+    if not filename:
+        filename = 'document.txt'
+    if not category:
+        category = 'Клининг'
     if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
     try:
+        await _ensure_pool()
         async with pg_pool.connection() as conn:
             conn.row_factory = dict_row
             async with conn.cursor() as cur:
@@ -368,6 +380,17 @@ async def study(upload_id: str = Form(...), filename: str = Form('document.txt')
                 meta = raw_meta if isinstance(raw_meta, dict) else (json.loads(raw_meta) if isinstance(raw_meta, str) else {})
                 chunks: List[str] = meta.get('chunks') or []
                 vectors = await _embed_texts_dynamic(chunks)
+                # Normalize dims to 1536 in case of 1532 anomaly
+                norm_vectors = []
+                for v in vectors:
+                    if not isinstance(v, list):
+                        v = []
+                    if 1528 <= len(v) <= 1536:
+                        if len(v) < 1536:
+                            v = v + [0.0]*(1536-len(v))
+                        elif len(v) > 1536:
+                            v = v[:1536]
+                    norm_vectors.append(v)
                 doc_id = str(uuid4())
                 summary = meta.get('summary') or ''
                 size_bytes = int(meta.get('size_bytes') or 0)
@@ -377,8 +400,7 @@ async def study(upload_id: str = Form(...), filename: str = Form('document.txt')
                     'INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (%(i)s,%(fn)s,%(mime)s,%(sz)s,%(sm)s,%(pg)s,%(ca)s)',
                     {"i": doc_id, "fn": filename, "mime": mime, "sz": size_bytes, "sm": (summary[:500] if isinstance(summary, str) else None), "pg": pages, "ca": datetime.now(timezone.utc)}
                 )
-                for idx, (text, v) in enumerate(zip(chunks, vectors)):
-                    # Ensure vector is string literal for pgvector and cast to ::vector to avoid driver type issues
+                for idx, (text, v) in enumerate(zip(chunks, norm_vectors)):
                     v_str = '[' + ','.join(str(float(x)) for x in (v or [])) + ']'
                     await cur.execute(
                         'INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (%(i)s,%(d)s,%(x)s,%(c)s,(%(e)s)::vector)',
