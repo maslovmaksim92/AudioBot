@@ -234,12 +234,14 @@ class VasDomAPITester:
         self.print_summary()
     
     def test_ai_db_dsn(self):
-        """Test 1: GET /api/ai-knowledge/db-dsn - should return normalized.scheme='postgresql' and normalized.query='sslmode=require'"""
+        """Test 1: GET /api/ai-knowledge/db-dsn - should return normalized.scheme='postgresql', normalized.query contains sslmode='require', raw_present=true"""
         print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
         
         success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
         
         if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
             # Check for normalized field
             if 'normalized' in data:
                 normalized = data['normalized']
@@ -248,53 +250,76 @@ class VasDomAPITester:
                     query = normalized.get('query', '')
                     
                     # Check scheme
-                    if scheme == 'postgresql':
-                        scheme_ok = True
-                    else:
-                        scheme_ok = False
+                    scheme_ok = scheme == 'postgresql'
                     
-                    # Check query contains sslmode=require
-                    if 'sslmode=require' in query:
-                        query_ok = True
-                    else:
-                        query_ok = False
+                    # Check query contains sslmode=require (handle both dict and string formats)
+                    query_ok = False
+                    if isinstance(query, dict):
+                        query_ok = query.get('sslmode') == 'require'
+                    elif isinstance(query, str):
+                        query_ok = 'sslmode=require' in query
                     
-                    if scheme_ok and query_ok:
-                        self.log_test("AI DB DSN - Normalized Format", True, 
-                                    f"scheme='postgresql' ✓, query contains 'sslmode=require' ✓")
+                    # Check raw_present
+                    raw_present = data.get('raw_present', False)
+                    
+                    if scheme_ok and query_ok and raw_present:
+                        self.log_test("AI DB DSN - Full Requirements", True, 
+                                    f"✅ normalized.scheme='postgresql' ✓, normalized.query contains sslmode='require' ✓, raw_present=true ✓")
                     else:
                         issues = []
                         if not scheme_ok:
                             issues.append(f"scheme='{scheme}' (expected 'postgresql')")
                         if not query_ok:
-                            issues.append(f"query='{query}' (missing 'sslmode=require')")
-                        self.log_test("AI DB DSN - Normalized Format", False, f"Issues: {', '.join(issues)}")
+                            issues.append(f"query missing sslmode='require': {query}")
+                        if not raw_present:
+                            issues.append(f"raw_present={raw_present} (expected true)")
+                        self.log_test("AI DB DSN - Full Requirements", False, f"❌ Issues: {', '.join(issues)}")
                 else:
-                    self.log_test("AI DB DSN - Normalized Format", False, f"normalized should be dict, got {type(normalized)}")
+                    self.log_test("AI DB DSN - Full Requirements", False, f"❌ normalized should be dict, got {type(normalized)}")
             else:
-                self.log_test("AI DB DSN - Normalized Format", False, "Missing 'normalized' field in response")
+                self.log_test("AI DB DSN - Full Requirements", False, "❌ Missing 'normalized' field in response")
         else:
-            self.log_test("AI DB DSN - Normalized Format", False, f"Status: {status}, Data: {data}")
+            self.log_test("AI DB DSN - Full Requirements", False, f"❌ Status: {status}, Data: {data}")
     
     def test_ai_db_check(self):
-        """Test 2: GET /api/ai-knowledge/db-check - should return connected=true"""
+        """Test 2: GET /api/ai-knowledge/db-check - should return connected=true, ai_tables includes required tables, embedding_dims=1536"""
         print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
         
         success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
         
         if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
             connected = data.get('connected', False)
+            ai_tables = data.get('ai_tables', [])
+            embedding_dims = data.get('embedding_dims')
             errors = data.get('errors', [])
             
-            if connected:
-                self.log_test("AI DB Check - Connection", True, "connected=true ✓")
+            # Check required AI tables
+            required_tables = {'ai_documents', 'ai_chunks', 'ai_uploads_temp'}
+            found_tables = set(ai_tables) if isinstance(ai_tables, list) else set()
+            tables_ok = required_tables.issubset(found_tables)
+            
+            # Check embedding dimensions
+            dims_ok = embedding_dims == 1536
+            
+            if connected and tables_ok and dims_ok:
+                self.log_test("AI DB Check - Full Requirements", True, 
+                            f"✅ connected=true ✓, ai_tables includes {required_tables} ✓, embedding_dims=1536 ✓")
                 return data
             else:
-                error_summary = errors[:3] if errors else ['No specific errors']
-                self.log_test("AI DB Check - Connection", False, f"connected=false, errors: {error_summary}")
+                issues = []
+                if not connected:
+                    issues.append(f"connected=false (errors: {errors[:2]})")
+                if not tables_ok:
+                    missing = required_tables - found_tables
+                    issues.append(f"missing ai_tables: {missing}")
+                if not dims_ok:
+                    issues.append(f"embedding_dims={embedding_dims} (expected 1536)")
+                self.log_test("AI DB Check - Full Requirements", False, f"❌ Issues: {', '.join(issues)}")
                 return data
         else:
-            self.log_test("AI DB Check - Connection", False, f"Status: {status}, Data: {data}")
+            self.log_test("AI DB Check - Full Requirements", False, f"❌ Status: {status}, Data: {data}")
             return None
     
     def test_ai_preview(self):
