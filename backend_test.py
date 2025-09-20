@@ -1142,7 +1142,321 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Review Request Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_production_review_request(self):
+        """Test all 8 endpoints from the review request on production"""
+        print(f"🚀 VasDom AudioBot Backend API - Постдеплойный e2e тест на проде")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing all 8 endpoints per review request:")
+        print("1) GET /api/ai-knowledge/db-dsn — 200; normalized.scheme='postgresql', query включает sslmode=require")
+        print("2) GET /api/ai-knowledge/db-check — 200; connected=true, embedding_dims=1536")
+        print("3) POST /api/ai-knowledge/preview — 200: upload_id, chunks>0 (files: TXT \"Final UX test psycopg3\")")
+        print("4) GET /api/ai-knowledge/status — 200: status='ready'")
+        print("5) POST /api/ai-knowledge/study — 200: document_id, chunks>=1 (принимает FormData/JSON)")
+        print("6) GET /api/ai-knowledge/documents — 200: документ присутствует")
+        print("7) POST /api/ai-knowledge/search — 200: results[] не пустой")
+        print("8) DELETE /api/ai-knowledge/document/{document_id} — 200 {ok:true}")
+        print("=" * 80)
+        
+        # Test 1: GET /api/ai-knowledge/db-dsn
+        self.test_production_db_dsn()
+        
+        # Test 2: GET /api/ai-knowledge/db-check
+        db_connected = self.test_production_db_check()
+        
+        # Test 3: POST /api/ai-knowledge/preview
+        upload_id = self.test_production_preview()
+        
+        if upload_id:
+            # Test 4: GET /api/ai-knowledge/status
+            self.test_production_status(upload_id)
+            
+            # Test 5: POST /api/ai-knowledge/study
+            document_id = self.test_production_study(upload_id)
+            
+            if document_id:
+                # Test 6: GET /api/ai-knowledge/documents
+                self.test_production_documents()
+                
+                # Test 7: POST /api/ai-knowledge/search
+                self.test_production_search()
+                
+                # Test 8: DELETE /api/ai-knowledge/document/{document_id}
+                self.test_production_delete(document_id)
+            else:
+                print("❌ Cannot proceed with documents/search/delete tests - no document_id from study")
+                # Still test the endpoints to see their responses
+                self.test_production_documents()
+                self.test_production_search()
+        else:
+            print("❌ Cannot proceed with flow tests - no upload_id from preview")
+            # Still test the remaining endpoints to see their responses
+            self.test_production_status("dummy-upload-id")
+            self.test_production_documents()
+            self.test_production_search()
+        
+        # Final summary
+        self.print_summary()
+
+    def test_production_db_dsn(self):
+        """Test 1: GET /api/ai-knowledge/db-dsn"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
+        print("   Expected: 200; normalized.scheme='postgresql', query включает sslmode=require")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check for normalized field
+            if 'normalized' in data:
+                normalized = data['normalized']
+                if isinstance(normalized, dict):
+                    scheme = normalized.get('scheme', '')
+                    query = normalized.get('query', '')
+                    
+                    # Check scheme
+                    scheme_ok = scheme == 'postgresql'
+                    
+                    # Check query contains sslmode=require (handle both dict and string formats)
+                    query_ok = False
+                    if isinstance(query, dict):
+                        query_ok = query.get('sslmode') == 'require'
+                    elif isinstance(query, str):
+                        query_ok = 'sslmode=require' in query
+                    
+                    if scheme_ok and query_ok:
+                        self.log_test("Production DB DSN", True, 
+                                    f"✅ normalized.scheme='postgresql' ✓, query включает sslmode=require ✓")
+                    else:
+                        issues = []
+                        if not scheme_ok:
+                            issues.append(f"scheme='{scheme}' (expected 'postgresql')")
+                        if not query_ok:
+                            issues.append(f"query missing sslmode=require: {query}")
+                        self.log_test("Production DB DSN", False, f"❌ Issues: {', '.join(issues)}")
+                else:
+                    self.log_test("Production DB DSN", False, f"❌ normalized should be dict, got {type(normalized)}")
+            else:
+                self.log_test("Production DB DSN", False, "❌ Missing 'normalized' field in response")
+        else:
+            self.log_test("Production DB DSN", False, f"❌ Status: {status}, Data: {data}")
+
+    def test_production_db_check(self):
+        """Test 2: GET /api/ai-knowledge/db-check"""
+        print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expected: 200; connected=true, embedding_dims=1536")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            connected = data.get('connected', False)
+            embedding_dims = data.get('embedding_dims')
+            
+            if connected and embedding_dims == 1536:
+                self.log_test("Production DB Check", True, 
+                            f"✅ connected=true ✓, embedding_dims=1536 ✓")
+                return True
+            else:
+                issues = []
+                if not connected:
+                    issues.append(f"connected={connected} (expected true)")
+                if embedding_dims != 1536:
+                    issues.append(f"embedding_dims={embedding_dims} (expected 1536)")
+                self.log_test("Production DB Check", False, f"❌ Issues: {', '.join(issues)}")
+                return False
+        else:
+            self.log_test("Production DB Check", False, f"❌ Status: {status}, Data: {data}")
+            return False
+
+    def test_production_preview(self):
+        """Test 3: POST /api/ai-knowledge/preview"""
+        print("\n3️⃣ Testing POST /api/ai-knowledge/preview")
+        print("   Content: 'Final UX test psycopg3'")
+        print("   Expected: 200: upload_id, chunks>0")
+        
+        # Create test file content as specified in review request
+        test_content = "Final UX test psycopg3"
+        files = {'files': ('final_ux_test.txt', test_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_id = data.get('upload_id')
+            chunks = data.get('chunks', 0)
+            
+            if upload_id and chunks > 0:
+                self.log_test("Production Preview", True, 
+                            f"✅ upload_id: {upload_id[:8]}..., chunks: {chunks} ✓")
+                self.upload_id = upload_id
+                return upload_id
+            else:
+                issues = []
+                if not upload_id:
+                    issues.append("missing upload_id")
+                if chunks <= 0:
+                    issues.append(f"chunks={chunks} (expected >0)")
+                self.log_test("Production Preview", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Preview", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_production_status(self, upload_id):
+        """Test 4: GET /api/ai-knowledge/status"""
+        print(f"\n4️⃣ Testing GET /api/ai-knowledge/status")
+        print("   Expected: 200: status='ready'")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/status', params={'upload_id': upload_id})
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_status = data.get('status', '')
+            
+            if upload_status == 'ready':
+                self.log_test("Production Status", True, "✅ status='ready' ✓")
+            else:
+                self.log_test("Production Status", False, f"❌ status='{upload_status}' (expected 'ready')")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Status", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_production_study(self, upload_id):
+        """Test 5: POST /api/ai-knowledge/study"""
+        print(f"\n5️⃣ Testing POST /api/ai-knowledge/study")
+        print("   Form: upload_id, filename='final_test.txt'")
+        print("   Expected: 200: document_id, chunks>=1")
+        
+        form_data = {
+            'upload_id': upload_id,
+            'filename': 'final_test.txt'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            document_id = data.get('document_id')
+            chunks = data.get('chunks', 0)
+            
+            if document_id and chunks >= 1:
+                self.log_test("Production Study", True, 
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks} ✓")
+                self.document_id = document_id
+                return document_id
+            else:
+                issues = []
+                if not document_id:
+                    issues.append("missing document_id")
+                if chunks < 1:
+                    issues.append(f"chunks={chunks} (expected >=1)")
+                self.log_test("Production Study", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Study", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_production_documents(self):
+        """Test 6: GET /api/ai-knowledge/documents"""
+        print("\n6️⃣ Testing GET /api/ai-knowledge/documents")
+        print("   Expected: 200: документ присутствует")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            
+            documents = data.get('documents', [])
+            print(f"   Total documents: {len(documents)}")
+            
+            if documents:
+                self.log_test("Production Documents", True, 
+                            f"✅ Found {len(documents)} documents ✓")
+                # Show first few documents
+                for i, doc in enumerate(documents[:3], 1):
+                    filename = doc.get('filename', 'Unknown')
+                    chunks = doc.get('chunks_count', 0)
+                    print(f"   {i}. {filename} ({chunks} chunks)")
+            else:
+                self.log_test("Production Documents", False, "❌ No documents found")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Documents", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_production_search(self):
+        """Test 7: POST /api/ai-knowledge/search"""
+        print("\n7️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {\"query\":\"psycopg3\",\"top_k\":5}")
+        print("   Expected: 200: results[] не пустой")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list) and len(results) > 0:
+                self.log_test("Production Search", True, 
+                            f"✅ Status 200 ✓, results[] не пустой ✓ (размер массива: {len(results)})")
+            else:
+                if isinstance(results, list):
+                    self.log_test("Production Search", False, 
+                                f"❌ Status 200 ✓, но results[] пустой (размер массива: {len(results)})")
+                else:
+                    self.log_test("Production Search", False, 
+                                f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Search", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_production_delete(self, document_id):
+        """Test 8: DELETE /api/ai-knowledge/document/{document_id}"""
+        print(f"\n8️⃣ Testing DELETE /api/ai-knowledge/document/{document_id[:8]}...")
+        print("   Expected: 200 {ok:true}")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            ok = data.get('ok', False)
+            
+            if ok is True:
+                self.log_test("Production Delete", True, "✅ Document deleted successfully {ok:true} ✓")
+            else:
+                self.log_test("Production Delete", False, f"❌ Expected ok=true, got ok={ok}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Production Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    # Run the specific review request mini-flow test
-    tester.test_review_request_mini_flow()
+    # Run the production review request test
+    tester.test_production_review_request()
