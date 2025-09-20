@@ -447,7 +447,7 @@ class VasDomAPITester:
             self.log_test("AI Documents - Test Document Present", False, f"Status: {status}, Data: {data}")
     
     def test_ai_search_psycopg3(self):
-        """Test 7: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} - expect results[]"""
+        """Test 7: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} - expect 200, results[] не пуст"""
         print("\n7️⃣ Testing POST /api/ai-knowledge/search")
         
         search_data = {
@@ -458,23 +458,27 @@ class VasDomAPITester:
         success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
         
         if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
             results = data.get('results', [])
             
-            if isinstance(results, list):
+            if isinstance(results, list) and len(results) > 0:
                 self.log_test("AI Search - Query Results", True, 
-                            f"Search returned {len(results)} results ✓")
+                            f"✅ Search returned {len(results)} results (results[] не пуст) ✓")
                 
                 # Check if any results contain our test content
-                if results:
-                    found_psycopg3 = any('psycopg3' in result.get('content', '').lower() for result in results)
-                    if found_psycopg3:
-                        self.log_test("AI Search - Content Match", True, "Found 'psycopg3' in search results ✓")
-                    else:
-                        self.log_test("AI Search - Content Match", False, "No results contain 'psycopg3'")
+                found_psycopg3 = any('psycopg3' in result.get('content', '').lower() for result in results)
+                if found_psycopg3:
+                    self.log_test("AI Search - Content Match", True, "✅ Found 'psycopg3' in search results ✓")
+                else:
+                    self.log_test("AI Search - Content Match", False, "❌ No results contain 'psycopg3'")
             else:
-                self.log_test("AI Search - Query Results", False, f"results should be array, got {type(results)}")
+                if isinstance(results, list):
+                    self.log_test("AI Search - Query Results", False, f"❌ results[] is empty (expected не пуст)")
+                else:
+                    self.log_test("AI Search - Query Results", False, f"❌ results should be array, got {type(results)}")
         else:
-            self.log_test("AI Search - Query Results", False, f"Status: {status}, Data: {data}")
+            self.log_test("AI Search - Query Results", False, f"❌ Status: {status}, Data: {data}")
     
     def test_ai_delete_document_final(self, document_id):
         """Test 8: DELETE /api/ai-knowledge/document/{document_id} - expect 200 {ok:true}"""
