@@ -1167,7 +1167,8 @@ class SearchRequest(BaseModel):
     query: str
     top_k: int = DEFAULT_TOP_K
 
-@api_router.post('/ai-knowledge/search')
+# Legacy search kept for backward compatibility under a different path; main search moved to psycopg3 router
+@api_router.post('/ai-knowledge/search-old')
 async def ai_search(req: SearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail='query пуст')
