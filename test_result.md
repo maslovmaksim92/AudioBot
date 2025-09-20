@@ -529,3 +529,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Постдеплойный финальный e2e тест AI Training: db-dsn → db-check → preview → status → study → documents → search → delete (с реальными эмбеддингами)."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Запускаю авто‑UI тест вкладки Training: загрузка TXT → предпросмотр → выбор категории → обучение → проверка в таблице документов → поиск → удаление."
