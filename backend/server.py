@@ -1134,7 +1134,7 @@ async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt
     else:
         meta = raw_meta  # asyncpg returns dict for JSONB
     chunks = meta.get('chunks', [])
-    vectors = await _embed_texts(chunks)
+    vectors = await _embed_texts_dynamic(chunks, db)
     doc_id = str(uuid4())
     summary = meta.get('summary') or 'См. превью при загрузке'
     size_bytes = meta.get('total_size_bytes')
