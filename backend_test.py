@@ -584,10 +584,10 @@ class VasDomAPITester:
         print("\n" + "=" * 80)
 
     def run_review_request_tests(self):
-        """Run specific tests for the review request"""
-        print(f"🚀 VasDom AudioBot Backend API - Review Request Testing")
+        """Run comprehensive tests for the review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Полный сквозной бэкенд‑тест")
         print(f"📍 Base URL: {self.base_url}")
-        print("🔧 Testing after fixes: scrub PGSSL env, sslmode=require, keepalive/timeout")
+        print("🔧 Testing AI Knowledge (psycopg3) + CRM Regression")
         print("=" * 80)
         
         # AI Knowledge endpoints (Tests 1-8)
@@ -601,4 +601,4 @@ class VasDomAPITester:
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    tester.run_quick_check()
+    tester.run_review_request_tests()
