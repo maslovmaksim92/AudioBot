@@ -1160,7 +1160,16 @@ async def ai_docs_list(db: AsyncSession = Depends(get_db)):
     docs = []
     for r in rows:
         rid, filename, mime, size_bytes, summary, created_at, pages, chunks_count = r
-        docs.append({"id": rid, "filename": filename, "mime": mime, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages, "chunks_count": chunks_count})
+        # Extract category from mime if present
+        cat = None
+        try:
+            if isinstance(mime, str) and 'category=' in mime:
+                part = [p.strip() for p in mime.split(';') if 'category=' in p]
+                if part:
+                    cat = part[0].split('=',1)[1]
+        except Exception:
+            cat = None
+        docs.append({"id": rid, "filename": filename, "mime": mime, "category": cat, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages, "chunks_count": chunks_count})
     return {"documents": docs}
 
 class SearchRequest(BaseModel):
