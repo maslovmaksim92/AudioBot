@@ -501,4 +501,4 @@ class VasDomAPITester:
 
 if __name__ == "__main__":
     tester = VasDomAPITester()
-    tester.run_review_request_tests()
+    tester.run_quick_check()
