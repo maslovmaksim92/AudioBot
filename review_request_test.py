@@ -53,7 +53,7 @@ class ReviewRequestTester:
             if method == 'GET':
                 response = requests.get(url, params=params, timeout=60)
             elif method == 'POST':
-                if files:
+                if files is not None:  # This means we want multipart/form-data
                     response = requests.post(url, files=files, data=data, timeout=60)
                 else:
                     response = requests.post(url, json=data, timeout=60)
