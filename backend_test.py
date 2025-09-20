@@ -592,7 +592,14 @@ class VasDomAPITester:
                 else:
                     self.log_test("Search - Review Request Requirements", False, 
                                 f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        elif success and status == 500:
+            print(f"   ❌ Status: {status} (Internal Server Error)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Search - Review Request Requirements", False, 
+                        f"❌ Status: {status} (expected 200) - Internal Server Error. Response: {data}")
         else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Search - Review Request Requirements", False, 
                         f"❌ Status: {status} (expected 200), Data: {data}")
 
