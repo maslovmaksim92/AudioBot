@@ -264,6 +264,17 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ MINI-FLOW AI KNOWLEDGE TESTING COMPLETE - Comprehensive testing of the complete AI Knowledge mini-flow on production deployment https://audiobot-qci2.onrender.com completed with 80.0% success rate (4/5 tests passed). DETAILED RESULTS: 1) ✅ POST /api/ai-knowledge/preview: Status 200 ✓, upload_id present ✓, chunks=1 ✓. Successfully uploaded TXT file with content 'Search mini flow psycopg3 works', received detailed AI-generated preview summary. 2) ✅ GET /api/ai-knowledge/status: Status 200 ✓, status='ready' ✓. Upload status check working correctly. 3) ✅ POST /api/ai-knowledge/study: Status 200 ✓, document_id present ✓, chunks=1 ✓, category='Маркетинг' ✓. Successfully persisted document to database with proper categorization. 4) ✅ GET /api/ai-knowledge/documents: Status 200 ✓, found 'mini.txt' document ✓, chunks_count=1 ✓. Document properly stored and retrievable from database. 5) ❌ POST /api/ai-knowledge/search: Status 500 (expected 200) - Internal Server Error ❌. ROOT CAUSE IDENTIFIED: Search endpoint implemented in main server.py uses different database configuration than AI Knowledge router endpoints. The AI Knowledge router (preview, status, study) uses production psycopg3 configuration and works perfectly, while search endpoint in server.py fails due to local database configuration mismatch. CONCLUSION: AI Knowledge core functionality (upload → process → store) is working perfectly on production. Only search functionality has database connectivity issue due to endpoint implementation split between router and main server. The mini-flow demonstrates successful end-to-end AI document processing with pgvector storage."
+##   - task: "Review Request: POST /api/ai-knowledge/search endpoint testing"
+##     implemented: true
+##     working: false
+##     file: "/app/backend/app/routers/ai_knowledge.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: false
+##         -agent: "testing"
+##         -comment: "❌ REVIEW REQUEST SEARCH ENDPOINT TESTING FAILED - Tested POST /api/ai-knowledge/search with body {\"query\":\"psycopg3\",\"top_k\":5} on production deployment https://audiobot-qci2.onrender.com. RESULT: Status 500 (expected 200) - Internal Server Error. ROOT CAUSE ANALYSIS: 1) The search endpoint in /app/backend/app/routers/ai_knowledge.py checks if pg_pool is initialized and raises HTTPException(status_code=500, detail='Database is not initialized') when pg_pool is None. 2) pg_pool is not initialized because DATABASE_URL is not configured (backend logs show 'DATABASE_URL is not configured; DB features disabled'). 3) The current implementation violates the review request requirement which expects 200 status with results[] (even if empty array, but not 500). TECHNICAL DETAILS: The search endpoint at line 554 has: 'if not pg_pool: raise HTTPException(status_code=500, detail='Database is not initialized')' which directly causes the 500 error. RECOMMENDATION: The search endpoint should return {\"results\": []} with status 200 when database is not available, instead of raising a 500 error, to meet the review request requirements."
 
 ## frontend:
 ##   - task: "Works list uses brigade name field"
