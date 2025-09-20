@@ -500,6 +500,95 @@ class VasDomAPITester:
         
         print("\n" + "=" * 80)
 
+    def test_quick_review_request(self):
+        """Quick re-test on deploy as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Быстрый повторный тест на деплое")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing specific endpoints per review request:")
+        print("1) GET /api/ai-knowledge/db-check — ожидаем: Status 200, connected=true, embedding_dims=1536")
+        print("2) POST /api/ai-knowledge/search — body {\"query\":\"psycopg3\",\"top_k\":5} — ожидаем Status 200 и непустой results[]")
+        print("=" * 80)
+        
+        # Test 1: GET /api/ai-knowledge/db-check
+        self.test_quick_db_check()
+        
+        # Test 2: POST /api/ai-knowledge/search
+        self.test_quick_search_psycopg3()
+        
+        # Final summary
+        self.print_summary()
+
+    def test_quick_db_check(self):
+        """Test 1: GET /api/ai-knowledge/db-check - expecting Status 200, connected=true, embedding_dims=1536"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
+        print("   Expected: Status 200, connected=true, embedding_dims=1536")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            connected = data.get('connected', False)
+            embedding_dims = data.get('embedding_dims')
+            
+            # Check connected=true
+            connected_ok = connected is True
+            
+            # Check embedding_dims=1536
+            dims_ok = embedding_dims == 1536
+            
+            if connected_ok and dims_ok:
+                self.log_test("DB Check - Review Request Requirements", True, 
+                            f"✅ Status 200 ✓, connected=true ✓, embedding_dims=1536 ✓")
+            else:
+                issues = []
+                if not connected_ok:
+                    issues.append(f"connected={connected} (expected true)")
+                if not dims_ok:
+                    issues.append(f"embedding_dims={embedding_dims} (expected 1536)")
+                self.log_test("DB Check - Review Request Requirements", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            self.log_test("DB Check - Review Request Requirements", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_quick_search_psycopg3(self):
+        """Test 2: POST /api/ai-knowledge/search - body {"query":"psycopg3","top_k":5} - expecting Status 200 и непустой results[]"""
+        print("\n2️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {\"query\":\"psycopg3\",\"top_k\":5}")
+        print("   Expected: Status 200 и непустой results[]")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list) and len(results) > 0:
+                self.log_test("Search - Review Request Requirements", True, 
+                            f"✅ Status 200 ✓, results[] не пуст ✓ (размер массива: {len(results)})")
+                
+                # Show example of first element as requested
+                if results:
+                    first_result = results[0]
+                    print(f"   📋 Пример первого элемента: {json.dumps(first_result, indent=2, ensure_ascii=False)}")
+            else:
+                if isinstance(results, list):
+                    self.log_test("Search - Review Request Requirements", False, 
+                                f"❌ Status 200 ✓, но results[] пуст (размер массива: {len(results)})")
+                else:
+                    self.log_test("Search - Review Request Requirements", False, 
+                                f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        else:
+            self.log_test("Search - Review Request Requirements", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
     def run_review_request_tests(self):
         """Run comprehensive tests for the review request"""
         print(f"🚀 VasDom AudioBot Backend API - Полный сквозной бэкенд‑тест")
