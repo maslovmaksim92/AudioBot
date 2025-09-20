@@ -136,13 +136,28 @@ async def _summarize(text: str, max_chars: int = 2000) -> str:
         logger.warning(f"LLM preview error: {e}")
         return (text or '')[:max_chars]
 
-async def _ensure_pool():
+async def _ensure_pool() -> bool:
     global pg_pool
-    if pg_pool and hasattr(pg_pool, 'open'):
-        try:
+    if not PSYCOPG_AVAILABLE:
+        return False
+    try:
+        # Lazy create if missing
+        if (pg_pool is None) and DATABASE_URL:
+            try:
+                # Create pool closed, then open explicitly
+                max_size = int(os.environ.get('AI_PG_MAX_POOL', '5'))
+                _pool = AsyncConnectionPool(conninfo=DATABASE_URL, min_size=1, max_size=max_size, open=False)
+                pg_pool = _pool
+            except Exception as e:
+                logger.error(f"AI Knowledge: failed to construct pool: {e}")
+                return False
+        if pg_pool and hasattr(pg_pool, 'open'):
             await pg_pool.open()
-        except Exception:
-            pass
+            return True
+    except Exception as e:
+        logger.error(f"AI Knowledge: pool open failed: {e}")
+        return False
+    return bool(pg_pool)
 
 async def _detect_vector_dims() -> int:
     """Detect current pgvector dimension of ai_chunks.embedding. Fallback to 1536.
