@@ -88,6 +88,8 @@ def _normalize_db_url_psycopg(url: str) -> str:
         q.setdefault('keepalives_interval', '10')
         q.setdefault('keepalives_count', '5')
         q.setdefault('connect_timeout', '10')
+        # Use system CA bundle explicitly (sometimes required in container env)
+        q.setdefault('sslrootcert', '/etc/ssl/certs/ca-certificates.crt')
         new_query = urlencode(q, doseq=True)
         return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
     except Exception:
