@@ -41,6 +41,14 @@ MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
 # Normalize DB URL for psycopg3 (libpq-style)
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
+def _scrub_ssl_env():
+    removed = []
+    for k in ('PGSSLMODE','PGSSL','PGSSLCERT','PGSSLKEY','PGSSLROOTCERT'):
+        if os.environ.pop(k, None) is not None:
+            removed.append(k)
+    if removed:
+        logger.warning(f'AI Knowledge: removed SSL-related env vars: {",".join(removed)}')
+
 def _normalize_db_url_psycopg(url: str) -> str:
     try:
         if not url:
@@ -67,18 +75,25 @@ def _normalize_db_url_psycopg(url: str) -> str:
                 q['sslmode'] = 'require'
             elif sval in ('false', '0', 'no', 'off'):
                 q['sslmode'] = 'disable'
+        # Default sslmode=require for Neon if not set or invalid
         allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
         if 'sslmode' in q:
             if str(q['sslmode']).lower() not in allowed:
                 q['sslmode'] = 'require'
         else:
-            # Default for managed Postgres like Neon
             q['sslmode'] = 'require'
+        # Add keepalive and timeout hints for better stability on serverless
+        q.setdefault('keepalives', '1')
+        q.setdefault('keepalives_idle', '30')
+        q.setdefault('keepalives_interval', '10')
+        q.setdefault('keepalives_count', '5')
+        q.setdefault('connect_timeout', '10')
         new_query = urlencode(q, doseq=True)
         return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
     except Exception:
         return url
 
+_scrub_ssl_env()
 DATABASE_URL = _normalize_db_url_psycopg(RAW_DATABASE_URL)
 
 # Psycopg3 async pool
