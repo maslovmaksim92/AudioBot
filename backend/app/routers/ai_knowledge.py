@@ -194,11 +194,18 @@ class StatusResponse(BaseModel):
 
 # Preview endpoint (one file per request recommended)
 @router.post('/preview')
-async def preview(file: UploadFile = File(...), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
+async def preview(file: UploadFile = File(None), files: List[UploadFile] = File(None), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
     if not pg_pool:
         raise HTTPException(status_code=500, detail='Database is not initialized')
-    if not file:
+    # Support both 'file' and 'files' field names (take the first available)
+    picked: Optional[UploadFile] = None
+    if file is not None:
+        picked = file
+    elif files:
+        picked = files[0]
+    if not picked:
         raise HTTPException(status_code=400, detail='Файл не передан')
+    file = picked
     ext = os.path.splitext(file.filename or '')[1].lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail=f'Недопустимый формат: {ext}')
