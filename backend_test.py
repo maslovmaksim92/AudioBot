@@ -84,45 +84,102 @@ class VasDomAPITester:
         except Exception as e:
             return False, {"error": str(e)}, 0
 
-    def test_review_request_ai_knowledge(self):
-        """Test AI Knowledge endpoints as per review request"""
-        print("\n🧠 REVIEW REQUEST: AI KNOWLEDGE ENDPOINTS")
+    def test_review_request_quick_check(self):
+        """Quick re-check of AI Knowledge diagnostics after sslrootcert addition"""
+        print("\n🧠 QUICK RE-CHECK: AI KNOWLEDGE DIAGNOSTICS")
         print("=" * 70)
-        print("Testing after fixes: scrub PGSSL env, sslmode=require, keepalive/timeout")
+        print("Testing after adding sslrootcert:")
+        print("1) GET /api/ai-knowledge/db-dsn — normalized.query должен содержать 'sslmode=require'")
+        print("2) GET /api/ai-knowledge/db-check — ожидаем connected=true")
         print("-" * 70)
         
         # Test 1: GET /api/ai-knowledge/db-dsn
-        self.test_ai_db_dsn()
+        self.test_ai_db_dsn_quick()
         
         # Test 2: GET /api/ai-knowledge/db-check
-        db_status = self.test_ai_db_check()
+        self.test_ai_db_check_quick()
+    
+    def test_ai_db_dsn_quick(self):
+        """Test 1: GET /api/ai-knowledge/db-dsn - normalized.query должен содержать 'sslmode=require'"""
+        print("\n1️⃣ Testing GET /api/ai-knowledge/db-dsn")
         
-        # Only proceed with AI flow if database is connected
-        if db_status and db_status.get('connected', False):
-            print("\n✅ Database connected - proceeding with AI flow tests")
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-dsn')
+        
+        if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             
-            # Test 3: POST /api/ai-knowledge/preview
-            upload_id = self.test_ai_preview()
-            
-            if upload_id:
-                # Test 4: GET /api/ai-knowledge/status
-                self.test_ai_status(upload_id)
-                
-                # Test 5: POST /api/ai-knowledge/study
-                document_id = self.test_ai_study(upload_id)
-                
-                if document_id:
-                    # Test 6: GET /api/ai-knowledge/documents
-                    self.test_ai_documents()
+            # Check for normalized field
+            if 'normalized' in data:
+                normalized = data['normalized']
+                if isinstance(normalized, dict):
+                    query = normalized.get('query', '')
                     
-                    # Test 7: POST /api/ai-knowledge/search
-                    self.test_ai_search_psycopg3()
-                    
-                    # Test 8: DELETE /api/ai-knowledge/document/{document_id}
-                    self.test_ai_delete_document_final(document_id)
+                    # Check query contains sslmode=require
+                    if 'sslmode=require' in str(query):
+                        self.log_test("DB DSN - sslmode=require in query", True, 
+                                    f"✅ normalized.query содержит 'sslmode=require': {query}")
+                    else:
+                        self.log_test("DB DSN - sslmode=require in query", False, 
+                                    f"❌ normalized.query НЕ содержит 'sslmode=require': {query}")
+                elif isinstance(normalized, str):
+                    # Handle case where normalized might be a string
+                    if 'sslmode=require' in normalized:
+                        self.log_test("DB DSN - sslmode=require in query", True, 
+                                    f"✅ normalized содержит 'sslmode=require': {normalized}")
+                    else:
+                        self.log_test("DB DSN - sslmode=require in query", False, 
+                                    f"❌ normalized НЕ содержит 'sslmode=require': {normalized}")
+                else:
+                    self.log_test("DB DSN - sslmode=require in query", False, 
+                                f"❌ normalized имеет неожиданный тип: {type(normalized)}")
+            else:
+                self.log_test("DB DSN - sslmode=require in query", False, 
+                            "❌ Отсутствует поле 'normalized' в ответе")
         else:
-            print("\n❌ Database not connected - skipping AI flow tests")
-            self.log_test("AI Flow - Prerequisites", False, "Database not connected, cannot test AI flow")
+            self.log_test("DB DSN - sslmode=require in query", False, 
+                        f"❌ Status: {status}, Data: {data}")
+    
+    def test_ai_db_check_quick(self):
+        """Test 2: GET /api/ai-knowledge/db-check - ожидаем connected=true"""
+        print("\n2️⃣ Testing GET /api/ai-knowledge/db-check")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/db-check')
+        
+        if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            connected = data.get('connected', False)
+            errors = data.get('errors', [])
+            
+            if connected:
+                self.log_test("DB Check - connected=true", True, 
+                            "✅ connected=true - база данных подключена успешно")
+            else:
+                error_details = errors if errors else ["Нет конкретных ошибок"]
+                self.log_test("DB Check - connected=true", False, 
+                            f"❌ connected=false. Errors: {error_details}")
+                
+                # Print detailed error information
+                if errors:
+                    print("   📋 Детальные ошибки:")
+                    for i, error in enumerate(errors, 1):
+                        print(f"      {i}. {error}")
+        else:
+            self.log_test("DB Check - connected=true", False, 
+                        f"❌ Status: {status}, Data: {data}")
+
+    def run_quick_check(self):
+        """Run quick re-check tests for the review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Quick Re-check after sslrootcert")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Проверка диагностических эндпоинтов AI Knowledge")
+        print("=" * 80)
+        
+        # Quick diagnostics check
+        self.test_review_request_quick_check()
+        
+        # Final summary
+        self.print_summary()
     
     def test_ai_db_dsn(self):
         """Test 1: GET /api/ai-knowledge/db-dsn - should return normalized.scheme='postgresql' and normalized.query='sslmode=require'"""
