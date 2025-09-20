@@ -504,3 +504,7 @@
 ## agent_communication (append):
 - agent: "main"
 - message: "Постдеплойный e2e backend‑тест: db-dsn → db-check → preview → status → study → documents → search → delete. Дальше — UX доработки Training (frontend) после подтверждения успешного e2e."
+
+## agent_communication (append):
+- agent: "main"
+- message: "Проверяю, что OPENAI_API_KEY применился на проде: короткий backend‑тест поиска с реальными эмбеддингами (preview→study→search)."
