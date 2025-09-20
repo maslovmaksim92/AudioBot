@@ -376,7 +376,7 @@ class VasDomAPITester:
             self.log_test("AI Status - Upload Ready", False, f"Status: {status}, Data: {data}")
     
     def test_ai_study(self, upload_id):
-        """Test 5: POST /api/ai-knowledge/study - form data, expect document_id and chunks>=1"""
+        """Test 5: POST /api/ai-knowledge/study - form data with upload_id, filename='psycopg3.txt', category='Маркетинг', expect document_id, chunks>=1, category='Маркетинг'"""
         print(f"\n5️⃣ Testing POST /api/ai-knowledge/study")
         
         form_data = {
@@ -388,19 +388,28 @@ class VasDomAPITester:
         success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
         
         if success and status == 200:
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
             document_id = data.get('document_id')
             chunks = data.get('chunks', 0)
+            category = data.get('category', '')
             
-            if document_id and chunks >= 1:
+            if document_id and chunks >= 1 and category == 'Маркетинг':
                 self.log_test("AI Study - Document Created", True, 
-                            f"document_id: {document_id[:8]}..., chunks: {chunks} ✓")
+                            f"✅ document_id: {document_id[:8]}..., chunks: {chunks} ✓, category: '{category}' ✓")
                 self.document_id = document_id
                 return document_id
             else:
-                self.log_test("AI Study - Document Created", False, 
-                            f"Missing document_id or chunks<1: document_id={document_id}, chunks={chunks}")
+                issues = []
+                if not document_id:
+                    issues.append("missing document_id")
+                if chunks < 1:
+                    issues.append(f"chunks={chunks} (expected >=1)")
+                if category != 'Маркетинг':
+                    issues.append(f"category='{category}' (expected 'Маркетинг')")
+                self.log_test("AI Study - Document Created", False, f"❌ Issues: {', '.join(issues)}")
         else:
-            self.log_test("AI Study - Document Created", False, f"Status: {status}, Data: {data}")
+            self.log_test("AI Study - Document Created", False, f"❌ Status: {status}, Data: {data}")
         
         return None
     
