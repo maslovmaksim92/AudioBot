@@ -314,17 +314,7 @@ const Meetings = () => {
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
         <div className="py-3 flex items-center justify-between gap-2">
           <h1 className="text-xl font-bold">Планёрка</h1>
-          <div className="flex items-center gap-2">
-            {!hqRecording ? (
-              <button onClick={startHQ} className="px-3 py-2 rounded-lg bg-red-500 text-white flex items-center gap-2">
-                <Mic className="w-4 h-4" /> Запись
-              </button>
-            ) : (
-              <button onClick={stopHQ} className="px-3 py-2 rounded-lg bg-gray-800 text-white flex items-center gap-2">
-                <Square className="w-4 h-4" /> Стоп {recordSeconds ? `(${recordSeconds}s)` : ''}
-              </button>
-            )}
-          </div>
+          <div className="text-xs text-gray-500">Мобильный режим</div>
         </div>
         <div className="flex gap-1 pb-2">
           <button onClick={()=>setTab('transcribe')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='transcribe'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>Транскрипция</button>
