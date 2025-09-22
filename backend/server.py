@@ -459,8 +459,8 @@ try:
     from app.routers import ai_knowledge as _ai_kb_mod
     _kb_router = getattr(_ai_kb_mod, 'router', None)
     if _kb_router:
-        # Ensure all endpoints are under /api
-        app.include_router(_kb_router, prefix='/api')
+        # AI Knowledge router already has /api/ai-knowledge prefix
+        app.include_router(_kb_router)
         logger.info('AI Knowledge router mounted at /api')
     else:
         logger.warning('AI Knowledge router not found in module app.routers.ai_knowledge')
