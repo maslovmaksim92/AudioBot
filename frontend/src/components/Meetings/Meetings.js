@@ -70,6 +70,22 @@ const Meetings = () => {
     }
   };
 
+  const sendTelegram = async () => {
+    const text = (summary || transcript.join('\n')).trim();
+    if (!text) return;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/send`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Ошибка отправки');
+      alert('Отправлено в Telegram');
+    } catch (e) {
+      alert('Не удалось отправить в Telegram');
+    }
+  };
+
   const exportTxt = () => {
     try {
       setExporting(true);
