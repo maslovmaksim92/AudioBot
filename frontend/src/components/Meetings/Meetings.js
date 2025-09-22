@@ -4,59 +4,14 @@ import { Mic, Square, FileText, Sparkles, Send, Save, ClipboardList } from 'luci
 const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
 const Meetings = () => {
-  const [isLive, setIsLive] = useState(false);
   const [transcript, setTranscript] = useState([]);
   const [summary, setSummary] = useState('');
   const [exporting, setExporting] = useState(false);
-  const [interim, setInterim] = useState('');
   const [protocolId, setProtocolId] = useState(null);
   const [recent, setRecent] = useState([]);
   const [showRecent, setShowRecent] = useState(false);
-  const liveRef = useRef(null);
-
-  useEffect(() => {
-    let recognition;
-    if (isLive) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = 'ru-RU';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.onresult = (event) => {
-          let finalText = '';
-          let interimText = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const res = event.results[i];
-            if (res.isFinal) finalText += res[0].transcript.trim() + '.';
-            else interimText += res[0].transcript;
-          }
-          if (interimText) setInterim(interimText.trim()); else setInterim('');
-          if (finalText) setTranscript(prev => [...prev, finalText]);
-        };
-        recognition.onerror = () => {};
-        recognition.start();
-      } else {
-        // Фоллбэк: имитация если Web Speech недоступен
-        liveRef.current = setInterval(() => {
-          setTranscript(prev => [...prev, `Фрагмент речи ${prev.length + 1}...`]);
-        }, 1200);
-      }
-    } else {
-      if (recognition) recognition.stop();
-      if (liveRef.current) {
-        clearInterval(liveRef.current);
-        liveRef.current = null;
-      }
-    }
-    return () => {
-      if (recognition) recognition.stop();
-      if (liveRef.current) clearInterval(liveRef.current);
-    };
-  }, [isLive]);
-
-  const handleStart = () => setIsLive(true);
-  const handleStop = () => setIsLive(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recordTimerRef = useRef(null);
 
   const [sumLoading, setSumLoading] = useState(false);
   const makeSummary = async () => {
