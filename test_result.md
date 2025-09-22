@@ -311,7 +311,17 @@
 ##         -working: true
 ##         -agent: "testing"
 ##         -comment: "✅ COMPREHENSIVE WORKS TAB UI TESTING COMPLETE - All Russian test scenario requirements PASSED (100% success rate). DETAILED RESULTS: 1) ✅ Navigation to /works successful through 'Дoma' menu, 2) ✅ House cards loaded correctly (50 cards found), 3) ✅ First card validation: All required labels present ('УК:', 'Периодичность:', 'Бригада №:'), УК correctly shows 'Не указана' for empty values, Brigade correctly shows 'Бригада не назначена' for empty values, 4) ✅ 'График уборок 2025' section validation: Found sections 'Сентябрь · 1' and 'Сентябрь · 2', all dates in correct YYYY-MM-DD format (verified 2025-09-18, 2025-09-30), 5) ✅ Bitrix24 link validation: Link found with correct href containing '/crm/deal/details/' (https://vas-dom.bitrix24.ru/crm/deal/details/13150/), 6) ✅ Details modal functionality: Modal opens correctly with all required elements ('Дом:', 'График уборки', 'Периодичность:', 'Адрес:'), modal closes properly, 7) ✅ Top spacing verified: Minimal gap between header and content confirmed via screenshot. Minor: Dashboard stats API errors in console (non-critical, doesn't affect Works functionality). All test scenarios completed successfully with proper fallback values and UI behavior as specified."
+##   - task: "Meetings UI: Save protocol to KB + Recent protocols panel + unified form"
+##     implemented: true
+##     working: false
+##     file: "/app/frontend/src/components/Meetings/Meetings.js"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
 ##         -working: false
+##         -agent: "main"
+##         -comment: "Добавлена кнопка 'Запомнить протокол', панель 'Недавние протоколы' с лайками/дизлайками, а также единая форма протокола (поля: заголовок, дата/время, участники, цель, повестка, решения, поручения, риски, следующие шаги, ссылка Bitrix). Кнопка 'В Telegram' прикрепляет 👍/👎 если протокол сохранён. Требуется UI проверка."##         -working: false
 ##         -agent: "testing"
 ##         -comment: "❌ PRODUCTION DEPLOYMENT BROKEN - UI testing on production URL https://audiobot-1-cv3f.onrender.com revealed critical deployment failures. SCENARIO RESULTS: 1) ❌ /works route returns 404 - React Router client-side routing not configured for production ❌, 2) ❌ No house cards loading - Backend API endpoints (/api/cleaning/houses, /api/dashboard/stats) return 404 'Not Found' ❌, 3) ❌ Cannot test 'Детали' modal - No house cards available to interact with ❌, 4) ❌ Missing required labels ('УК:', 'Периодичность:', 'Бригада №:') - No house data loading ❌. POSITIVE FINDINGS: ✅ Dashboard KPIs working (492 houses, 30,331 apartments, 1,575 entrances, 2,885 floors) with minimal top spacing ✅, ✅ Navigation menu functional ✅, ✅ UI layout and styling intact ✅. ROOT CAUSE: Production deployment has broken backend API integration and React Router configuration. The frontend code is correct but cannot function without proper backend connectivity and routing setup."
 ##   - task: "Logistics UI (Leaflet + OSM) consuming /api/logistics/route"
