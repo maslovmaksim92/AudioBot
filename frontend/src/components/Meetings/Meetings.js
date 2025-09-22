@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, Square, FileText, Sparkles } from 'lucide-react';
+import { Mic, Square, FileText, Sparkles, Send } from 'lucide-react';
 
 const Meetings = () => {
   const [isLive, setIsLive] = useState(false);
