@@ -798,6 +798,41 @@ async def answer(req: AnswerRequest):
                             used += 1
                             if used >= int(req.top_k):
                                 break
+                    # Trigram fallback (pg_trgm) — приблизительное совпадение по строке
+                    if used == 0:
+                        try:
+                            await cur.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+                        except Exception:
+                            pass
+                        try:
+                            await cur.execute(
+                                """
+                                SELECT d.id as document_id, d.filename, c.chunk_index, c.content,
+                                       similarity(c.content, %(qq)s) as sim
+                                FROM ai_chunks c
+                                JOIN ai_documents d ON d.id = c.document_id
+                                WHERE similarity(c.content, %(qq)s) > 0.1
+                                ORDER BY sim DESC
+                                LIMIT %(k)s
+                                """,
+                                {"qq": q, "k": int(req.top_k)}
+                            )
+                            tr = await cur.fetchall()
+                            for r in tr or []:
+                                excerpt = (r.get('content') or '')[:600]
+                                citations.append({
+                                    "document_id": r.get('document_id'),
+                                    "filename": r.get('filename'),
+                                    "chunk_index": r.get('chunk_index'),
+                                    "score": float(r.get('sim') or 0.0),
+                                    "excerpt": excerpt,
+                                })
+                                context_blocks.append(f"Источник: {r.get('filename')} (фрагм. #{r.get('chunk_index')})\n{excerpt}")
+                                used += 1
+                                if used >= int(req.top_k):
+                                    break
+                        except Exception:
+                            pass
         context_text = ("\n\n".join(context_blocks))[:6000]
 
         # 2) Гибридный режим
