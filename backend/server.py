@@ -1206,6 +1206,151 @@ async def ai_delete(doc_id: str, db: AsyncSession = Depends(get_db)):
 # Подключаем основной /api роутер
 app.include_router(api_router)
 
+# ===== Telegram Bot (Webhook) =====
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('BOT_TOKEN') or ''
+TELEGRAM_ADMINS = set((os.environ.get('TELEGRAM_ADMINS') or 'mmv092').split(','))  # usernames or numeric ids
+
+_last_qa_by_chat: Dict[str, Dict[str, Any]] = {}
+_fb_wait_comment: Dict[str, Dict[str, Any]] = {}
+_kb_mode_by_chat: Dict[str, bool] = {}
+
+async def _tg_send(method: str, payload: Dict[str, Any]) -> None:
+    if not TELEGRAM_BOT_TOKEN:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            await client.post(url, json=payload)
+    except Exception as e:
+        logger.warning(f"tg send error: {e}")
+
+def _is_admin(from_user: Dict[str, Any]) -> bool:
+    uid = str(from_user.get('id', ''))
+    uname = (from_user.get('username') or '').lower()
+    return (uid in TELEGRAM_ADMINS) or (uname in TELEGRAM_ADMINS)
+
+# Import RAG endpoints to reuse logic
+try:
+    from app.routers.ai_knowledge import AnswerRequest as _AnsReq, answer as _rag_answer, RememberRequest as _RemReq, remember as _rag_remember, feedback as _rag_feedback, FeedbackRequest as _FbReq
+except Exception:
+    try:
+        from backend.app.routers.ai_knowledge import AnswerRequest as _AnsReq, answer as _rag_answer, RememberRequest as _RemReq, remember as _rag_remember, feedback as _rag_feedback, FeedbackRequest as _FbReq
+    except Exception:
+        _AnsReq = None; _rag_answer=None; _RemReq=None; _rag_remember=None; _rag_feedback=None; _FbReq=None
+
+async def _handle_text(chat_id: str, from_user: Dict[str, Any], text: str, message_id: Optional[int]):
+    text = (text or '').strip()
+    if not text:
+        return
+    # Admin commands
+    if text.startswith('/kb_on') and _is_admin(from_user):
+        _kb_mode_by_chat[chat_id] = True
+        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Режим БЗ включен"})
+        return
+    if text.startswith('/kb_off') and _is_admin(from_user):
+        _kb_mode_by_chat[chat_id] = False
+        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Режим БЗ выключен"})
+        return
+    if text.startswith('/remember') and _is_admin(from_user) and _RemReq and _rag_remember:
+        payload = text[len('/remember'):].strip()
+        if payload:
+            try:
+                await _rag_remember(_RemReq(text=payload))
+                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Запомнил."})
+            except Exception:
+                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Ошибка при сохранении."})
+        else:
+            await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Укажите текст после /remember"})
+        return
+
+    use_kb = _kb_mode_by_chat.get(chat_id, True)
+    ans_text = ""
+    citations: List[Dict[str, Any]] = []
+    if use_kb and _AnsReq and _rag_answer:
+        try:
+            res = await _rag_answer(_AnsReq(question=text))
+            ans_text = res.get('answer') or ''
+            citations = res.get('citations') or []
+        except Exception as e:
+            logger.warning(f"rag answer failed: {e}")
+    if not ans_text:
+        ans_text = "Не удалось найти информацию в базе знаний. Уточните вопрос."
+
+    # save QA for feedback
+    _last_qa_by_chat[chat_id] = {"q": text, "a": ans_text, "mid": message_id}
+
+    # Send with inline keyboard 1..5 and comment button
+    kb = {
+        "inline_keyboard": [[
+            {"text": "1", "callback_data": "rate:1"},
+            {"text": "2", "callback_data": "rate:2"},
+            {"text": "3", "callback_data": "rate:3"},
+            {"text": "4", "callback_data": "rate:4"},
+            {"text": "5", "callback_data": "rate:5"},
+        ], [
+            {"text": "Пояснить", "callback_data": "comment"}
+        ]]}
+    await _tg_send('sendMessage', {"chat_id": chat_id, "text": ans_text, "reply_markup": kb})
+
+async def _handle_callback(chat_id: str, from_user: Dict[str, Any], data: str, message_id: Optional[int]):
+    qa = _last_qa_by_chat.get(chat_id) or {}
+    q = qa.get('q',''); a = qa.get('a','')
+    if data == 'comment':
+        _fb_wait_comment[chat_id] = {"q": q, "a": a}
+        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Опишите, что было не так (коротко)."})
+        return
+    if data.startswith('rate:'):
+        try:
+            rating = int(data.split(':',1)[1])
+        except Exception:
+            rating = 0
+        if _FbReq and _rag_feedback:
+            try:
+                await _rag_feedback(_FbReq(channel='telegram', rating=rating, question=q, answer=a, message_id=str(message_id or ''), chat_id=str(chat_id), user_id=str(from_user.get('id'))))
+            except Exception as e:
+                logger.warning(f"feedback save failed: {e}")
+        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за оценку!"})
+
+async def _process_update(update: Dict[str, Any]):
+    try:
+        if 'message' in update and isinstance(update['message'], dict):
+            msg = update['message']
+            chat = msg.get('chat') or {}
+            chat_id = str(chat.get('id'))
+            from_user = msg.get('from') or {}
+            if chat_id and 'text' in msg:
+                await _handle_text(chat_id, from_user, msg.get('text',''), msg.get('message_id'))
+            elif chat_id and chat_id in _fb_wait_comment and msg.get('text'):
+                # save comment
+                st = _fb_wait_comment.pop(chat_id, {})
+                if _FbReq and _rag_feedback:
+                    try:
+                        await _rag_feedback(_FbReq(channel='telegram', rating=1, question=st.get('q',''), answer=st.get('a',''), comment=msg.get('text',''), chat_id=chat_id, user_id=str(from_user.get('id'))))
+                    except Exception as e:
+                        logger.warning(f"feedback comment error: {e}")
+                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за пояснение!"})
+            return
+        if 'callback_query' in update and isinstance(update['callback_query'], dict):
+            cq = update['callback_query']
+            msg = cq.get('message') or {}
+            chat_id = str(((msg.get('chat') or {}).get('id')))
+            from_user = cq.get('from') or {}
+            data = cq.get('data') or ''
+            await _handle_callback(chat_id, from_user, data, msg.get('message_id'))
+            return
+    except Exception as e:
+        logger.warning(f"update process error: {e}")
+
+@app.post('/telegram/webhook')
+async def telegram_webhook(update: Dict[str, Any]):
+    await _process_update(update)
+    return {"ok": True}
+
+@api_router.post('/telegram/webhook')
+async def telegram_webhook_api(update: Dict[str, Any]):
+    await _process_update(update)
+    return {"ok": True}
+
 # Подключаем модульный роутер AI Knowledge, если есть
 import importlib
 _ai_router = None
