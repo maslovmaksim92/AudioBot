@@ -18,7 +18,7 @@ const AIChat = () => {
     setLoading(true);
     try {
       // Всегда опираемся на базу знаний
-      const res = await fetch(`${BASE_URL}/api/ai-knowledge/answer`, {
+      const res = await fetch(`${BACKEND_URL}/api/ai-knowledge/answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q })
