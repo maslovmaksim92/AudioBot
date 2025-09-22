@@ -161,12 +161,27 @@ const Meetings = () => {
       hqMimeRef.current = mt || '';
       const mr = new MediaRecorder(stream, { mimeType: mt || undefined, audioBitsPerSecond: 16000 });
       hqChunksRef.current = [];
-      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) hqChunksRef.current.push(e.data); };
+      mr.ondataavailable = async (e) => {
+        if (e.data && e.data.size > 0) {
+          hqChunksRef.current.push(e.data);
+          // полу-реалтайм: отправляем небольшие куски во время записи
+          if (hqRecording && e.timecode !== undefined) {
+            try {
+              const part = new Blob([e.data], { type: hqMimeRef.current || 'audio/webm' });
+              await uploadHQ(part);
+            } catch (err) {
+              // Не прерываем запись, просто показываем сообщение
+              setSttError('Ошибка отправки чанка, продолжаю запись');
+            }
+          }
+        }
+      };
       mr.onstop = async () => {
         try {
           const blob = new Blob(hqChunksRef.current, { type: hqMimeRef.current || 'audio/webm' });
-          if (!blob || !blob.size) { setHqStatus('Пустая запись'); return; }
-          await uploadHQ(blob);
+          if (blob && blob.size) {
+            await uploadHQ(blob);
+          }
         } catch (e) {
           setSttError('Ошибка подготовки аудио');
         } finally {
