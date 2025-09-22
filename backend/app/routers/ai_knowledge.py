@@ -574,6 +574,55 @@ async def study(
         raise HTTPException(status_code=500, detail="Database write error")
 
 
+# ========= Remember =========
+class RememberRequest(BaseModel):
+    text: str
+    category: Optional[str] = 'Notes'
+    filename: Optional[str] = None
+
+@router.post('/remember')
+async def remember(req: RememberRequest):
+    if not (req and (req.text or '').strip()):
+        raise HTTPException(status_code=400, detail='text is required')
+    ok = await _ensure_pool()
+    if not ok:
+        raise HTTPException(status_code=500, detail='Database is not initialized')
+    text = (req.text or '').strip()
+    try:
+        chunks = await _split_into_chunks(text, target_tokens=900, overlap=200)
+        vectors = await _embed_texts_dynamic(chunks)
+        # Normalize to 1536 if needed
+        norm = []
+        for v in vectors:
+            if not isinstance(v, list):
+                v = []
+            if 1528 <= len(v) <= 1536:
+                if len(v) < 1536:
+                    v = v + [0.0] * (1536 - len(v))
+                elif len(v) > 1536:
+                    v = v[:1536]
+            norm.append(v)
+        doc_id = str(uuid4())
+        filename = req.filename or f'note_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.txt'
+        mime = f'text/plain; category={req.category or "Notes"}'
+        async with pg_pool.connection() as conn:  # type: ignore
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    'INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (%(i)s,%(fn)s,%(mime)s,%(sz)s,%(sm)s,%(pg)s,%(ca)s)',
+                    { 'i': doc_id, 'fn': filename, 'mime': mime, 'sz': len(text.encode("utf-8")), 'sm': (text[:500] if isinstance(text,str) else None), 'pg': None, 'ca': datetime.now(timezone.utc) }
+                )
+                for idx, (c, v) in enumerate(zip(chunks, norm)):
+                    v_str = '[' + ','.join(str(float(x)) for x in (v or [])) + ']'
+                    await cur.execute(
+                        'INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (%(i)s,%(d)s,%(x)s,%(c)s,(%(e)s)::vector)',
+                        { 'i': str(uuid4()), 'd': doc_id, 'x': idx, 'c': c, 'e': v_str }
+                    )
+                await conn.commit()
+        return { 'ok': True, 'document_id': doc_id, 'chunks': len(chunks) }
+    except Exception as e:
+        logger.error(f'remember error: {e}')
+        raise HTTPException(status_code=500, detail='Database write error')
+
 # ========= Search / Answer =========
 class SearchRequest(BaseModel):
     query: str
