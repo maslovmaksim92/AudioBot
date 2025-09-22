@@ -724,22 +724,80 @@ async def answer(req: AnswerRequest):
                             }
                         )
                     prepared.sort(key=lambda a: a["score"], reverse=True)
+                    used = 0
                     for r in prepared:
                         if r["score"] < float(req.min_score):
                             continue
                         excerpt = r["content"][:600]
-                        citations.append(
-                            {
-                                "document_id": r["document_id"],
-                                "filename": r["filename"],
-                                "chunk_index": r["chunk_index"],
-                                "score": r["score"],
-                                "excerpt": excerpt,
-                            }
-                        )
+                        citations.append({
+                            "document_id": r["document_id"],
+                            "filename": r["filename"],
+                            "chunk_index": r["chunk_index"],
+                            "score": r["score"],
+                            "excerpt": excerpt,
+                        })
                         context_blocks.append(f"Источник: {r['filename']} (фрагм. #{r['chunk_index']})\n{excerpt}")
-                        if len(context_blocks) >= int(req.top_k):
+                        used += 1
+                        if used >= int(req.top_k):
                             break
+                    # Если все прошли ниже порога — берём топ-1 при минимальном score > 0.02
+                    if used == 0 and prepared:
+                        top = prepared[0]
+                        if top["score"] > 0.02:
+                            excerpt = top["content"][:600]
+                            citations.append({
+                                "document_id": top["document_id"],
+                                "filename": top["filename"],
+                                "chunk_index": top["chunk_index"],
+                                "score": top["score"],
+                                "excerpt": excerpt,
+                            })
+                            context_blocks.append(f"Источник: {top['filename']} (фрагм. #{top['chunk_index']})\n{excerpt}")
+                            used = 1
+                    # Лексический фолбэк (PostgreSQL full-text search), если ничего не набралось
+                    if used == 0:
+                        try:
+                            await cur.execute(
+                                """
+                                SELECT d.id as document_id, d.filename, c.chunk_index, c.content,
+                                       ts_rank_cd(to_tsvector('russian', c.content), plainto_tsquery('russian', %(qq)s)) as rank
+                                FROM ai_chunks c
+                                JOIN ai_documents d ON d.id = c.document_id
+                                WHERE to_tsvector('russian', c.content) @@ plainto_tsquery('russian', %(qq)s)
+                                ORDER BY rank DESC
+                                LIMIT %(k)s
+                                """,
+                                {"qq": q, "k": int(req.top_k)}
+                            )
+                            lex = await cur.fetchall()
+                        except Exception:
+                            # Fallback to simple config
+                            await cur.execute(
+                                """
+                                SELECT d.id as document_id, d.filename, c.chunk_index, c.content,
+                                       ts_rank_cd(to_tsvector('simple', c.content), plainto_tsquery('simple', %(qq)s)) as rank
+                                FROM ai_chunks c
+                                JOIN ai_documents d ON d.id = c.document_id
+                                WHERE to_tsvector('simple', c.content) @@ plainto_tsquery('simple', %(qq)s)
+                                ORDER BY rank DESC
+                                LIMIT %(k)s
+                                """,
+                                {"qq": q, "k": int(req.top_k)}
+                            )
+                            lex = await cur.fetchall()
+                        for r in lex or []:
+                            excerpt = (r.get('content') or '')[:600]
+                            citations.append({
+                                "document_id": r.get('document_id'),
+                                "filename": r.get('filename'),
+                                "chunk_index": r.get('chunk_index'),
+                                "score": float(r.get('rank') or 0.0),
+                                "excerpt": excerpt,
+                            })
+                            context_blocks.append(f"Источник: {r.get('filename')} (фрагм. #{r.get('chunk_index')})\n{excerpt}")
+                            used += 1
+                            if used >= int(req.top_k):
+                                break
         context_text = ("\n\n".join(context_blocks))[:6000]
 
         # 2) Гибридный режим
