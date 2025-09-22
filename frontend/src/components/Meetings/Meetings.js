@@ -97,6 +97,8 @@ const Meetings = () => {
     }
   };
 
+  const [interim, setInterim] = useState('');
+
   const [form, setForm] = useState({
     title: '', datetime: '', participants: '', goal: '', agenda: [''], decisions: '', tasks: [{ title: '', owner: '', due: '', status: '' }], risks: '', next_steps: '', bitrix_link: ''
   });
