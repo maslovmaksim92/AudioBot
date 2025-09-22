@@ -2591,12 +2591,17 @@ class VasDomAPITester:
 
 
 if __name__ == "__main__":
-    tester = VasDomAPITester()
+    # Use the production URL from frontend/.env
+    base_url = "https://rag-audiobot.preview.emergentagent.com"
     
-    # Run the specific review request tests
+    tester = VasDomAPITester(base_url)
+    
+    # Check command line arguments for specific test type
     if len(sys.argv) > 1:
         test_type = sys.argv[1].lower()
-        if test_type == "current":
+        if test_type == "meetings":
+            tester.test_meetings_endpoints_review_request()
+        elif test_type == "current":
             tester.test_current_review_request()
         elif test_type == "mini-flow":
             tester.test_mini_flow_review_request()
@@ -2613,7 +2618,9 @@ if __name__ == "__main__":
         elif test_type == "close":
             tester.test_final_review_request_mini_flow()
         else:
-            tester.run_review_request_tests()
+            print(f"Unknown test type: {test_type}")
+            print("Available types: meetings, current, mini-flow, quick, specific, review, production, final, close")
+            sys.exit(1)
     else:
-        # Default: run the final close task mini-flow
-        tester.test_final_review_request_mini_flow()
+        # Default: run meetings endpoints tests as per review request
+        tester.test_meetings_endpoints_review_request()
