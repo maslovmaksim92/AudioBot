@@ -175,6 +175,9 @@ const Meetings = () => {
   };
 
   const [tab, setTab] = useState('transcribe'); // 'transcribe' | 'protocol' | 'history'
+  const [hqEnabled, setHqEnabled] = useState(true);
+  const [sttLoading, setSttLoading] = useState(false);
+  const [sttError, setSttError] = useState('');
 
   return (
     <div className="px-3 pb-20 max-w-3xl mx-auto">
