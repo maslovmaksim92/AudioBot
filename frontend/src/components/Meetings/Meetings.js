@@ -75,7 +75,7 @@ const Meetings = () => {
     const text = (summary || transcript.join('\n')).trim();
     if (!text) return;
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/save-to-kb`, {
+      const res = await fetch(`${BACKEND_URL}/api/meetings/save-to-kb`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ protocol_text: text, filename: 'meeting-protocol.txt' })
       });
