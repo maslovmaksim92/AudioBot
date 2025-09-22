@@ -1354,17 +1354,26 @@ class RecentProtocolsResponse(BaseModel):
 
 @api_router.get('/meetings/protocols/recent', response_model=RecentProtocolsResponse)
 async def meetings_recent(limit: int = Query(50), db: AsyncSession = Depends(get_db)):
+    sql_with_fb = '''
+        SELECT d.id, d.filename, d.mime, d.size_bytes, d.summary, d.created_at, d.pages,
+               (SELECT COUNT(1) FROM ai_chunks c WHERE c.document_id=d.id) AS chunks_count,
+               (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) > 0) AS likes,
+               (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) <= 0) AS dislikes
+        FROM ai_documents d
+        WHERE d.mime ILIKE '%category=meetings%'
+        ORDER BY d.created_at DESC
+        LIMIT :lim
+    '''
+    sql_no_fb = '''
+        SELECT d.id, d.filename, d.mime, d.size_bytes, d.summary, d.created_at, d.pages,
+               (SELECT COUNT(1) FROM ai_chunks c WHERE c.document_id=d.id) AS chunks_count
+        FROM ai_documents d
+        WHERE d.mime ILIKE '%category=meetings%'
+        ORDER BY d.created_at DESC
+        LIMIT :lim
+    '''
     try:
-        rows = (await db.execute(sa_text('''
-            SELECT d.id, d.filename, d.mime, d.size_bytes, d.summary, d.created_at, d.pages,
-                   (SELECT COUNT(1) FROM ai_chunks c WHERE c.document_id=d.id) AS chunks_count,
-                   (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) > 0) AS likes,
-                   (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) <= 0) AS dislikes
-            FROM ai_documents d
-            WHERE d.mime ILIKE '%category=meetings%'
-            ORDER BY d.created_at DESC
-            LIMIT :lim
-        '''), { 'lim': int(limit) })).all()
+        rows = (await db.execute(sa_text(sql_with_fb), { 'lim': int(limit) })).all()
         out: List[Dict[str, Any]] = []
         for r in rows:
             id_, filename, mime, size_bytes, summary, created_at, pages, chunks_count, likes, dislikes = r
@@ -1376,8 +1385,22 @@ async def meetings_recent(limit: int = Query(50), db: AsyncSession = Depends(get
             })
         return { 'protocols': out }
     except Exception as e:
-        logger.error(f'meetings_recent error: {e}')
-        return { 'protocols': [] }
+        # Fallback when ai_feedback table not exists yet
+        try:
+            rows = (await db.execute(sa_text(sql_no_fb), { 'lim': int(limit) })).all()
+            out: List[Dict[str, Any]] = []
+            for r in rows:
+                id_, filename, mime, size_bytes, summary, created_at, pages, chunks_count = r
+                out.append({
+                    'id': id_, 'filename': filename, 'mime': mime, 'size_bytes': size_bytes,
+                    'summary': summary, 'created_at': created_at.isoformat() if created_at else None,
+                    'pages': pages, 'chunks_count': int(chunks_count or 0),
+                    'likes': 0, 'dislikes': 0
+                })
+            return { 'protocols': out }
+        except Exception as e2:
+            logger.error(f'meetings_recent error: {e}; fallback failed: {e2}')
+            return { 'protocols': [] }
 
 # Подключаем основной /api роутер
 app.include_router(api_router)
