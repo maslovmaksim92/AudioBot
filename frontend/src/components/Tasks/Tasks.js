@@ -1,73 +1,97 @@
-import React, { useState } from 'react';
-import { CalendarClock, Send, Clock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, RefreshCw, User, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+
+const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
 const Tasks = () => {
-  const [text, setText] = useState('Пришли мне отчёт завтра в 12:00 в Telegram');
-  const [time, setTime] = useState('');
-  const [items, setItems] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('ai_tasks') || '[]'); } catch { return []; }
-  });
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [employees, setEmployees] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [tasks, setTasks] = useState([]);
 
-  const addTask = async () => {
-    if (!text.trim()) return;
-    const task = { id: Date.now(), text, time: time || 'завтра 12:00', status: 'запланировано' };
-    setItems(prev => {
-      const next = [task, ...prev];
-      localStorage.setItem('ai_tasks', JSON.stringify(next));
-      return next;
-    });
-    setText('');
-    setTime('');
+  const loadEmployees = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/employees/office`);
+      const data = await res.json();
+      setEmployees(data.employees || []);
+      if (!selected && (data.employees||[])[0]) setSelected(data.employees[0].id);
+    } catch {}
   };
 
-  return (
-    <div className="pt-2 px-4 pb-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold gradient-text mb-4">AI Задачи</h1>
+  const loadTasks = async () => {
+    if (!date) return;
+    setLoading(true);
+    try {
+      const url = new URL(`${BACKEND_URL}/api/tasks/bitrix/list`);
+      url.searchParams.set('date', date);
+      if (selected) url.searchParams.set('responsible_id', selected);
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      setTasks(data.tasks || []);
+    } catch { setTasks([]); }
+    finally { setLoading(false); }
+  };
 
-      <div className="bg-white rounded-xl shadow-elegant p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
-          <div className="md:col-span-4">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="w-full p-3 border rounded-lg"
-              placeholder="Опишите задачу для ИИ..."
-            />
+  useEffect(() => { loadEmployees(); }, []);
+  useEffect(() => { loadTasks(); }, [date, selected]);
+
+  const grouped = useMemo(() => {
+    if (!selected) return { all: tasks };
+    return { all: tasks };
+  }, [tasks, selected]);
+
+  return (
+    <div className="pt-2 px-3 pb-6 max-w-6xl mx-auto">
+      <div className="mb-3 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Задачи</h1>
+        <button onClick={loadTasks} className="px-3 py-2 rounded-lg bg-white border flex items-center gap-2 text-sm">
+          <RefreshCw className="w-4 h-4" /> Обновить
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-elegant p-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="border rounded px-2 py-1 text-sm" />
           </div>
           <div className="md:col-span-2 flex items-center gap-2">
-            <CalendarClock className="w-5 h-5 text-blue-600" />
-            <input
-              type="datetime-local"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full p-3 border rounded-lg"
-            />
+            <User className="w-4 h-4 text-purple-600" />
+            <select value={selected || ''} onChange={e=>setSelected(e.target.value? Number(e.target.value): null)} className="border rounded px-2 py-1 text-sm w-full">
+              {(employees||[]).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
           </div>
-        </div>
-        <div className="flex items-center gap-2 mt-3">
-          <button onClick={addTask} className="px-4 py-2 rounded-lg bg-blue-600 text-white flex items-center gap-2">
-            <Send className="w-4 h-4" /> Добавить
-          </button>
-          <div className="text-xs text-gray-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" /> Таймзона: Europe/Moscow
+          <div className="text-right">
+            <a href="#/meetings" className="inline-flex items-center gap-2 text-sm text-blue-600"><Plus className="w-4 h-4" /> Создать задачи из планёрки</a>
           </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {items.map(it => (
-          <div key={it.id} className="bg-white rounded-xl shadow-elegant p-4 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-800">{it.text}</div>
-              <div className="text-xs text-gray-500">Время: {it.time}</div>
+      {loading ? (
+        <div className="p-6 text-sm text-gray-600">Загрузка задач…</div>
+      ) : (
+        <div className="space-y-2">
+          {(grouped.all||[]).map(t => (
+            <div key={t.ID} className="bg-white rounded-xl shadow-elegant p-3 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-gray-900">{t.TITLE}</div>
+                <div className="text-xs text-gray-500">До: {t.DEADLINE || '—'} · Ответственный: {t.RESPONSIBLE_ID}</div>
+              </div>
+              <div className="text-xs">
+                {String(t.STATUS) === '5' ? (
+                  <span className="text-green-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Готово</span>
+                ) : (
+                  <span className="text-amber-600 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> В работе / Ожидает</span>
+                )}
+              </div>
             </div>
-            <div className="text-xs font-medium text-blue-600">{it.status}</div>
-          </div>
-        ))}
-        {!items.length && (
-          <div className="text-sm text-gray-500">Задач пока нет. Добавьте первую выше.</div>
-        )}
-      </div>
+          ))}
+          {!grouped.all?.length && (
+            <div className="text-sm text-gray-500">Нет задач на выбранную дату.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

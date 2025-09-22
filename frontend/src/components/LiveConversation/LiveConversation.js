@@ -19,7 +19,6 @@ const LiveConversation = () => {
     if (isConnecting || isConnected) return;
     setIsConnecting(true); setError('');
     try {
-      // 1) Create ephemeral session
       const res = await fetch(`${BACKEND_URL}/api/realtime/sessions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice, instructions })
@@ -27,16 +26,11 @@ const LiveConversation = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || 'Не удалось создать сессию');
 
-      // 2) Get mic
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       localStreamRef.current = stream;
 
-      // 3) Create RTCPeerConnection
       const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ]
       });
       pcRef.current = pc;
 
@@ -49,15 +43,15 @@ const LiveConversation = () => {
 
       pc.ontrack = (event) => {
         if (event.track.kind === 'audio' && remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = new MediaStream([event.track]);
+          const ms = remoteAudioRef.current.srcObject || new MediaStream();
+          ms.addTrack(event.track);
+          remoteAudioRef.current.srcObject = ms;
           remoteAudioRef.current.play().catch(()=>{});
         }
       };
 
-      // 4) Add local audio track
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
-      // 5) DataChannel for control messages
       const dc = pc.createDataChannel('oai-events', { ordered: true });
       dcRef.current = dc;
       dc.onopen = () => {
@@ -66,23 +60,17 @@ const LiveConversation = () => {
         } catch {}
       };
 
-      // 6) Create SDP offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // 7) Send offer to OpenAI Realtime
       const resp = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${data.client_secret}`,
-          'Content-Type': 'application/sdp'
-        },
+        headers: { 'Authorization': `Bearer ${data.client_secret}`, 'Content-Type': 'application/sdp' },
         body: offer.sdp
       });
       if (!resp.ok) throw new Error(`OpenAI Realtime error: ${resp.status}`);
       const answerSdp = await resp.text();
-      const answer = { type: 'answer', sdp: answerSdp };
-      await pc.setRemoteDescription(answer);
+      await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
     } catch (e) {
       setError(e?.message || 'Ошибка запуска разговора');
       cleanup();
@@ -105,6 +93,8 @@ const LiveConversation = () => {
 
   useEffect(() => () => { cleanup(); }, [cleanup]);
 
+  const voices = ['marin','alloy','shimmer','aria','verse','breeze','coral','cobalt','amber','nova'];
+
   return (
     <div className="px-3 py-3 max-w-3xl mx-auto">
       <div className="mb-3 flex items-center justify-between">
@@ -117,10 +107,7 @@ const LiveConversation = () => {
           <div>
             <label className="text-xs text-gray-600">Голос</label>
             <select value={voice} onChange={e=>setVoice(e.target.value)} className="w-full border rounded-lg px-2 py-2">
-              <option value="marin">Marin</option>
-              <option value="alloy">Alloy</option>
-              <option value="echo">Echo</option>
-              <option value="shimmer">Shimmer</option>
+              {voices.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
           <div>
