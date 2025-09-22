@@ -220,8 +220,8 @@ const Meetings = () => {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={makeSummary} className="flex-1 px-4 py-3 rounded-lg bg-purple-600 text-white flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4" /> Сделать саммари
+            <button onClick={makeSummary} disabled={sumLoading} className="flex-1 px-4 py-3 rounded-lg bg-purple-600 text-white flex items-center justify-center gap-2 disabled:opacity-60">
+              <Sparkles className="w-4 h-4" /> {sumLoading ? 'Генерация…' : 'Сделать саммари'}
             </button>
             <button onClick={exportTxt} disabled={exporting} className="px-4 py-3 rounded-lg bg-white border flex items-center gap-2 disabled:opacity-50">
               <FileText className="w-4 h-4" /> Экспорт
