@@ -1262,12 +1262,25 @@ async def meetings_stt(file: UploadFile = File(...), language: Optional[str] = '
         params: Dict[str, Any] = {'model': model, 'file': open(tmp_path, 'rb')}
         if language and language != 'auto':
             params['language'] = language
+        text = ''
         try:
             resp = await client.audio.transcriptions.create(**params)
             text = getattr(resp, 'text', None) or (resp.get('text') if isinstance(resp, dict) else '')
+        except Exception as e1:
+            logger.warning(f"STT primary model failed ({model}), trying fallback whisper-1: {e1}")
+            try:
+                params_fallback = dict(params)
+                params_fallback['model'] = 'whisper-1'
+                if language and language != 'auto':
+                    params_fallback['language'] = language
+                resp2 = await client.audio.transcriptions.create(**params_fallback)
+                text = getattr(resp2, 'text', None) or (resp2.get('text') if isinstance(resp2, dict) else '')
+            except Exception as e2:
+                logger.error(f"STT fallback whisper-1 failed: {e2}")
+                raise
         finally:
             try:
-                params['file'].close()
+                params.get('file') and params['file'].close()
             except Exception:
                 pass
             try:
