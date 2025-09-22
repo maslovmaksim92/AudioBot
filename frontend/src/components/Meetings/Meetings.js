@@ -58,16 +58,28 @@ const Meetings = () => {
   const handleStart = () => setIsLive(true);
   const handleStop = () => setIsLive(false);
 
+  const [sumLoading, setSumLoading] = useState(false);
   const makeSummary = async () => {
+    const text = (transcript.join('\n') + (interim ? ('\n' + interim) : '')).trim();
+    if (!text) {
+      setSummary('Нет текста для саммари. Сначала начните запись или введите текст.');
+      return;
+    }
+    setSumLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/meetings/summarize`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript })
+        body: JSON.stringify({ text })
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Ошибка генерации');
       setSummary(data.summary || '');
+      setTab('protocol');
     } catch (e) {
+      console.error('summarize error', e);
       setSummary('Не удалось сгенерировать саммари. Попробуйте позже.');
+    } finally {
+      setSumLoading(false);
     }
   };
 
