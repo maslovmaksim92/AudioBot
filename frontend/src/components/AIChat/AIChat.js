@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
 const AIChat = () => {
   const [messages, setMessages] = useState([]);
