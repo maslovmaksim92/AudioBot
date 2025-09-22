@@ -497,6 +497,20 @@ const Meetings = () => {
         </div>
       )}
 
+      {/* FAB (Floating Action Button) for recording */}
+      <button onClick={hqRecording ? stopHQ : startHQ}
+        className={`fixed bottom-20 right-4 z-50 rounded-full shadow-xl ${hqRecording ? 'bg-gray-800' : 'bg-red-500'} text-white w-16 h-16 flex items-center justify-center`}
+        aria-label={hqRecording ? 'Остановить запись' : 'Начать запись'}>
+        {hqRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+      </button>
+      
+      {/* Recording status indicator */}
+      {hqRecording && (
+        <div className="fixed bottom-40 right-4 z-40 bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-xs shadow">
+          {hqUploading ? 'Распознавание…' : 'Запись идёт…'} · {recordSeconds}s
+        </div>
+      )}
+
       {/* Sticky action bar for protocol actions */}
       {tab==='protocol' && (
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t p-2 flex items-center gap-2 justify-center">
