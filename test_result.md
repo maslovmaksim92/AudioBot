@@ -105,6 +105,28 @@
 ## user_problem_statement: "Display correct brigade name on house cards and details by resolving Bitrix24 ASSIGNED_BY_ID to full brigade name (e.g., '4 бригада') and ensure endpoints return enriched data without breaking pagination and filters."
 
 ## backend:
+##   - task: "Meetings: summarize, send to telegram"
+##     implemented: true
+##     working: true
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         -working: true
+##         -agent: "main"
+##         -comment: "Реализованы /api/meetings/summarize и /api/meetings/send (с разбиением на части)."
+##   - task: "Meetings: save protocol to KB + recent protocols endpoint + telegram feedback buttons"
+##     implemented: true
+##     working: false
+##     file: "/app/backend/server.py"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: false
+##         -agent: "main"
+##         -comment: "Добавлены /api/meetings/save-to-kb (обёртка над remember), /api/meetings/protocols/recent (возврат последних протоколов category=meetings с агрегатами лайков/дизлайков), а также inline кнопки 👍/👎 в Telegram для оценки протоколов (обработка callback mp:like/dislike:<doc_id>). Требуется тестирование." 
 ##   - task: "AI Knowledge Base: upload/search/list/save/delete (/api/ai-knowledge/*)"
 ##     implemented: true
 ##     working: true
