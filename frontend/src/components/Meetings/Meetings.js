@@ -7,6 +7,9 @@ const Meetings = () => {
   const [summary, setSummary] = useState('');
   const [exporting, setExporting] = useState(false);
   const [interim, setInterim] = useState('');
+  const [protocolId, setProtocolId] = useState(null);
+  const [recent, setRecent] = useState([]);
+  const [showRecent, setShowRecent] = useState(false);
   const liveRef = useRef(null);
 
   useEffect(() => {
