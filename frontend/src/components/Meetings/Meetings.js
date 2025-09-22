@@ -144,6 +144,12 @@ const Meetings = () => {
   const hqStreamRef = useRef(null);
   const hqChunksRef = useRef([]);
   const hqMimeRef = useRef('audio/webm;codecs=opus');
+  // queue & flow control
+  const hqQueueRef = useRef([]); // Blob[] pending
+  const hqBusyRef = useRef(false);
+  const lastSendTsRef = useRef(0);
+  const restartsRef = useRef(0);
+  const transAllRef = useRef('');
 
   const startHQ = async () => {
     setSttError(''); setHqStatus('');
