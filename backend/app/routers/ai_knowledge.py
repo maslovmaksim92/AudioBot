@@ -102,16 +102,8 @@ def _normalize_db_url_psycopg(url: str) -> str:
 _scrub_ssl_env()
 DATABASE_URL = _normalize_db_url_psycopg(RAW_DATABASE_URL)
 
-# Psycopg3 async pool
-pg_pool: Optional[AsyncConnectionPool] = None
-if PSYCOPG_AVAILABLE and DATABASE_URL:
-    try:
-        # keep pool small; Neon serverless prefers many short connections
-        pg_pool = AsyncConnectionPool(conninfo=DATABASE_URL, min_size=1, max_size=int(os.environ.get('AI_PG_MAX_POOL', '5')))
-        logger.info('AI Knowledge: psycopg3 async pool initialized')
-    except Exception as e:
-        logger.warning(f"AI Knowledge: psycopg3 pool init failed: {e}")
-        pg_pool = None
+# Psycopg3 async pool (lazy)
+pg_pool: Optional[AsyncConnectionPool] = None  # created lazily in _ensure_pool()
 
 # Helpers
 async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> List[str]:
