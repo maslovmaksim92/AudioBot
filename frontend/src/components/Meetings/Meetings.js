@@ -103,7 +103,7 @@ const Meetings = () => {
     const text = (summary || transcript.join('\n')).trim();
     if (!text) return;
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/send`, {
+      const res = await fetch(`${BACKEND_URL}/api/meetings/send`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, doc_id: protocolId || undefined, with_feedback: !!protocolId })
       });
