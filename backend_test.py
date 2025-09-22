@@ -886,6 +886,128 @@ class VasDomAPITester:
         else:
             self.log_test("DB Check - Review Request Requirements", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_ai_chat_review_request(self):
+        """Test AI Chat endpoint as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - AI Chat Endpoint Testing")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing AI Chat endpoint per review request:")
+        print("1) POST /api/ai-knowledge/answer с JSON {\"question\":\"Привет!\"}")
+        print("   - Должен вернуть 200 с JSON {answer: string, citations: []} (даже если БЗ пустая)")
+        print("2) Если 500 — зафиксируй detail, какие env требуются (EMERGENT_LLM_KEY / OPENAI_API_KEY / NEON_DATABASE_URL)")
+        print("3) Если 404 — проверь, смонтирован ли роутер (наличие раздела /api/ai-knowledge в /api/docs)")
+        print("=" * 80)
+        
+        # Test 1: Check API docs for router mounting
+        self.test_api_docs_ai_knowledge()
+        
+        # Test 2: POST /api/ai-knowledge/answer
+        self.test_ai_chat_answer_endpoint()
+        
+        # Final summary
+        self.print_summary()
+
+    def test_api_docs_ai_knowledge(self):
+        """Check if AI Knowledge router is mounted by checking /api/docs"""
+        print("\n📋 Checking API documentation for AI Knowledge router")
+        
+        success, data, status = self.make_request('GET', '/api/docs')
+        
+        if success and status == 200:
+            # Check if response contains AI Knowledge endpoints
+            content = str(data)
+            if '/api/ai-knowledge' in content or 'AI Knowledge' in content:
+                self.log_test("API Docs - AI Knowledge Router", True, 
+                            "✅ AI Knowledge router found in API documentation")
+            else:
+                self.log_test("API Knowledge Router", False, 
+                            "❌ AI Knowledge router not found in API documentation")
+        else:
+            print(f"   ⚠️ Could not access API docs: Status {status}")
+            # Try alternative check with OpenAPI JSON
+            success2, data2, status2 = self.make_request('GET', '/openapi.json')
+            if success2 and status2 == 200:
+                content2 = str(data2)
+                if '/api/ai-knowledge' in content2 or 'AI Knowledge' in content2:
+                    self.log_test("API Docs - AI Knowledge Router", True, 
+                                "✅ AI Knowledge router found in OpenAPI spec")
+                else:
+                    self.log_test("API Docs - AI Knowledge Router", False, 
+                                "❌ AI Knowledge router not found in OpenAPI spec")
+            else:
+                self.log_test("API Docs - AI Knowledge Router", False, 
+                            f"❌ Could not access API documentation: Status {status}")
+
+    def test_ai_chat_answer_endpoint(self):
+        """Test POST /api/ai-knowledge/answer endpoint as per review request"""
+        print("\n🤖 Testing POST /api/ai-knowledge/answer")
+        print("   Request: {\"question\":\"Привет!\"}")
+        print("   Expected: 200 с JSON {answer: string, citations: []} или 500 с detail о требуемых env")
+        
+        request_data = {"question": "Привет!"}
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/answer', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check required fields
+            answer = data.get('answer')
+            citations = data.get('citations')
+            
+            # Validate response structure
+            answer_ok = isinstance(answer, str)
+            citations_ok = isinstance(citations, list)
+            
+            if answer_ok and citations_ok:
+                self.log_test("AI Chat Answer - Response Structure", True, 
+                            f"✅ answer: string ✓, citations: array ✓ (answer length: {len(answer) if answer else 0})")
+                
+                # Check if answer is meaningful (not empty)
+                if answer and len(answer.strip()) > 0:
+                    self.log_test("AI Chat Answer - Content Quality", True, 
+                                f"✅ Answer contains content: '{answer[:100]}...' ✓")
+                else:
+                    self.log_test("AI Chat Answer - Content Quality", False, 
+                                "❌ Answer is empty or whitespace only")
+            else:
+                issues = []
+                if not answer_ok:
+                    issues.append(f"answer should be string, got {type(answer)}")
+                if not citations_ok:
+                    issues.append(f"citations should be array, got {type(citations)}")
+                self.log_test("AI Chat Answer - Response Structure", False, f"❌ Issues: {', '.join(issues)}")
+                
+        elif success and status == 500:
+            print(f"   ⚠️ Status: {status} (Internal Server Error)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            
+            # Check if detail mentions required environment variables
+            required_envs = ['EMERGENT_LLM_KEY', 'OPENAI_API_KEY', 'NEON_DATABASE_URL']
+            mentioned_envs = [env for env in required_envs if env in detail]
+            
+            if mentioned_envs:
+                self.log_test("AI Chat Answer - Environment Error", True, 
+                            f"✅ Status 500 с detail о требуемых env: {mentioned_envs} ✓")
+            else:
+                self.log_test("AI Chat Answer - Environment Error", False, 
+                            f"❌ Status 500, но detail не содержит информацию о требуемых env: '{detail}'")
+                
+        elif success and status == 404:
+            print(f"   ❌ Status: {status} (Not Found)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            self.log_test("AI Chat Answer - Router Mounting", False, 
+                        "❌ Status 404 - AI Knowledge router не смонтирован или endpoint недоступен")
+            
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("AI Chat Answer - Unexpected Response", False, 
+                        f"❌ Unexpected status: {status} (expected 200, 404, or 500)")
+
     def test_specific_review_request(self):
         """Specific review request testing: db-check and search endpoints only"""
         print(f"🚀 VasDom AudioBot Backend API - Повторный быстрый тест на проде")
