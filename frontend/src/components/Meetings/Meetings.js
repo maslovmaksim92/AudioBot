@@ -179,6 +179,86 @@ const Meetings = () => {
   const [sttLoading, setSttLoading] = useState(false);
   const [sttError, setSttError] = useState('');
 
+  // High-quality recorder (MediaRecorder)
+  const [hqRecording, setHqRecording] = useState(false);
+  const [hqUploading, setHqUploading] = useState(false);
+  const [hqStatus, setHqStatus] = useState('');
+  const hqMediaRef = useRef(null);
+  const hqStreamRef = useRef(null);
+  const hqChunksRef = useRef([]);
+  const hqMimeRef = useRef('audio/webm;codecs=opus');
+
+  const startHQ = async () => {
+    setSttError(''); setHqStatus('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      hqStreamRef.current = stream;
+      // Pick best mime
+      let mt = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mt)) {
+        if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) mt = 'audio/ogg;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mt = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) mt = 'audio/webm';
+        else mt = '';
+      }
+      hqMimeRef.current = mt || '';
+      const mr = new MediaRecorder(stream, { mimeType: mt || undefined, audioBitsPerSecond: 16000 });
+      hqChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) hqChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        try {
+          const blob = new Blob(hqChunksRef.current, { type: hqMimeRef.current || 'audio/webm' });
+          if (!blob || !blob.size) { setHqStatus('Пустая запись'); return; }
+          await uploadHQ(blob);
+        } catch (e) {
+          setSttError('Ошибка подготовки аудио');
+        } finally {
+          // stop tracks
+          try { hqStreamRef.current?.getTracks()?.forEach(t => t.stop()); } catch(e) {}
+          hqStreamRef.current = null;
+          hqMediaRef.current = null;
+        }
+      };
+      mr.onerror = (e) => { setSttError(e?.error?.message || 'Ошибка записи'); };
+      hqMediaRef.current = mr;
+      mr.start(1000); // collect chunks every 1s
+      setHqRecording(true);
+      setHqStatus('Запись идёт…');
+    } catch (e) {
+      setSttError('Нет доступа к микрофону');
+    }
+  };
+
+  const stopHQ = async () => {
+    try { hqMediaRef.current?.stop(); } catch (e) { /* ignore */ }
+    setHqRecording(false);
+    setHqStatus('Обработка записи…');
+  };
+
+  const uploadHQ = async (blob) => {
+    setHqUploading(true); setHqStatus('Распознавание…'); setSttError('');
+    try {
+      const fd = new FormData();
+      const fname = `meeting_${Date.now()}.webm`;
+      fd.append('file', blob, fname);
+      const res = await fetch(`${BACKEND_URL}/api/meetings/stt?language=ru`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data || data.ok === false) throw new Error(data?.detail || 'Ошибка STT');
+      const text = (data.text || '').trim();
+      if (text) {
+        setTranscript(prev => [...prev, text]);
+        setInterim('');
+      } else {
+        setHqStatus('Распознавание завершено (пусто)');
+      }
+    } catch (e) {
+      setSttError(e?.message || 'Ошибка STT');
+    } finally {
+      setHqUploading(false);
+      setHqStatus('');
+    }
+  };
+
   return (
     <div className="px-3 pb-20 max-w-3xl mx-auto">
       <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
