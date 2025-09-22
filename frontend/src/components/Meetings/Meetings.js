@@ -149,8 +149,8 @@ const Meetings = () => {
           <button onClick={makeSummary} className="px-4 py-2 rounded-lg bg-purple-600 text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4" /> Сделать саммари
           </button>
-          <button onClick={makeSummary} className="px-4 py-2 rounded-lg bg-purple-600 text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4" /> Сделать саммари
+          <button onClick={saveToKB} className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2">
+            <Save className="w-4 h-4" /> Запомнить протокол
           </button>
           <button onClick={sendTelegram} className="px-4 py-2 rounded-lg bg-sky-600 text-white flex items-center gap-2">
             <Send className="w-4 h-4" /> В Telegram
