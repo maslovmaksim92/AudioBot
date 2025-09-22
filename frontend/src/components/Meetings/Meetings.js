@@ -444,17 +444,6 @@ const Meetings = () => {
                   ))}
                   <button onClick={addTask} className="text-xs text-blue-600">+ добавить задачу</button>
                 </div>
-      <button onClick={hqRecording ? stopHQ : startHQ}
-        className={`fixed bottom-20 right-4 z-50 rounded-full shadow-xl ${hqRecording ? 'bg-gray-800' : 'bg-red-500'} text-white w-16 h-16 flex items-center justify-center`}
-        aria-label={hqRecording ? 'Остановить запись' : 'Начать запись'}>
-        {hqRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-      </button>
-      {hqRecording && (
-        <div className="fixed bottom-40 right-4 z-40 bg-white/90 backdrop-blur px-3 py-1 rounded-lg text-xs shadow">
-          {hqUploading ? 'Распознавание…' : 'Запись идёт…'} · {recordSeconds}s
-        </div>
-      )}
-
               </details>
 
               <details className="border rounded-lg p-2">
