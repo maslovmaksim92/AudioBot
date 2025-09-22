@@ -118,6 +118,12 @@ const Meetings = () => {
           <button onClick={makeSummary} className="px-4 py-2 rounded-lg bg-purple-600 text-white flex items-center gap-2">
             <Sparkles className="w-4 h-4" /> Сделать саммари
           </button>
+          <button onClick={makeSummary} className="px-4 py-2 rounded-lg bg-purple-600 text-white flex items-center gap-2">
+            <Sparkles className="w-4 h-4" /> Сделать саммари
+          </button>
+          <button onClick={sendTelegram} className="px-4 py-2 rounded-lg bg-sky-600 text-white flex items-center gap-2">
+            <Send className="w-4 h-4" /> В Telegram
+          </button>
           <button onClick={exportTxt} disabled={exporting} className="px-4 py-2 rounded-lg bg-white border flex items-center gap-2 disabled:opacity-50">
             <FileText className="w-4 h-4" /> Экспорт .txt
           </button>
