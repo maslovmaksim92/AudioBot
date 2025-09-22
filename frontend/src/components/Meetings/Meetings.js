@@ -205,6 +205,7 @@ const Meetings = () => {
 
   const startHQ = async () => {
     setSttError(''); setHqStatus('');
+    hqDesiredRef.current = true; stoppingRef.current = false;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       hqStreamRef.current = stream;
