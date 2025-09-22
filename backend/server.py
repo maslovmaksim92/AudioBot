@@ -453,6 +453,20 @@ async def create_realtime_session(req: RealtimeSessionRequest):
         logger.error(f'Realtime session create error: {e}')
         raise HTTPException(status_code=500, detail='Failed to create realtime session')
 
+
+# Mount AI Knowledge router for AI Chat endpoints
+try:
+    from app.routers import ai_knowledge as _ai_kb_mod
+    _kb_router = getattr(_ai_kb_mod, 'router', None)
+    if _kb_router:
+        # Ensure all endpoints are under /api
+        app.include_router(_kb_router, prefix='/api')
+        logger.info('AI Knowledge router mounted at /api')
+    else:
+        logger.warning('AI Knowledge router not found in module app.routers.ai_knowledge')
+except Exception as _e:
+    logger.warning(f'AI Knowledge router not loaded: {_e}')
+
 # Mount API router
 app.include_router(api_router)
 
