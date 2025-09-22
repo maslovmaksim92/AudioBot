@@ -1142,6 +1142,28 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Review Request Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_meetings_stt_endpoint_review_request(self):
+        """Test new /api/meetings/stt endpoint per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - STT Endpoint Testing")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing new /api/meetings/stt endpoint per review request:")
+        print("1) POST /api/meetings/stt без файла — ожидание: 422 или 400 с detail='file is required'")
+        print("2) POST /api/meetings/stt с аудио-файлом — ожидание: 200 {ok: true, text: '<строка или пусто>'} или 500 'OPENAI_API_KEY is not configured'")
+        print("3) POST /api/meetings/stt с нестандартным content-type — ожидание: 200/500 в зависимости от конфигурации ключа")
+        print("=" * 80)
+        
+        # Test 1: POST /api/meetings/stt without file
+        self.test_stt_no_file()
+        
+        # Test 2: POST /api/meetings/stt with audio file
+        self.test_stt_with_audio_file()
+        
+        # Test 3: POST /api/meetings/stt with non-standard content-type
+        self.test_stt_non_standard_content_type()
+        
+        # Final summary
+        self.print_summary()
+
     def test_meetings_endpoints_review_request(self):
         """Test new meetings endpoints per review request"""
         print(f"🚀 VasDom AudioBot Backend API - Meetings Endpoints Testing")
