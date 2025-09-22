@@ -60,7 +60,7 @@ const Meetings = () => {
 
   const makeSummary = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/summarize`, {
+      const res = await fetch(`${BACKEND_URL}/api/meetings/summarize`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript })
       });
