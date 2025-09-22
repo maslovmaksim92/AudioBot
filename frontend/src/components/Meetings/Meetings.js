@@ -73,6 +73,34 @@ const Meetings = () => {
     }
   };
 
+  const saveToKB = async () => {
+    const text = (summary || transcript.join('\n')).trim();
+    if (!text) return;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/save-to-kb`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protocol_text: text, filename: 'meeting-protocol.txt' })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Сохранение не удалось');
+      setProtocolId(data.document_id || null);
+      alert('Протокол сохранён в Базу знаний');
+      await loadRecent();
+    } catch (e) {
+      alert('Не удалось сохранить протокол');
+    }
+  };
+
+  const loadRecent = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/protocols/recent?limit=20`);
+      const data = await res.json();
+      setRecent(data.protocols || []);
+    } catch (e) {}
+  };
+
+  useEffect(() => { loadRecent(); }, []);
+
   const sendTelegram = async () => {
     const text = (summary || transcript.join('\n')).trim();
     if (!text) return;
