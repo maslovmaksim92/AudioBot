@@ -1310,6 +1310,20 @@ async def _handle_callback(chat_id: str, from_user: Dict[str, Any], data: str, m
             except Exception as e:
                 logger.warning(f"feedback save failed: {e}")
         await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за оценку!"})
+        return
+    if data.startswith('mp:like:') or data.startswith('mp:dislike:'):
+        # Meeting protocol feedback via inline buttons
+        try:
+            doc_id = data.split(':', 2)[2]
+        except Exception:
+            doc_id = ''
+        rating = 1 if data.startswith('mp:like:') else 0
+        if _FbReq and _rag_feedback:
+            try:
+                await _rag_feedback(_FbReq(channel='telegram', rating=rating, question='meeting_protocol', answer=doc_id, message_id=doc_id, chat_id=str(chat_id), user_id=str(from_user.get('id'))))
+            except Exception as e:
+                logger.warning(f"meeting protocol feedback save failed: {e}")
+        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за отзыв по протоколу!"})
 
 async def _process_update(update: Dict[str, Any]):
     try:
