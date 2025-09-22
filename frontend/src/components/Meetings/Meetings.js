@@ -196,6 +196,12 @@ const Meetings = () => {
     try { hqMediaRef.current?.stop(); } catch (e) { /* ignore */ }
     setHqRecording(false);
     setHqStatus('Обработка записи…');
+    
+    // Stop timer
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
   };
 
   const uploadHQ = async (blob) => {
