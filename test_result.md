@@ -406,8 +406,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "AI Training UI E2E Testing on Production"
-##     - "Backend API endpoints returning 500 errors"
+##     - "Backend: meetings save-to-kb + recent protocols endpoint"
+##     - "Frontend: Meetings UI new buttons and recent panel"
 ##   stuck_tasks: 
 ##     - "DATABASE_URL has invalid sslmode parameter - needs production environment fix in Render"
 ##     - "Production deployment has critical routing and API issues"
