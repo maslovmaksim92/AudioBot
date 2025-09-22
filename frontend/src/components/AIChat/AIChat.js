@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
+if (!process.env.REACT_APP_BACKEND_URL && !(typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL)) {
+  console.warn('REACT_APP_BACKEND_URL is not defined. AI Chat may not work.');
+}
+
+
 const AIChat = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
