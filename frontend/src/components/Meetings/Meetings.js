@@ -148,7 +148,7 @@ const Meetings = () => {
 
   const saveFormToKB = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/save-to-kb`, {
+      const res = await fetch(`${BACKEND_URL}/api/meetings/save-to-kb`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ form, filename: (form.title ? `${form.title}.txt` : 'meeting-protocol.txt') })
       });
