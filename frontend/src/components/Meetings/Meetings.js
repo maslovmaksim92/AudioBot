@@ -107,7 +107,7 @@ const Meetings = () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/send`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, doc_id: protocolId || undefined, with_feedback: !!protocolId })
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error('Ошибка отправки');
