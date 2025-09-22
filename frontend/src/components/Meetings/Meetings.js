@@ -132,6 +132,38 @@ const Meetings = () => {
     }
   };
 
+  const [form, setForm] = useState({
+    title: '', datetime: '', participants: '', goal: '', agenda: [''], decisions: '', tasks: [{ title: '', owner: '', due: '', status: '' }], risks: '', next_steps: '', bitrix_link: ''
+  });
+
+  const updateForm = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const updateAgenda = (idx, value) => setForm(prev => ({ ...prev, agenda: prev.agenda.map((a,i)=> i===idx? value: a) }));
+  const addAgenda = () => setForm(prev => ({ ...prev, agenda: [...prev.agenda, ''] }));
+  const updateTask = (idx, field, value) => setForm(prev => ({ ...prev, tasks: prev.tasks.map((t,i)=> i===idx? { ...t, [field]: value }: t) }));
+  const addTask = () => setForm(prev => ({ ...prev, tasks: [...prev.tasks, { title: '', owner: '', due: '', status: '' }] }));
+
+  useEffect(() => {
+    if (summary && !form.decisions) {
+      setForm(prev => ({ ...prev, decisions: summary }));
+    }
+  }, [summary]);
+
+  const saveFormToKB = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/save-to-kb`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form, filename: (form.title ? `${form.title}.txt` : 'meeting-protocol.txt') })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error('Сохранение не удалось');
+      setProtocolId(data.document_id || null);
+      alert('Протокол (форма) сохранён в Базу знаний');
+      await loadRecent();
+    } catch (e) {
+      alert('Не удалось сохранить протокол (форма)');
+    }
+  };
+
   return (
     <div className="pt-0 px-3 pb-4 max-w-6xl mx-auto">
       <div className="mb-4 flex items-center justify-between">
@@ -207,6 +239,70 @@ const Meetings = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="mt-4 bg-white rounded-xl shadow-elegant p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold">Единая форма протокола</h2>
+          <button onClick={saveFormToKB} className="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white flex items-center gap-2">
+            <Save className="w-4 h-4" /> Сохранить форму в БЗ
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div>
+            <label className="text-gray-600 text-xs">Заголовок</label>
+            <input value={form.title} onChange={e=>updateForm('title', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Например: Планёрка по объектам" />
+          </div>
+          <div>
+            <label className="text-gray-600 text-xs">Дата и время</label>
+            <input value={form.datetime} onChange={e=>updateForm('datetime', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="2025-09-20 10:00" />
+          </div>
+          <div>
+            <label className="text-gray-600 text-xs">Участники</label>
+            <input value={form.participants} onChange={e=>updateForm('participants', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Имена через запятую" />
+          </div>
+          <div>
+            <label className="text-gray-600 text-xs">Цель встречи</label>
+            <input value={form.goal} onChange={e=>updateForm('goal', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Цель" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Повестка</label>
+            {(form.agenda || []).map((a, idx) => (
+              <input key={idx} value={a} onChange={e=>updateAgenda(idx, e.target.value)} className="w-full border rounded-lg px-2 py-1.5 mt-1" placeholder={`Пункт ${idx+1}`} />
+            ))}
+            <button onClick={addAgenda} className="mt-1 text-xs text-blue-600">+ добавить пункт</button>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Принятые решения</label>
+            <textarea value={form.decisions} onChange={e=>updateForm('decisions', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[80px]" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Поручения</label>
+            <div className="space-y-2">
+              {(form.tasks || []).map((t, idx) => (
+                <div key={idx} className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <input value={t.title} onChange={e=>updateTask(idx, 'title', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Задача" />
+                  <input value={t.owner} onChange={e=>updateTask(idx, 'owner', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Ответственный" />
+                  <input value={t.due} onChange={e=>updateTask(idx, 'due', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Срок" />
+                  <input value={t.status} onChange={e=>updateTask(idx, 'status', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Статус" />
+                </div>
+              ))}
+              <button onClick={addTask} className="text-xs text-blue-600">+ добавить задачу</button>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Риски/блокеры</label>
+            <textarea value={form.risks} onChange={e=>updateForm('risks', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[60px]" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Следующие шаги</label>
+            <textarea value={form.next_steps} onChange={e=>updateForm('next_steps', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[60px]" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-gray-600 text-xs">Ссылка на сделку/объект Bitrix</label>
+            <input value={form.bitrix_link} onChange={e=>updateForm('bitrix_link', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="https://vas-dom.bitrix24.ru/crm/deal/details/.../" />
+          </div>
         </div>
       </div>
     </div>
