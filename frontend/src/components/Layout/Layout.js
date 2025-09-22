@@ -19,7 +19,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'Обзор', href: '/dashboard', icon: Home, color: 'text-blue-600' },
     { name: 'Дома', href: '/works', icon: Building2, color: 'text-green-600' },
-    { name: 'AI Чат', href: '/ai-chat', icon: Bot, color: 'text-purple-600' },
+    { name: 'AI Чат', href: '/ai', icon: Bot, color: 'text-purple-600' },
     { name: 'Сотрудники', href: '/employees', icon: Users, color: 'text-orange-600' },
     { name: 'Планёрка', href: '/meetings', icon: FileText, color: 'text-indigo-600' },
     { name: 'Обучение', href: '/training', icon: FileText, color: 'text-purple-600' },
