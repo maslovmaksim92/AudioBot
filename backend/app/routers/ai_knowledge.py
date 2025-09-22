@@ -687,6 +687,7 @@ async def answer(req: AnswerRequest):
     citations: List[Dict[str, Any]] = []
     context_blocks: List[str] = []
     try:
+        # 1) Пытаемся найти контекст в БЗ
         if await _ensure_pool():
             qvec = (await _embed_texts_dynamic([q]))[0]
             qvec_str = "[" + ",".join(str(float(x)) for x in qvec) + "]"
@@ -711,7 +712,7 @@ async def answer(req: AnswerRequest):
                         params,
                     )
                     rows = await cur.fetchall()
-                    prepared = []
+                    prepared: List[Dict[str, Any]] = []
                     for r in rows or []:
                         prepared.append(
                             {
@@ -739,36 +740,43 @@ async def answer(req: AnswerRequest):
                         context_blocks.append(f"Источник: {r['filename']} (фрагм. #{r['chunk_index']})\n{excerpt}")
                         if len(context_blocks) >= int(req.top_k):
                             break
-        system = (
-            "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
-            "Опирайся ТОЛЬКО на предоставленный контекст из базы знаний. "
-            "Если в контексте нет ответа — скажи: 'В базе знаний нет информации по этому вопросу'. "
-            "Не выдумывай и не ссылайся на внешние источники."
-        )
         context_text = ("\n\n".join(context_blocks))[:6000]
+
+        # 2) Гибридный режим
         if not EMERGENT_LLM_KEY:
-            fallback = "\n\n".join(context_blocks[:2]) or "В базе знаний нет информации по этому вопросу"
-            return {"answer": fallback, "citations": citations}
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=req.session_id or f"rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            system_message=system,
-        ).with_model("openai", "gpt-5-mini")
-        user_prompt = (
-            f"Вопрос: {q}\n\n"
-            + (
-                f"Контекст из базы знаний (используй только это):\n{context_text}\n\n"
-                if context_text
-                else "Контекст из базы знаний отсутствует. Ответь, что информации нет.\n\n"
+            # Без LLM: возвращаем короткий fallback
+            if context_text:
+                fallback = "\n\n".join(context_blocks[:2])
+                return {"answer": fallback, "citations": citations}
+            return {"answer": "Готов ответить на рабочие вопросы, но LLM недоступен.", "citations": []}
+
+        if context_text:
+            # Режим БЗ: используй только контекст
+            system = (
+                "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
+                "Опирайся ТОЛЬКО на предоставленный контекст из базы знаний. "
+                "Если в контексте нет ответа — честно скажи об этом. Не выдумывай."
             )
-            + "Ответ:"
-        )
-        resp = await chat.send_message(UserMessage(text=user_prompt))
-        answer_text = resp or ("В базе знаний нет информации по этому вопросу" if not context_blocks else "")
-        return {"answer": answer_text, "citations": citations}
+            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
+            user_prompt = f"Вопрос: {q}\n\nКонтекст из базы знаний (используй только это):\n{context_text}\n\nОтвет:"
+            resp = await chat.send_message(UserMessage(text=user_prompt))
+            answer_text = resp or "В базе знаний нет информации по этому вопросу"
+            return {"answer": answer_text, "citations": citations}
+        else:
+            # Общий деловой ассистент (без контекста)
+            system = (
+                "Ты деловой ассистент VasDom. Отвечай на русском кратко и полезно, дружелюбно и профессионально. "
+                "Если вопрос про внутренние регламенты/цифры, которых у тебя нет, попроси уточнить или предложи загрузить документ в Базу Знаний."
+            )
+            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
+            user_prompt = f"Вопрос: {q}\n\nОтвет:"
+            resp = await chat.send_message(UserMessage(text=user_prompt))
+            answer_text = resp or "Готов помочь по рабочим вопросам."
+            return {"answer": answer_text, "citations": []}
     except Exception as e:
         logger.error(f"answer error: {e}")
-        return {"answer": "В базе знаний нет информации по этому вопросу", "citations": []}
+        # мягкий фолбэк
+        return {"answer": "Готов помочь по рабочим вопросам.", "citations": []}
 
 
 # ========= Feedback =========
