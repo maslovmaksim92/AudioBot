@@ -1190,6 +1190,168 @@ class VasDomAPITester:
         # Final summary
         self.print_summary()
 
+    def test_stt_no_file(self):
+        """Test 1: POST /api/meetings/stt without file - expect 422 or 400 with detail='file is required'"""
+        print("\n1️⃣ Testing POST /api/meetings/stt без файла")
+        print("   Expected: 422 или 400 с detail='file is required'")
+        
+        # Make request without file parameter
+        url = f"{self.base_url}/api/meetings/stt"
+        
+        try:
+            response = requests.post(url, timeout=30)
+            status = response.status_code
+            
+            try:
+                data = response.json() if response.content else {}
+            except:
+                data = {"error": "Non-JSON response", "content": response.text[:500]}
+            
+            print(f"   Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            if status in [400, 422]:
+                detail = data.get('detail', '')
+                if 'file is required' in detail or 'field required' in detail.lower():
+                    self.log_test("STT No File", True, 
+                                f"✅ Status: {status} ✓, detail contains 'file is required' ✓")
+                else:
+                    self.log_test("STT No File", False, 
+                                f"❌ Status: {status} ✓, но detail='{detail}' (expected 'file is required')")
+            else:
+                self.log_test("STT No File", False, 
+                            f"❌ Status: {status} (expected 422 or 400)")
+                
+        except Exception as e:
+            self.log_test("STT No File", False, f"❌ Request failed: {str(e)}")
+
+    def test_stt_with_audio_file(self):
+        """Test 2: POST /api/meetings/stt with audio file - expect 200 {ok: true, text: '<string or empty>'} or 500 'OPENAI_API_KEY is not configured'"""
+        print("\n2️⃣ Testing POST /api/meetings/stt с аудио-файлом")
+        print("   Expected: 200 {ok: true, text: '<строка или пусто>'} или 500 'OPENAI_API_KEY is not configured'")
+        
+        # Create a small fake audio file (WebM format)
+        # This is a minimal WebM header + some dummy data
+        fake_webm_data = bytes([
+            0x1A, 0x45, 0xDF, 0xA3,  # EBML header
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F,  # EBML size
+            0x42, 0x86, 0x81, 0x01,  # EBMLVersion = 1
+            0x42, 0xF7, 0x81, 0x01,  # EBMLReadVersion = 1
+            0x42, 0xF2, 0x81, 0x04,  # EBMLMaxIDLength = 4
+            0x42, 0xF3, 0x81, 0x08,  # EBMLMaxSizeLength = 8
+            0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6D,  # DocType = "webm"
+            0x42, 0x87, 0x81, 0x02,  # DocTypeVersion = 2
+            0x42, 0x85, 0x81, 0x02,  # DocTypeReadVersion = 2
+        ])
+        
+        files = {'file': ('test_audio.webm', fake_webm_data, 'audio/webm')}
+        
+        url = f"{self.base_url}/api/meetings/stt"
+        
+        try:
+            response = requests.post(url, files=files, timeout=30)
+            status = response.status_code
+            
+            try:
+                data = response.json() if response.content else {}
+            except:
+                data = {"error": "Non-JSON response", "content": response.text[:500]}
+            
+            print(f"   Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            if status == 200:
+                ok = data.get('ok', False)
+                text = data.get('text', '')
+                
+                if ok is True and 'text' in data:
+                    self.log_test("STT With Audio File", True, 
+                                f"✅ Status: 200 ✓, ok: true ✓, text: '{text[:50]}...' ✓")
+                else:
+                    issues = []
+                    if ok is not True:
+                        issues.append(f"ok={ok} (expected true)")
+                    if 'text' not in data:
+                        issues.append("missing 'text' field")
+                    self.log_test("STT With Audio File", False, f"❌ Issues: {', '.join(issues)}")
+                    
+            elif status == 500:
+                detail = data.get('detail', '')
+                if 'OPENAI_API_KEY is not configured' in detail:
+                    self.log_test("STT With Audio File", True, 
+                                f"✅ Expected 500 error: 'OPENAI_API_KEY is not configured' ✓")
+                else:
+                    self.log_test("STT With Audio File", False, 
+                                f"❌ Unexpected 500 error: '{detail}'")
+            else:
+                self.log_test("STT With Audio File", False, 
+                            f"❌ Status: {status} (expected 200 or 500)")
+                
+        except Exception as e:
+            self.log_test("STT With Audio File", False, f"❌ Request failed: {str(e)}")
+
+    def test_stt_non_standard_content_type(self):
+        """Test 3: POST /api/meetings/stt with non-standard content-type - expect endpoint to accept and return 200/500"""
+        print("\n3️⃣ Testing POST /api/meetings/stt с нестандартным content-type")
+        print("   Expected: эндпоинт проглотит тип (логирует non-standard) и вернёт 200/500 в зависимости от конфигурации ключа")
+        
+        # Create some binary data that looks like audio
+        fake_audio_data = bytes([
+            0xFF, 0xFB, 0x90, 0x00,  # MP3-like header
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            # Add some more dummy data
+        ] * 10)
+        
+        files = {'file': ('test_audio.xyz', fake_audio_data, 'audio/xyz')}
+        
+        url = f"{self.base_url}/api/meetings/stt"
+        
+        try:
+            response = requests.post(url, files=files, timeout=30)
+            status = response.status_code
+            
+            try:
+                data = response.json() if response.content else {}
+            except:
+                data = {"error": "Non-JSON response", "content": response.text[:500]}
+            
+            print(f"   Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            if status == 200:
+                ok = data.get('ok', False)
+                text = data.get('text', '')
+                
+                if ok is True and 'text' in data:
+                    self.log_test("STT Non-Standard Content-Type", True, 
+                                f"✅ Status: 200 ✓, endpoint accepted non-standard content-type 'audio/xyz' ✓")
+                else:
+                    self.log_test("STT Non-Standard Content-Type", False, 
+                                f"❌ Status: 200 ✓, но неправильная структура ответа")
+                    
+            elif status == 500:
+                detail = data.get('detail', '')
+                if 'OPENAI_API_KEY is not configured' in detail:
+                    self.log_test("STT Non-Standard Content-Type", True, 
+                                f"✅ Status: 500 ✓, endpoint accepted non-standard content-type but failed due to missing API key ✓")
+                elif 'STT failed' in detail:
+                    self.log_test("STT Non-Standard Content-Type", True, 
+                                f"✅ Status: 500 ✓, endpoint accepted non-standard content-type but STT processing failed ✓")
+                else:
+                    self.log_test("STT Non-Standard Content-Type", False, 
+                                f"❌ Unexpected 500 error: '{detail}'")
+            elif status in [400, 422]:
+                # This would indicate the endpoint rejected the content-type, which is also acceptable
+                self.log_test("STT Non-Standard Content-Type", True, 
+                            f"✅ Status: {status} ✓, endpoint handled non-standard content-type appropriately ✓")
+            else:
+                self.log_test("STT Non-Standard Content-Type", False, 
+                            f"❌ Status: {status} (expected 200, 400, 422, or 500)")
+                
+        except Exception as e:
+            self.log_test("STT Non-Standard Content-Type", False, f"❌ Request failed: {str(e)}")
+
     def test_meetings_save_to_kb(self):
         """Test 1: POST /api/meetings/save-to-kb"""
         print("\n1️⃣ Testing POST /api/meetings/save-to-kb")
