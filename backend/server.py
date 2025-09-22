@@ -1236,6 +1236,51 @@ async def meetings_summarize(req: MeetingSummarizeRequest):
         logger.warning(f'meeting summarize error: {e}')
         return { 'summary': raw[:800] }
 
+# High-quality Speech-to-Text (OpenAI)
+from fastapi import UploadFile, File
+from tempfile import NamedTemporaryFile
+
+@api_router.post('/meetings/stt')
+async def meetings_stt(file: UploadFile = File(...), language: Optional[str] = 'ru', model: Optional[str] = 'gpt-4o-mini-transcribe'):
+    if not file:
+        raise HTTPException(status_code=400, detail='file is required')
+    if not os.environ.get('OPENAI_API_KEY'):
+        raise HTTPException(status_code=500, detail='OPENAI_API_KEY is not configured')
+    # Validate content type (best-effort)
+    allowed_types = {'audio/webm','audio/webm;codecs=opus','audio/ogg','audio/ogg;codecs=opus','audio/m4a','audio/mp4','audio/mpeg','audio/mp3','audio/wav'}
+    ctype = (file.content_type or '').lower()
+    if ctype and (ctype not in allowed_types):
+        # allow anyway, STT might still handle
+        logger.info(f"STT: non-standard content type {ctype}, proceeding")
+    try:
+        # Persist to temp file for OpenAI client
+        with NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename or '')[1] or '.webm') as tmp:
+            raw = await file.read()
+            tmp.write(raw)
+            tmp_path = tmp.name
+        client = AsyncOpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        params: Dict[str, Any] = {'model': model, 'file': open(tmp_path, 'rb')}
+        if language and language != 'auto':
+            params['language'] = language
+        try:
+            resp = await client.audio.transcriptions.create(**params)
+            text = getattr(resp, 'text', None) or (resp.get('text') if isinstance(resp, dict) else '')
+        finally:
+            try:
+                params['file'].close()
+            except Exception:
+                pass
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+        return { 'ok': True, 'text': text or '' }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'STT error: {e}')
+        raise HTTPException(status_code=500, detail='STT failed')
+
 class MeetingSendRequest(BaseModel):
     text: str
     chat_id: Optional[str] = None
