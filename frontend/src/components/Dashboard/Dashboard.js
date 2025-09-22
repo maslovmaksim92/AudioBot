@@ -102,11 +102,11 @@ const Dashboard = () => {
       href: '/works'
     },
     {
-      title: 'AI Консультант',
-      description: 'Диалог с голосовым помощником',
+      title: 'Живой разговор',
+      description: 'Онлайн диалог (WebRTC) с голосовым ассистентом',
       icon: Bot,
       color: 'bg-purple-500',
-      href: '/ai-chat'
+      href: '/live'
     },
     {
       title: 'Управление бригадами',
