@@ -1387,6 +1387,8 @@ async def meetings_summarize(req: MeetingSummarizeRequest):
 class MeetingSendRequest(BaseModel):
     text: str
     chat_id: Optional[str] = None
+    doc_id: Optional[str] = None  # id документа в БЗ (для фидбека)
+    with_feedback: Optional[bool] = False
 
 @api_router.post('/meetings/send')
 async def meetings_send(req: MeetingSendRequest):
@@ -1401,9 +1403,130 @@ async def meetings_send(req: MeetingSendRequest):
     while text:
         chunks.append(text[:4000])
         text = text[4000:]
-    for part in chunks:
-        await _tg_send('sendMessage', { 'chat_id': chat_id, 'text': part })
+    for i, part in enumerate(chunks):
+        payload = { 'chat_id': chat_id, 'text': part }
+        if i == 0 and req.with_feedback and req.doc_id:
+            payload['reply_markup'] = {
+                'inline_keyboard': [[
+                    { 'text': '👍', 'callback_data': f'mp:like:{req.doc_id}' },
+                    { 'text': '👎', 'callback_data': f'mp:dislike:{req.doc_id}' }
+                ]]
+            }
+        await _tg_send('sendMessage', payload)
     return { 'ok': True, 'parts': len(chunks) }
+
+# ===== Meetings: Save to Knowledge Base =====
+class MeetingTaskItem(BaseModel):
+    title: str
+    owner: Optional[str] = None
+    due: Optional[str] = None
+    status: Optional[str] = None
+
+class MeetingProtocolForm(BaseModel):
+    title: Optional[str] = None
+    datetime: Optional[str] = None
+    participants: Optional[str] = None
+    goal: Optional[str] = None
+    agenda: Optional[List[str]] = None
+    decisions: Optional[str] = None
+    tasks: Optional[List[MeetingTaskItem]] = None
+    risks: Optional[str] = None
+    next_steps: Optional[str] = None
+    bitrix_link: Optional[str] = None
+
+class SaveToKbRequest(BaseModel):
+    protocol_text: Optional[str] = None
+    form: Optional[MeetingProtocolForm] = None
+    filename: Optional[str] = None
+
+
+def _compose_protocol_text(form: MeetingProtocolForm) -> str:
+    parts: List[str] = []
+    if form.title:
+        parts.append(f"Заголовок: {form.title}")
+    if form.datetime:
+        parts.append(f"Дата/время: {form.datetime}")
+    if form.participants:
+        parts.append(f"Участники: {form.participants}")
+    if form.goal:
+        parts.append(f"Цель: {form.goal}")
+    if form.agenda:
+        parts.append("Повестка:")
+        for i, item in enumerate(form.agenda, start=1):
+            if item:
+                parts.append(f"  {i}. {item}")
+    if form.decisions:
+        parts.append("Принятые решения:")
+        parts.append(form.decisions)
+    if form.tasks:
+        parts.append("Поручения:")
+        for t in form.tasks:
+            line = f"- {t.title}"
+            if t.owner:
+                line += f" — ответственный: {t.owner}"
+            if t.due:
+                line += f", срок: {t.due}"
+            if t.status:
+                line += f", статус: {t.status}"
+            parts.append(line)
+    if form.risks:
+        parts.append("Риски/блокеры:")
+        parts.append(form.risks)
+    if form.next_steps:
+        parts.append("Следующие шаги:")
+        parts.append(form.next_steps)
+    if form.bitrix_link:
+        parts.append(f"Ссылка Bitrix: {form.bitrix_link}")
+    return "\n".join(parts)
+
+@api_router.post('/meetings/save-to-kb')
+async def meetings_save_to_kb(req: SaveToKbRequest):
+    text = (req.protocol_text or '').strip()
+    if not text and req.form:
+        text = _compose_protocol_text(req.form)
+    text = (text or '').strip()
+    if not text:
+        raise HTTPException(status_code=400, detail='protocol_text or form required')
+    filename = (req.filename or (req.form and req.form.title) or f"meeting_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.txt").strip()
+    if _RemReq and _rag_remember:
+        try:
+            res = await _rag_remember(_RemReq(text=text, category='meetings', filename=filename))
+            return { 'ok': True, 'document_id': res.get('document_id') }
+        except Exception as e:
+            logger.error(f'meetings_save_to_kb remember error: {e}')
+            raise HTTPException(status_code=500, detail='Database write error')
+    raise HTTPException(status_code=500, detail='Knowledge Base unavailable')
+
+# ===== Meetings: Recent protocols with feedback aggregates =====
+class RecentProtocolsResponse(BaseModel):
+    protocols: List[Dict[str, Any]]
+
+@api_router.get('/meetings/protocols/recent', response_model=RecentProtocolsResponse)
+async def meetings_recent(limit: int = Query(50), db: AsyncSession = Depends(get_db)):
+    try:
+        rows = (await db.execute(sa_text('''
+            SELECT d.id, d.filename, d.mime, d.size_bytes, d.summary, d.created_at, d.pages,
+                   (SELECT COUNT(1) FROM ai_chunks c WHERE c.document_id=d.id) AS chunks_count,
+                   (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) > 0) AS likes,
+                   (SELECT COUNT(1) FROM ai_feedback f WHERE f.message_id=d.id AND COALESCE(f.rating,0) <= 0) AS dislikes
+            FROM ai_documents d
+            WHERE d.mime ILIKE '%category=meetings%'
+            ORDER BY d.created_at DESC
+            LIMIT :lim
+        '''), { 'lim': int(limit) })).all()
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            id_, filename, mime, size_bytes, summary, created_at, pages, chunks_count, likes, dislikes = r
+            out.append({
+                'id': id_, 'filename': filename, 'mime': mime, 'size_bytes': size_bytes,
+                'summary': summary, 'created_at': created_at.isoformat() if created_at else None,
+                'pages': pages, 'chunks_count': int(chunks_count or 0),
+                'likes': int(likes or 0), 'dislikes': int(dislikes or 0)
+            })
+        return { 'protocols': out }
+    except Exception as e:
+        logger.error(f'meetings_recent error: {e}')
+        return { 'protocols': [] }
 
 # Подключаем модульный роутер AI Knowledge, если есть
 import importlib
