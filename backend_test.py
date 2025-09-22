@@ -2794,7 +2794,9 @@ if __name__ == "__main__":
     # Check command line arguments for specific test type
     if len(sys.argv) > 1:
         test_type = sys.argv[1].lower()
-        if test_type == "meetings":
+        if test_type == "stt":
+            tester.test_meetings_stt_endpoint_review_request()
+        elif test_type == "meetings":
             tester.test_meetings_endpoints_review_request()
         elif test_type == "current":
             tester.test_current_review_request()
@@ -2814,8 +2816,8 @@ if __name__ == "__main__":
             tester.test_final_review_request_mini_flow()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: meetings, current, mini-flow, quick, specific, review, production, final, close")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close")
             sys.exit(1)
     else:
-        # Default: run meetings endpoints tests as per review request
-        tester.test_meetings_endpoints_review_request()
+        # Default: run STT endpoint tests as per current review request
+        tester.test_meetings_stt_endpoint_review_request()
