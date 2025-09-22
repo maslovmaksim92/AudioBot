@@ -1351,6 +1351,60 @@ async def telegram_webhook_api(update: Dict[str, Any]):
     await _process_update(update)
     return {"ok": True}
 
+# ===== Meetings (Summarize + Send to Telegram) =====
+class MeetingSummarizeRequest(BaseModel):
+    transcript: Optional[List[str]] = None
+    text: Optional[str] = None
+    locale: Optional[str] = 'ru'
+
+@api_router.post('/meetings/summarize')
+async def meetings_summarize(req: MeetingSummarizeRequest):
+    raw = ''
+    if req and req.text and req.text.strip():
+        raw = req.text.strip()
+    elif req and req.transcript:
+        raw = '\n'.join([s for s in req.transcript if isinstance(s, str)])
+    raw = (raw or '').strip()
+    if not raw:
+        return { 'summary': '' }
+    if not EMERGENT_LLM_KEY:
+        # fallback: first 800 chars
+        return { 'summary': raw[:800] }
+    system = (
+        'Ты помощник VasDom. Составь краткий протокол планёрки на русском языком: '\
+        '1) Итоги и ключевые решения. 2) Список задач (кто/что/срок). 3) Риски/блокеры. 4) Следующие шаги. '\
+        'Будь кратким и структурированным, используй маркированные списки. Не выдумывай.'
+    )
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f'meeting_{datetime.now().strftime("%Y%m%d_%H%M%S")}', system_message=system).with_model('openai','gpt-4o-mini')
+        prompt = f"Транскрипт встречи:\n{raw[:8000]}\n\nСформируй протокол:"
+        resp = await chat.send_message(UserMessage(text=prompt))
+        return { 'summary': resp or '' }
+    except Exception as e:
+        logger.warning(f'meeting summarize error: {e}')
+        return { 'summary': raw[:800] }
+
+class MeetingSendRequest(BaseModel):
+    text: str
+    chat_id: Optional[str] = None
+
+@api_router.post('/meetings/send')
+async def meetings_send(req: MeetingSendRequest):
+    if not req or not (req.text or '').strip():
+        raise HTTPException(status_code=400, detail='text is required')
+    chat_id = (req.chat_id or os.environ.get('TELEGRAM_TARGET_CHAT_ID') or '').strip()
+    if not TELEGRAM_BOT_TOKEN or not chat_id:
+        raise HTTPException(status_code=400, detail='telegram not configured')
+    # Telegram limit: 4096 chars per message
+    text = req.text.strip()
+    chunks = []
+    while text:
+        chunks.append(text[:4000])
+        text = text[4000:]
+    for part in chunks:
+        await _tg_send('sendMessage', { 'chat_id': chat_id, 'text': part })
+    return { 'ok': True, 'parts': len(chunks) }
+
 # Подключаем модульный роутер AI Knowledge, если есть
 import importlib
 _ai_router = None
