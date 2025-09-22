@@ -11,6 +11,18 @@ backend:
         -agent: "main"
         -comment: "Добавлен эндпоинт создания эфемерной сессии OpenAI Realtime (WebRTC) с голосом marin, VAD, whisper транскрипцией. Требуется e2e проверка с фронтендом."
 
+  - task: "AI Chat endpoint (/api/ai-knowledge/answer)"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routers/ai_knowledge.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "AI Chat endpoint полностью функционален. POST /api/ai-knowledge/answer возвращает 200 с корректной структурой JSON {answer: string, citations: []}. Тестирование с запросом {'question':'Привет!'} показало: endpoint доступен, возвращает осмысленный ответ 'Привет! Как я могу помочь вам сегодня?', citations пустой массив (ожидаемо при пустой БЗ). AI Knowledge router корректно смонтирован в основном приложении. Работает как fallback GPT-4o-mini ассистент при отсутствии контекста в базе знаний."
+
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
     implemented: true
