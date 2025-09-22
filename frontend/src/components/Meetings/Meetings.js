@@ -231,6 +231,7 @@ const Meetings = () => {
   };
 
   const uploadHQ = async (blob) => {
+    if (!blob || !blob.size || blob.size < 2000) { return; } // пропускаем слишком маленькие чанки
     setHqUploading(true); setHqStatus('Распознавание…'); setSttError('');
     try {
       const fd = new FormData();
@@ -239,10 +240,15 @@ const Meetings = () => {
       const res = await fetch(`${BACKEND_URL}/api/meetings/stt?language=ru`, { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok || !data || data.ok === false) throw new Error(data?.detail || 'Ошибка STT');
-      const text = (data.text || '').trim();
-      if (text) {
-        setTranscript(prev => [...prev, text]);
-        setInterim('');
+      const part = (data.text || '').trim();
+      if (part) {
+        const prevAll = transAllRef.current;
+        const windowTail = prevAll.slice(-Math.max(50, Math.min(400, Math.floor(prevAll.length/3))));
+        if (!windowTail.endsWith(part) && !part.endsWith(windowTail)) {
+          transAllRef.current = `${prevAll}\n${part}`.trim();
+          setTranscript(prev => [...prev, part]);
+          setInterim('');
+        }
       } else {
         setHqStatus('Распознавание завершено (пусто)');
       }
