@@ -1212,12 +1212,26 @@ class VasDomAPITester:
             
             if status in [400, 422]:
                 detail = data.get('detail', '')
-                if 'file is required' in detail or 'field required' in detail.lower():
-                    self.log_test("STT No File", True, 
-                                f"✅ Status: {status} ✓, detail contains 'file is required' ✓")
+                # Handle both string and list formats for detail
+                if isinstance(detail, list):
+                    # FastAPI validation errors return a list of error objects
+                    detail_text = str(detail)
+                    if any('field required' in str(err).lower() or 'file' in str(err).lower() for err in detail):
+                        self.log_test("STT No File", True, 
+                                    f"✅ Status: {status} ✓, detail contains validation error for missing file ✓")
+                    else:
+                        self.log_test("STT No File", False, 
+                                    f"❌ Status: {status} ✓, но detail='{detail_text}' (expected file validation error)")
+                elif isinstance(detail, str):
+                    if 'file is required' in detail or 'field required' in detail.lower():
+                        self.log_test("STT No File", True, 
+                                    f"✅ Status: {status} ✓, detail contains 'file is required' ✓")
+                    else:
+                        self.log_test("STT No File", False, 
+                                    f"❌ Status: {status} ✓, но detail='{detail}' (expected 'file is required')")
                 else:
                     self.log_test("STT No File", False, 
-                                f"❌ Status: {status} ✓, но detail='{detail}' (expected 'file is required')")
+                                f"❌ Status: {status} ✓, но detail format unexpected: {type(detail)}")
             else:
                 self.log_test("STT No File", False, 
                             f"❌ Status: {status} (expected 422 or 400)")
