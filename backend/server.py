@@ -78,23 +78,14 @@ def _normalize_db_url(url: str, for_async: bool = True) -> str:
         else:
             if url.startswith('postgres://'):
                 url = url.replace('postgres://', 'postgresql://', 1)
-        # Normalize query params (ssl/sslmode)
+        # Normalize query params: ensure asyncpg-friendly SSL
         parsed = urlparse(url)
         q = dict(parse_qsl(parsed.query, keep_blank_values=True))
-        # Map legacy 'ssl=true/false' to proper sslmode
-        ssl_val = (q.get('ssl') or '').strip().lower()
-        if ssl_val in ('1','true','yes'): q['sslmode'] = q.get('sslmode') or 'require'
-        if 'ssl' in q:
-            # remove raw 'ssl' to avoid confusing asyncpg
-            q.pop('ssl', None)
-        # Validate sslmode
-        allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
-        sslmode = (q.get('sslmode') or '').strip().lower()
-        if sslmode and sslmode not in allowed:
-            q['sslmode'] = 'require'
-        if not sslmode:
-            # default to require for Neon/Render
-            q['sslmode'] = 'require'
+        # Remove sslmode (asyncpg doesn't accept it as kwarg)
+        if 'sslmode' in q:
+            q.pop('sslmode', None)
+        # Force SSL for Neon/Render
+        q['ssl'] = 'true'
         new_query = urlencode(q)
         url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
     except Exception:
