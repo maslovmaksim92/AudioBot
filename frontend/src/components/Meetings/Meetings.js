@@ -174,10 +174,39 @@ const Meetings = () => {
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-elegant p-4">
-          <h2 className="text-lg font-semibold mb-2">Саммари</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">Саммари</h2>
+            <button onClick={() => setShowRecent(v => !v)} className="text-sm text-blue-600 flex items-center gap-1">
+              <ClipboardList className="w-4 h-4" /> Недавние протоколы
+            </button>
+          </div>
           <div className="min-h-[10rem] text-sm text-gray-800 bg-gray-50 rounded-lg p-3">
             {summary || 'Здесь появится краткое саммари встречи.'}
           </div>
+          {showRecent && (
+            <div className="mt-4 border-t pt-3">
+              <div className="font-medium mb-2">Недавние протоколы</div>
+              <div className="max-h-60 overflow-y-auto divide-y">
+                {(recent || []).map((p) => (
+                  <div key={p.id} className="py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold">{p.filename || p.id}</div>
+                        <div className="text-gray-500 text-xs">{p.created_at?.replace('T',' ').replace('Z','')}</div>
+                      </div>
+                      <div className="text-xs text-gray-600">👍 {p.likes} · 👎 {p.dislikes}</div>
+                    </div>
+                    {p.summary && (
+                      <div className="text-gray-700 text-xs mt-1 line-clamp-3">{p.summary}</div>
+                    )}
+                  </div>
+                ))}
+                {!recent.length && (
+                  <div className="text-xs text-gray-500">Нет сохранённых протоколов</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
