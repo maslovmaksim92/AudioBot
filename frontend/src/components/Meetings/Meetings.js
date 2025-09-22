@@ -298,6 +298,16 @@ const Meetings = () => {
           setTranscript(prev => [...prev, part]);
           setInterim('');
         }
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t p-2 flex items-center justify-between">
+            <div className="text-xs text-gray-600 px-2">
+              {hqRecording ? 'Запись идёт…' : 'Готов к записи'} {recordSeconds ? `· ${recordSeconds}s` : ''}
+            </div>
+            <button onClick={hqRecording ? stopHQ : startHQ}
+              className={`mr-2 rounded-full shadow-xl ${hqRecording ? 'bg-gray-800' : 'bg-red-500'} text-white w-14 h-14 flex items-center justify-center`}
+              aria-label={hqRecording ? 'Остановить запись' : 'Начать запись'}>
+              {hqRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          </div>
       } else {
         setHqStatus('Распознавание завершено (пусто)');
       }
