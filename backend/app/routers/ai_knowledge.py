@@ -678,9 +678,9 @@ async def search(req: SearchRequest):
 
 class AnswerRequest(BaseModel):
     question: str
-    top_k: int = 5
+    top_k: int = 8
     category: Optional[str] = None
-    min_score: float = 0.12
+    min_score: float = 0.05
     session_id: Optional[str] = None
 
 @router.post('/answer')
