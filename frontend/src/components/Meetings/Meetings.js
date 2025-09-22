@@ -181,6 +181,12 @@ const Meetings = () => {
       mr.start(1000); // collect chunks every 1s
       setHqRecording(true);
       setHqStatus('Запись идёт…');
+      
+      // Start timer
+      setRecordSeconds(0);
+      recordTimerRef.current = setInterval(() => {
+        setRecordSeconds(prev => prev + 1);
+      }, 1000);
     } catch (e) {
       setSttError('Нет доступа к микрофону');
     }
