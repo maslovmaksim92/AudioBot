@@ -59,7 +59,12 @@ const Meetings = () => {
 
   const makeSummary = async () => {
     try {
-      setSummary('Краткое резюме встречи: обсудили графики уборок, распределили задачи между бригадами, согласовали проблемные адреса.');
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/summarize`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript })
+      });
+      const data = await res.json();
+      setSummary(data.summary || '');
     } catch (e) {
       setSummary('Не удалось сгенерировать саммари. Попробуйте позже.');
     }
