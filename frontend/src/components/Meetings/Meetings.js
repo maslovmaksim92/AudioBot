@@ -199,6 +199,26 @@ const Meetings = () => {
         <div className="flex gap-1 pb-2">
           <button onClick={()=>setTab('transcribe')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='transcribe'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>Транскрипция</button>
           <button onClick={()=>setTab('protocol')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='protocol'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>Протокол</button>
+          {hqEnabled && (
+            <div className="mt-3">
+              <button onClick={async ()=>{
+                try {
+                  setSttError(''); setSttLoading(true);
+                  // Собираем короткий blob из текущего interim/последней фразы — в проде можно записывать через MediaRecorder
+                  const textRaw = (transcript.join('\n') + (interim? ('\n'+interim): '')).trim();
+                  if (!textRaw) { setSttError('Нет голоса для распознавания.'); setSttLoading(false); return; }
+                  // В этом упрощённом варианте не пишем аудио, а показываем подсказку. Полная реализация MediaRecorder будет следующей итерацией.
+                  alert('Для высококачественной транскрипции включу запись голоса через микрофон в следующем шаге.');
+                } catch (e) {
+                  setSttError('Ошибка записи аудио');
+                } finally {
+                  setSttLoading(false);
+                }
+              }} className="w-full px-4 py-3 rounded-lg bg-emerald-600 text-white">Высокое качество (запись и распознавание)</button>
+              {sttError && <div className="text-xs text-red-600 mt-1">{sttError}</div>}
+            </div>
+          )}
+
           <button onClick={()=>setTab('history')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='history'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>История</button>
         </div>
       </div>
