@@ -266,7 +266,7 @@ const Meetings = () => {
           <div className="bg-white rounded-xl shadow-elegant p-3">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base font-semibold">Онлайн транскрипция</h2>
-              <span className={`text-xs ${isLive? 'text-green-600':'text-gray-500'}`}>{isLive? 'Запись идёт':'Ожидание'}</span>
+              <span className={`text-xs ${hqRecording? 'text-green-600':'text-gray-500'}`}>{hqRecording? 'Запись идёт':'Ожидание'}</span>
             </div>
             <div className="h-[60vh] md:h-96 overflow-y-auto space-y-2">
               {transcript.map((line, idx) => (
