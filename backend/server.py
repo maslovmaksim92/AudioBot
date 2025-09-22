@@ -1279,7 +1279,8 @@ async def meetings_stt(file: UploadFile = File(...), language: Optional[str] = '
         raise
     except Exception as e:
         logger.error(f'STT error: {e}')
-        raise HTTPException(status_code=500, detail='STT failed')
+        # Более информативный ответ, чтобы проще диагностировать
+        raise HTTPException(status_code=500, detail=f'STT failed: {str(e)[:200]}')
 
 class MeetingSendRequest(BaseModel):
     text: str
