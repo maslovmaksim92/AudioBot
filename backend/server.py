@@ -78,1130 +78,23 @@ def _normalize_db_url(url: str, for_async: bool = True) -> str:
         else:
             if url.startswith('postgres://'):
                 url = url.replace('postgres://', 'postgresql://', 1)
-            elif url.startswith('postgresql+asyncpg://'):
-                url = url.replace('postgresql+asyncpg://', 'postgresql://', 1)
-            elif not url.startswith('postgresql://'):
-                url = 'postgresql://' + url.split('://',1)[-1]
-        # Normalize query params
-        u = urlparse(url)
-        q = dict(parse_qsl(u.query, keep_blank_values=True))
-        # Remove incompatible params
-        q.pop('channel_binding', None)
-        if for_async:
-            # asyncpg expects ssl=true|false, not sslmode
-            q.pop('sslmode', None)
-            if q.get('ssl') is None:
-                q['ssl'] = 'true'
-        else:
-            # psycopg expects sslmode
-            if 'ssl' in q:
-                if str(q.get('ssl')).lower() in ('true', '1', 'yes'):
-                    q.pop('ssl', None)
-                    q['sslmode'] = 'require'
-                else:
-                    q.pop('ssl', None)
-            # fix invalid sslmode values
-            if 'sslmode' in q:
-                allowed = {'disable','allow','prefer','require','verify-ca','verify-full'}
-                if q['sslmode'] not in allowed:
-                    q['sslmode'] = 'require'
-        new_query = urlencode(q, doseq=True)
-        return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
-    except Exception:
-        # fail-safe: return original
-        return url
-
-def _get_raw_db_url() -> str:
-    # Priority per user: use NEON_DATABASE_URL only
-    url = os.environ.get('NEON_DATABASE_URL') or ''
-    return url.strip()
-
-DATABASE_URL = _normalize_db_url(_get_raw_db_url(), for_async=True)
-
-from urllib.parse import urlparse, urlunparse, quote
-
-def _build_clean_async_url(url: str) -> str:
-    """Strip query params entirely and force asyncpg scheme, to avoid sslmode in DSN.
-    Keeps username/password/host/port/db only."""
-    try:
-        p = urlparse(url)
-        scheme = 'postgresql+asyncpg'
-        username = p.username or ''
-        password = p.password or ''
-        host = p.hostname or ''
-        port = f":{p.port}" if p.port else ''
-        auth = ''
-        if username:
-            u = quote(username, safe='')
-            if password:
-                pw = quote(password, safe='')
-                auth = f"{u}:{pw}@"
-            else:
-                auth = f"{u}@"
-        netloc = f"{auth}{host}{port}"
-        path = p.path or ''
-        return urlunparse((scheme, netloc, path, '', '', ''))
     except Exception:
         return url
+    return url
 
-Base = declarative_base()
+DATABASE_URL = _normalize_db_url(os.environ.get('NEON_DATABASE_URL') or os.environ.get('DATABASE_URL') or '')
 engine = None
-AsyncSessionLocal = None
+async_session = None
 
-class AIDocument(Base):
-    __tablename__ = 'ai_documents'
-    id = Column(String, primary_key=True)
-    filename = Column(String, nullable=False)
-    mime = Column(String)
-    size_bytes = Column(Integer)
-    summary = Column(Text)
-    pages = Column(Integer)
-    created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+if DATABASE_URL:
+    engine = create_async_engine(DATABASE_URL, future=True, echo=False)
+    async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-class AIChunk(Base):
-    __tablename__ = 'ai_chunks'
-    id = Column(String, primary_key=True)
-    document_id = Column(String, ForeignKey('ai_documents.id', ondelete='CASCADE'), index=True, nullable=False)
-    chunk_index = Column(Integer, nullable=False)
-    content = Column(Text, nullable=False)
-    # embedding column created by Alembic as Vector(1536)
-
-class AIUploadTemp(Base):
-    __tablename__ = 'ai_uploads_temp'
-    upload_id = Column(String, primary_key=True)
-    # meta is JSONB in DB (Al embic). We'll insert via ::jsonb cast and read carefully.
-    meta = Column(Text, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-
-def _scrub_ssl_env():
-    # Remove libpq-style SSL env that can confuse asyncpg
-    removed = []
-    for k in ('PGSSLMODE','PGSSL','PGSSLCERT','PGSSLKEY','PGSSLROOTCERT'):
-        if os.environ.pop(k, None) is not None:
-            removed.append(k)
-    if removed:
-        logger.warning(f'Removed SSL-related env vars to avoid conflicts: {",".join(removed)}')
-
-async def init_db():
-    global engine, AsyncSessionLocal
-    if not DATABASE_URL:
-        logger.warning('DATABASE_URL is not configured; DB features disabled')
-        return
-    _scrub_ssl_env()
-    clean_url = _build_clean_async_url(DATABASE_URL)
-    engine = create_async_engine(clean_url, echo=False, pool_pre_ping=True, future=True, connect_args={"ssl": True})
-    AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-    # Alembic migrations
-    try:
-        import subprocess
-        alembic_ini = str((ROOT_DIR / 'alembic.ini').resolve())
-        if not os.path.exists(alembic_ini):
-            alembic_ini = 'alembic.ini'
-        # Run Alembic with working directory set to backend/ so script_location=alembic resolves
-        try:
-            subprocess.run(['alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False, cwd=str(ROOT_DIR))
-        except Exception as _:
-            # Fallback to module execution
-            subprocess.run(['python', '-m', 'alembic', '-c', alembic_ini, 'upgrade', 'head'], check=False, cwd=str(ROOT_DIR))
-        logger.info('Alembic migrations executed')
-    except Exception as e:
-        logger.warning(f'Alembic run error: {e}')
-
-async def get_db():
-    if AsyncSessionLocal is None:
+async def get_db() -> AsyncSession:
+    if not async_session:
         raise HTTPException(status_code=500, detail='Database is not initialized')
-    async with AsyncSessionLocal() as session:
+    async with async_session() as session:
         yield session
-
-# Bitrix service with cache and graceful fallback
-class BitrixService:
-    def __init__(self):
-        self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '').rstrip('/')
-        self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
-        # cache for userfield enums: {field_code: {enum_id(str): label(str)}}
-        self._uf_enums: Dict[str, Dict[str, str]] = {}
-        self._uf_enums_ts: int = 0
-        self._uf_enums_ttl = int(os.environ.get('BITRIX_UF_ENUMS_TTL', '900'))  # 15 минут по умолчанию
-        # small caches for users and companies to avoid repeated calls per page
-        self._user_cache: Dict[str, Dict[str, Any]] = {}
-        self._company_cache: Dict[str, Dict[str, Any]] = {}
-
-    async def _call(self, method: str, params: Dict = None) -> Dict:
-        if not self.webhook_url:
-            return {"ok": False}
-        url = f"{self.webhook_url}/{method}"
-        try:
-            async with httpx.AsyncClient(timeout=40.0) as client:
-                r = await client.post(url, json=params or {})
-                r.raise_for_status()
-                data = r.json()
-                return {"ok": True, "result": data.get("result"), "next": data.get("next"), "total": data.get("total")}
-        except Exception as e:
-            logger.error(f"Bitrix error: {e}")
-            return {"ok": False}
-
-    async def _list_all(self, method: str, params: Dict) -> List[Dict]:
-        items: List[Dict] = []
-        q = dict(params or {})
-        next_start = None
-        for _ in range(50):  # safety cap
-            if next_start is not None:
-                q['start'] = next_start
-            resp = await self._call(method, q)
-            if not resp.get('ok'):
-                break
-            part = resp.get('result') or []
-            if isinstance(part, dict):
-                # Some Bitrix methods return dict; normalize to list if needed
-                part = [part]
-            items.extend(part)
-            next_start = resp.get('next')
-            if next_start is None:
-                break
-        return items
-
-    async def _get_userfield_enums(self, field_codes: List[str]) -> Dict[str, Dict[str, str]]:
-        """
-        Загрузка и кеширование перечислений (enum) для пользовательских полей сделок Bitrix.
-        Возвращает структуру { FIELD_CODE: { enum_id(str): label(str) } }.
-        """
-        now_ts = int(datetime.now(timezone.utc).timestamp())
-        if self._uf_enums and (now_ts - self._uf_enums_ts) < self._uf_enums_ttl:
-            return {fc: self._uf_enums.get(fc, {}) for fc in field_codes}
-        if not self.webhook_url:
-            return {fc: {} for fc in field_codes}
-        out: Dict[str, Dict[str, str]] = {fc: {} for fc in field_codes}
-        try:
-            resp = await self._call("crm.deal.userfield.list", {})
-            if not resp.get("ok"):
-                return out
-            items = resp.get("result") or []
-            if isinstance(items, dict):
-                items = [items]
-            for uf in items:
-                code = uf.get("FIELD_NAME") or uf.get("FIELD_CODE") or uf.get("XML_ID")
-                if code in field_codes:
-                    values = uf.get("LIST") or []
-                    mapping: Dict[str, str] = {}
-                    for v in values:
-                        vid = str(v.get("ID") or v.get("XML_ID") or v.get("VALUE") or "")
-                        label = str(v.get("VALUE") or v.get("LABEL") or v.get("NAME") or vid)
-                        if vid:
-                            mapping[vid] = label
-                    out[code] = mapping
-            # кэшируем полный словарь; далее будем отдавать подмножества
-            self._uf_enums = out
-            self._uf_enums_ts = now_ts
-        except Exception as e:
-            logger.warning(f"UF enums load error: {e}")
-        return out
-
-    async def deals(self, limit=500) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
-            return self._deals_cache["data"]
-        items = await self._list_all("crm.deal.list", {
-            "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID","OPPORTUNITY","CURRENCY_ID"],
-            "filter": {"CATEGORY_ID":"34"},
-            "order": {"ID":"DESC"},
-            "limit": min(limit,1000)
-        })
-        if not items:
-            return self._deals_cache["data"] or []
-        self._deals_cache = {"ts": now, "data": items}
-        return items
-
-    async def deals_full(self) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_full_cache["ts"] < self._deals_ttl and self._deals_full_cache["data"]:
-            return self._deals_full_cache["data"]
-        items = await self._list_all("crm.deal.list", {
-            "select": [
-                "ID", "TITLE", "STAGE_ID", "COMPANY_ID", "COMPANY_TITLE",
-                "ASSIGNED_BY_ID", "ASSIGNED_BY_NAME", "CATEGORY_ID",
-                "UF_CRM_1669561599956",
-                "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
-                "UF_CRM_1741592774017","UF_CRM_1741592855565",
-                "UF_CRM_1741592892232","UF_CRM_1741592945060",
-                "UF_CRM_1741593004888","UF_CRM_1741593047994",
-                "UF_CRM_1741593067418","UF_CRM_1741593115407",
-                "UF_CRM_1741593156926","UF_CRM_1741593210242",
-                "UF_CRM_1741593231558","UF_CRM_1741593285121",
-                "UF_CRM_1741593340713","UF_CRM_1741593387667",
-                "UF_CRM_1741593408621","UF_CRM_1741593452062"
-            ],
-            "filter": {"CATEGORY_ID": "34"},
-            "order": {"ID": "DESC"},
-            "limit": 1000
-        })
-        if not items:
-            return self._deals_full_cache["data"] or []
-        self._deals_full_cache = {"ts": now, "data": items}
-        return items
-
-bitrix = BitrixService()
-
-# Root
-@api_router.get("/")
-async def root():
-    return {"message":"VasDom AudioBot API","version":"1.0.0"}
-
-# Dashboard stats with fallback
-@api_router.get("/dashboard/stats")
-async def dashboard_stats():
-    try:
-        deals = await bitrix.deals(limit=500)
-        total_houses = len(deals)
-        total_apartments = sum(int(d.get("UF_CRM_1669704529022") or 0) for d in deals)
-        total_entrances = sum(int(d.get("UF_CRM_1669705507390") or 0) for d in deals)
-        total_floors = sum(int(d.get("UF_CRM_1669704631166") or 0) for d in deals)
-        if total_apartments == 0: total_apartments = total_houses * 62
-        if total_entrances == 0: total_entrances = total_houses * 3
-        if total_floors == 0: total_floors = total_houses * 5
-        return {
-            "total_houses": total_houses,
-            "total_apartments": total_apartments,
-            "total_entrances": total_entrances,
-            "total_floors": total_floors,
-            "active_brigades": 7,
-            "employees": 82
-        }
-    except Exception as e:
-        logger.error(f"Dashboard stats error: {e}")
-        return {"total_houses": 490, "total_apartments": 490*62, "total_entrances": 490*3, "total_floors": 490*5, "active_brigades": 7, "employees": 82}
-
-# ========================= CLEANING (HOUSES) =========================
-class HouseResponse(BaseModel):
-    id: int
-    title: str
-    address: str
-    brigade: Optional[str] = ""
-    management_company: Optional[str] = ""
-    status: Optional[str] = ""
-    apartments: int = 0
-    entrances: int = 0
-    floors: int = 0
-    amount_monthly: float | None = None
-    currency: str | None = None
-    cleaning_dates: Dict[str, Any] = {}
-    periodicity: Optional[str] = "индивидуальная"
-    bitrix_url: Optional[str] = ""
-
-class HousesResponse(BaseModel):
-    houses: List[HouseResponse]
-    total: int
-    page: int
-    limit: int
-    pages: int
-
-class FiltersResponse(BaseModel):
-    brigades: List[str] = []
-    management_companies: List[str] = []  # устарело для UI, возвращаем [] для совместимости
-    statuses: List[str] = []
-
-# Типовые поля "type" для расписаний (используются для маппинга enum -> метка)
-TYPE_FIELDS: List[str] = [
-    "UF_CRM_1741592855565",  # september_1 type
-    "UF_CRM_1741592945060",  # september_2 type
-    "UF_CRM_1741593047994",  # october_1 type
-    "UF_CRM_1741593115407",  # october_2 type
-    "UF_CRM_1741593210242",  # november_1 type
-    "UF_CRM_1741593285121",  # november_2 type
-    "UF_CRM_1741593387667",  # december_1 type
-    "UF_CRM_1741593452062",  # december_2 type
-]
-
-@api_router.get("/cleaning/filters", response_model=FiltersResponse)
-async def get_filters():
-    try:
-        # Только БРИГАДЫ и СТАТУСЫ. УК убираем из фильтров
-        deals = await bitrix.deals_full()
-        brigades_set = set()
-        for d in deals:
-            b = d.get("ASSIGNED_BY_NAME") or ""
-            if not b and d.get("ASSIGNED_BY_ID"):
-                try:
-                    uid = str(d.get("ASSIGNED_BY_ID"))
-                    if uid not in bitrix._user_cache:
-                        uresp = await bitrix._call("user.get", {"ID": uid})
-                        uitems = uresp.get("result") or []
-                        if isinstance(uitems, dict):
-                            uitems = [uitems]
-                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
-                    u = bitrix._user_cache.get(uid) or {}
-                    full_name = (u.get("LAST_NAME","") + " " + (u.get("NAME") or "") + (" "+u.get("SECOND_NAME","") if u.get("SECOND_NAME") else "")).strip()
-                    if full_name:
-                        b = full_name
-                except Exception:
-                    b = ""
-            if b:
-                brigades_set.add(b)
-        brigades = sorted(brigades_set)
-        statuses = sorted({(d.get("STAGE_ID") or "") for d in deals if d.get("STAGE_ID")})
-        return FiltersResponse(brigades=brigades, management_companies=[], statuses=statuses)
-    except Exception as e:
-        logger.error(f"filters error: {e}")
-        return FiltersResponse(brigades=[], management_companies=[], statuses=[])
-
-# Helper functions for cleaning dates
-def _normalize_dates(dates: List[Any]) -> List[str]:
-    out: List[str] = []
-    for val in (dates or []):
-        s = str(val or '').strip()
-        if not s:
-            continue
-        # Отрезаем время/таймзону, оставляем YYYY-MM-DD
-        if 'T' in s:
-            s = s.split('T')[0]
-        elif ' ' in s and len(s) >= 10:
-            s = s[:10]
-        if len(s) >= 10:
-            s = s[:10]
-        out.append(s)
-    return out
-
-def _build_cleaning_dates(d: Dict[str, Any]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
-    months = [
-        ("UF_CRM_1741592774017", "UF_CRM_1741592855565", "september_1"),
-        ("UF_CRM_1741592892232", "UF_CRM_1741592945060", "september_2"),
-        ("UF_CRM_1741593004888", "UF_CRM_1741593047994", "october_1"),
-        ("UF_CRM_1741593067418", "UF_CRM_1741593115407", "october_2"),
-        ("UF_CRM_1741593156926", "UF_CRM_1741593210242", "november_1"),
-        ("UF_CRM_1741593231558", "UF_CRM_1741593285121", "november_2"),
-        ("UF_CRM_1741593340713", "UF_CRM_1741593387667", "december_1"),
-        ("UF_CRM_1741593408621", "UF_CRM_1741593452062", "december_2"),
-    ]
-    for dates_field, type_field, key in months:
-        dates_raw = d.get(dates_field)
-        type_raw = d.get(type_field)
-        dates_list = dates_raw if isinstance(dates_raw, list) else ([dates_raw] if dates_raw else [])
-        dates = _normalize_dates(dates_list)
-        out[key] = {"dates": dates, "type": str(type_raw or "")}
-    return out
-
-def _compute_periodicity(cleaning_dates: Dict[str, Any]) -> str:
-    """
-    Рассчитываем периодичность помесячно, агрегируя обе недели месяца
-    (например, september_1 + september_2) и затем выбираем ярлык по приоритету.
-    Приоритет (как обсуждали):
-      1) 2 раза + подметание — если суммарно за месяц 2 полных мойки и есть подметание (любое кол-во)
-      2) 2 раза — если суммарно 2 полных мойки, без подметания и без 1-го этажа
-      3) 2 раза + первые этажи — если есть мытьё всех этажей и 1-го этажа (без подметания)
-      4) 4 раза — если 4 и более полных мойки (без подметания)
-      иначе — индивидуальная
-    """
-    groups = {
-        'september': ["september_1","september_2"],
-        'october': ["october_1","october_2"],
-        'november': ["november_1","november_2"],
-        'december': ["december_1","december_2"],
-    }
-
-    def calc_block(key: str) -> Dict[str, int]:
-        block = cleaning_dates.get(key) or {}
-        t = str(block.get("type") or "").lower()
-        dates = block.get("dates") or []
-        if not isinstance(dates, list):
-            dates = []
-        has_wash = ("влажная уборка" in t) or ("мытье" in t)
-        is_full = ("всех этаж" in t)
-        is_first_floor = ("1 этажа" in t) or ("1 этаж" in t) or ("первые этаж" in t)
-        has_sweep = ("подмет" in t) or ("подмёт" in t) or ("под-мет" in t)
-        return {
-            "full_wash": (len(dates) if (has_wash and is_full) else 0),
-            "first_floor": (len(dates) if (has_wash and is_first_floor) else 0),
-            "sweep": (len(dates) if has_sweep else 0),
-        }
-
-    def decide_month(keys: List[str]) -> Optional[str]:
-        total = {"full_wash":0, "first_floor":0, "sweep":0}
-        for k in keys:
-            b = calc_block(k)
-            total["full_wash"] += b["full_wash"]
-            total["first_floor"] += b["first_floor"]
-            total["sweep"] += b["sweep"]
-        fw, ff, sw = total["full_wash"], total["first_floor"], total["sweep"]
-        # Приоритет: если есть 2+ полных моек и хотя бы одно подметание — всегда "2 раза + подметания"
-        if fw >= 2 and sw >= 1:
-            return "2 раза + подметания"
-        if fw == 2 and ff == 0 and sw == 0:
-            return "2 раза"
-        if fw >= 1 and ff >= 1 and sw == 0:
-            return "2 раза + первые этажи"
-        if fw >= 4 and sw == 0:
-            return "4 раза"
-        return None
-
-    # Сначала сентябрь, затем остальные
-    for month in ["september","october","november","december"]:
-        res = decide_month(groups[month])
-        if res:
-            return res
-    return "индивидуальная"
-
-@api_router.get("/cleaning/houses", response_model=HousesResponse)
-async def get_houses(
-    brigade: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    management_company: Optional[str] = Query(None),
-    week: Optional[str] = Query(None),
-    cleaning_date: Optional[str] = Query(None),
-    date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    limit: int = Query(50),
-    offset: int = Query(0),
-    page: int = Query(1)
-):
-    try:
-        raw = await bitrix.deals_full()
-        if not raw:
-            basic = await bitrix.deals(limit=1000)
-            base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
-            houses: List[HouseResponse] = []
-            for d in basic:
-                houses.append(HouseResponse(
-                    id=int(d.get("ID", 0)),
-                    title=d.get("TITLE", "Без названия"),
-                    address=d.get("UF_CRM_1669561599956") or d.get("TITLE") or "",
-                    brigade=d.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
-                    management_company=(d.get("COMPANY_TITLE") or "Не указана"),
-                    status=d.get("STAGE_ID") or "",
-                    apartments=int(d.get("UF_CRM_1669704529022") or 0),
-                    entrances=int(d.get("UF_CRM_1669705507390") or 0),
-                    floors=int(d.get("UF_CRM_1669704631166") or 0),
-                    amount_monthly=(float(d.get("OPPORTUNITY")) if d.get("OPPORTUNITY") not in (None, "") else None),
-                    currency=(str(d.get("CURRENCY_ID")) if d.get("CURRENCY_ID") else None),
-                    cleaning_dates={},
-                    periodicity="индивидуальная",
-                    bitrix_url=f"{base_url}/crm/deal/details/{d.get('ID')}/"
-                ))
-            total_count = len(houses)
-            pages = (total_count + limit - 1) // limit
-            start = (page - 1) * limit
-            end = start + limit
-            return HousesResponse(houses=houses[start:end], total=total_count, page=page, limit=limit, pages=pages)
-
-        # In-memory filtering for rich fields
-        async def resolved_brigade(d: Dict[str, Any]) -> str:
-            b = d.get("ASSIGNED_BY_NAME") or ""
-            if not b and d.get("ASSIGNED_BY_ID"):
-                try:
-                    uid = str(d.get("ASSIGNED_BY_ID"))
-                    if uid not in bitrix._user_cache:
-                        uresp = await bitrix._call("user.get", {"ID": uid})
-                        uitems = uresp.get("result") or []
-                        if isinstance(uitems, dict):
-                            uitems = [uitems]
-                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
-                    u = bitrix._user_cache.get(uid) or {}
-                    b = u.get("NAME") and ((u.get("LAST_NAME","") + " " + u.get("NAME","") + (" "+u.get("SECOND_NAME",""))).strip()) or ""
-                except Exception:
-                    b = ""
-            return b
-
-        async def resolved_company(d: Dict[str, Any]) -> str:
-            mc = d.get("COMPANY_TITLE") or ""
-            if not mc and d.get("COMPANY_ID"):
-                try:
-                    cid = str(d.get("COMPANY_ID"))
-                    if cid not in bitrix._company_cache:
-                        cresp = await bitrix._call("crm.company.get", {"id": cid})
-                        bitrix._company_cache[cid] = cresp.get("result") or {}
-                    mc = bitrix._company_cache[cid].get("TITLE") or ""
-                except Exception:
-                    mc = ""
-            return mc
-
-        async def ok(d):
-            if brigade and brigade != await resolved_brigade(d):
-                return False
-            if status and status != (d.get("STAGE_ID") or ""):
-                return False
-            if management_company and management_company != await resolved_company(d):
-                return False
-            cd = _build_cleaning_dates(d)
-            if cleaning_date:
-                # exact match
-                hit = False
-                for v in cd.values():
-                    if isinstance(v, dict):
-                        for dt in v.get("dates", []) or []:
-                            if dt == cleaning_date:
-                                hit = True
-                                break
-                    if hit: break
-                if not hit:
-                    return False
-            if date_from and date_to:
-                hit = False
-                for v in cd.values():
-                    if isinstance(v, dict):
-                        for dt in v.get("dates", []) or []:
-                            if date_from <= dt <= date_to:
-                                hit = True
-                                break
-                    if hit: break
-                if not hit:
-                    return False
-            return True
-
-        # Apply search by address/title if provided
-        if search:
-            s = search.lower()
-            raw = [d for d in raw if s in str(d.get("UF_CRM_1669561599956") or d.get("TITLE") or "").lower() or s in str(d.get("TITLE") or "").lower()]
-        deals = []
-        for d in raw:
-            if await ok(d):
-                deals.append(d)
-        total_count = len(deals)
-        page = max(1, page)
-        limit = max(1, min(1000, limit))
-        start = (page - 1) * limit
-        end = start + limit
-        deals_page = deals[start:end]
-        houses: List[HouseResponse] = []
-        base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
-        for d in deals_page:
-            address = d.get("UF_CRM_1669561599956") or d.get("TITLE") or ""
-            cd = _build_cleaning_dates(d)
-            # Подменяем типы на человекочитаемые из enum при наличии
-            try:
-                enum_map = await bitrix._get_userfield_enums(TYPE_FIELDS)
-                for key, block in cd.items():
-                    if not isinstance(block, dict):
-                        continue
-                    t = str(block.get("type") or "")
-                    # если type — это id из enum, попробуем заменить на метку
-                    if t.isdigit():
-                        for field_code, mapping in enum_map.items():
-                            if t in mapping:
-                                block["type"] = mapping[t]
-                                break
-            except Exception:
-                pass
-            periodicity = _compute_periodicity(cd)
-            # Brigade from user id if name missed
-            brig_name = d.get("ASSIGNED_BY_NAME") or ""
-            if not brig_name and d.get("ASSIGNED_BY_ID"):
-                try:
-                    uid = str(d.get("ASSIGNED_BY_ID"))
-                    if uid not in bitrix._user_cache:
-                        uresp = await bitrix._call("user.get", {"ID": uid})
-                        uitems = uresp.get("result") or []
-                        if isinstance(uitems, dict):
-                            uitems = [uitems]
-                        bitrix._user_cache[uid] = (uitems[0] if uitems else {})
-                    u = bitrix._user_cache.get(uid) or {}
-                    brig_name = u.get("NAME") and ((u.get("LAST_NAME","") + " " + u.get("NAME","") + (" "+u.get("SECOND_NAME",""))).strip()) or ""
-                except Exception:
-                    pass
-            if not brig_name:
-                brig_name = "Бригада не назначена"
-
-            # Company enriched title if available
-            mc_title = d.get("COMPANY_TITLE") or ""
-            if not mc_title and d.get("COMPANY_ID"):
-                try:
-                    cid = str(d.get("COMPANY_ID"))
-                    if cid not in bitrix._company_cache:
-                        cresp = await bitrix._call("crm.company.get", {"id": cid})
-                        bitrix._company_cache[cid] = cresp.get("result") or {}
-                    mc_title = bitrix._company_cache[cid].get("TITLE") or ""
-                except Exception:
-                    pass
-            if not mc_title:
-                mc_title = "Не указана"
-
-            houses.append(HouseResponse(
-                id=int(d.get("ID", 0)),
-                title=d.get("TITLE", "Без названия"),
-                address=address,
-                brigade=brig_name,
-                management_company=mc_title,
-                status=d.get("STAGE_ID") or "",
-                apartments=int(d.get("UF_CRM_1669704529022") or 0),
-                entrances=int(d.get("UF_CRM_1669705507390") or 0),
-                floors=int(d.get("UF_CRM_1669704631166") or 0),
-                amount_monthly=(float(d.get("OPPORTUNITY")) if d.get("OPPORTUNITY") not in (None, "") else None),
-                currency=(str(d.get("CURRENCY_ID")) if d.get("CURRENCY_ID") else None),
-                cleaning_dates=cd,
-                periodicity=periodicity,
-                bitrix_url=f"{base_url}/crm/deal/details/{d.get('ID')}/"
-            ))
-        pages = (total_count + limit - 1) // limit
-        return HousesResponse(houses=houses, total=total_count, page=page, limit=limit, pages=pages)
-    except Exception as e:
-        logger.error(f"get_houses error: {e}")
-        return HousesResponse(houses=[], total=0, page=page, limit=limit, pages=0)
-
-@api_router.post('/cleaning/house/{house_id}/comment')
-async def save_house_comment(house_id: int, payload: Dict[str, str]):
-    target = (payload.get('target') or '').strip()  # 'company' | 'contact'
-    comment = (payload.get('comment') or '').strip()
-    if not comment:
-        raise HTTPException(status_code=400, detail='comment пуст')
-    try:
-        dresp = await bitrix._call('crm.deal.get', {'id': house_id, 'select': ['ID','COMPANY_ID','CONTACT_ID']})
-        deal = dresp.get('result') or {}
-        if not deal:
-            raise HTTPException(status_code=404, detail='Дом не найден')
-        updated = False
-        if target in ('company','both') and deal.get('COMPANY_ID'):
-            await bitrix._call('crm.company.update', {'id': deal['COMPANY_ID'], 'fields': {'COMMENTS': comment}})
-            updated = True
-        if target in ('contact','both'):
-            cid = deal.get('CONTACT_ID')
-            if isinstance(cid, list):
-                cid = cid[0] if cid else None
-            if cid:
-                await bitrix._call('crm.contact.update', {'id': cid, 'fields': {'COMMENTS': comment}})
-                updated = True
-        if not updated:
-            raise HTTPException(status_code=400, detail='нет цели для комментария')
-        return {'ok': True}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f'save_house_comment error: {e}')
-        raise HTTPException(status_code=500, detail='Ошибка сохранения комментария')
-
-@api_router.get("/cleaning/house/{house_id}/details")
-async def get_house_details(house_id: int):
-    try:
-        dresp = await bitrix._call("crm.deal.get", {"id": house_id, "select": [
-            "ID","TITLE","COMPANY_ID","COMPANY_TITLE","CONTACT_ID",
-            "ASSIGNED_BY_NAME","ASSIGNED_BY_ID","STAGE_ID","UF_CRM_1669561599956",
-            "UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
-            "UF_CRM_1741592774017","UF_CRM_1741592855565",
-            "UF_CRM_1741592892232","UF_CRM_1741592945060",
-            "UF_CRM_1741593004888","UF_CRM_1741593047994",
-            "UF_CRM_1741593067418","UF_CRM_1741593115407",
-            "UF_CRM_1741593156926","UF_CRM_1741593210242",
-            "UF_CRM_1741593231558","UF_CRM_1741593285121",
-            "UF_CRM_1741593340713","UF_CRM_1741593387667",
-            "UF_CRM_1741593408621","UF_CRM_1741593452062"
-        ]})
-        deal = dresp.get("result") or {}
-        if isinstance(deal, list) and deal:
-            deal = deal[0]
-        if not deal:
-            raise HTTPException(status_code=404, detail="Дом не найден")
-        company_details = {}
-        if deal.get("COMPANY_ID"):
-            cresp = await bitrix._call("crm.company.get", {"id": deal["COMPANY_ID"]})
-            company_details = cresp.get("result") or {}
-        # Contacts: try to get primary contact linked to deal
-        contact_details = {}
-        primary_contact_id = None
-        try:
-            link_resp = await bitrix._call("crm.deal.contact.items.get", {"id": house_id})
-            links = link_resp.get("result") or []
-            if isinstance(links, dict):
-                links = [links]
-            # Prefer primary contact
-            for l in links:
-                if str(l.get("IS_PRIMARY") or l.get("PRIMARY") or l.get("IS_PRIMARY_CONTACT") or "").upper() in ("Y","YES","TRUE","1"):
-                    primary_contact_id = l.get("CONTACT_ID")
-                    break
-            if not primary_contact_id and links:
-                primary_contact_id = links[0].get("CONTACT_ID")
-        except Exception:
-            primary_contact_id = None
-        # Fallback to CONTACT_ID field if link API failed
-        if not primary_contact_id:
-            cid = deal.get("CONTACT_ID")
-            if isinstance(cid, list) and cid:
-                primary_contact_id = cid[0]
-            elif isinstance(cid, (str,int)):
-                primary_contact_id = cid
-        if primary_contact_id:
-            cresp = await bitrix._call("crm.contact.get", {"id": primary_contact_id})
-            contact_details = cresp.get("result") or {}
-        base_url = bitrix.webhook_url.split('/rest')[0] if bitrix.webhook_url else ''
-        # Человекочитаемые типы в деталях
-        cd = _build_cleaning_dates(deal)
-        try:
-            enum_map = await bitrix._get_userfield_enums(TYPE_FIELDS)
-            for key, block in cd.items():
-                if not isinstance(block, dict):
-                    continue
-                t = str(block.get("type") or "")
-                if t.isdigit():
-                    for field_code, mapping in enum_map.items():
-                        if t in mapping:
-                            block["type"] = mapping[t]
-                            break
-        except Exception:
-            pass
-        periodicity = _compute_periodicity(cd)
-        return {
-            "house": {
-                "id": deal.get("ID"),
-                "title": deal.get("TITLE"),
-                "address": deal.get("UF_CRM_1669561599956", ""),
-                "apartments": int(deal.get("UF_CRM_1669704529022") or 0),
-                "entrances": int(deal.get("UF_CRM_1669705507390") or 0),
-                "floors": int(deal.get("UF_CRM_1669704631166") or 0),
-                "brigade": deal.get("ASSIGNED_BY_NAME", "") or "Бригада не назначена",
-                "status": deal.get("STAGE_ID", ""),
-                "bitrix_url": f"{base_url}/crm/deal/details/{deal.get('ID')}/" if base_url else "",
-                "cleaning_dates": cd,
-                "periodicity": periodicity
-            },
-            "management_company": {
-                "id": company_details.get("ID", ""),
-                "title": company_details.get("TITLE", deal.get("COMPANY_TITLE", "")) or "Не указана",
-                "phone": (company_details.get("PHONE", [{}])[0].get("VALUE", "") if company_details.get("PHONE") else ""),
-                "email": (company_details.get("EMAIL", [{}])[0].get("VALUE", "") if company_details.get("EMAIL") else ""),
-                "address": company_details.get("ADDRESS", ""),
-                "web": (company_details.get("WEB", [{}])[0].get("VALUE", "") if company_details.get("WEB") else ""),
-                "comments": company_details.get("COMMENTS", "")
-            },
-            "senior_resident": {
-                "id": contact_details.get("ID", ""),
-                "name": contact_details.get("NAME", ""),
-                "last_name": contact_details.get("LAST_NAME", ""),
-                "second_name": contact_details.get("SECOND_NAME", ""),
-                "full_name": f"{contact_details.get('LAST_NAME','')} {contact_details.get('NAME','')} {contact_details.get('SECOND_NAME','')}".strip(),
-                "phone": (contact_details.get("PHONE", [{}])[0].get("VALUE", "") if contact_details.get("PHONE") else ""),
-                "email": (contact_details.get("EMAIL", [{}])[0].get("VALUE", "") if contact_details.get("EMAIL") else ""),
-                "comments": contact_details.get("COMMENTS", "")
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"details error: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка получения деталей дома")
-
-# ========================= AI KNOWLEDGE =========================
-# ВНИМАНИЕ: С 09.2025 логика AI-обучения перенесена в отдельный router app/routers/ai_knowledge.py
-# Здесь остаются только общие утилиты для совместимости.
-
-ALLOWED_EXT = {'.pdf','.docx','.txt','.xlsx','.zip'}
-MAX_FILE_MB = int(os.environ.get('AI_MAX_FILE_MB', '50'))
-MAX_TOTAL_MB = int(os.environ.get('AI_MAX_TOTAL_MB', '200'))
-DEFAULT_TOP_K = 10
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY','').strip()
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY','').strip()
-
-async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int = 200) -> List[str]:
-    enc = tiktoken.get_encoding('cl100k_base')
-    toks = enc.encode(text)
-    chunks = []
-    i = 0
-    while i < len(toks):
-        window = toks[i:i+target_tokens]
-        chunks.append(enc.decode(window))
-        i += max(1, target_tokens - overlap)
-    return chunks
-
-async def _embed_texts(texts: List[str]) -> List[List[float]]:
-    if not OPENAI_API_KEY:
-        return [[0.0]*1536 for _ in texts]
-    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-    out = []
-    for t in texts:
-        try:
-            r = await client.embeddings.create(model='text-embedding-3-small', input=t)
-            out.append(r.data[0].embedding)
-        except Exception as e:
-            logger.error(f"Embedding error: {e}")
-            out.append([0.0]*1536)
-    return out
-
-async def _detect_vector_dims(db: AsyncSession) -> int:
-    try:
-        row = (await db.execute(sa_text("""
-            SELECT a.atttypmod
-            FROM pg_attribute a
-            JOIN pg_class c ON c.oid = a.attrelid
-            JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE n.nspname = current_schema()
-              AND c.relname = 'ai_chunks'
-              AND a.attname = 'embedding'
-              AND a.attnum > 0
-              AND NOT a.attisdropped
-            LIMIT 1
-        """))).first()
-        if row and isinstance(row[0], int) and row[0] > 4:
-            dims = int(row[0]) - 4
-            return dims
-    except Exception as e:
-        logger.warning(f"Vector dims detection failed: {e}")
-    return 1536
-
-def _pad_or_trim(vec: List[float], dims: int) -> List[float]:
-    if len(vec) == dims:
-        return vec
-    if len(vec) > dims:
-        return vec[:dims]
-    return vec + [0.0] * (dims - len(vec))
-
-async def _embed_texts_dynamic(texts: List[str], db: AsyncSession) -> List[List[float]]:
-    dims = await _detect_vector_dims(db)
-    model = 'text-embedding-3-small' if dims <= 1536 else 'text-embedding-3-large'
-    if not OPENAI_API_KEY:
-        return [[0.0]*dims for _ in texts]
-    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-    out: List[List[float]] = []
-    for t in texts:
-        try:
-            r = await client.embeddings.create(model=model, input=t)
-            vec = r.data[0].embedding
-            out.append(_pad_or_trim(vec, dims))
-        except Exception as e:
-            logger.error(f"Embedding error: {e}")
-            out.append([0.0]*dims)
-    return out
-
-async def _summarize(text: str) -> str:
-    if not EMERGENT_LLM_KEY:
-        return text[:500]
-    try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"ai_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message="Ты помощник для создания кратких саммари документов.").with_model('openai','gpt-4o-mini')
-        prompt = f"Суммируй кратко ключевые пункты (до 120 слов):\n{text[:6000]}"
-        resp = await chat.send_message(UserMessage(text=prompt))
-        return resp or text[:500]
-    except Exception as e:
-        logger.warning(f"Summary error: {e}")
-        return text[:500]
-
-@api_router.post('/ai-knowledge/upload')
-async def ai_upload(files: List[UploadFile] = File(...), chunk_tokens: int = Form(1200), overlap: int = Form(200)):
-    if not files:
-        raise HTTPException(status_code=400, detail='Нет файлов')
-    if AsyncSessionLocal is None:
-        raise HTTPException(status_code=500, detail='Database is not initialized')
-
-    all_text = ''
-    total_size = 0
-    total_pages = 0
-    file_stats = []
-    for f in files:
-        ext = os.path.splitext(f.filename or '')[1].lower()
-        data = await f.read()
-        size_bytes = len(data)
-        total_size += size_bytes
-        pages = None
-        text = ''
-        try:
-            if ext == '.txt':
-                text = data.decode('utf-8', errors='ignore')
-            elif ext == '.pdf':
-                reader = PdfReader(io.BytesIO(data))
-                pages = len(reader.pages)
-                parts = []
-                for p in reader.pages:
-                    try:
-                        parts.append(p.extract_text() or '')
-                    except Exception:
-                        continue
-                text = '\n'.join(parts)
-            elif ext == '.docx':
-                doc = DocxDocument(io.BytesIO(data))
-                text = '\n'.join(p.text for p in doc.paragraphs)
-            elif ext == '.xlsx':
-                wb = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
-                rows = 0
-                parts = []
-                for ws in wb.worksheets:
-                    for row in ws.iter_rows(values_only=True):
-                        line = ' '.join([str(c) for c in row if c is not None])
-                        if line:
-                            parts.append(line)
-                        rows += 1
-                pages = rows
-                text = '\n'.join(parts)
-            elif ext == '.zip':
-                try:
-                    zf = zipfile.ZipFile(io.BytesIO(data))
-                    for name in zf.namelist():
-                        if name.endswith('/'):
-                            continue
-                        sub_ext = os.path.splitext(name)[1].lower()
-                        if sub_ext not in {'.pdf','.docx','.txt','.xlsx'}:
-                            continue
-                        if os.path.isabs(name) or '..' in name:
-                            continue
-                        with zf.open(name) as zf_f:
-                            sub_raw = zf_f.read()
-                            sub_size = len(sub_raw)
-                            sub_pages = None
-                            sub_text = ''
-                            try:
-                                if sub_ext == '.pdf':
-                                    sreader = PdfReader(io.BytesIO(sub_raw))
-                                    sub_pages = len(sreader.pages)
-                                    sparts = []
-                                    for sp in sreader.pages:
-                                        try:
-                                            sparts.append(sp.extract_text() or '')
-                                        except Exception:
-                                            continue
-                                    sub_text = '\n'.join(sparts)
-                                elif sub_ext == '.docx':
-                                    sdoc = DocxDocument(io.BytesIO(sub_raw))
-                                    sub_text = '\n'.join(p.text for p in sdoc.paragraphs)
-                                elif sub_ext == '.xlsx':
-                                    swb = load_workbook(io.BytesIO(sub_raw), read_only=True, data_only=True)
-                                    srows = 0
-                                    sparts = []
-                                    for ws in swb.worksheets:
-                                        for row in ws.iter_rows(values_only=True):
-                                            line = ' '.join([str(c) for c in row if c is not None])
-                                            if line:
-                                                sparts.append(line)
-                                            srows += 1
-                                    sub_pages = srows
-                                    sub_text = '\n'.join(sparts)
-                                elif sub_ext == '.txt':
-                                    sub_text = sub_raw.decode('utf-8', errors='ignore')
-                            except Exception:
-                                pass
-                            file_stats.append({'name': name, 'ext': sub_ext, 'size_bytes': sub_size, 'pages': sub_pages, 'text_chars': len(sub_text or '')})
-                            all_text += (sub_text or '') + '\n\n'
-                except Exception:
-                    pass
-                continue
-        except Exception:
-            text = ''
-        file_stats.append({'name': f.filename, 'ext': ext, 'size_bytes': size_bytes, 'pages': pages, 'text_chars': len(text or '')})
-        total_pages += (pages or 0)
-        all_text += (text or '') + '\n\n'
-
-    if not all_text.strip():
-        preview = 'Текст не извлечён. Проверьте, что файлы содержат текст (не только изображения). Статистика по файлам показана ниже.'
-        upload_id = str(uuid4())
-        async with AsyncSessionLocal() as s:
-            meta = {
-                'filenames': [f.filename for f in files],
-                'summary': preview,
-                'chunks': [],
-                'chunks_count': 0,
-                'total_size_bytes': total_size,
-                'total_pages': total_pages,
-                'file_stats': file_stats,
-                'chunk_tokens': int(chunk_tokens),
-                'overlap': int(overlap)
-            }
-            await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m::jsonb, :exp)'),
-                            {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)})
-            await s.commit()
-        return {'upload_id': upload_id, 'preview': preview, 'chunks': 0, 'stats': {'total_size_bytes': total_size, 'total_pages': total_pages, 'file_stats': file_stats}}
-
-    chunks = await _split_into_chunks(all_text, target_tokens=int(chunk_tokens), overlap=int(overlap))
-    preview = await _summarize(all_text)
-    if not preview:
-        preview = (all_text or '')[:500]
-
-    upload_id = str(uuid4())
-    async with AsyncSessionLocal() as s:
-        meta = {
-            'filenames': [f.filename for f in files],
-            'summary': preview,
-            'chunks': chunks,
-            'chunks_count': len(chunks),
-            'total_size_bytes': total_size,
-            'total_pages': total_pages,
-            'file_stats': file_stats,
-            'chunk_tokens': int(chunk_tokens),
-            'overlap': int(overlap)
-        }
-        await s.execute(sa_text('INSERT INTO ai_uploads_temp (upload_id, meta, expires_at) VALUES (:id, :m::jsonb, :exp)'),
-                        {"id": upload_id, "m": json.dumps(meta, ensure_ascii=False), "exp": datetime.now(timezone.utc)+timedelta(hours=6)})
-        await s.commit()
-
-    return {
-        'upload_id': upload_id,
-        'preview': preview,
-        'chunks': len(chunks),
-        'stats': {'total_size_bytes': total_size, 'total_pages': total_pages, 'file_stats': file_stats}
-    }
-
-@api_router.post('/ai-knowledge/save')
-async def ai_save(upload_id: str = Form(...), filename: str = Form('document.txt'), db: AsyncSession = Depends(get_db)):
-    row = (await db.execute(sa_text('SELECT meta FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})).first()
-    if not row:
-        raise HTTPException(status_code=404, detail='upload_id не найден или истёк')
-    raw_meta = row[0]
-    if isinstance(raw_meta, str):
-        meta = json.loads(raw_meta)
-    else:
-        meta = raw_meta  # asyncpg returns dict for JSONB
-    chunks = meta.get('chunks', [])
-    vectors = await _embed_texts_dynamic(chunks, db)
-    doc_id = str(uuid4())
-    summary = meta.get('summary') or 'См. превью при загрузке'
-    size_bytes = meta.get('total_size_bytes')
-    pages = meta.get('total_pages')
-    await db.execute(sa_text('INSERT INTO ai_documents (id, filename, mime, size_bytes, summary, pages, created_at) VALUES (:i,:fn,:mime,:sz,:sm,:pg,:ca)'),
-                     {"i": doc_id, "fn": filename, "mime": "text/plain", "sz": size_bytes, "sm": (summary[:500] if isinstance(summary,str) else None), "pg": pages, "ca": datetime.now(timezone.utc)})
-    for idx, (text, v) in enumerate(zip(chunks, vectors)):
-        await db.execute(sa_text('INSERT INTO ai_chunks (id, document_id, chunk_index, content, embedding) VALUES (:i,:d,:x,:c,:e)'),
-                         {"i": str(uuid4()), "d": doc_id, "x": idx, "c": text, "e": v})
-    await db.execute(sa_text('DELETE FROM ai_uploads_temp WHERE upload_id=:id'), {"id": upload_id})
-    await db.commit()
-    return {"document_id": doc_id}
-
-@api_router.get('/ai-knowledge/documents')
-async def ai_docs_list(db: AsyncSession = Depends(get_db)):
-    rows = (await db.execute(sa_text('''
-        SELECT d.id, d.filename, d.mime, d.size_bytes, d.summary, d.created_at, d.pages,
-               (SELECT COUNT(1) FROM ai_chunks c WHERE c.document_id=d.id) AS chunks_count
-        FROM ai_documents d
-        ORDER BY d.created_at DESC
-        LIMIT 200
-    '''))).all()
-    docs = []
-    for r in rows:
-        rid, filename, mime, size_bytes, summary, created_at, pages, chunks_count = r
-        # Extract category from mime if present
-        cat = None
-        try:
-            if isinstance(mime, str) and 'category=' in mime:
-                part = [p.strip() for p in mime.split(';') if 'category=' in p]
-                if part:
-                    cat = part[0].split('=',1)[1]
-        except Exception:
-            cat = None
-        docs.append({"id": rid, "filename": filename, "mime": mime, "category": cat, "size_bytes": size_bytes, "summary": summary, "created_at": created_at.isoformat() if created_at else None, "pages": pages, "chunks_count": chunks_count})
-    return {"documents": docs}
-
-class SearchRequest(BaseModel):
-    query: str
-    top_k: int = DEFAULT_TOP_K
-
-# Legacy search kept for backward compatibility under a different path; main search moved to psycopg3 router
-@api_router.post('/ai-knowledge/search-old')
-async def ai_search(req: SearchRequest, db: AsyncSession = Depends(get_db)):
-    if not req.query.strip():
-        raise HTTPException(status_code=400, detail='query пуст')
-    qv = (await _embed_texts_dynamic([req.query], db))[0]
-    # Convert embedding to pgvector literal string to avoid driver type issues
-    qv_str = '[' + ','.join(str(float(x)) for x in qv) + ']'
-    rows = (await db.execute(sa_text('''
-        SELECT c.document_id, c.chunk_index, c.content, 1 - (c.embedding <=> (:qv)::vector) as score, d.filename
-        FROM ai_chunks c JOIN ai_documents d ON d.id = c.document_id
-        ORDER BY c.embedding <=> (:qv)::vector
-        LIMIT :k
-    '''), {"qv": qv_str, "k": req.top_k})).all()
-    results = []
-    for r in rows:
-        doc_id, idx, content, score, filename = r
-        results.append({"document_id": doc_id, "chunk_index": idx, "content": content, "score": float(score), "filename": filename})
-    return {"results": results}
-
-@api_router.delete('/ai-knowledge/document/{doc_id}')
-async def ai_delete(doc_id: str, db: AsyncSession = Depends(get_db)):
-    await db.execute(sa_text('DELETE FROM ai_chunks WHERE document_id=:id'), {"id": doc_id})
-    await db.execute(sa_text('DELETE FROM ai_documents WHERE id=:id'), {"id": doc_id})
-    await db.commit()
-    return {"ok": True}
 
 # ===== Meetings (Summarize + Send to Telegram) =====
 class MeetingSummarizeRequest(BaseModel):
@@ -1219,12 +112,13 @@ async def meetings_summarize(req: MeetingSummarizeRequest):
     raw = (raw or '').strip()
     if not raw:
         return { 'summary': '' }
+    EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
     if not EMERGENT_LLM_KEY:
         # fallback: first 800 chars
         return { 'summary': raw[:800] }
     system = (
-        'Ты помощник VasDom. Составь краткий протокол планёрки на русском языком: '\
-        '1) Итоги и ключевые решения. 2) Список задач (кто/что/срок). 3) Риски/блокеры. 4) Следующие шаги. '\
+        'Ты помощник VasDom. Составь краткий протокол планёрки на русском языком: '
+        '1) Итоги и ключевые решения. 2) Список задач (кто/что/срок). 3) Риски/блокеры. 4) Следующие шаги. '
         'Будь кратким и структурированным, используй маркированные списки. Не выдумывай.'
     )
     try:
@@ -1237,7 +131,6 @@ async def meetings_summarize(req: MeetingSummarizeRequest):
         return { 'summary': raw[:800] }
 
 # High-quality Speech-to-Text (OpenAI)
-from fastapi import UploadFile, File
 from tempfile import NamedTemporaryFile
 
 @api_router.post('/meetings/stt')
@@ -1295,11 +188,22 @@ async def meetings_stt(file: UploadFile = File(...), language: Optional[str] = '
         # Более информативный ответ, чтобы проще диагностировать
         raise HTTPException(status_code=500, detail=f'STT failed: {str(e)[:200]}')
 
+# ===== Meetings: Send to Telegram =====
 class MeetingSendRequest(BaseModel):
     text: str
     chat_id: Optional[str] = None
     doc_id: Optional[str] = None  # id документа в БЗ (для фидбека)
     with_feedback: Optional[bool] = False
+
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+
+async def _tg_send(method: str, payload: Dict[str, Any]):
+    if not TELEGRAM_BOT_TOKEN:
+        raise HTTPException(status_code=400, detail='telegram not configured')
+    async with httpx.AsyncClient(timeout=20) as cli:
+        resp = await cli.post(f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}', json=payload)
+        if resp.status_code != 200:
+            logger.warning(f"telegram error {resp.status_code}: {resp.text}")
 
 @api_router.post('/meetings/send')
 async def meetings_send(req: MeetingSendRequest):
@@ -1326,7 +230,7 @@ async def meetings_send(req: MeetingSendRequest):
         await _tg_send('sendMessage', payload)
     return { 'ok': True, 'parts': len(chunks) }
 
-# ===== Meetings: Save to Knowledge Base =====
+# ===== Meetings: Save to Knowledge Base & Recent =====
 class MeetingTaskItem(BaseModel):
     title: str
     owner: Optional[str] = None
@@ -1349,6 +253,14 @@ class SaveToKbRequest(BaseModel):
     protocol_text: Optional[str] = None
     form: Optional[MeetingProtocolForm] = None
     filename: Optional[str] = None
+
+# remember proxy
+_RemReq = None
+_rag_remember = None
+try:
+    from app.routers.ai_knowledge import RememberRequest as _RemReq, remember as _rag_remember
+except Exception:
+    pass
 
 def _compose_protocol_text(form: MeetingProtocolForm) -> str:
     parts: List[str] = []
@@ -1407,7 +319,6 @@ async def meetings_save_to_kb(req: SaveToKbRequest):
             raise HTTPException(status_code=500, detail='Database write error')
     raise HTTPException(status_code=500, detail='Knowledge Base unavailable')
 
-# ===== Meetings: Recent protocols with feedback aggregates =====
 class RecentProtocolsResponse(BaseModel):
     protocols: List[Dict[str, Any]]
 
@@ -1462,183 +373,74 @@ async def meetings_recent(limit: int = Query(50), db: AsyncSession = Depends(get
             logger.error(f'meetings_recent error: {e}; fallback failed: {e2}')
             return { 'protocols': [] }
 
-# Подключаем основной /api роутер
+# ====== OpenAI Realtime: Ephemeral session endpoint ======
+class RealtimeSessionRequest(BaseModel):
+    voice: Optional[str] = Field(default='marin')
+    instructions: Optional[str] = Field(default='You are a helpful assistant.')
+    temperature: Optional[float] = Field(default=0.8)
+    max_response_output_tokens: Optional[int] = Field(default=4096)
+
+class RealtimeSessionResponse(BaseModel):
+    client_secret: str
+    model: str
+    voice: str
+    instructions: str
+    expires_at: int
+    session_id: str
+
+@api_router.post('/realtime/sessions', response_model=RealtimeSessionResponse)
+async def create_realtime_session(req: RealtimeSessionRequest):
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail='OPENAI_API_KEY not configured')
+    payload = {
+        'model': 'gpt-4o-realtime-preview',
+        'voice': req.voice or 'marin',
+        'instructions': (req.instructions or 'You are a helpful assistant.'),
+        'temperature': req.temperature or 0.8,
+        'max_response_output_tokens': req.max_response_output_tokens or 4096,
+        'turn_detection': {
+            'type': 'server_vad',
+            'threshold': 0.5,
+            'prefix_padding_ms': 300,
+            'silence_duration_ms': 500,
+            'create_response': True
+        },
+        'input_audio_format': 'pcm16',
+        'output_audio_format': 'pcm16',
+        'input_audio_transcription': { 'model': 'whisper-1' }
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as cli:
+            resp = await cli.post('https://api.openai.com/v1/realtime/sessions', json=payload, headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            })
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail=f'OpenAI error: {resp.text}')
+            data = resp.json()
+            return {
+                'client_secret': data['client_secret']['value'],
+                'model': data['model'],
+                'voice': data.get('voice', req.voice or 'marin'),
+                'instructions': data.get('instructions', req.instructions or ''),
+                'expires_at': data['client_secret']['expires_at'],
+                'session_id': data['id']
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'Realtime session create error: {e}')
+        raise HTTPException(status_code=500, detail='Failed to create realtime session')
+
+# Mount API router
 app.include_router(api_router)
 
-# ===== Telegram Bot (Webhook) =====
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN') or os.environ.get('BOT_TOKEN') or ''
-TELEGRAM_ADMINS = set((os.environ.get('TELEGRAM_ADMINS') or 'mmv092').split(','))  # usernames or numeric ids
-
-_last_qa_by_chat: Dict[str, Dict[str, Any]] = {}
-_fb_wait_comment: Dict[str, Dict[str, Any]] = {}
-_kb_mode_by_chat: Dict[str, bool] = {}
-
-async def _tg_send(method: str, payload: Dict[str, Any]) -> None:
-    if not TELEGRAM_BOT_TOKEN:
-        return
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/{method}"
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            await client.post(url, json=payload)
-    except Exception as e:
-        logger.warning(f"tg send error: {e}")
-
-def _is_admin(from_user: Dict[str, Any]) -> bool:
-    uid = str(from_user.get('id', ''))
-    uname = (from_user.get('username') or '').lower()
-    return (uid in TELEGRAM_ADMINS) or (uname in TELEGRAM_ADMINS)
-
-# Import RAG endpoints to reuse logic
-try:
-    from app.routers.ai_knowledge import AnswerRequest as _AnsReq, answer as _rag_answer, RememberRequest as _RemReq, remember as _rag_remember, feedback as _rag_feedback, FeedbackRequest as _FbReq
-except Exception:
-    try:
-        from backend.app.routers.ai_knowledge import AnswerRequest as _AnsReq, answer as _rag_answer, RememberRequest as _RemReq, remember as _rag_remember, feedback as _rag_feedback, FeedbackRequest as _FbReq
-    except Exception:
-        _AnsReq = None; _rag_answer=None; _RemReq=None; _rag_remember=None; _rag_feedback=None; _FbReq=None
-
-async def _handle_text(chat_id: str, from_user: Dict[str, Any], text: str, message_id: Optional[int]):
-    text = (text or '').strip()
-    if not text:
-        return
-    # Admin commands
-    if text.startswith('/kb_on') and _is_admin(from_user):
-        _kb_mode_by_chat[chat_id] = True
-        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Режим БЗ включен"})
-        return
-    if text.startswith('/kb_off') and _is_admin(from_user):
-        _kb_mode_by_chat[chat_id] = False
-        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Режим БЗ выключен"})
-        return
-    if text.startswith('/remember') and _is_admin(from_user) and _RemReq and _rag_remember:
-        payload = text[len('/remember'):].strip()
-        if payload:
-            try:
-                await _rag_remember(_RemReq(text=payload))
-                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Запомнил."})
-            except Exception:
-                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Ошибка при сохранении."})
-        else:
-            await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Укажите текст после /remember"})
-        return
-
-    use_kb = _kb_mode_by_chat.get(chat_id, True)
-    ans_text = ""
-    citations: List[Dict[str, Any]] = []
-    if use_kb and _AnsReq and _rag_answer:
-        try:
-            res = await _rag_answer(_AnsReq(question=text))
-            ans_text = res.get('answer') or ''
-            citations = res.get('citations') or []
-        except Exception as e:
-            logger.warning(f"rag answer failed: {e}")
-    if not ans_text:
-        ans_text = "Не удалось найти информацию в базе знаний. Уточните вопрос."
-
-    # save QA for feedback
-    _last_qa_by_chat[chat_id] = {"q": text, "a": ans_text, "mid": message_id}
-
-    # Send with inline keyboard 1..5 and comment button
-    kb = {
-        "inline_keyboard": [[
-            {"text": "1", "callback_data": "rate:1"},
-            {"text": "2", "callback_data": "rate:2"},
-            {"text": "3", "callback_data": "rate:3"},
-            {"text": "4", "callback_data": "rate:4"},
-            {"text": "5", "callback_data": "rate:5"},
-        ], [
-            {"text": "Пояснить", "callback_data": "comment"}
-        ]]}
-    await _tg_send('sendMessage', {"chat_id": chat_id, "text": ans_text, "reply_markup": kb})
-
-async def _handle_callback(chat_id: str, from_user: Dict[str, Any], data: str, message_id: Optional[int]):
-    qa = _last_qa_by_chat.get(chat_id) or {}
-    q = qa.get('q',''); a = qa.get('a','')
-    if data == 'comment':
-        _fb_wait_comment[chat_id] = {"q": q, "a": a}
-        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Опишите, что было не так (коротко)."})
-        return
-    if data.startswith('rate:'):
-        try:
-            rating = int(data.split(':',1)[1])
-        except Exception:
-            rating = 0
-        if _FbReq and _rag_feedback:
-            try:
-                await _rag_feedback(_FbReq(channel='telegram', rating=rating, question=q, answer=a, message_id=str(message_id or ''), chat_id=str(chat_id), user_id=str(from_user.get('id'))))
-            except Exception as e:
-                logger.warning(f"feedback save failed: {e}")
-        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за оценку!"})
-        return
-    if data.startswith('mp:like:') or data.startswith('mp:dislike:'):
-        # Meeting protocol feedback via inline buttons
-        try:
-            doc_id = data.split(':', 2)[2]
-        except Exception:
-            doc_id = ''
-        rating = 1 if data.startswith('mp:like:') else 0
-        if _FbReq and _rag_feedback:
-            try:
-                await _rag_feedback(_FbReq(channel='telegram', rating=rating, question='meeting_protocol', answer=doc_id, message_id=doc_id, chat_id=str(chat_id), user_id=str(from_user.get('id'))))
-            except Exception as e:
-                logger.warning(f"meeting protocol feedback save failed: {e}")
-        await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за отзыв по протоколу!"})
-
-async def _process_update(update: Dict[str, Any]):
-    try:
-        if 'message' in update and isinstance(update['message'], dict):
-            msg = update['message']
-            chat = msg.get('chat') or {}
-            chat_id = str(chat.get('id'))
-            from_user = msg.get('from') or {}
-            if chat_id and 'text' in msg:
-                await _handle_text(chat_id, from_user, msg.get('text',''), msg.get('message_id'))
-            elif chat_id and chat_id in _fb_wait_comment and msg.get('text'):
-                # save comment
-                st = _fb_wait_comment.pop(chat_id, {})
-                if _FbReq and _rag_feedback:
-                    try:
-                        await _rag_feedback(_FbReq(channel='telegram', rating=1, question=st.get('q',''), answer=st.get('a',''), comment=msg.get('text',''), chat_id=chat_id, user_id=str(from_user.get('id'))))
-                    except Exception as e:
-                        logger.warning(f"feedback comment error: {e}")
-                await _tg_send('sendMessage', {"chat_id": chat_id, "text": "Спасибо за пояснение!"})
-            return
-        if 'callback_query' in update and isinstance(update['callback_query'], dict):
-            cq = update['callback_query']
-            msg = cq.get('message') or {}
-            chat_id = str(((msg.get('chat') or {}).get('id')))
-            from_user = cq.get('from') or {}
-            data = cq.get('data') or ''
-            await _handle_callback(chat_id, from_user, data, msg.get('message_id'))
-            return
-    except Exception as e:
-        logger.warning(f"update process error: {e}")
-
-@app.post('/telegram/webhook')
-async def telegram_webhook(update: Dict[str, Any]):
-    await _process_update(update)
-    return {"ok": True}
-
-@api_router.post('/telegram/webhook')
-async def telegram_webhook_api(update: Dict[str, Any]):
-    await _process_update(update)
-    return {"ok": True}
-
-# Подключаем модульный роутер AI Knowledge, если есть
-import importlib
-_ai_router = None
-for mod in ('app.routers.ai_knowledge', 'backend.app.routers.ai_knowledge'):
-    try:
-        _module = importlib.import_module(mod)
-        _ai_router = getattr(_module, 'router', None)
-        if _ai_router:
-            app.include_router(_ai_router)
-            logger.info(f'AI Knowledge router подключен из {mod}')
-            break
-    except Exception as e:
-        continue
-if not _ai_router:
-    logger.warning('AI Knowledge router не подключен: No module found (tried app.routers.ai_knowledge, backend.app.routers.ai_knowledge)')
+# Startup hook (db etc)
+async def init_db():
+    if engine:
+        async with engine.begin() as conn:
+            await conn.run_sync(lambda conn: None)
 
 @app.on_event("startup")
 async def on_startup():
