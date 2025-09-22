@@ -35,6 +35,13 @@ from uuid import uuid4
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Scrub invalid PGSSLMODE values that break asyncpg
+allowed_pgssl = {'disable','allow','prefer','require','verify-ca','verify-full'}
+pgssl = os.environ.get('PGSSLMODE')
+if pgssl and pgssl.strip().lower() not in allowed_pgssl:
+    # set to require rather than invalid values like 'true'
+    os.environ['PGSSLMODE'] = 'require'
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("server")
 
