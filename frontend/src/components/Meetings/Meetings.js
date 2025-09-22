@@ -173,15 +173,11 @@ const Meetings = () => {
       mr.ondataavailable = async (e) => {
         if (e.data && e.data.size > 0) {
           hqChunksRef.current.push(e.data);
-          // полу-реалтайм: отправляем небольшие куски во время записи
-          if (hqRecording && e.timecode !== undefined) {
-            try {
-              const part = new Blob([e.data], { type: hqMimeRef.current || 'audio/webm' });
-              await uploadHQ(part);
-            } catch (err) {
-              // Не прерываем запись, просто показываем сообщение
-              setSttError('Ошибка отправки чанка, продолжаю запись');
-            }
+          // полу-реалтайм: отправляем небольшие куски во время записи через очередь
+          if (hqRecording && !stoppingRef.current) {
+            const part = new Blob([e.data], { type: hqMimeRef.current || 'audio/webm' });
+            hqQueueRef.current.push(part);
+            processQueue();
           }
         }
       };
