@@ -104,7 +104,10 @@ engine = None
 async_session = None
 
 if DATABASE_URL:
-    engine = create_async_engine(DATABASE_URL, future=True, echo=False)
+    # asyncpg ignores sslmode kwarg; it accepts ssl=True via connect args
+    connect_args = {}
+    connect_args['ssl'] = True
+    engine = create_async_engine(DATABASE_URL, future=True, echo=False, connect_args=connect_args)
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 async def get_db() -> AsyncSession:
