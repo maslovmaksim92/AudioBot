@@ -91,7 +91,7 @@ const Meetings = () => {
 
   const loadRecent = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/meetings/protocols/recent?limit=20`);
+      const res = await fetch(`${BACKEND_URL}/api/meetings/protocols/recent?limit=20`);
       const data = await res.json();
       setRecent(data.protocols || []);
     } catch (e) {}
