@@ -406,8 +406,8 @@
 
 ## test_plan:
 ##   current_focus:
-##     - "Backend: meetings save-to-kb + recent protocols endpoint"
-##     - "Frontend: Meetings UI new buttons and recent panel"
+##     - "Backend: /api/meetings/summarize returns valid summary"
+##     - "Frontend: Meetings summarize button wiring"
 ##   stuck_tasks: 
 ##     - "DATABASE_URL has invalid sslmode parameter - needs production environment fix in Render"
 ##     - "Production deployment has critical routing and API issues"
