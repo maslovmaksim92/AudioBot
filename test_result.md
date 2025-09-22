@@ -56,6 +56,7 @@ metadata:
 test_plan:
   current_focus:
     - "AI Chat functionality"
+    - "AI Chat endpoint (/api/ai-knowledge/answer)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
