@@ -675,3 +675,108 @@ async def search(req: SearchRequest):
         logger.error(f"search error: {e}")
         # На пустой базе или при иного рода ошибке — безопасно вернуть пусто
         return {"results": []}
+
+class AnswerRequest(BaseModel):
+    question: str
+    top_k: int = 5
+    category: Optional[str] = None
+    min_score: float = 0.12
+    session_id: Optional[str] = None
+
+@router.post('/answer')
+async def answer(req: AnswerRequest):
+    # Если база недоступна — отвечаем без БЗ
+    q = (req.question or '').strip()
+    if not q:
+        return {"answer": "", "citations": []}
+    use_kb = bool(pg_pool)
+    citations: List[Dict[str, Any]] = []
+    try:
+        context_blocks: List[str] = []
+        if use_kb:
+            await _ensure_pool()
+            # Эмбеддинг вопроса
+            qvec = (await _embed_texts_dynamic([q]))[0]
+            qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
+            async with pg_pool.connection() as conn:
+                conn.row_factory = dict_row
+                async with conn.cursor() as cur:
+                    # Узнаём целевую размерность и подгоняем
+                    await cur.execute(
+                        """
+                        SELECT a.atttypmod AS atttypmod
+                        FROM pg_attribute a
+                        JOIN pg_class c ON c.oid = a.attrelid
+                        WHERE c.relname = 'ai_chunks' AND a.attname = 'embedding'
+                        LIMIT 1
+                        """
+                    )
+                    rowd = await cur.fetchone()
+                    target_dims = None
+                    if rowd and rowd.get('atttypmod') and rowd['atttypmod'] > 4:
+                        target_dims = int(rowd['atttypmod']) - 4
+                    if target_dims and isinstance(qvec, list) and len(qvec) != target_dims:
+                        if len(qvec) > target_dims:
+                            qvec = qvec[:target_dims]
+                        else:
+                            qvec = qvec + [0.0]*(target_dims - len(qvec))
+                        qvec_str = '[' + ','.join(str(float(x)) for x in qvec) + ']'
+                    # Необязательный фильтр по категории (достаём из mime)
+                    cat_clause = ''
+                    params = {"qv": qvec_str, "k": int(req.top_k)}
+                    if req.category:
+                        cat_clause = "WHERE d.mime ILIKE %(cat)s"
+                        params["cat"] = f"%category={req.category}%"
+                    await cur.execute(
+                        f'''
+                        SELECT d.id as document_id, d.filename, c.chunk_index, c.content,
+                               1 - (c.embedding <=> (%(qv)s)::vector) as score
+                        FROM ai_chunks c
+                        JOIN ai_documents d ON d.id = c.document_id
+                        {cat_clause}
+                        ORDER BY c.embedding <=> (%(qv)s)::vector
+                        LIMIT %(k)s
+                        ''',
+                        params
+                    )
+                    rows = await cur.fetchall()
+                    for r in rows or []:
+                        sc = float(r.get('score') or 0.0)
+                        if sc < float(req.min_score):
+                            continue
+                        text = (r.get('content') or '')
+                        excerpt = text[:600]
+                        citations.append({
+                            "document_id": r.get('document_id'),
+                            "filename": r.get('filename'),
+                            "chunk_index": r.get('chunk_index'),
+                            "score": sc,
+                            "excerpt": excerpt
+                        })
+                        # Формируем компактный блок контекста
+                        context_blocks.append(f"Источник: {r.get('filename')} (фрагм. #{r.get('chunk_index')})\n{excerpt}")
+        # Подготовим системный промпт и вызов LLM
+        system = (
+            "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
+            "Опирайся ТОЛЬКО на предоставленный контекст из базы знаний. "
+            "Если в контексте нет ответа — скажи: 'В базе знаний нет информации по этому вопросу'. "
+            "Не выдумывай и не ссылайся на внешние источники."
+        )
+        context_text = ("\n\n".join(context_blocks))[:6000]
+        if not EMERGENT_LLM_KEY:
+            # Фоллбэк без LLM — просто возвращаем найденные цитаты
+            fallback = "\n\n".join(context_blocks[:2]) or "В базе знаний нет информации по этому вопросу"
+            return {"answer": fallback, "citations": citations}
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model('openai','gpt-5-mini')
+        user_prompt = (
+            f"Вопрос: {q}\n\n" +
+            (f"Контекст из базы знаний (используй только это):\n{context_text}\n\n" if context_text else "Контекст из базы знаний отсутствует. Ответь, что информации нет.\n\n") +
+            "Ответ:"
+        )
+        llm_resp = await chat.send_message(UserMessage(text=user_prompt))
+        answer_text = llm_resp or ("В базе знаний нет информации по этому вопросу" if not context_blocks else "")
+        return {"answer": answer_text, "citations": citations}
+    except Exception as e:
+        logger.error(f"answer error: {e}")
+        # На любой ошибке даём мягкий ответ
+        return {"answer": "В базе знаний нет информации по этому вопросу", "citations": []}
