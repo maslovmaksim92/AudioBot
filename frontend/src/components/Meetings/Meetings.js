@@ -222,13 +222,13 @@ const Meetings = () => {
         <div className="py-3 flex items-center justify-between gap-2">
           <h1 className="text-xl font-bold">Планёрка</h1>
           <div className="flex items-center gap-2">
-            {!isLive ? (
-              <button onClick={handleStart} className="px-3 py-2 rounded-lg bg-red-500 text-white flex items-center gap-2">
-                <Mic className="w-4 h-4" /> Старт
+            {!hqRecording ? (
+              <button onClick={startHQ} className="px-3 py-2 rounded-lg bg-red-500 text-white flex items-center gap-2">
+                <Mic className="w-4 h-4" /> Запись
               </button>
             ) : (
-              <button onClick={handleStop} className="px-3 py-2 rounded-lg bg-gray-800 text-white flex items-center gap-2">
-                <Square className="w-4 h-4" /> Стоп
+              <button onClick={stopHQ} className="px-3 py-2 rounded-lg bg-gray-800 text-white flex items-center gap-2">
+                <Square className="w-4 h-4" /> Стоп {recordSeconds ? `(${recordSeconds}s)` : ''}
               </button>
             )}
           </div>
