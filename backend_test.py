@@ -2186,6 +2186,236 @@ class VasDomAPITester:
             self.log_test("Current Review Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
 
+    def test_final_review_request_mini_flow(self):
+        """Test the exact mini-flow from the final review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Финальный backend mini‑flow на проде")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing exact mini-flow per review request:")
+        print("1) POST /api/ai-knowledge/preview (TXT: 'final close task psycopg3 ok') → 200: upload_id")
+        print("2) GET /status?upload_id=… → 200: ready")
+        print("3) POST /study (FormData: upload_id, filename='close.txt', category='Маркетинг') → 200: document_id")
+        print("4) GET /documents → 200: есть close.txt с chunks_count>=1")
+        print("5) POST /search {query:'psycopg3', top_k:5} → 200 (N может быть 0)")
+        print("6) DELETE /document/{document_id} → 200 {ok:true}")
+        print("=" * 80)
+        
+        # Test 1: POST /api/ai-knowledge/preview
+        upload_id = self.test_final_close_preview()
+        
+        if upload_id:
+            # Test 2: GET /api/ai-knowledge/status
+            self.test_final_close_status(upload_id)
+            
+            # Test 3: POST /api/ai-knowledge/study
+            document_id = self.test_final_close_study(upload_id)
+            
+            if document_id:
+                # Test 4: GET /api/ai-knowledge/documents
+                self.test_final_close_documents()
+                
+                # Test 5: POST /api/ai-knowledge/search
+                self.test_final_close_search()
+                
+                # Test 6: DELETE /api/ai-knowledge/document/{document_id}
+                self.test_final_close_delete(document_id)
+            else:
+                print("❌ Cannot proceed with documents/search/delete tests - no document_id from study")
+        else:
+            print("❌ Cannot proceed with mini-flow tests - no upload_id from preview")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_final_close_preview(self):
+        """Test 1: POST /api/ai-knowledge/preview (TXT: 'final close task psycopg3 ok')"""
+        print("\n1️⃣ Testing POST /api/ai-knowledge/preview")
+        print("   Content: 'final close task psycopg3 ok'")
+        print("   Expected: 200: upload_id")
+        
+        # Create test file content as specified in review request
+        test_content = "final close task psycopg3 ok"
+        files = {'files': ('close.txt', test_content.encode('utf-8'), 'text/plain')}
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/preview', files=files)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_id = data.get('upload_id')
+            
+            if upload_id:
+                self.log_test("Final Close Preview", True, 
+                            f"✅ upload_id: {upload_id[:8]}... ✓")
+                self.upload_id = upload_id
+                return upload_id
+            else:
+                self.log_test("Final Close Preview", False, "❌ Missing upload_id")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Preview", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_final_close_status(self, upload_id):
+        """Test 2: GET /status?upload_id=… → 200: ready"""
+        print(f"\n2️⃣ Testing GET /api/ai-knowledge/status?upload_id={upload_id[:8]}...")
+        print("   Expected: 200: ready")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/status', params={'upload_id': upload_id})
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            upload_status = data.get('status', '')
+            
+            if upload_status == 'ready':
+                self.log_test("Final Close Status", True, "✅ status='ready' ✓")
+            else:
+                self.log_test("Final Close Status", False, f"❌ status='{upload_status}' (expected 'ready')")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Status", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_final_close_study(self, upload_id):
+        """Test 3: POST /study (FormData: upload_id, filename='close.txt', category='Маркетинг')"""
+        print(f"\n3️⃣ Testing POST /api/ai-knowledge/study")
+        print("   FormData: upload_id, filename='close.txt', category='Маркетинг'")
+        print("   Expected: 200: document_id")
+        
+        form_data = {
+            'upload_id': upload_id,
+            'filename': 'close.txt',
+            'category': 'Маркетинг'
+        }
+        
+        success, data, status = self.make_multipart_request('POST', '/api/ai-knowledge/study', data=form_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            document_id = data.get('document_id')
+            
+            if document_id:
+                self.log_test("Final Close Study", True, 
+                            f"✅ document_id: {document_id[:8]}... ✓")
+                self.document_id = document_id
+                return document_id
+            else:
+                self.log_test("Final Close Study", False, "❌ Missing document_id")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Study", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_final_close_documents(self):
+        """Test 4: GET /documents → 200: есть close.txt с chunks_count>=1"""
+        print("\n4️⃣ Testing GET /api/ai-knowledge/documents")
+        print("   Expected: 200: есть close.txt с chunks_count>=1")
+        
+        success, data, status = self.make_request('GET', '/api/ai-knowledge/documents')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            
+            documents = data.get('documents', [])
+            print(f"   Total documents: {len(documents)}")
+            
+            if documents:
+                # Find our test document
+                test_doc = None
+                for doc in documents:
+                    if doc.get('filename') == 'close.txt':
+                        test_doc = doc
+                        break
+                
+                if test_doc:
+                    chunks_count = test_doc.get('chunks_count', 0)
+                    print(f"   Found 'close.txt': {json.dumps(test_doc, indent=2, ensure_ascii=False)}")
+                    if chunks_count >= 1:
+                        self.log_test("Final Close Documents", True, 
+                                    f"✅ Found 'close.txt' with chunks_count: {chunks_count} ✓")
+                    else:
+                        self.log_test("Final Close Documents", False, 
+                                    f"❌ Found 'close.txt' but chunks_count={chunks_count} (expected >=1)")
+                else:
+                    self.log_test("Final Close Documents", False, 
+                                "❌ Test document 'close.txt' not found in documents list")
+            else:
+                self.log_test("Final Close Documents", False, "❌ No documents found")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Documents", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_final_close_search(self):
+        """Test 5: POST /search {query:'psycopg3', top_k:5} → 200 (N может быть 0)"""
+        print("\n5️⃣ Testing POST /api/ai-knowledge/search")
+        print("   Body: {query:'psycopg3', top_k:5}")
+        print("   Expected: 200 (N может быть 0)")
+        
+        search_data = {
+            'query': 'psycopg3',
+            'top_k': 5
+        }
+        
+        success, data, status = self.make_request('POST', '/api/ai-knowledge/search', search_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            results = data.get('results', [])
+            
+            if isinstance(results, list):
+                self.log_test("Final Close Search", True, 
+                            f"✅ Status 200 ✓, results[] array (size: {len(results)}) - N может быть 0 ✓")
+                
+                # Show results if any
+                if results:
+                    print(f"   📋 Search results found:")
+                    for i, result in enumerate(results[:2], 1):  # Show first 2 results
+                        print(f"   {i}. {json.dumps(result, indent=2, ensure_ascii=False)}")
+                else:
+                    print("   📋 No search results (N=0, допускается)")
+            else:
+                self.log_test("Final Close Search", False, 
+                            f"❌ Status 200 ✓, но results должен быть массивом, получен {type(results)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Search", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_final_close_delete(self, document_id):
+        """Test 6: DELETE /document/{document_id} → 200 {ok:true}"""
+        print(f"\n6️⃣ Testing DELETE /api/ai-knowledge/document/{document_id[:8]}...")
+        print("   Expected: 200 {ok:true}")
+        
+        success, data, status = self.make_request('DELETE', f'/api/ai-knowledge/document/{document_id}')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            ok = data.get('ok', False)
+            
+            if ok is True:
+                self.log_test("Final Close Delete", True, "✅ Document deleted successfully {ok:true} ✓")
+            else:
+                self.log_test("Final Close Delete", False, f"❌ Expected ok=true, got ok={ok}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Final Close Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+
 if __name__ == "__main__":
     tester = VasDomAPITester()
     
@@ -2206,8 +2436,10 @@ if __name__ == "__main__":
             tester.test_production_review_request()
         elif test_type == "final":
             tester.test_final_e2e_review_request()
+        elif test_type == "close":
+            tester.test_final_review_request_mini_flow()
         else:
             tester.run_review_request_tests()
     else:
-        # Default: run current review request test
-        tester.test_current_review_request()
+        # Default: run the final close task mini-flow
+        tester.test_final_review_request_mini_flow()
