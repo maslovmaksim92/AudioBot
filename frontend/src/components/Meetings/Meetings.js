@@ -174,6 +174,12 @@ const Meetings = () => {
           try { hqStreamRef.current?.getTracks()?.forEach(t => t.stop()); } catch(e) {}
           hqStreamRef.current = null;
           hqMediaRef.current = null;
+          
+          // Stop timer
+          if (recordTimerRef.current) {
+            clearInterval(recordTimerRef.current);
+            recordTimerRef.current = null;
+          }
         }
       };
       mr.onerror = (e) => { setSttError(e?.error?.message || 'Ошибка записи'); };
