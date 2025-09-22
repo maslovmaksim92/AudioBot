@@ -154,6 +154,55 @@ const Meetings = () => {
   const stoppingRef = useRef(false);
   const lastAddedRef = useRef('');
 
+  // Sequential queue processor for semi-realtime STT
+  const processQueue = async () => {
+    if (hqBusyRef.current) return;
+    hqBusyRef.current = true;
+    try {
+      while (hqQueueRef.current.length) {
+        const now = Date.now();
+        if (now - lastSendTsRef.current < 500) {
+          await new Promise(r => setTimeout(r, 200));
+          continue;
+        }
+        const blob = hqQueueRef.current.shift();
+        if (!blob || !blob.size || blob.size < 2000) {
+          continue; // skip too small
+        }
+        lastSendTsRef.current = Date.now();
+        setHqUploading(true);
+        try {
+          const fd = new FormData();
+          const fname = `chunk_${Date.now()}.webm`;
+          fd.append('file', blob, fname);
+          const res = await fetch(`${BACKEND_URL}/api/meetings/stt?language=ru`, { method: 'POST', body: fd });
+          let data = {};
+          try { data = await res.json(); } catch(e) { data = {}; }
+          if (res.ok && data && data.ok !== false) {
+            const part = (data.text || '').trim();
+            if (part) {
+              const prevAll = transAllRef.current;
+              const windowTail = prevAll.slice(-Math.max(50, Math.min(400, Math.floor(prevAll.length/3))));
+              const isDup = windowTail.endsWith(part) || part.endsWith(windowTail) || lastAddedRef.current === part;
+              if (!isDup) {
+                transAllRef.current = `${prevAll}\n${part}`.trim();
+                lastAddedRef.current = part;
+                setTranscript(prev => [...prev, part]);
+                setInterim('');
+              }
+            }
+          }
+        } catch (e) {
+          // ignore errors, continue queue
+        } finally {
+          setHqUploading(false);
+        }
+      }
+    } finally {
+      hqBusyRef.current = false;
+    }
+  };
+
   const startHQ = async () => {
     setSttError(''); setHqStatus('');
     try {
