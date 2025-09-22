@@ -160,147 +160,186 @@ const Meetings = () => {
     }
   };
 
-  return (
-    <div className="pt-0 px-3 pb-4 max-w-6xl mx-auto">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold gradient-text">Планёрка (онлайн транскрипция)</h1>
-        <div className="flex items-center gap-2">
-          {!isLive ? (
-            <button onClick={handleStart} className="px-4 py-2 rounded-lg bg-red-500 text-white flex items-center gap-2">
-              <Mic className="w-4 h-4" /> Старт
-            </button>
-          ) : (
-            <button onClick={handleStop} className="px-4 py-2 rounded-lg bg-gray-800 text-white flex items-center gap-2">
-              <Square className="w-4 h-4" /> Стоп
-            </button>
-          )}
-          <button onClick={makeSummary} className="px-4 py-2 rounded-lg bg-purple-600 text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4" /> Сделать саммари
-          </button>
-          <button onClick={saveToKB} className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2">
-            <Save className="w-4 h-4" /> Запомнить протокол
-          </button>
-          <button onClick={sendTelegram} className="px-4 py-2 rounded-lg bg-sky-600 text-white flex items-center gap-2">
-            <Send className="w-4 h-4" /> В Telegram
-          </button>
-          <button onClick={exportTxt} disabled={exporting} className="px-4 py-2 rounded-lg bg-white border flex items-center gap-2 disabled:opacity-50">
-            <FileText className="w-4 h-4" /> Экспорт .txt
-          </button>
-        </div>
-      </div>
+  const [tab, setTab] = useState('transcribe'); // 'transcribe' | 'protocol' | 'history'
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl shadow-elegant p-4">
-          <h2 className="text-lg font-semibold mb-2">Онлайн транскрипция</h2>
-          <div className="h-96 overflow-y-auto space-y-2">
-            {transcript.map((line, idx) => (
-              <div key={idx} className="text-sm text-gray-800 bg-gray-50 rounded-lg p-2">{line}</div>
-            ))}
-            {!transcript.length && (
-              <div className="text-sm text-gray-500">Нажмите Старт, чтобы включить онлайн расшифровку речи.</div>
+  return (
+    <div className="px-3 pb-20 max-w-3xl mx-auto">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
+        <div className="py-3 flex items-center justify-between gap-2">
+          <h1 className="text-xl font-bold">Планёрка</h1>
+          <div className="flex items-center gap-2">
+            {!isLive ? (
+              <button onClick={handleStart} className="px-3 py-2 rounded-lg bg-red-500 text-white flex items-center gap-2">
+                <Mic className="w-4 h-4" /> Старт
+              </button>
+            ) : (
+              <button onClick={handleStop} className="px-3 py-2 rounded-lg bg-gray-800 text-white flex items-center gap-2">
+                <Square className="w-4 h-4" /> Стоп
+              </button>
             )}
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-elegant p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold">Саммари</h2>
-            <button onClick={() => setShowRecent(v => !v)} className="text-sm text-blue-600 flex items-center gap-1">
-              <ClipboardList className="w-4 h-4" /> Недавние протоколы
-            </button>
-          </div>
-          <div className="min-h-[10rem] text-sm text-gray-800 bg-gray-50 rounded-lg p-3">
-            {summary || 'Здесь появится краткое саммари встречи.'}
-          </div>
-          {showRecent && (
-            <div className="mt-4 border-t pt-3">
-              <div className="font-medium mb-2">Недавние протоколы</div>
-              <div className="max-h-60 overflow-y-auto divide-y">
-                {(recent || []).map((p) => (
-                  <div key={p.id} className="py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{p.filename || p.id}</div>
-                        <div className="text-gray-500 text-xs">{p.created_at?.replace('T',' ').replace('Z','')}</div>
-                      </div>
-                      <div className="text-xs text-gray-600">👍 {p.likes} · 👎 {p.dislikes}</div>
-                    </div>
-                    {p.summary && (
-                      <div className="text-gray-700 text-xs mt-1 line-clamp-3">{p.summary}</div>
-                    )}
-                  </div>
-                ))}
-                {!recent.length && (
-                  <div className="text-xs text-gray-500">Нет сохранённых протоколов</div>
-                )}
-              </div>
-            </div>
-          )}
+        <div className="flex gap-1 pb-2">
+          <button onClick={()=>setTab('transcribe')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='transcribe'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>Транскрипция</button>
+          <button onClick={()=>setTab('protocol')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='protocol'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>Протокол</button>
+          <button onClick={()=>setTab('history')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${tab==='history'?'bg-blue-600 text-white':'bg-gray-100 text-gray-800'}`}>История</button>
         </div>
       </div>
 
-      <div className="mt-4 bg-white rounded-xl shadow-elegant p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold">Единая форма протокола</h2>
-          <button onClick={saveFormToKB} className="px-3 py-1.5 text-sm rounded-lg bg-green-600 text-white flex items-center gap-2">
-            <Save className="w-4 h-4" /> Сохранить форму в БЗ
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <div>
-            <label className="text-gray-600 text-xs">Заголовок</label>
-            <input value={form.title} onChange={e=>updateForm('title', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Например: Планёрка по объектам" />
-          </div>
-          <div>
-            <label className="text-gray-600 text-xs">Дата и время</label>
-            <input value={form.datetime} onChange={e=>updateForm('datetime', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="2025-09-20 10:00" />
-          </div>
-          <div>
-            <label className="text-gray-600 text-xs">Участники</label>
-            <input value={form.participants} onChange={e=>updateForm('participants', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Имена через запятую" />
-          </div>
-          <div>
-            <label className="text-gray-600 text-xs">Цель встречи</label>
-            <input value={form.goal} onChange={e=>updateForm('goal', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="Цель" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Повестка</label>
-            {(form.agenda || []).map((a, idx) => (
-              <input key={idx} value={a} onChange={e=>updateAgenda(idx, e.target.value)} className="w-full border rounded-lg px-2 py-1.5 mt-1" placeholder={`Пункт ${idx+1}`} />
-            ))}
-            <button onClick={addAgenda} className="mt-1 text-xs text-blue-600">+ добавить пункт</button>
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Принятые решения</label>
-            <textarea value={form.decisions} onChange={e=>updateForm('decisions', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[80px]" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Поручения</label>
-            <div className="space-y-2">
-              {(form.tasks || []).map((t, idx) => (
-                <div key={idx} className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <input value={t.title} onChange={e=>updateTask(idx, 'title', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Задача" />
-                  <input value={t.owner} onChange={e=>updateTask(idx, 'owner', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Ответственный" />
-                  <input value={t.due} onChange={e=>updateTask(idx, 'due', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Срок" />
-                  <input value={t.status} onChange={e=>updateTask(idx, 'status', e.target.value)} className="border rounded-lg px-2 py-1.5" placeholder="Статус" />
-                </div>
+      {tab==='transcribe' && (
+        <div className="mt-3">
+          <div className="bg-white rounded-xl shadow-elegant p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold">Онлайн транскрипция</h2>
+              <span className={`text-xs ${isLive? 'text-green-600':'text-gray-500'}`}>{isLive? 'Запись идёт':'Ожидание'}</span>
+            </div>
+            <div className="h-[60vh] md:h-96 overflow-y-auto space-y-2">
+              {transcript.map((line, idx) => (
+                <div key={idx} className="text-sm text-gray-800 bg-gray-50 rounded-lg p-2">{line}</div>
               ))}
-              <button onClick={addTask} className="text-xs text-blue-600">+ добавить задачу</button>
+              {!!interim && (
+                <div className="text-sm text-gray-500 italic bg-gray-50 rounded-lg p-2">{interim}</div>
+              )}
+              {!transcript.length && !interim && (
+                <div className="text-sm text-gray-500">Нажмите Старт, чтобы включить онлайн расшифровку речи.</div>
+              )}
             </div>
           </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Риски/блокеры</label>
-            <textarea value={form.risks} onChange={e=>updateForm('risks', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[60px]" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Следующие шаги</label>
-            <textarea value={form.next_steps} onChange={e=>updateForm('next_steps', e.target.value)} className="w-full border rounded-lg px-2 py-1.5 min-h-[60px]" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-gray-600 text-xs">Ссылка на сделку/объект Bitrix</label>
-            <input value={form.bitrix_link} onChange={e=>updateForm('bitrix_link', e.target.value)} className="w-full border rounded-lg px-2 py-1.5" placeholder="https://vas-dom.bitrix24.ru/crm/deal/details/.../" />
+          <div className="mt-3 flex gap-2">
+            <button onClick={makeSummary} className="flex-1 px-4 py-3 rounded-lg bg-purple-600 text-white flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4" /> Сделать саммари
+            </button>
+            <button onClick={exportTxt} disabled={exporting} className="px-4 py-3 rounded-lg bg-white border flex items-center gap-2 disabled:opacity-50">
+              <FileText className="w-4 h-4" /> Экспорт
+            </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {tab==='protocol' && (
+        <div className="mt-3 space-y-3">
+          <div className="bg-white rounded-xl shadow-elegant p-3">
+            <h2 className="text-base font-semibold mb-2">Краткое саммари</h2>
+            <div className="min-h-[8rem] text-sm text-gray-800 bg-gray-50 rounded-lg p-3">
+              {summary || 'Здесь появится краткое саммари после генерации.'}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-elegant p-3">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-base font-semibold">Единая форма протокола</h2>
+              <button onClick={saveFormToKB} className="px-3 py-2 text-xs rounded-lg bg-green-600 text-white flex items-center gap-2">
+                <Save className="w-4 h-4" /> Сохранить форму в БЗ
+              </button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="text-gray-600 text-xs">Заголовок</label>
+                <input value={form.title} onChange={e=>updateForm('title', e.target.value)} className="w-full border rounded-lg px-2 py-2" placeholder="Например: Планёрка по объектам" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-600 text-xs">Дата и время</label>
+                  <input value={form.datetime} onChange={e=>updateForm('datetime', e.target.value)} className="w-full border rounded-lg px-2 py-2" placeholder="2025-09-20 10:00" />
+                </div>
+                <div>
+                  <label className="text-gray-600 text-xs">Участники</label>
+                  <input value={form.participants} onChange={e=>updateForm('participants', e.target.value)} className="w-full border rounded-lg px-2 py-2" placeholder="Имена через запятую" />
+                </div>
+              </div>
+
+              <details className="border rounded-lg p-2">
+                <summary className="cursor-pointer text-gray-700">Повестка</summary>
+                <div className="mt-2 space-y-1">
+                  {(form.agenda || []).map((a, idx) => (
+                    <input key={idx} value={a} onChange={e=>updateAgenda(idx, e.target.value)} className="w-full border rounded-lg px-2 py-2" placeholder={`Пункт ${idx+1}`} />
+                  ))}
+                  <button onClick={addAgenda} className="mt-1 text-xs text-blue-600">+ добавить пункт</button>
+                </div>
+              </details>
+
+              <details className="border rounded-lg p-2">
+                <summary className="cursor-pointer text-gray-700">Принятые решения</summary>
+                <textarea value={form.decisions} onChange={e=>updateForm('decisions', e.target.value)} className="w-full border rounded-lg px-2 py-2 min-h-[80px]" />
+              </details>
+
+              <details className="border rounded-lg p-2">
+                <summary className="cursor-pointer text-gray-700">Поручения</summary>
+                <div className="space-y-2 mt-2">
+                  {(form.tasks || []).map((t, idx) => (
+                    <div key={idx} className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <input value={t.title} onChange={e=>updateTask(idx, 'title', e.target.value)} className="border rounded-lg px-2 py-2" placeholder="Задача" />
+                      <input value={t.owner} onChange={e=>updateTask(idx, 'owner', e.target.value)} className="border rounded-lg px-2 py-2" placeholder="Ответственный" />
+                      <input value={t.due} onChange={e=>updateTask(idx, 'due', e.target.value)} className="border rounded-lg px-2 py-2" placeholder="Срок" />
+                      <input value={t.status} onChange={e=>updateTask(idx, 'status', e.target.value)} className="border rounded-lg px-2 py-2" placeholder="Статус" />
+                    </div>
+                  ))}
+                  <button onClick={addTask} className="text-xs text-blue-600">+ добавить задачу</button>
+                </div>
+              </details>
+
+              <details className="border rounded-lg p-2">
+                <summary className="cursor-pointer text-gray-700">Риски/блокеры</summary>
+                <textarea value={form.risks} onChange={e=>updateForm('risks', e.target.value)} className="w-full border rounded-lg px-2 py-2 min-h-[60px]" />
+              </details>
+
+              <details className="border rounded-lg p-2">
+                <summary className="cursor-pointer text-gray-700">Следующие шаги</summary>
+                <textarea value={form.next_steps} onChange={e=>updateForm('next_steps', e.target.value)} className="w-full border rounded-lg px-2 py-2 min-h-[60px]" />
+              </details>
+
+              <div>
+                <label className="text-gray-600 text-xs">Ссылка на сделку/объект Bitrix</label>
+                <input value={form.bitrix_link} onChange={e=>updateForm('bitrix_link', e.target.value)} className="w-full border rounded-lg px-2 py-2" placeholder="https://vas-dom.bitrix24.ru/crm/deal/details/.../" />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-4"></div>
+        </div>
+      )}
+
+      {tab==='history' && (
+        <div className="mt-3">
+          <div className="bg-white rounded-xl shadow-elegant p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold">Недавние протоколы</h2>
+              <button onClick={loadRecent} className="text-xs text-blue-600">Обновить</button>
+            </div>
+            <div className="divide-y">
+              {(recent || []).map((p) => (
+                <div key={p.id} className="py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">{p.filename || p.id}</div>
+                      <div className="text-gray-500 text-xs">{p.created_at?.replace('T',' ').replace('Z','')}</div>
+                    </div>
+                    <div className="text-xs text-gray-600 shrink-0 pl-2">👍 {p.likes} · 👎 {p.dislikes}</div>
+                  </div>
+                  {p.summary && (
+                    <div className="text-gray-700 text-xs mt-1 line-clamp-3">{p.summary}</div>
+                  )}
+                </div>
+              ))}
+              {!recent.length && (
+                <div className="text-xs text-gray-500 py-6 text-center">Нет сохранённых протоколов</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky action bar for protocol actions */}
+      {tab==='protocol' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 border-t p-2 flex items-center gap-2 justify-center">
+          <button onClick={saveToKB} className="flex-1 max-w-xs px-4 py-3 rounded-lg bg-green-600 text-white flex items-center justify-center gap-2">
+            <Save className="w-4 h-4" /> Запомнить протокол
+          </button>
+          <button onClick={sendTelegram} className="flex-1 max-w-xs px-4 py-3 rounded-lg bg-sky-600 text-white flex items-center justify-center gap-2">
+            <Send className="w-4 h-4" /> В Telegram
+          </button>
+        </div>
+      )}
     </div>
   );
 };
