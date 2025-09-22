@@ -740,21 +740,33 @@ async def answer(req: AnswerRequest):
                         params
                     )
                     rows = await cur.fetchall()
+                    # сортируем по score и берём top_k уже после фильтра
+                    prepared = []
                     for r in rows or []:
                         sc = float(r.get('score') or 0.0)
-                        if sc < float(req.min_score):
-                            continue
                         text = (r.get('content') or '')
-                        excerpt = text[:600]
-                        citations.append({
+                        prepared.append({
                             "document_id": r.get('document_id'),
                             "filename": r.get('filename'),
                             "chunk_index": r.get('chunk_index'),
                             "score": sc,
+                            "content": text
+                        })
+                    prepared.sort((lambda a,b: -1 if a['score']>b['score'] else (1 if a['score']<b['score'] else 0)))
+                    for r in prepared:
+                        if r['score'] < float(req.min_score):
+                            continue
+                        excerpt = r['content'][:600]
+                        citations.append({
+                            "document_id": r['document_id'],
+                            "filename": r['filename'],
+                            "chunk_index": r['chunk_index'],
+                            "score": r['score'],
                             "excerpt": excerpt
                         })
-                        # Формируем компактный блок контекста
-                        context_blocks.append(f"Источник: {r.get('filename')} (фрагм. #{r.get('chunk_index')})\n{excerpt}")
+                        context_blocks.append(f"Источник: {r['filename']} (фрагм. #{r['chunk_index']})\n{excerpt}")
+                        if len(context_blocks) >= int(req.top_k):
+                            break
         # Подготовим системный промпт и вызов LLM
         system = (
             "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
