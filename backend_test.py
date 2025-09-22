@@ -2955,5 +2955,5 @@ if __name__ == "__main__":
             print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close")
             sys.exit(1)
     else:
-        # Default: run STT endpoint tests as per current review request
-        tester.test_meetings_stt_endpoint_review_request()
+        # Default: run AI Chat endpoint test as per current review request
+        tester.test_ai_chat_review_request()
