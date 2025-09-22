@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Square, FileText, Sparkles, Send, Save, ClipboardList } from 'lucide-react';
 
+const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
+
 const Meetings = () => {
   const [isLive, setIsLive] = useState(false);
   const [transcript, setTranscript] = useState([]);
