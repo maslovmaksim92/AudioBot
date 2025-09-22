@@ -1432,6 +1432,7 @@ async def meetings_recent(limit: int = Query(50), db: AsyncSession = Depends(get
     except Exception as e:
         # Fallback when ai_feedback table not exists yet
         try:
+            await db.rollback()
             rows = (await db.execute(sa_text(sql_no_fb), { 'lim': int(limit) })).all()
             out: List[Dict[str, Any]] = []
             for r in rows:
