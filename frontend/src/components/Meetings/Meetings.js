@@ -226,7 +226,7 @@ const Meetings = () => {
           if (hqRecording && !stoppingRef.current) {
             const part = new Blob([e.data], { type: hqMimeRef.current || 'audio/webm' });
             hqQueueRef.current.push(part);
-            processQueue();
+            if (!hqBusyRef.current) processQueue();
           }
         }
       };
