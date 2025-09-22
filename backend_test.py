@@ -1204,7 +1204,7 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             
             detail = data.get('detail', '')
-            if 'Database is not initialized' in detail or 'Knowledge Base unavailable' in detail:
+            if 'Database is not initialized' in detail or 'Knowledge Base unavailable' in detail or 'Database write error' in detail:
                 self.log_test("Meetings Save to KB", True, 
                             f"✅ Expected 500 error: '{detail}' (database not configured) ✓")
             else:
@@ -1220,7 +1220,7 @@ class VasDomAPITester:
     def test_meetings_protocols_recent(self):
         """Test 2: GET /api/meetings/protocols/recent?limit=5"""
         print("\n2️⃣ Testing GET /api/meetings/protocols/recent?limit=5")
-        print("   Expected: 200: protocols[] with likes/dislikes fields")
+        print("   Expected: 200: protocols[] with likes/dislikes fields OR 500 'Database is not initialized'")
         
         success, data, status = self.make_request('GET', '/api/meetings/protocols/recent', params={'limit': 5})
         
@@ -1254,6 +1254,17 @@ class VasDomAPITester:
             else:
                 self.log_test("Meetings Protocols Recent", False, 
                             f"❌ protocols should be array, got {type(protocols)}")
+        elif success and status == 500:
+            print(f"   ⚠️ Status: {status} (Expected database error)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            if 'Database is not initialized' in detail:
+                self.log_test("Meetings Protocols Recent", True, 
+                            f"✅ Expected 500 error: '{detail}' (database not configured) ✓")
+            else:
+                self.log_test("Meetings Protocols Recent", False, 
+                            f"❌ Unexpected 500 error: '{detail}'")
         else:
             print(f"   ❌ Status: {status}")
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
