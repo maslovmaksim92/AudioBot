@@ -1,79 +1,52 @@
 <analysis>
-The AI engineer's work transitioned from implementing Logistics (OpenRouteService) to AI Training. Key challenges included migrating from MongoDB to PostgreSQL (), addressing syntax errors and file corruption in  by refactoring with  and a shim, and ensuring Bitrix24 integration for Works (Houses) data remained stable despite these changes and intermittent Bitrix API issues. The user repeatedly emphasized the importance of the Works section's functionality. The AI successfully integrated Alembic for migrations, LLM (OpenAI text-embedding-3-large, GPT-4.1-mini) via  for text processing, and developed a comprehensive AI Training backend and partial frontend. Recent efforts focused on fixing Bitrix data loading, enhancing pagination and filtering for Works, and implementing a voice chat (WebSocket) for AIChat. The primary issue persists in Works data loading and specific field display after the last interaction.
+The AI engineer's trajectory chronicles a focused effort on evolving the VasDom AudioBot application from foundational features to advanced AI capabilities. Initial work stabilized the Works tab, followed by extensive debugging of PostgreSQL connectivity on Render for the AI Training module. This involved transitioning to , normalizing DSNs and vector dimensions, and robust error handling. Subsequently, RAG (Retrieval Augmented Generation) was integrated into the AI Chat and Telegram bot, enabling hybrid responses using the knowledge base and a general LLM (GPT-4o-mini) with lexical/trigram fallbacks. Feedback and remember features were added. The final major feature developed was the Meetings module, providing live transcription, LLM-based summarization, and Telegram export, solidifying the application's AI and operational management capabilities.
 </analysis>
 
 <product_requirements>
-The VasDom AudioBot manages cleaning operations, integrating Bitrix24 CRM, an AI assistant, and a Telegram bot.
-Key features include:
-1.  **Works (Houses) Tab**: Displays Bitrix24 house data (address, apartments, entrances, floors, brigade, management company, cleaning schedules, Периодичность) with pagination, filters, and detailed modals. The user consistently emphasized this tab's functionality and accurate Bitrix data loading.
-2.  **Dashboard**: Quick filters, Today block with real-time Bitrix data, status graphs, and compact KPI cards.
-3.  **AI Chat**: Real-time voice conversation using OpenAI STT/TTS (Talk Online), now includes WebSocket integration.
-4.  **Meetings**: Live transcription, summarization, text export, with mobile layout improvements.
-5.  **AI Training**: Currently being implemented. Requires file uploads (PDF, DOCX, TXT, XLSX, ZIP up to 50MB/file, 200MB/request total), AI processing (text extraction, chunking ~1000-1500 tokens, embeddings via , summarization via ), and saving to a PostgreSQL () knowledge base for semantic search (top_k=200 lists for index, 500-1000 chars for preview, 3+ char word highlighting). Also includes document listing, deletion, and advanced chunking controls.
-6.  **AI Tasks**: Task setting (e.g., Telegram reports) managed by .
-7.  **Logistics**: OpenRouteService integration for optimal route calculation and map visualization.
-8.  **UI/UX Refinements**: General design improvements and consistent spacing.
+The VasDom AudioBot is a comprehensive cleaning operations management application with the following key features:
+1.  **Works (Houses) Tab**: Displays accurate Bitrix24 house data (address, apartments, entrances, floors, brigade, management company, cleaning schedules, periodicity, deal price) with pagination, various filters (brigade, status, date/range, quick filters), and detailed modals with correct Bitrix links.
+2.  **Dashboard**: Compact KPI cards for total houses, apartments, entrances, floors, and real-time Bitrix data in Today block.
+3.  **AI Chat**: Real-time voice conversations using OpenAI STT/TTS via WebSockets. Now includes RAG capabilities, automatically leveraging the AI Knowledge Base, with graceful fallback to general GPT-4o-mini responses if specific context is unavailable. User feedback mechanisms are integrated.
+4.  **Meetings (Планёрка)**: Features live transcription using the browser's Web Speech API, summarization into a structured protocol (via GPT-4o-mini), and text export. A Send to Telegram button allows direct sharing of meeting protocols.
+5.  **AI Training**: Supports PDF, DOCX, TXT, XLSX, ZIP uploads (50MB/file, 200MB/request) for text extraction, chunking, embeddings ( 1536 dims), summarization (GPT-5-mini, later GPT-4o-mini), and saving to PostgreSQL () knowledge base for semantic, lexical, and trigram search. New requirements implemented include file preview with AI-generated description, category selection, Study action for sequential document processing, document listing/management, and in-chat confirmation. Database connectivity is stable via .
+6.  **AI Tasks**: Task setting (e.g., Telegram reports) via .
+7.  **Logistics**: OpenRouteService integration for route calculation and map visualization.
+8.  **UI/UX Refinements**: General design improvements, consistent spacing, and compact layouts. Specific UI/UX improvements have been made to the AI Training tab (statuses, filters, sorting, compact previews, localized messages). Frontend routing was fixed using .
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, PostgreSQL (, , SQLAlchemy Async, Alembic), Pydantic, , usage: websockets [--version | <uri>], , , , PyPDF2, python-docx, openpyxl, aiofiles, tiktoken, OpenRouteService,  (for LLMs), AsyncOpenAI.
--   **Frontend**: React 19, React Router, TailwindCSS, Shadcn/UI, Axios, , .
--   **Integrations**: Bitrix24 CRM API, OpenAI Realtime (STT/TTS), Emergent LLM SDK, Telegram Bot API, OpenRouteService API.
+-   **Backend**: FastAPI, PostgreSQL (, , SQLAlchemy Async, Alembic, ), Pydantic, , usage: websockets [--version | <uri>], , , , file processing libraries, tiktoken, .
+-   **Frontend**: React, React Router (), TailwindCSS, Shadcn/UI, Axios, Web Speech API.
+-   **Integrations**: Bitrix24 CRM API, Emergent LLM SDK (GPT-5-mini, , GPT-4o-mini), Telegram Bot API.
+-   **Deployment**: Render, Kubernetes, Supervisor.
 </key_technical_concepts>
 
 <code_architecture>
-
-
-**Key Files and Changes:**
--   : Originally the main entry point. Experienced file corruption. Refactored to import  and register all routers. It now acts as a shim/orchestrator, ensuring compatibility and managing router inclusion (including , , , ).
--   : A new, temporarily introduced file, intended to contain the core FastAPI application instance and logic, now imported by .
--   : Created for AI Training endpoints (, , , , ). Handles file parsing, chunking, summarization, embedding generation, and database interactions.
--   : Created for Voice API endpoints (, ), handling token issuance and WebSocket connections.
--   : Contains the logic for interacting with the Bitrix24 CRM API, specifically for fetching Works (houses) data, filters, and dashboard statistics. This file has undergone significant revisions to align with the  branch's working logic.
--   : Directory for database migrations. New migrations (, ) were created to initialize  extension, , ,  tables, and set up  indexes.
--   : Updated to support file uploads (drag & drop), display AI previews (summary, stats), saving to DB, listing documents, semantic search with highlighting, and controls for chunking parameters (, ).
--   : Critically updated to correctly fetch and display houses from Bitrix24, implement pagination for more than 50 houses, and add filtering by address/name.
--   : Modified to include client-side logic for connecting to the new voice WebSocket endpoints, obtaining a token, and sending/receiving chat messages via WS for Online Voice functionality.
--    and : Updated with new dependencies like SQLAlchemy, , , etc.
+ai_search-old
+-   : The core FastAPI entry point, handling application startup and routing. It was modified to prioritize DSN handling, scrub , and integrate the  router, with the original AI search moved to .
+-   : Refactored to manage database connection string (DSN) priority and URL normalization logic.
+-   : This dedicated AI router was extensively modified. It now uses  for all knowledge base operations (upload, preview, study, status, documents, search, delete). Key additions include the RAG endpoint () with hybrid search (vector, lexical, trigram), a feedback collection endpoint (, ), and a remember endpoint () for self-learning. It also contains robust DSN/SSL handling and dynamic vector dimension normalization.
+-   : Modified to correctly normalize DSNs for Alembic migrations and to import .
+-   : The initial  migration was updated to set the  column to  and an IVFFLAT index.
+-   : Updated to include , , , and .
+-   : A new router for the Meetings module, implementing  (for LLM-based protocol generation) and  (for sending protocols to Telegram).
+-   : A new router handling Telegram webhooks, integrating RAG responses, feedback buttons, and admin commands.
+-   : The frontend component for AI Knowledge management. It was updated to support a file upload queue, AI-generated preview descriptions, category selection, a Study action, document listing with filters/sorting, and improved status/error UX.
+-   : The AI Chat UI component. It was modified to integrate RAG responses via , simplify the user interface by removing manual RAG controls, and incorporate feedback buttons and a Запомнить ответ (Remember answer) feature.
+-   : The frontend component for the Meetings module. It now integrates the Web Speech API for live transcription, and provides UI for triggering summarization and sending protocols to Telegram.
+-    and : These files were modified to switch the React application's routing from  to , resolving 404 issues on direct URL access in production environments.
+-   : Updated to reflect correct  and  for deployment, including new environment variable placeholders.
 </code_architecture>
 
 <pending_tasks>
--   **Works (Houses) Data Loading**:
-    -   Address the issue where Works data is loading but specific fields like Периодичность and Тип уборки are incorrect or missing.
-    -   Correct the Open in Bitrix link URL.
--   **AI Training (Backend)**: Finalize batch indexing of large ZIPs with detailed reports.
--   **AI Training (Frontend)**: Further refine text preview and statistics for each document, and UX for search results (e.g., compact cards).
--   **Alembic Migrations**: Ensure index  lists parameter (currently 200) is robustly managed and applied.
+-   **Meetings Module**: Add a Запомнить протокол (Save protocol to Knowledge Base) button within the UI for meeting summaries.
+-   **Meetings Module**: Implement a small administrative interface or endpoint for reviewing recent meeting protocols and feedback.
 </pending_tasks>
 
 <current_work>
-The AI engineer has recently focused on resolving critical issues with the Works (Houses) tab and enhancing the AIChat's voice functionality, while also ensuring the AI Training module is functional and isolated.
-
-**Works (Houses) Tab:**
--   The backend ( and ) has been restructured to reliably fetch house data directly from Bitrix24 CRM, mirroring a previously working codebase ( branch).
--   Endpoints (, , ) are configured to query Bitrix24 with specific field IDs (e.g.,  for address).
--   Pagination has been fixed to allow loading more than 50 houses (up to 1000) by correctly passing / to Bitrix24.
--   A new filter by Адрес/название has been implemented, performing server-side filtering on the Bitrix data.
--   The frontend () includes a Показывать selector for pagination limits and an input field for address/name filtering.
--   Despite these efforts, the user reports that while houses load, the data (specifically Периодичность and Тип уборки) is still incorrect, and the Open in Bitrix link is malformed.
-
-**AI Chat (Voice):**
--   A new backend router () with  (for issuing session tokens) and  (for WebSocket connections, currently an echo server) has been integrated.
--   The frontend () has been updated to connect to these new WebSocket endpoints. The Онлайн-голос button now initiates token retrieval and establishes a WS connection, sending chat messages via WS and displaying echo responses using text-to-speech.
-
-**AI Training Module:**
--   The module is isolated in , using PostgreSQL with  for storage.
--   Alembic migrations are in place for database schema management (including  index with ).
--   File upload, text extraction, AI summarization (GPT-4.1-mini), embedding generation (text-embedding-3-large), saving, listing, searching (with highlighting), and deletion functionalities are implemented.
--   Frontend () provides UI for these features, including chunking controls.
--   The module is confirmed to work on the Render environment where , , and  are properly configured.
-
-**Overall System Stability:**
--   The  file, which was previously corrupted, has been restored and now correctly imports  and registers all routers, ensuring proper application startup.
--   Efforts have been made to add explicit error logging and handling for Bitrix24 requests to prevent silent failures and empty data display.
+The AI engineer has most recently completed the full implementation of the Meetings (Планёрка) module. This includes a frontend UI in  that allows users to start/stop live audio transcription using the browser's Web Speech API. The transcribed text can then be sent to a new backend endpoint,  (in ), which leverages the  LLM (via the Emergent LLM key) to generate a structured meeting protocol, including summaries, tasks, risks, and next steps. Finally, there's a В Telegram button in the UI that uses another new backend endpoint,  (also in ), to push the generated protocol to a configured Telegram chat. This  endpoint handles message splitting to adhere to Telegram's character limits and uses the  (from environment) and potentially a  for the destination. This completes the end-to-end workflow for managing meetings from live transcription to summarized protocol sharing.
 </current_work>
 
 <optional_next_step>
-Fix the incorrect data display for Периодичность and Тип уборки and the malformed Bitrix link in the Works section.
+Add a Save protocol to Knowledge Base button in the Meetings UI and implement an administrative view for recent meeting protocols and feedback.
 </optional_next_step>
-
