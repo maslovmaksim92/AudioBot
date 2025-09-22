@@ -150,6 +150,9 @@ const Meetings = () => {
   const lastSendTsRef = useRef(0);
   const restartsRef = useRef(0);
   const transAllRef = useRef('');
+  const hqDesiredRef = useRef(false);
+  const stoppingRef = useRef(false);
+  const lastAddedRef = useRef('');
 
   const startHQ = async () => {
     setSttError(''); setHqStatus('');
