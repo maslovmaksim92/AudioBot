@@ -458,6 +458,10 @@ async def employees_office():
     except Exception:
         return { 'employees': [] }
 
+# Mount main API router
+app.include_router(api_router)
+logger.info('Main API router mounted')
+
 # Mount AI Knowledge router for AI Chat endpoints
 try:
     from app.routers import ai_knowledge as _ai_kb_mod
