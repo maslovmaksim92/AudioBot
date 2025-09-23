@@ -38,7 +38,7 @@ const Dashboard = () => {
   };
   const fetchDashboardStats = async () => {
     try {
-      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+      const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(`${BACKEND_URL}/api/dashboard/stats`);
       const data = await response.json();
       setStats(data);
