@@ -113,7 +113,7 @@ async def get_db() -> AsyncSession:
 # ... existing endpoint here ...
 
 # ===== Bitrix Tasks (no Mongo) =====
-from app_main import bitrix
+from backend.app_main import bitrix
 
 class BitrixTaskCreate(BaseModel):
     title: str
