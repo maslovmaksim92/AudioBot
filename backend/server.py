@@ -113,7 +113,137 @@ async def get_db() -> AsyncSession:
 # ... existing endpoint here ...
 
 # ===== Bitrix Tasks (no Mongo) =====
-from backend.app_main import bitrix, _build_cleaning_dates, _compute_periodicity
+# Inline Bitrix service (removed app_main dependency)
+class BitrixService:
+    def __init__(self):
+        self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '').rstrip('/')
+        self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
+        self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
+        self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
+        self._uf_enums: Dict[str, Dict[str, str]] = {}
+        self._uf_enums_ts: int = 0
+        self._uf_enums_ttl = int(os.environ.get('BITRIX_UF_ENUMS_TTL', '900'))
+
+    async def _call(self, method: str, params: Dict = None) -> Dict:
+        if not self.webhook_url:
+            return {"ok": False}
+        url = f"{self.webhook_url}/{method}"
+        try:
+            async with httpx.AsyncClient(timeout=40.0) as client:
+                r = await client.post(url, json=params or {})
+                r.raise_for_status()
+                data = r.json()
+                return {"ok": True, "result": data.get("result"), "next": data.get("next"), "total": data.get("total")}
+        except Exception as e:
+            logger.error(f"Bitrix error: {e}")
+            return {"ok": False}
+
+    async def _list_all(self, method: str, params: Dict) -> List[Dict]:
+        items: List[Dict] = []
+        q = dict(params or {})
+        next_start = None
+        for _ in range(50):
+            if next_start is not None:
+                q['start'] = next_start
+            resp = await self._call(method, q)
+            if not resp.get('ok'):
+                break
+            part = resp.get('result') or []
+            if isinstance(part, dict):
+                part = [part]
+            items.extend(part)
+            next_start = resp.get('next')
+            if next_start is None:
+                break
+        return items
+
+    async def deals(self, limit=500) -> List[Dict]:
+        now = int(datetime.now(timezone.utc).timestamp())
+        if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
+            return self._deals_cache["data"]
+        items = await self._list_all("crm.deal.list", {
+            "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID"],
+            "filter": {"CATEGORY_ID":"34"},
+            "order": {"ID":"DESC"},
+            "limit": min(limit,1000)
+        })
+        if not items:
+            return self._deals_cache["data"] or []
+        self._deals_cache = {"ts": now, "data": items}
+        return items
+
+    async def deals_full(self) -> List[Dict]:
+        now = int(datetime.now(timezone.utc).timestamp())
+        if now - self._deals_full_cache["ts"] < self._deals_ttl and self._deals_full_cache["data"]:
+            return self._deals_full_cache["data"]
+        items = await self._list_all("crm.deal.list", {
+            "select": [
+                "ID","TITLE","STAGE_ID","COMPANY_ID","COMPANY_TITLE",
+                "ASSIGNED_BY_ID","ASSIGNED_BY_NAME","CATEGORY_ID",
+                "UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
+                # cleaning schedule custom UF_* fields will be included as is
+            ],
+            "filter": {"CATEGORY_ID": "34"},
+            "order": {"ID": "DESC"},
+            "limit": 1000
+        })
+        if not items:
+            return self._deals_full_cache["data"] or []
+        self._deals_full_cache = {"ts": now, "data": items}
+        return items
+
+bitrix = BitrixService()
+
+# Helpers to compute periodicity and next cleaning date from UF_* blocks
+def _extract_dates_from_deal(deal: Dict[str, Any]) -> List[str]:
+    dates: List[str] = []
+    for k, v in (deal or {}).items():
+        if not str(k).startswith('UF_CRM_'):
+            continue
+        try:
+            if isinstance(v, str) and (v.strip().startswith('{') or v.strip().startswith('[')):
+                obj = json.loads(v)
+                if isinstance(obj, dict) and isinstance(obj.get('dates'), list):
+                    for d in obj.get('dates'):
+                        if isinstance(d, str):
+                            dates.append(d)
+                elif isinstance(obj, list):
+                    for d in obj:
+                        if isinstance(d, str):
+                            dates.append(d)
+            elif isinstance(v, dict) and isinstance(v.get('dates'), list):
+                for d in v.get('dates'):
+                    if isinstance(d, str): dates.append(d)
+            elif isinstance(v, list):
+                for d in v:
+                    if isinstance(d, str): dates.append(d)
+        except Exception:
+            continue
+    # keep unique and sort
+    uniq = sorted(set(dates))
+    return uniq
+
+def _next_cleaning_date(deal: Dict[str, Any]) -> Optional[str]:
+    today = datetime.now(timezone.utc).date()
+    best: Optional[str] = None
+    for d in _extract_dates_from_deal(deal):
+        try:
+            dt = datetime.fromisoformat(d).date()
+            if dt >= today:
+                if best is None or dt < datetime.fromisoformat(best).date():
+                    best = d
+        except Exception:
+            continue
+    return best
+
+def _approximate_periodicity(deal: Dict[str, Any]) -> str:
+    # naive heuristic from available dates
+    dates = _extract_dates_from_deal(deal)
+    if len(dates) >= 4:
+        return "4 раза"
+    if len(dates) >= 2:
+        return "2 раза"
+    return "индивидуальная"
 
 class BitrixTaskCreate(BaseModel):
     title: str
