@@ -109,8 +109,78 @@ async def get_db() -> AsyncSession:
 # ===== Meetings: Save to Knowledge Base & Recent (omitted here for brevity) =====
 # ... existing endpoints here ...
 
-# ====== OpenAI Realtime: Ephemeral session endpoint (omitted here) ======
-# ... existing endpoint here ...
+# ====== OpenAI Realtime: Ephemeral session endpoint ======
+class RealtimeSessionRequest(BaseModel):
+    voice: Optional[str] = Field(default='marin')
+    instructions: Optional[str] = Field(default='Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу. Если пользователь спрашивает про объект (адрес, периодичность, дату уборки), вызовите инструмент get_house_brief с параметром query.')
+    temperature: Optional[float] = Field(default=0.6)
+    max_response_output_tokens: Optional[int] = Field(default=1024)
+
+class RealtimeSessionResponse(BaseModel):
+    client_secret: str
+    model: str
+    voice: str
+    instructions: str
+    expires_at: int
+    session_id: str
+
+@api_router.post('/realtime/sessions', response_model=RealtimeSessionResponse)
+async def create_realtime_session(req: RealtimeSessionRequest):
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail='OPENAI_API_KEY not configured')
+    payload = {
+        'model': 'gpt-4o-realtime-preview',
+        'voice': req.voice or 'marin',
+        'instructions': (req.instructions or ''),
+        'temperature': req.temperature or 0.6,
+        'max_response_output_tokens': req.max_response_output_tokens or 1024,
+        'turn_detection': {
+            'type': 'server_vad',
+            'threshold': 0.5,
+            'prefix_padding_ms': 300,
+            'silence_duration_ms': 500,
+            'create_response': True
+        },
+        'input_audio_format': 'pcm16',
+        'output_audio_format': 'pcm16',
+        'input_audio_transcription': { 'model': 'whisper-1' },
+        'tools': [
+            {
+                'type': 'function',
+                'name': 'get_house_brief',
+                'description': 'Верни кратко: адрес, периодичность, ближайшая уборка по запросу пользователя (адрес/название).',
+                'parameters': {
+                    'type': 'object',
+                    'properties': { 'query': { 'type': 'string', 'description': 'Адрес или часть адреса/названия' } },
+                    'required': ['query']
+                }
+            }
+        ],
+        'tool_choice': 'auto'
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as cli:
+            resp = await cli.post('https://api.openai.com/v1/realtime/sessions', json=payload, headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            })
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail=f'OpenAI error: {resp.text}')
+            data = resp.json()
+            return {
+                'client_secret': data['client_secret']['value'],
+                'model': data['model'],
+                'voice': data.get('voice', req.voice or 'marin'),
+                'instructions': data.get('instructions', req.instructions or ''),
+                'expires_at': data['client_secret']['expires_at'],
+                'session_id': data['id']
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'Realtime session create error: {e}')
+        raise HTTPException(status_code=500, detail='Failed to create realtime session')
 
 # ===== Bitrix Tasks (no Mongo) =====
 # Inline Bitrix service (removed app_main dependency)
