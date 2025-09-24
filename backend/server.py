@@ -636,6 +636,16 @@ async def employees_office():
 app.include_router(api_router)
 logger.info('Main API router mounted')
 
+# Health endpoints for readiness
+@api_router.get('/health')
+async def health():
+    return {'ok': True, 'ts': int(datetime.now(timezone.utc).timestamp())}
+
+@api_router.get('/ready')
+async def ready():
+    return {'ready': True}
+
+
 # Mount AI Knowledge router for AI Chat endpoints
 try:
     from app.routers import ai_knowledge as _ai_kb_mod
