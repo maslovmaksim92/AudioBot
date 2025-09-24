@@ -168,23 +168,61 @@ async def _get_livekit_client() -> Optional[lk_api.LiveKitAPI]:
     return _livekit_client
 
 async def _ensure_outbound_trunk() -> Optional[str]:
+    """Resolve or create outbound SIP trunk id.
+    Priority:
+    1) env LIVEKIT_SIP_TRUNK_ID / SIP_TRUNK_ID / LIVEKIT_TRUNK_ID
+    2) list existing trunks by name LIVEKIT_SIP_TRUNK_NAME (default 'novofon-trunk')
+    3) create trunk from NOVOFON_* env and re-list to get id
+    """
     global _livekit_trunk_id
     if _livekit_trunk_id:
         return _livekit_trunk_id
+
+    # 1) explicit env override
+    for k in ('LIVEKIT_SIP_TRUNK_ID','SIP_TRUNK_ID','LIVEKIT_TRUNK_ID'):
+        v = (os.environ.get(k) or '').strip()
+        if v:
+            _livekit_trunk_id = v
+            logger.info(f'Using SIP trunk id from env {k}: {_livekit_trunk_id}')
+            return _livekit_trunk_id
+
     client = await _get_livekit_client()
     if not client:
         return None
+
     name = os.environ.get('LIVEKIT_SIP_TRUNK_NAME', 'novofon-trunk')
-    # Try list outbound trunks
-    try:
-        lst = await client.sip.list_sip_outbound_trunk(lk_api.ListSIPOutboundTrunkRequest())
-        for t in lst.trunks:
-            if getattr(t, 'name', '') == name:
-                _livekit_trunk_id = t.trunk_id
-                return _livekit_trunk_id
-    except Exception as e:
-        logger.warning(f'LiveKit list outbound trunks failed: {e}')
-    # Create
+
+    # Helper: extract list array from response
+    async def _list_outbound_trunks():
+        try:
+            resp = await client.sip.list_sip_outbound_trunk(lk_api.ListSIPOutboundTrunkRequest())
+            for attr in ('trunks','items','data','outbound_trunks'):
+                if hasattr(resp, attr):
+                    return getattr(resp, attr) or []
+            # Fallback: try converting to dict-ish string
+            try:
+                return list(resp)  # if iterable
+            except Exception:
+                return []
+        except Exception as e:
+            logger.warning(f'LiveKit list outbound trunks failed: {e}')
+            return []
+
+    # 2) try find by name
+    trunks = await _list_outbound_trunks()
+    for t in trunks:
+        try:
+            tname = getattr(t, 'name', '')
+            if tname == name:
+                tid = getattr(t, 'trunk_id', None) or getattr(t, 'id', None)
+                if tid:
+                    _livekit_trunk_id = tid
+                    logger.info(f'Found existing SIP trunk "{name}": {tid}')
+                    return _livekit_trunk_id
+        except Exception:
+            continue
+
+    # 3) Create trunk
     try:
         trunk = lk_api.SIPOutboundTrunkInfo(
             name=name,
@@ -195,9 +233,33 @@ async def _ensure_outbound_trunk() -> Optional[str]:
         )
         req = lk_api.CreateSIPOutboundTrunkRequest(trunk=trunk)
         created = await client.sip.create_sip_outbound_trunk(req)
-        _livekit_trunk_id = created.trunk.trunk_id if hasattr(created, 'trunk') else getattr(created, 'trunk_id', None)
-        logger.info(f'LiveKit outbound trunk created: {_livekit_trunk_id}')
-        return _livekit_trunk_id
+        # Try to read id from different shapes
+        tid = None
+        for attr in ('trunk_id','id'):
+            tid = tid or getattr(created, attr, None)
+        # Some versions return wrapper with .trunk
+        if not tid and hasattr(created, 'trunk'):
+            inner = getattr(created, 'trunk', None)
+            for attr in ('trunk_id','id'):
+                tid = tid or getattr(inner, attr, None)
+        if tid:
+            _livekit_trunk_id = tid
+            logger.info(f'LiveKit outbound trunk created: {tid}')
+            return _livekit_trunk_id
+        # If id still unknown — re-list and find by name
+        trunks2 = await _list_outbound_trunks()
+        for t in trunks2:
+            try:
+                if getattr(t, 'name', '') == name:
+                    tid = getattr(t, 'trunk_id', None) or getattr(t, 'id', None)
+                    if tid:
+                        _livekit_trunk_id = tid
+                        logger.info(f'Found created SIP trunk by name: {tid}')
+                        return _livekit_trunk_id
+            except Exception:
+                continue
+        logger.error('Create outbound trunk succeeded but id not found in response/list')
+        return None
     except Exception as e:
         logger.error(f'Create outbound trunk failed: {e}')
         return None
