@@ -3380,10 +3380,12 @@ if __name__ == "__main__":
             tester.test_livekit_sip_smoke_tests()
         elif test_type == "livekit-identity":
             tester.test_livekit_sip_identity_review_request()
+        elif test_type == "ai-agent":
+            tester.test_ai_agent_worker_creation()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity, ai-agent")
             sys.exit(1)
     else:
-        # Default: run LiveKit SIP identity test as per current review request
-        tester.test_livekit_sip_identity_review_request()
+        # Default: run AI agent worker creation test as per current review request
+        tester.test_ai_agent_worker_creation()
