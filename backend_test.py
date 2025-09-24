@@ -3259,10 +3259,12 @@ if __name__ == "__main__":
             tester.test_final_review_request_mini_flow()
         elif test_type == "livekit":
             tester.test_livekit_sip_smoke_tests()
+        elif test_type == "livekit-identity":
+            tester.test_livekit_sip_identity_review_request()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity")
             sys.exit(1)
     else:
-        # Default: run LiveKit SIP smoke tests as per current review request
-        tester.test_livekit_sip_smoke_tests()
+        # Default: run LiveKit SIP identity test as per current review request
+        tester.test_livekit_sip_identity_review_request()
