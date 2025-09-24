@@ -845,27 +845,28 @@ async def answer(req: AnswerRequest):
 
         if context_text:
             # Режим БЗ: используй только контекст
-            system = (
-                "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
-                "Опирайся ТОЛЬКО на предоставленный контекст из базы знаний. "
-                "Если в контексте нет ответа — честно скажи об этом. Не выдумывай."
-            )
-            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
-            user_prompt = f"Вопрос: {q}\n\nКонтекст из базы знаний (используй только это):\n{context_text}\n\nОтвет:"
-            resp = await chat.send_message(UserMessage(text=user_prompt))
-            answer_text = resp or "В базе знаний нет информации по этому вопросу"
-            return {"answer": answer_text, "citations": citations}
+            # system = (
+            #     "Ты ассистент VasDom. Отвечай кратко и по делу, только на русском. "
+            #     "Опирайся ТОЛЬКО на предоставленный контекст из базы знаний. "
+            #     "Если в контексте нет ответа — честно скажи об этом. Не выдумывай."
+            # )
+            # chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"rag_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
+            # user_prompt = f"Вопрос: {q}\n\nКонтекст из базы знаний (используй только это):\n{context_text}\n\nОтвет:"
+            # resp = await chat.send_message(UserMessage(text=user_prompt))
+            # answer_text = resp or "В базе знаний нет информации по этому вопросу"
+            fallback = "\n\n".join(context_blocks[:2])
+            return {"answer": fallback, "citations": citations}
         else:
             # Общий деловой ассистент (без контекста)
-            system = (
-                "Ты деловой ассистент VasDom. Отвечай на русском кратко и полезно, дружелюбно и профессионально. "
-                "Если вопрос про внутренние регламенты/цифры, которых у тебя нет, попроси уточнить или предложи загрузить документ в Базу Знаний."
-            )
-            chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
-            user_prompt = f"Вопрос: {q}\n\nОтвет:"
-            resp = await chat.send_message(UserMessage(text=user_prompt))
-            answer_text = resp or "Готов помочь по рабочим вопросам."
-            return {"answer": answer_text, "citations": []}
+            # system = (
+            #     "Ты деловой ассистент VasDom. Отвечай на русском кратко и полезно, дружелюбно и профессионально. "
+            #     "Если вопрос про внутренние регламенты/цифры, которых у тебя нет, попроси уточнить или предложи загрузить документ в Базу Знаний."
+            # )
+            # chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=req.session_id or f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}", system_message=system).with_model("openai","gpt-4o-mini")
+            # user_prompt = f"Вопрос: {q}\n\nОтвет:"
+            # resp = await chat.send_message(UserMessage(text=user_prompt))
+            # answer_text = resp or "Готов помочь по рабочим вопросам."
+            return {"answer": "Готов помочь по рабочим вопросам.", "citations": []}
     except Exception as e:
         logger.error(f"answer error: {e}")
         # мягкий фолбэк
