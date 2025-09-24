@@ -317,9 +317,6 @@ async def voice_call_start(req: VoiceCallStartRequest):
             sip_trunk_id=trunk_id,
             sip_call_to=req.phone_number,
             room_name=room_name,
-            participant_identity=f'pstn-{req.phone_number}',
-            participant_name=req.caller_id or 'PSTN',
-            dtmf_enabled=True,
         ))
         _call_states[call_id] = {'status': 'ringing', 'room': room_name, 'sip_participant_id': getattr(part, 'sip_participant_id', None)}
         # Start AI agent in background
