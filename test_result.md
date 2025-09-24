@@ -123,6 +123,7 @@ test_plan:
   current_focus:
     - "CRM brief endpoint (/api/cleaning/brief)"
     - "Bitrix agenda endpoints"
+    - "AI Outbound Calls via LiveKit SIP (/api/voice/call/start, /status)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
