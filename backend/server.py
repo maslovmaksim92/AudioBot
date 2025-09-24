@@ -632,10 +632,6 @@ async def employees_office():
     except Exception:
         return { 'employees': [] }
 
-# Mount main API router
-app.include_router(api_router)
-logger.info('Main API router mounted')
-
 # Health endpoints for readiness
 @api_router.get('/health')
 async def health():
@@ -644,6 +640,10 @@ async def health():
 @api_router.get('/ready')
 async def ready():
     return {'ready': True}
+
+# Mount main API router
+app.include_router(api_router)
+logger.info('Main API router mounted')
 
 
 # Mount AI Knowledge router for AI Chat endpoints
