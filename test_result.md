@@ -88,15 +88,18 @@ backend:
 
   - task: "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
         -working: true
         -agent: "testing"
         -comment: "LiveKit SIP smoke tests успешно пройдены (4/4): 1) GET /api/health возвращает 200 JSON {ok:true} ✓ (исправлена проблема с порядком монтирования router) 2) POST /api/voice/call/start с minimal body возвращает 500 'LiveKit not configured' при отсутствии LIVEKIT credentials (ожидаемо) ✓ 3) GET /api/voice/call/{fake}/status возвращает 404 'Call not found' для несуществующего call_id ✓ 4) POST /api/realtime/sessions возвращает 500 'OPENAI_API_KEY not configured' при отсутствии ключа (ожидаемо) ✓. Все endpoints реализованы корректно и работают согласно спецификации."
+        -working: false
+        -agent: "testing"
+        -comment: "КРИТИЧЕСКАЯ ПРОБЛЕМА: После удаления emergentintegrations POST /api/voice/call/start всё ещё возвращает 500 'LiveKit not configured'. По review request это не должно происходить - ожидается 200 или detailed 4xx/5xx если LiveKit отклоняет, но НЕ 'LiveKit not configured'. Результаты тестирования: 1) GET /api/health ✓ 200 {ok:true} 2) POST /api/realtime/sessions ✓ 500 'OPENAI_API_KEY not configured' (ожидаемо) 3) POST /api/voice/call/start ❌ 500 'LiveKit not configured' (проблема) 4) GET /api/voice/call/{fake}/status ✓ 404 'Call not found'. Требуется настройка LiveKit credentials или исправление логики проверки конфигурации."
 
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
