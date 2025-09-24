@@ -154,9 +154,11 @@ metadata:
 
 test_plan:
   current_focus:
+    - "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
     - "CRM brief endpoint (/api/cleaning/brief)"
     - "Bitrix agenda endpoints"
-  stuck_tasks: []
+  stuck_tasks:
+    - "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
   test_all: false
   test_priority: "high_first"
 
