@@ -111,6 +111,18 @@ frontend:
         -agent: "main"
         -comment: "Добавлена вкладка 'Живой разговор': WebRTC peer, получение эфемерной сессии, отправка SDP на OpenAI, приём аудио. Нужна ручная проверка микрофона и CORS у OpenAI."
 
+  - task: "AI Outbound Dialer in Live Conversation (AIDialer)"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/LiveConversation/AIDialer.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: false
+        -agent: "main"
+        -comment: "Добавлен мини-интерфейс исходящего звонка ИИ: номер, кнопка Позвонить, вывод Call ID/статуса. Требуется e2e проверка с Render окружением."
+
   - task: "AI Chat functionality"
     implemented: true
     working: true
