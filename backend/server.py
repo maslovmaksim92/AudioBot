@@ -276,6 +276,8 @@ async def _ensure_outbound_trunk() -> Optional[str]:
 async def _start_openai_agent(call_id: str, room_name: str, voice: str, instructions: Optional[str]):
     if not LIVEKIT_AVAILABLE:
         return
+    room = None
+    session = None
     try:
         # Build LiveKit token for agent
         token = lk_api.AccessToken(api_key=os.environ.get('LIVEKIT_API_KEY'), api_secret=os.environ.get('LIVEKIT_API_SECRET'))
@@ -284,31 +286,41 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         token = token.with_grants(grants)
         jwt = token.to_jwt()
 
-        async def _entry(ctx: lk_agents.JobContext):
-            await ctx.connect()
-            # Configure OpenAI realtime model via plugin
-            model = lk_openai.realtime.RealtimeModel(
-                voice=voice or 'marin',
-                instructions=instructions or 'Вы — ассистент VasDom, общайтесь вежливо и кратко.',
-                modalities=['audio','text'],
-                turn_detection=lk_openai.realtime.TurnDetection(type='server_vad', threshold=0.5, prefix_padding_ms=300, silence_duration_ms=600),
-            )
-            session = lk_agents.voice.AgentSession(llm=model)
-            # Start agent in the room from job context
-            await session.start(agent=lk_agents.voice.Agent(label='VasDom AI'), room=ctx.room)
-            await session.drain()
-            await session.aclose()
+        # Connect to LiveKit room over SFU (RTC), not local worker
+        from livekit import rtc as lk_rtc
+        ws_url = os.environ.get('LIVEKIT_WS_URL')
+        if not ws_url:
+            raise RuntimeError('LIVEKIT_WS_URL is not set')
+        room = lk_rtc.Room()
+        await room.connect(ws_url, jwt)
 
-        # Create worker with options API
-        opts = lk_agents.WorkerOptions(entrypoint_fnc=_entry)
-        # Run worker in ROOM mode by passing room token & name via env options
-        # Here we simulate job by connecting with token & room at runtime using AgentSession.start(room=...)
-        worker = lk_agents.Worker(opts)
-        asyncio.create_task(worker.run())
+        # Configure OpenAI realtime model via plugin and start agent session bound to the room
+        model = lk_openai.realtime.RealtimeModel(
+            voice=voice or 'marin',
+            instructions=instructions or 'Вы — ассистент VasDom, общайтесь вежливо и кратко.',
+            modalities=['audio','text'],
+            turn_detection=lk_openai.realtime.TurnDetection(type='server_vad', threshold=0.5, prefix_padding_ms=300, silence_duration_ms=600),
+        )
+        session = lk_agents.voice.AgentSession(llm=model)
+        agent = lk_agents.voice.Agent(label='VasDom AI')
+        await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
+        # Keep session alive until room disconnects
+        await session.drain()
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
         _call_states[call_id]['agent_error'] = str(e)
+    finally:
+        try:
+            if session:
+                await session.aclose()
+        except Exception:
+            pass
+        try:
+            if room:
+                await room.disconnect()
+        except Exception:
+            pass
 
 @api_router.post('/voice/call/start', response_model=VoiceCallStartResponse)
 async def voice_call_start(req: VoiceCallStartRequest):
