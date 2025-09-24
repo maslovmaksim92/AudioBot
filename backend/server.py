@@ -110,6 +110,180 @@ async def get_db() -> AsyncSession:
 # ... existing endpoints here ...
 
 # ====== OpenAI Realtime: Ephemeral session endpoint ======
+
+# ====== LiveKit SIP Outbound calling (Novofon) ======
+try:
+    from livekit import api as lk_api
+    from livekit import api as livekit_api
+    from livekit import api
+    from livekit import api as _lk_api
+    from livekit import api as _api
+    from livekit.plugins import openai as lk_openai
+    from livekit import agents as lk_agents
+    LIVEKIT_AVAILABLE = True
+except Exception:
+    LIVEKIT_AVAILABLE = False
+
+from pydantic import BaseModel
+
+class VoiceCallStartRequest(BaseModel):
+    phone_number: str
+    caller_id: Optional[str] = None
+    instructions: Optional[str] = None
+    voice: Optional[str] = 'marin'
+
+class VoiceCallStartResponse(BaseModel):
+    call_id: str
+    room_name: str
+    status: str
+    sip_participant_id: Optional[str] = None
+
+_livekit_client: Optional[lk_api.LiveKitAPI] = None
+_livekit_trunk_id: Optional[str] = None
+_call_states: Dict[str, Dict[str, Any]] = {}
+
+
+def _livekit_http_url() -> Optional[str]:
+    url = os.environ.get('LIVEKIT_WS_URL') or os.environ.get('LIVEKIT_URL') or ''
+    if not url:
+        return None
+    url = url.strip()
+    if url.startswith('wss://'):
+        return 'https://' + url[len('wss://') :]
+    if url.startswith('ws://'):
+        return 'http://' + url[len('ws://') :]
+    return url if url.startswith('http') else ('https://' + url)
+
+async def _get_livekit_client() -> Optional[lk_api.LiveKitAPI]:
+    global _livekit_client
+    if not LIVEKIT_AVAILABLE:
+        return None
+    if _livekit_client is None:
+        base = _livekit_http_url()
+        key = os.environ.get('LIVEKIT_API_KEY')
+        secret = os.environ.get('LIVEKIT_API_SECRET')
+        if not (base and key and secret):
+            return None
+        _livekit_client = lk_api.LiveKitAPI(url=base, api_key=key, api_secret=secret)
+    return _livekit_client
+
+async def _ensure_outbound_trunk() -> Optional[str]:
+    global _livekit_trunk_id
+    if _livekit_trunk_id:
+        return _livekit_trunk_id
+    client = await _get_livekit_client()
+    if not client:
+        return None
+    name = os.environ.get('LIVEKIT_SIP_TRUNK_NAME', 'novofon-trunk')
+    # Try list outbound trunks
+    try:
+        lst = await client.sip.list_sip_outbound_trunk(lk_api.ListSIPOutboundTrunkRequest())
+        for t in lst.trunks:
+            if getattr(t, 'name', '') == name:
+                _livekit_trunk_id = t.trunk_id
+                return _livekit_trunk_id
+    except Exception as e:
+        logger.warning(f'LiveKit list outbound trunks failed: {e}')
+    # Create
+    try:
+        trunk = lk_api.SIPOutboundTrunkInfo(
+            name=name,
+            address=(os.environ.get('NOVOFON_SIP_DOMAIN') or 'sip.novofon.ru'),
+            numbers=[os.environ.get('NOVOFON_CALLER_ID') or ''],
+            auth_username=os.environ.get('NOVOFON_SIP_USERNAME') or '',
+            auth_password=os.environ.get('NOVOFON_SIP_PASSWORD') or '',
+        )
+        req = lk_api.CreateSIPOutboundTrunkRequest(trunk=trunk)
+        created = await client.sip.create_sip_outbound_trunk(req)
+        _livekit_trunk_id = created.trunk.trunk_id if hasattr(created, 'trunk') else getattr(created, 'trunk_id', None)
+        logger.info(f'LiveKit outbound trunk created: {_livekit_trunk_id}')
+        return _livekit_trunk_id
+    except Exception as e:
+        logger.error(f'Create outbound trunk failed: {e}')
+        return None
+
+async def _start_openai_agent(call_id: str, room_name: str, voice: str, instructions: Optional[str]):
+    if not LIVEKIT_AVAILABLE:
+        return
+    try:
+        # Build LiveKit token for agent
+        token = lk_api.AccessToken(api_key=os.environ.get('LIVEKIT_API_KEY'), api_secret=os.environ.get('LIVEKIT_API_SECRET'))
+        token.identity = f'ai-agent-{call_id}'
+        token.name = 'AI Assistant'
+        grants = lk_api.VideoGrants(room_join=True, room=room_name)
+        token.add_grants(grants)
+        jwt = token.to_jwt()
+
+        async def _entry(ctx: lk_agents.JobContext):
+            await ctx.connect()
+            # Configure OpenAI realtime model via plugin
+            model = lk_openai.realtime.RealtimeModel(
+                voice=voice or 'marin',
+                instructions=instructions or 'Вы — ассистент VasDom, общайтесь вежливо и кратко.',
+                modalities=['audio','text'],
+                turn_detection=lk_openai.realtime.TurnDetection(type='server_vad', threshold=0.5, prefix_padding_ms=300, silence_duration_ms=600),
+            )
+            session = lk_agents.voice.AgentSession(llm=model)
+            session.start(ctx.room, ctx.participant)
+            await session.wait_for_completion()
+
+        worker = lk_agents.Worker(entrypoint_fnc=_entry, room_name=room_name, token=jwt)
+        asyncio.create_task(worker.start())
+        _call_states[call_id]['agent'] = 'started'
+    except Exception as e:
+        logger.error(f'AI agent start failed: {e}')
+        _call_states[call_id]['agent_error'] = str(e)
+
+@api_router.post('/voice/call/start', response_model=VoiceCallStartResponse)
+async def voice_call_start(req: VoiceCallStartRequest):
+    client = await _get_livekit_client()
+    if not client:
+        raise HTTPException(status_code=500, detail='LiveKit not configured')
+    trunk_id = await _ensure_outbound_trunk()
+    if not trunk_id:
+        raise HTTPException(status_code=500, detail='SIP trunk not available')
+    call_id = str(uuid4())
+    room_name = f'call-{call_id}'
+    # Create room
+    try:
+        await client.room.create_room(lk_api.CreateRoomRequest(name=room_name))
+    except Exception as e:
+        logger.warning(f'Create room warning: {e}')
+    # Create SIP participant (outbound call)
+    try:
+        part = await client.sip.create_sip_participant(lk_api.CreateSIPParticipantRequest(
+            sip_trunk_id=trunk_id,
+            sip_call_to=req.phone_number,
+            room_name=room_name,
+            participant_identity=f'pstn-{req.phone_number}',
+            participant_name=req.caller_id or 'PSTN',
+            dtmf_enabled=True,
+        ))
+        _call_states[call_id] = {'status': 'ringing', 'room': room_name, 'sip_participant_id': getattr(part, 'sip_participant_id', None)}
+        # Start AI agent in background
+        asyncio.create_task(_start_openai_agent(call_id, room_name, req.voice or 'marin', req.instructions))
+        return VoiceCallStartResponse(call_id=call_id, room_name=room_name, status='ringing', sip_participant_id=getattr(part, 'sip_participant_id', None))
+    except lk_api.TwirpError as e:
+        logger.error(f'LiveKit SIP error: {e}')
+        raise HTTPException(status_code=502, detail=f'LiveKit SIP error: {e}')
+    except Exception as e:
+        logger.error(f'Create SIP participant failed: {e}')
+        raise HTTPException(status_code=500, detail='Failed to start call')
+
+class VoiceCallStatus(BaseModel):
+    call_id: str
+    status: str
+    room_name: str
+    duration: Optional[int] = None
+    sip_participant_id: Optional[str] = None
+
+@api_router.get('/voice/call/{call_id}/status', response_model=VoiceCallStatus)
+async def voice_call_status(call_id: str):
+    st = _call_states.get(call_id)
+    if not st:
+        raise HTTPException(status_code=404, detail='Call not found')
+    return VoiceCallStatus(call_id=call_id, status=st.get('status','unknown'), room_name=st.get('room',''), sip_participant_id=st.get('sip_participant_id'))
+
 class RealtimeSessionRequest(BaseModel):
     voice: Optional[str] = Field(default='marin')
     instructions: Optional[str] = Field(default='Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу. Если пользователь спрашивает про объект (адрес, периодичность, дату уборки), вызовите инструмент get_house_brief с параметром query.')
