@@ -2624,6 +2624,138 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Final E2E - Delete", False, f"❌ Status: {status} (expected 200)")
 
+    def test_livekit_sip_identity_review_request(self):
+        """Test LiveKit SIP participant creation after setting identities as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - LiveKit SIP Identity Review Request")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Re-test LiveKit SIP participant creation after setting identities:")
+        print("1) POST /api/voice/call/start with {\"phone_number\":\"+79001234567\"}")
+        print("2) Verify no 'identity cannot be empty' error; expect 200 or 4xx/5xx from SIP provider")
+        print("3) If 200, GET /api/voice/call/{call_id}/status twice with 2s interval")
+        print("4) Provide status codes and snippets")
+        print("=" * 80)
+        
+        # Test 1: POST /api/voice/call/start with specific phone number
+        call_id = self.test_voice_call_start_identity_check()
+        
+        if call_id:
+            # Test 2: GET /api/voice/call/{call_id}/status twice with 2s interval
+            self.test_voice_call_status_twice(call_id)
+        else:
+            print("❌ No call_id returned - cannot test status endpoint")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_voice_call_start_identity_check(self):
+        """Test POST /api/voice/call/start with identity verification"""
+        print("\n1️⃣ Testing POST /api/voice/call/start with identity check")
+        print("   Body: {\"phone_number\":\"+79001234567\"}")
+        print("   Expected: No 'identity cannot be empty' error; 200 or 4xx/5xx from SIP provider")
+        
+        request_data = {"phone_number": "+79001234567"}
+        
+        success, data, status = self.make_request('POST', '/api/voice/call/start', request_data)
+        
+        print(f"\n📊 RESPONSE DETAILS:")
+        print(f"   Status Code: {status}")
+        print(f"   Success: {success}")
+        print(f"   Response Data: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
+        if success:
+            # Check for the specific error mentioned in review request
+            detail = data.get('detail', '') if isinstance(data, dict) else str(data)
+            
+            # Check if 'identity cannot be empty' error is present
+            identity_error = 'identity cannot be empty' in detail.lower()
+            
+            if identity_error:
+                self.log_test("Voice Call Start - Identity Error Check", False, 
+                            f"❌ Found 'identity cannot be empty' error: {detail}")
+                return None
+            else:
+                self.log_test("Voice Call Start - Identity Error Check", True, 
+                            "✅ No 'identity cannot be empty' error found")
+            
+            # Check status code expectations
+            if status == 200:
+                print(f"   ✅ Status 200 - Call initiated successfully")
+                
+                # Extract call_id for status testing
+                call_id = data.get('call_id')
+                room_name = data.get('room_name')
+                call_status = data.get('status')
+                sip_participant_id = data.get('sip_participant_id')
+                
+                if call_id:
+                    self.log_test("Voice Call Start - Success Response", True, 
+                                f"✅ Status 200, call_id: {call_id[:8]}..., room_name: {room_name}, status: {call_status}, sip_participant_id: {sip_participant_id}")
+                    return call_id
+                else:
+                    self.log_test("Voice Call Start - Success Response", False, 
+                                "❌ Status 200 but missing call_id in response")
+                    return None
+                    
+            elif 400 <= status < 600:
+                print(f"   ✅ Status {status} - Expected 4xx/5xx from SIP provider")
+                self.log_test("Voice Call Start - SIP Provider Error", True, 
+                            f"✅ Status {status} (expected 4xx/5xx from SIP provider), detail: {detail}")
+                return None
+            else:
+                print(f"   ❌ Unexpected status: {status}")
+                self.log_test("Voice Call Start - Unexpected Status", False, 
+                            f"❌ Unexpected status: {status} (expected 200 or 4xx/5xx)")
+                return None
+        else:
+            self.log_test("Voice Call Start - Request Failed", False, 
+                        f"❌ Request failed: {data}")
+            return None
+
+    def test_voice_call_status_twice(self, call_id):
+        """Test GET /api/voice/call/{call_id}/status twice with 2s interval"""
+        print(f"\n2️⃣ Testing GET /api/voice/call/{call_id}/status twice with 2s interval")
+        print(f"   Call ID: {call_id}")
+        
+        # First status check
+        print("\n   🔍 First status check:")
+        success1, data1, status1 = self.make_request('GET', f'/api/voice/call/{call_id}/status')
+        
+        print(f"   Status Code: {status1}")
+        print(f"   Success: {success1}")
+        print(f"   Response: {json.dumps(data1, indent=2, ensure_ascii=False)}")
+        
+        # Wait 2 seconds
+        print("\n   ⏱️ Waiting 2 seconds...")
+        time.sleep(2)
+        
+        # Second status check
+        print("\n   🔍 Second status check:")
+        success2, data2, status2 = self.make_request('GET', f'/api/voice/call/{call_id}/status')
+        
+        print(f"   Status Code: {status2}")
+        print(f"   Success: {success2}")
+        print(f"   Response: {json.dumps(data2, indent=2, ensure_ascii=False)}")
+        
+        # Log results
+        if success1 and success2:
+            if status1 == status2 == 200:
+                status_1 = data1.get('status', 'unknown') if isinstance(data1, dict) else 'unknown'
+                status_2 = data2.get('status', 'unknown') if isinstance(data2, dict) else 'unknown'
+                
+                self.log_test("Voice Call Status - Twice Check", True, 
+                            f"✅ Both requests successful: Status1={status1} ({status_1}), Status2={status2} ({status_2})")
+            else:
+                self.log_test("Voice Call Status - Twice Check", True, 
+                            f"✅ Requests completed: Status1={status1}, Status2={status2}")
+        else:
+            issues = []
+            if not success1:
+                issues.append(f"First request failed: {data1}")
+            if not success2:
+                issues.append(f"Second request failed: {data2}")
+            self.log_test("Voice Call Status - Twice Check", False, 
+                        f"❌ Issues: {'; '.join(issues)}")
+
     def test_current_review_request(self):
         """Test the exact mini-flow from current review request"""
         print(f"🚀 VasDom AudioBot Backend API - Быстрый backend mini‑flow на проде")
