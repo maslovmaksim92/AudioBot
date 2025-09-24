@@ -112,6 +112,9 @@ backend:
         -working: true
         -agent: "testing"
         -comment: "AI AGENT WORKER CREATION УСПЕШНО ПРОТЕСТИРОВАН: Re-test AI agent worker creation показал полное соответствие требованиям review request. Результаты: 1) POST https://audiobot-qci2.onrender.com/api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 200 ✓ с корректной схемой: call_id='783b4c18-6c1f-4ae7-8a5a-c80ce3187d92', room_name='call-783b4c18-6c1f-4ae7-8a5a-c80ce3187d92', status='ringing' ✓ 2) Логи НЕ содержат ошибку 'Worker.__init__() got an unexpected keyword argument' ✓ 3) GET /api/voice/call/{call_id}/status работает стабильно при двух последовательных вызовах с 2-секундным интервалом, возвращает консистентные данные ✓. Все требования review request выполнены на 100%. AI agent worker creation функционирует корректно без ошибок инициализации."
+        -working: true
+        -agent: "testing"
+        -comment: "RETEST AFTER REMOVING TURNDETECTION УСПЕШНО ЗАВЕРШЁН: Повторное тестирование после удаления TurnDetection показало полную функциональность. Результаты: 1) POST https://audiobot-qci2.onrender.com/api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 200 ✓ с корректной схемой: call_id='47c04989-6830-4257-bc78-074801fa7087', room_name='call-47c04989-6830-4257-bc78-074801fa7087', status='ringing' ✓ 2) Логи НЕ содержат ошибку 'AI agent start failed' ✓ - проверено через grep в /var/log/supervisor/ 3) Status polling дважды работает стабильно: оба вызова GET /api/voice/call/{call_id}/status возвращают 200 с консистентными данными ✓ 4) Никаких Worker.__init__ ошибок в логах не обнаружено ✓. Success rate: 100% (2/2 tests passed). Все требования review request выполнены полностью."
 
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
