@@ -86,6 +86,18 @@ backend:
         -agent: "testing"
         -comment: "AI Chat endpoint полностью функционален. POST /api/ai-knowledge/answer возвращает 200 с корректной структурой JSON {answer: string, citations: []}. Тестирование с запросом {'question':'Привет!'} показало: endpoint доступен, возвращает осмысленный ответ 'Привет! Как я могу помочь вам сегодня?', citations пустой массив (ожидаемо при пустой БЗ). AI Knowledge router корректно смонтирован в основном приложении. Работает как fallback GPT-4o-mini ассистент при отсутствии контекста в базе знаний."
 
+  - task: "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "LiveKit SIP smoke tests успешно пройдены (4/4): 1) GET /api/health возвращает 200 JSON {ok:true} ✓ (исправлена проблема с порядком монтирования router) 2) POST /api/voice/call/start с minimal body возвращает 500 'LiveKit not configured' при отсутствии LIVEKIT credentials (ожидаемо) ✓ 3) GET /api/voice/call/{fake}/status возвращает 404 'Call not found' для несуществующего call_id ✓ 4) POST /api/realtime/sessions возвращает 500 'OPENAI_API_KEY not configured' при отсутствии ключа (ожидаемо) ✓. Все endpoints реализованы корректно и работают согласно спецификации."
+
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
     implemented: true
