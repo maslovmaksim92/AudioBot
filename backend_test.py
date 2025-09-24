@@ -1,23 +1,14 @@
 #!/usr/bin/env python3
 """
-VasDom AudioBot Backend API Testing - Full Review Request Testing
-Testing comprehensive backend endpoints per review request:
+VasDom AudioBot Backend API Testing - LiveKit SIP Smoke Tests
+Testing backend smoke tests after removing emergentintegrations to resolve OpenAI conflicts:
 
-AI Knowledge (psycopg3):
-1) GET /api/ai-knowledge/db-dsn — 200; normalized.scheme='postgresql', normalized.query содержит sslmode='require', raw_present=true
-2) GET /api/ai-knowledge/db-check — 200; ожидаем connected=true, ai_tables включает ai_documents/ai_chunks/ai_uploads_temp; embedding_dims=1536
-3) POST /api/ai-knowledge/preview — multipart с ключом files и одним TXT ("Hello AI psycopg3 end-to-end"); 200: upload_id, chunks>0, stats.total_size_bytes>0
-4) GET /api/ai-knowledge/status?upload_id=<id> — 200: status='ready'
-5) POST /api/ai-knowledge/study — form: upload_id, filename='psycopg3.txt', category='Маркетинг'; 200: document_id, chunks>=1, category='Маркетинг'
-6) GET /api/ai-knowledge/documents — 200; документ из (5) присутствует, chunks_count>=1
-7) POST /api/ai-knowledge/search — body {"query":"psycopg3","top_k":5} — 200, results[] не пуст
-8) DELETE /api/ai-knowledge/document/{document_id} — 200 {ok:true}
+1) GET /api/health -> expect 200
+2) POST /api/realtime/sessions -> expect 200 on Render (OPENAI_API_KEY present) or 500 locally
+3) POST /api/voice/call/start with {"phone_number":"+79001234567"} -> on Render expect 200 or detailed 4xx/5xx if LiveKit rejects; ensure no 'LiveKit not configured'
+4) GET /api/voice/call/{fake}/status -> 404
 
-Регресс CRM:
-9) GET /api/cleaning/filters — 200
-10) GET /api/cleaning/houses?page=1&limit=5 — 200
-
-Base URL: https://audiobot-qci2.onrender.com
+Base URL: use REACT_APP_BACKEND_URL and /api prefix
 """
 
 import requests
