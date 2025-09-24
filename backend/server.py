@@ -270,10 +270,9 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
     try:
         # Build LiveKit token for agent
         token = lk_api.AccessToken(api_key=os.environ.get('LIVEKIT_API_KEY'), api_secret=os.environ.get('LIVEKIT_API_SECRET'))
-        token.identity = f'ai_agent_{call_id}'
-        token.name = 'AI Assistant'
+        token = token.with_identity(f'ai_agent_{call_id}').with_name('AI Assistant')
         grants = lk_api.VideoGrants(room_join=True, room=room_name)
-        token.add_grants(grants)
+        token = token.with_grants(grants)
         jwt = token.to_jwt()
 
         async def _entry(ctx: lk_agents.JobContext):
