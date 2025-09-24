@@ -2624,6 +2624,125 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Final E2E - Delete", False, f"❌ Status: {status} (expected 200)")
 
+    def test_ai_agent_worker_creation(self):
+        """Test AI agent worker creation as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - AI Agent Worker Creation Test")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing AI agent worker creation per review request:")
+        print("1) POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} — ожидание: 200")
+        print("2) Проверить логи на отсутствие 'Worker.__init__() got an unexpected keyword argument'")
+        print("3) GET /api/voice/call/{call_id}/status дважды для проверки стабильности endpoint")
+        print("=" * 80)
+        
+        # Test 1: POST /api/voice/call/start
+        call_id = self.test_voice_call_start_200()
+        
+        if call_id:
+            # Test 2: GET status twice for stability
+            self.test_voice_call_status_stability(call_id)
+        else:
+            print("❌ Cannot proceed with status tests - no call_id from start")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_voice_call_start_200(self):
+        """Test POST /api/voice/call/start expecting 200 response"""
+        print("\n1️⃣ Testing POST /api/voice/call/start")
+        print("   Body: {\"phone_number\":\"+79001234567\"}")
+        print("   Expected: 200 with call_id, room_name, status")
+        
+        request_data = {"phone_number": "+79001234567"}
+        
+        success, data, status = self.make_request('POST', '/api/voice/call/start', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check required schema keys: call_id, room_name, status
+            call_id = data.get('call_id')
+            room_name = data.get('room_name')
+            call_status = data.get('status')
+            
+            if call_id and room_name and call_status:
+                self.log_test("Voice Call Start - 200 Response", True, 
+                            f"✅ Status 200 ✓, call_id: {call_id[:8]}..., room_name: {room_name}, status: {call_status}")
+                return call_id
+            else:
+                missing_keys = []
+                if not call_id:
+                    missing_keys.append("call_id")
+                if not room_name:
+                    missing_keys.append("room_name")
+                if not call_status:
+                    missing_keys.append("status")
+                self.log_test("Voice Call Start - 200 Response", False, 
+                            f"❌ Status 200 ✓, но отсутствуют ключи схемы: {missing_keys}")
+                
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Voice Call Start - 200 Response", False, 
+                        f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_voice_call_status_stability(self, call_id):
+        """Test GET /api/voice/call/{call_id}/status twice for stability"""
+        print(f"\n2️⃣ Testing GET /api/voice/call/{call_id[:8]}/status (twice for stability)")
+        print("   Expected: Consistent responses from both calls")
+        
+        # First call
+        print("   First call:")
+        success1, data1, status1 = self.make_request('GET', f'/api/voice/call/{call_id}/status')
+        
+        if success1:
+            print(f"   ✅ First call - Status: {status1}")
+            print(f"   Response: {json.dumps(data1, indent=2, ensure_ascii=False)}")
+        else:
+            print(f"   ❌ First call failed")
+            self.log_test("Voice Call Status - First Call", False, f"❌ First call failed: {data1}")
+            return
+        
+        # Wait 2 seconds as mentioned in review request
+        print("   Waiting 2 seconds...")
+        time.sleep(2)
+        
+        # Second call
+        print("   Second call:")
+        success2, data2, status2 = self.make_request('GET', f'/api/voice/call/{call_id}/status')
+        
+        if success2:
+            print(f"   ✅ Second call - Status: {status2}")
+            print(f"   Response: {json.dumps(data2, indent=2, ensure_ascii=False)}")
+        else:
+            print(f"   ❌ Second call failed")
+            self.log_test("Voice Call Status - Second Call", False, f"❌ Second call failed: {data2}")
+            return
+        
+        # Compare responses for stability
+        if status1 == status2:
+            if status1 == 200:
+                # Compare response structure
+                call_id1 = data1.get('call_id')
+                call_id2 = data2.get('call_id')
+                status_val1 = data1.get('status')
+                status_val2 = data2.get('status')
+                
+                if call_id1 == call_id2 and call_id1 == call_id:
+                    self.log_test("Voice Call Status - Stability", True, 
+                                f"✅ Both calls returned 200 ✓, consistent call_id ✓, status: {status_val1} → {status_val2}")
+                else:
+                    self.log_test("Voice Call Status - Stability", False, 
+                                f"❌ Inconsistent call_id: {call_id1} vs {call_id2}")
+            else:
+                self.log_test("Voice Call Status - Stability", True, 
+                            f"✅ Both calls returned consistent status: {status1}")
+        else:
+            self.log_test("Voice Call Status - Stability", False, 
+                        f"❌ Inconsistent status codes: {status1} vs {status2}")
+
     def test_livekit_sip_identity_review_request(self):
         """Test LiveKit SIP participant creation after setting identities as per review request"""
         print(f"🚀 VasDom AudioBot Backend API - LiveKit SIP Identity Review Request")
