@@ -304,15 +304,29 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         try:
             agent = lk_agents.voice.Agent(instructions=instr_text)
         except TypeError:
-            # Совместимость со старыми версиями SDK
-            try:
-                agent = lk_agents.voice.Agent()
-            except Exception as _:
-                raise
+            agent = lk_agents.voice.Agent()
         await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
-        # Keep session alive until room disconnects
-        await session.drain()
+        # Keep session alive while PSTN participant is connected (max 15 minutes)
+        import time
+        start_ts = time.time()
+        had_pstn = False
+        max_alive_sec = int(os.environ.get('AI_CALL_MAX_SECONDS', '900'))
+        while time.time() - start_ts < max_alive_sec:
+            try:
+                rp = list(room.remote_participants.values()) if hasattr(room, 'remote_participants') else []
+                if rp:
+                    if _call_states.get(call_id, {}).get('status') != 'active':
+                        _call_states[call_id]['status'] = 'active'
+                    had_pstn = True
+                else:
+                    if had_pstn:
+                        # PSTN left, end call
+                        break
+                await asyncio.sleep(1)
+            except Exception:
+                await asyncio.sleep(1)
+        _call_states[call_id]['status'] = 'ended'
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
         _call_states[call_id]['agent_error'] = str(e)
