@@ -288,8 +288,10 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             session.start(ctx.room, ctx.participant)
             await session.wait_for_completion()
 
-        worker = lk_agents.Worker(entrypoint_fnc=_entry, room_name=room_name, token=jwt)
-        asyncio.create_task(worker.start())
+        # Create worker with options API
+        opts = lk_agents.WorkerOptions(entrypoint=_entry, room_name=room_name, token=jwt)
+        worker = lk_agents.Worker(opts)
+        asyncio.create_task(worker.run())
         _call_states[call_id]['agent'] = 'started'
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
