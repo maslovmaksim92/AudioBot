@@ -297,7 +297,6 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         # Configure OpenAI realtime model via plugin and start agent session bound to the room
         model = lk_openai.realtime.RealtimeModel(
             voice=voice or 'marin',
-            instructions=instructions or 'Вы — ассистент VasDom, общайтесь вежливо и кратко.',
             modalities=['audio','text'],
         )
         session = lk_agents.voice.AgentSession(llm=model)
