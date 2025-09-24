@@ -285,8 +285,10 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
                 turn_detection=lk_openai.realtime.TurnDetection(type='server_vad', threshold=0.5, prefix_padding_ms=300, silence_duration_ms=600),
             )
             session = lk_agents.voice.AgentSession(llm=model)
-            session.start(ctx.room, ctx.participant)
-            await session.wait_for_completion()
+            # Start agent in the room from job context
+            await session.start(agent=lk_agents.voice.Agent(label='VasDom AI'), room=ctx.room)
+            await session.drain()
+            await session.aclose()
 
         # Create worker with options API
         opts = lk_agents.WorkerOptions(entrypoint_fnc=_entry)
