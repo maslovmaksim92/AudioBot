@@ -51,6 +51,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event('shutdown')
+async def _shutdown_cleanup():
+    try:
+        global _livekit_client
+        if _livekit_client:
+            await _livekit_client.aclose()
+    except Exception:
+        pass
+
 # DB
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
