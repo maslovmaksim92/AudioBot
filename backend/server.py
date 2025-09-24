@@ -289,7 +289,9 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             await session.wait_for_completion()
 
         # Create worker with options API
-        opts = lk_agents.WorkerOptions(entrypoint=_entry, room_name=room_name, token=jwt)
+        opts = lk_agents.WorkerOptions(entrypoint_fnc=_entry)
+        # Run worker in ROOM mode by passing room token & name via env options
+        # Here we simulate job by connecting with token & room at runtime using AgentSession.start(room=...)
         worker = lk_agents.Worker(opts)
         asyncio.create_task(worker.run())
         _call_states[call_id]['agent'] = 'started'
