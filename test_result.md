@@ -109,6 +109,9 @@ backend:
         -working: true
         -agent: "testing"
         -comment: "TOKEN GRANT FIX УСПЕШНО ПРИМЕНЁН: Тестирование после исправления token grant показало полное решение проблемы. Результаты: 1) POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} теперь возвращает 200 ✓ с корректной схемой: call_id='c45bc4f9-a7a2-459c-b418-aec67d2ed7a7', room_name='call-c45bc4f9-a7a2-459c-b418-aec67d2ed7a7', status='ringing' ✓ 2) Логи больше не содержат ошибку 'AccessToken object has no attribute add_grants' ✓ 3) GET /api/voice/call/{call_id}/status работает корректно с 2-секундным интервалом, статус остаётся 'ringing' (ожидаемо для тестового звонка) ✓. Все требования review request выполнены. LiveKit SIP endpoints полностью функциональны."
+        -working: true
+        -agent: "testing"
+        -comment: "AI AGENT WORKER CREATION УСПЕШНО ПРОТЕСТИРОВАН: Re-test AI agent worker creation показал полное соответствие требованиям review request. Результаты: 1) POST https://audiobot-qci2.onrender.com/api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 200 ✓ с корректной схемой: call_id='783b4c18-6c1f-4ae7-8a5a-c80ce3187d92', room_name='call-783b4c18-6c1f-4ae7-8a5a-c80ce3187d92', status='ringing' ✓ 2) Логи НЕ содержат ошибку 'Worker.__init__() got an unexpected keyword argument' ✓ 3) GET /api/voice/call/{call_id}/status работает стабильно при двух последовательных вызовах с 2-секундным интервалом, возвращает консистентные данные ✓. Все требования review request выполнены на 100%. AI agent worker creation функционирует корректно без ошибок инициализации."
 
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
