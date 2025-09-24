@@ -300,7 +300,7 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             modalities=['audio','text'],
         )
         session = lk_agents.voice.AgentSession(llm=model)
-        agent = lk_agents.voice.Agent(label='VasDom AI')
+        agent = lk_agents.voice.Agent()
         await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
         # Keep session alive until room disconnects
