@@ -103,6 +103,8 @@ const LiveConversation = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-elegant p-3 space-y-3">
+        {/* AI Outbound Call (SIP via LiveKit) */}
+        <AIDialer />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-gray-600">Голос</label>
