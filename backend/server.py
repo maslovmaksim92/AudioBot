@@ -300,7 +300,15 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             modalities=['audio','text'],
         )
         session = lk_agents.voice.AgentSession(llm=model)
-        agent = lk_agents.voice.Agent()
+        instr_text = instructions or 'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. Отвечайте по-русски.'
+        try:
+            agent = lk_agents.voice.Agent(instructions=instr_text)
+        except TypeError:
+            # Совместимость со старыми версиями SDK
+            try:
+                agent = lk_agents.voice.Agent()
+            except Exception as _:
+                raise
         await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
         # Keep session alive until room disconnects
