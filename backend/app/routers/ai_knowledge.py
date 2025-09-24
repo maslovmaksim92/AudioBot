@@ -25,7 +25,7 @@ except Exception:  # pragma: no cover
     PgJson = None
     PSYCOPG_AVAILABLE = False
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+# from emergentintegrations.llm.chat import LlmChat, UserMessage
 from openai import AsyncOpenAI
 import tiktoken
 from PyPDF2 import PdfReader
