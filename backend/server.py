@@ -20,7 +20,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy import text as sa_text
 
 # LLM / Files
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+# removed emergentintegrations usage to allow OpenAI 1.109.0 for LiveKit OpenAI Realtime
 from openai import AsyncOpenAI
 from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
