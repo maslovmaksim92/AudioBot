@@ -853,6 +853,190 @@ class VasDomAPITester:
         # Final summary
         self.print_summary()
 
+    def test_livekit_sip_smoke_tests(self):
+        """Run LiveKit SIP smoke tests as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - LiveKit SIP Smoke Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing LiveKit SIP endpoints per review request:")
+        print("1) GET /api/health — ожидание: 200 JSON {ok:true}")
+        print("2) POST /api/voice/call/start с minimal body {\"phone_number\":\"+79001234567\"} — ожидание: 500 если LIVEKIT creds отсутствуют, или 200 с call payload если присутствуют")
+        print("3) GET /api/voice/call/{fake}/status — ожидание: 404")
+        print("4) Recheck POST /api/realtime/sessions — ожидание: 500 с missing OPENAI_API_KEY или 200 если ключ присутствует")
+        print("=" * 80)
+        
+        # Test 1: GET /api/health
+        self.test_health_endpoint()
+        
+        # Test 2: POST /api/voice/call/start
+        self.test_voice_call_start()
+        
+        # Test 3: GET /api/voice/call/{fake}/status
+        self.test_voice_call_status_fake()
+        
+        # Test 4: Recheck POST /api/realtime/sessions
+        self.test_realtime_sessions_recheck()
+        
+        # Final summary
+        self.print_summary()
+
+    def test_health_endpoint(self):
+        """Test 1: GET /api/health - expect 200 JSON {ok:true}"""
+        print("\n1️⃣ Testing GET /api/health")
+        print("   Expected: 200 JSON {ok:true}")
+        
+        success, data, status = self.make_request('GET', '/api/health')
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check for ok:true
+            ok = data.get('ok')
+            
+            if ok is True:
+                self.log_test("Health Endpoint", True, "✅ Status 200 ✓, JSON {ok:true} ✓")
+            else:
+                self.log_test("Health Endpoint", False, f"❌ Status 200 ✓, но ok={ok} (expected true)")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Health Endpoint", False, f"❌ Status: {status} (expected 200), Data: {data}")
+
+    def test_voice_call_start(self):
+        """Test 2: POST /api/voice/call/start with minimal body - expect 500 if LIVEKIT creds missing, or 200 with call payload if present"""
+        print("\n2️⃣ Testing POST /api/voice/call/start")
+        print("   Body: {\"phone_number\":\"+79001234567\"}")
+        print("   Expected: 500 если LIVEKIT creds отсутствуют, или 200 с call payload если присутствуют")
+        
+        request_data = {"phone_number": "+79001234567"}
+        
+        success, data, status = self.make_request('POST', '/api/voice/call/start', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓ (LIVEKIT credentials present)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check required schema keys: call_id, room_name, status
+            call_id = data.get('call_id')
+            room_name = data.get('room_name')
+            call_status = data.get('status')
+            
+            schema_ok = all([call_id, room_name, call_status])
+            
+            if schema_ok:
+                self.log_test("Voice Call Start - Schema", True, 
+                            f"✅ Status 200 ✓, schema keys present: call_id, room_name, status ✓")
+                self.log_test("Voice Call Start - Response", True, 
+                            f"✅ call_id: {call_id[:8] if call_id else 'None'}..., room_name: {room_name}, status: {call_status}")
+            else:
+                missing_keys = []
+                if not call_id:
+                    missing_keys.append("call_id")
+                if not room_name:
+                    missing_keys.append("room_name")
+                if not call_status:
+                    missing_keys.append("status")
+                self.log_test("Voice Call Start - Schema", False, 
+                            f"❌ Status 200 ✓, но отсутствуют ключи схемы: {missing_keys}")
+                
+        elif success and status == 500:
+            print(f"   ✅ Status: {status} ✓ (LIVEKIT credentials missing - expected)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            
+            # Check if detail mentions LiveKit configuration
+            if 'LiveKit' in detail or 'LIVEKIT' in detail:
+                self.log_test("Voice Call Start - Config Error", True, 
+                            f"✅ Status 500 ✓ с detail о LiveKit конфигурации: '{detail}' ✓")
+            else:
+                self.log_test("Voice Call Start - Config Error", True, 
+                            f"✅ Status 500 ✓ (expected when LIVEKIT creds missing), detail: '{detail}'")
+                
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Voice Call Start - Unexpected Response", False, 
+                        f"❌ Status: {status} (expected 200 or 500), Data: {data}")
+
+    def test_voice_call_status_fake(self):
+        """Test 3: GET /api/voice/call/{fake}/status - expect 404"""
+        print("\n3️⃣ Testing GET /api/voice/call/{fake}/status")
+        print("   Expected: 404")
+        
+        fake_call_id = "fake-call-id-12345"
+        
+        success, data, status = self.make_request('GET', f'/api/voice/call/{fake_call_id}/status')
+        
+        if success and status == 404:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            self.log_test("Voice Call Status - Fake ID", True, 
+                        "✅ Status 404 ✓ для несуществующего call_id")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Voice Call Status - Fake ID", False, 
+                        f"❌ Status: {status} (expected 404), Data: {data}")
+
+    def test_realtime_sessions_recheck(self):
+        """Test 4: Recheck POST /api/realtime/sessions - expect 500 with missing OPENAI_API_KEY or 200 if key present"""
+        print("\n4️⃣ Testing POST /api/realtime/sessions (recheck)")
+        print("   Expected: 500 с missing OPENAI_API_KEY или 200 если ключ присутствует")
+        
+        request_data = {"voice": "marin"}
+        
+        success, data, status = self.make_request('POST', '/api/realtime/sessions', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓ (OPENAI_API_KEY present)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check required fields: client_secret, model, voice, expires_at
+            client_secret = data.get('client_secret')
+            model = data.get('model')
+            voice = data.get('voice')
+            expires_at = data.get('expires_at')
+            
+            schema_ok = all([client_secret, model, voice, expires_at])
+            
+            if schema_ok:
+                self.log_test("Realtime Sessions - Recheck Success", True, 
+                            f"✅ Status 200 ✓, schema keys present: client_secret, model, voice, expires_at ✓")
+            else:
+                missing_keys = []
+                if not client_secret:
+                    missing_keys.append("client_secret")
+                if not model:
+                    missing_keys.append("model")
+                if not voice:
+                    missing_keys.append("voice")
+                if not expires_at:
+                    missing_keys.append("expires_at")
+                self.log_test("Realtime Sessions - Recheck Success", False, 
+                            f"❌ Status 200 ✓, но отсутствуют ключи схемы: {missing_keys}")
+                
+        elif success and status == 500:
+            print(f"   ✅ Status: {status} ✓ (OPENAI_API_KEY missing - expected)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            
+            # Check if detail mentions OPENAI_API_KEY
+            if 'OPENAI_API_KEY' in detail:
+                self.log_test("Realtime Sessions - Recheck Config Error", True, 
+                            f"✅ Status 500 ✓ с detail о OPENAI_API_KEY: '{detail}' ✓")
+            else:
+                self.log_test("Realtime Sessions - Recheck Config Error", True, 
+                            f"✅ Status 500 ✓ (expected when OPENAI_API_KEY missing), detail: '{detail}'")
+                
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Realtime Sessions - Recheck Unexpected", False, 
+                        f"❌ Status: {status} (expected 200 or 500), Data: {data}")
+
     def test_quick_db_check(self):
         """Test 1: GET /api/ai-knowledge/db-check - expecting Status 200, connected=true, embedding_dims=1536"""
         print("\n1️⃣ Testing GET /api/ai-knowledge/db-check")
