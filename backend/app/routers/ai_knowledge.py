@@ -137,23 +137,23 @@ async def _split_into_chunks(text: str, target_tokens: int = 1200, overlap: int 
 
 
 async def _summarize(text: str, max_chars: int = 2000) -> str:
-    if not EMERGENT_LLM_KEY:
-        return (text or "")[:max_chars]
-    try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"ai_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-            system_message="Ты помощник. Кратко опиши содержимое документа на русском, до 2000 символов, без выдумок."
-        ).with_model("openai", "gpt-5-mini")
-        prompt = f"Сделай краткое описание (до {max_chars} символов).\n\nТекст:\n{_tokencut(text or '', 8000)}\n\nОписание:"
-        resp = await chat.send_message(UserMessage(text=prompt))
-        s = (resp or "")
-        if len(s) > max_chars:
-            s = s[: max_chars - 1] + "…"
-        return s
-    except Exception as e:
-        logger.warning(f"LLM preview error: {e}")
-        return (text or "")[:max_chars]
+    # if not EMERGENT_LLM_KEY:
+    #     return (text or "")[:max_chars]
+    # try:
+    #     chat = LlmChat(
+    #         api_key=EMERGENT_LLM_KEY,
+    #         session_id=f"ai_preview_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+    #         system_message="Ты помощник. Кратко опиши содержимое документа на русском, до 2000 символов, без выдумок."
+    #     ).with_model("openai", "gpt-5-mini")
+    #     prompt = f"Сделай краткое описание (до {max_chars} символов).\n\nТекст:\n{_tokencut(text or '', 8000)}\n\nОписание:"
+    #     resp = await chat.send_message(UserMessage(text=prompt))
+    #     s = (resp or "")
+    #     if len(s) > max_chars:
+    #         s = s[: max_chars - 1] + "…"
+    #     return s
+    # except Exception as e:
+    #     logger.warning(f"LLM preview error: {e}")
+    return (text or "")[:max_chars]
 
 
 async def _detect_vector_dims() -> int:
