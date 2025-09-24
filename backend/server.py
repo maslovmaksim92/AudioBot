@@ -299,7 +299,6 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             voice=voice or 'marin',
             instructions=instructions or 'Вы — ассистент VasDom, общайтесь вежливо и кратко.',
             modalities=['audio','text'],
-            turn_detection=lk_openai.realtime.TurnDetection(type='server_vad', threshold=0.5, prefix_padding_ms=300, silence_duration_ms=600),
         )
         session = lk_agents.voice.AgentSession(llm=model)
         agent = lk_agents.voice.Agent(label='VasDom AI')
