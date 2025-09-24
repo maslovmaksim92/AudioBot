@@ -88,9 +88,9 @@ backend:
 
   - task: "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -106,6 +106,9 @@ backend:
         -working: false
         -agent: "testing"
         -comment: "КРИТИЧЕСКАЯ ПРОБЛЕМА ОБНАРУЖЕНА: Re-test LiveKit SIP participant creation показал, что проблема 'identity cannot be empty' всё ещё существует. Результаты тестирования: 1) POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 502 'LiveKit SIP error: TwirpError(code=unknown, message=twirp error unknown: update room failed: identity cannot be empty, status=500)' ❌ 2) Ошибка указывает на проблему с identity в LiveKit room update, возможно связанную с AI agent подключением. Код устанавливает participant_identity='pstn-79001234567' и token.identity='ai_agent_{call_id}', но LiveKit сервис всё равно получает пустой identity. Требуется исследование и исправление логики установки identity для SIP participant или AI agent."
+        -working: true
+        -agent: "testing"
+        -comment: "TOKEN GRANT FIX УСПЕШНО ПРИМЕНЁН: Тестирование после исправления token grant показало полное решение проблемы. Результаты: 1) POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} теперь возвращает 200 ✓ с корректной схемой: call_id='c45bc4f9-a7a2-459c-b418-aec67d2ed7a7', room_name='call-c45bc4f9-a7a2-459c-b418-aec67d2ed7a7', status='ringing' ✓ 2) Логи больше не содержат ошибку 'AccessToken object has no attribute add_grants' ✓ 3) GET /api/voice/call/{call_id}/status работает корректно с 2-секундным интервалом, статус остаётся 'ringing' (ожидаемо для тестового звонка) ✓. Все требования review request выполнены. LiveKit SIP endpoints полностью функциональны."
 
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
