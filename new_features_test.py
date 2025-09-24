@@ -10,7 +10,7 @@ Testing new backend endpoints per review request:
 5) Employees - GET /api/employees/office
 6) План дня - GET /api/tasks/bitrix/agenda, POST /api/tasks/bitrix/agenda/export
 
-Base URL: https://rag-audiobot.preview.emergentagent.com
+Base URL: https://audiobot-suite.preview.emergentagent.com
 """
 
 import requests
@@ -24,7 +24,7 @@ class NewFeaturesAPITester:
     def __init__(self, base_url=None):
         # Use the deployed URL from frontend .env
         if base_url is None:
-            base_url = "https://rag-audiobot.preview.emergentagent.com"
+            base_url = "https://audiobot-suite.preview.emergentagent.com"
         
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0

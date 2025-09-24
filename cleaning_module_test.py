@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 class CleaningModuleTester:
-    def __init__(self, base_url="https://rag-audiobot.preview.emergentagent.com"):
+    def __init__(self, base_url="https://audiobot-suite.preview.emergentagent.com"):
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
         self.tests_passed = 0
@@ -516,7 +516,7 @@ def main():
     if len(sys.argv) > 1:
         base_url = sys.argv[1]
     else:
-        base_url = "https://rag-audiobot.preview.emergentagent.com"
+        base_url = "https://audiobot-suite.preview.emergentagent.com"
     
     tester = CleaningModuleTester(base_url)
     success = tester.run_comprehensive_test()

@@ -2923,7 +2923,7 @@ class VasDomAPITester:
 
 if __name__ == "__main__":
     # Use the production URL from frontend/.env
-    base_url = "https://rag-audiobot.preview.emergentagent.com"
+    base_url = "https://audiobot-suite.preview.emergentagent.com"
     
     tester = VasDomAPITester(base_url)
     
