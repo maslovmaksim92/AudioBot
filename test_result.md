@@ -88,9 +88,9 @@ backend:
 
   - task: "LiveKit SIP endpoints (/api/voice/call/start, /api/voice/call/{call_id}/status)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -103,6 +103,9 @@ backend:
         -working: true
         -agent: "testing"
         -comment: "ПРОБЛЕМА ИСПРАВЛЕНА: Re-test на Render после удаления unsupported field показал успешное исправление. POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} теперь возвращает 500 'Failed to start call' вместо 'LiveKit not configured', что соответствует требованиям review request - detailed 4xx/5xx error, а не schema error. Endpoint корректно обрабатывает запросы и возвращает детализированные ошибки при проблемах с LiveKit SIP, что является ожидаемым поведением на production среде без полной конфигурации LiveKit."
+        -working: false
+        -agent: "testing"
+        -comment: "КРИТИЧЕСКАЯ ПРОБЛЕМА ОБНАРУЖЕНА: Re-test LiveKit SIP participant creation показал, что проблема 'identity cannot be empty' всё ещё существует. Результаты тестирования: 1) POST /api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 502 'LiveKit SIP error: TwirpError(code=unknown, message=twirp error unknown: update room failed: identity cannot be empty, status=500)' ❌ 2) Ошибка указывает на проблему с identity в LiveKit room update, возможно связанную с AI agent подключением. Код устанавливает participant_identity='pstn-79001234567' и token.identity='ai_agent_{call_id}', но LiveKit сервис всё равно получает пустой identity. Требуется исследование и исправление логики установки identity для SIP participant или AI agent."
 
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
