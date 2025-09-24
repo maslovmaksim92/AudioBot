@@ -3134,10 +3134,12 @@ if __name__ == "__main__":
             tester.test_final_e2e_review_request()
         elif test_type == "close":
             tester.test_final_review_request_mini_flow()
+        elif test_type == "livekit":
+            tester.test_livekit_sip_smoke_tests()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit")
             sys.exit(1)
     else:
-        # Default: run AI Chat endpoint test as per current review request
-        tester.test_ai_chat_review_request()
+        # Default: run LiveKit SIP smoke tests as per current review request
+        tester.test_livekit_sip_smoke_tests()
