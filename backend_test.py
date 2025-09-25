@@ -16,7 +16,7 @@ import sys
 import json
 import time
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
 class VasDomAPITester:
