@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -7,15 +7,25 @@ import os
 import logging
 import httpx
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import json
+import io
+import zipfile
 
 # DB / Vector
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import text as sa_text
 
 # LLM / Files
 # removed emergentintegrations usage to allow OpenAI 1.109.0 for LiveKit OpenAI Realtime
+from openai import AsyncOpenAI
+from PyPDF2 import PdfReader
+from docx import Document as DocxDocument
+from openpyxl import load_workbook
+import tiktoken
 from uuid import uuid4
 
 ROOT_DIR = Path(__file__).parent
@@ -124,12 +134,17 @@ async def get_db() -> AsyncSession:
 # ====== LiveKit SIP Outbound calling (Novofon) ======
 try:
     from livekit import api as lk_api
+    from livekit import api as livekit_api
+    from livekit import api
+    from livekit import api as _lk_api
+    from livekit import api as _api
     from livekit.plugins import openai as lk_openai
     from livekit import agents as lk_agents
     LIVEKIT_AVAILABLE = True
 except Exception:
     LIVEKIT_AVAILABLE = False
 
+from pydantic import BaseModel
 
 class VoiceCallStartRequest(BaseModel):
     phone_number: str
@@ -303,11 +318,6 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
 
         await room.connect(ws_url, jwt)
 
-        # Configure OpenAI realtime model via plugin and start agent session bound to the room
-        model = lk_openai.realtime.RealtimeModel(
-            voice=voice or 'marin',
-            modalities=['audio','text'],
-        )
         # Configure OpenAI TTS for speech output (fixes: missing TTS model)
         try:
             allowed_tts_voices = {
@@ -325,6 +335,11 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             logger.warning(f"[CALL {call_id}] TTS configure failed: {e}")
             tts_cfg = None
 
+        # Configure OpenAI realtime model via plugin and start agent session bound to the room
+        model = lk_openai.realtime.RealtimeModel(
+            voice=voice or 'marin',
+            modalities=['audio','text'],
+        )
         # Attach TTS to the agent session so .say() can synthesize speech
         if tts_cfg is not None:
             session = lk_agents.voice.AgentSession(llm=model, tts=tts_cfg)
@@ -600,6 +615,24 @@ class BitrixService:
         self._deals_full_cache = {"ts": now, "data": items}
         return items
 
+    async def user_phone(self, user_id: int) -> Optional[str]:
+        """Try to resolve employee phone by Bitrix user.get"""
+        try:
+            if not user_id:
+                return None
+            resp = await self._call('user.get', { 'ID': int(user_id) })
+            if not resp.get('ok'):
+                return None
+            u = resp.get('result') or {}
+            # Prefer mobile
+            for key in ('PERSONAL_MOBILE', 'WORK_PHONE', 'PERSONAL_PHONE'):
+                v = (u or {}).get(key)
+                if isinstance(v, str) and v.strip():
+                    return v.strip()
+            return None
+        except Exception:
+            return None
+
 bitrix = BitrixService()
 
 # Helpers to compute periodicity and next cleaning date from UF_* blocks
@@ -800,6 +833,61 @@ async def employees_office():
         return { 'employees': out }
     except Exception:
         return { 'employees': [] }
+
+# ====== Call AI from Tasks ======
+class TaskCallAIRequest(BaseModel):
+    task_id: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    responsible_id: Optional[int] = None
+    phone_number: Optional[str] = None
+    voice: Optional[str] = 'marin'
+
+class TaskCallAIResponse(VoiceCallStartResponse):
+    used_phone: str
+    instructions: Optional[str] = None
+
+
+def _normalize_phone(phone: str) -> str:
+    if not phone:
+        return phone
+    p = ''.join(ch for ch in phone if ch.isdigit() or ch == '+')
+    # RU helper: 8XXXXXXXXXX -> +7XXXXXXXXXX
+    if p and p[0] == '8' and len(p) == 11:
+        p = '+7' + p[1:]
+    if p and p[0] != '+':
+        p = '+' + p
+    return p
+
+@api_router.post('/tasks/call-ai', response_model=TaskCallAIResponse)
+async def tasks_call_ai(req: TaskCallAIRequest):
+    # resolve phone priority: override -> by responsible_id -> error
+    phone = (req.phone_number or '').strip()
+    if not phone and req.responsible_id:
+        phone = await bitrix.user_phone(int(req.responsible_id)) or ''
+    phone = _normalize_phone(phone)
+    if not phone:
+        raise HTTPException(status_code=400, detail='Phone number not found for this task/responsible user')
+
+    # compose instructions with task context
+    base_instr = (
+        'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. '
+        'Звонок сотруднику по задаче: уточните статус выполнения, сроки и следующие шаги; зафиксируйте договорённости.'
+    )
+    task_bits = []
+    if req.title:
+        task_bits.append(f"Задача: {req.title}")
+    if req.description:
+        task_bits.append(f"Описание: {req.description}")
+    instr = base_instr + ('\n' + '\n'.join(task_bits) if task_bits else '')
+
+    logger.info(f"[TASK CALL] task_id={req.task_id} to={phone} resp_id={req.responsible_id} voice={req.voice}")
+    # reuse existing voice call start logic
+    vc_req = VoiceCallStartRequest(phone_number=phone, caller_id=None, instructions=instr, voice=req.voice or 'marin')
+    vc_resp = await voice_call_start(vc_req)
+    # extend logs
+    logger.info(f"[TASK CALL] started call_id={vc_resp.call_id} room={vc_resp.room_name} status={vc_resp.status}")
+    return TaskCallAIResponse(call_id=vc_resp.call_id, room_name=vc_resp.room_name, status=vc_resp.status, sip_participant_id=vc_resp.sip_participant_id, used_phone=phone, instructions=instr)
 
 # Health endpoints for readiness
 @api_router.get('/health')

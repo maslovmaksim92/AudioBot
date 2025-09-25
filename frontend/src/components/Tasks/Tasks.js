@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, RefreshCw, User, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Calendar, RefreshCw, User, CheckCircle, AlertCircle, Plus, Phone } from 'lucide-react';
 
 const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
@@ -9,6 +9,8 @@ const Tasks = () => {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [callMap, setCallMap] = useState({}); // taskId -> {callId, status}
+  const pollersRef = useRef({});
 
   const loadEmployees = async () => {
     try {
@@ -40,6 +42,60 @@ const Tasks = () => {
     if (!selected) return { all: tasks };
     return { all: tasks };
   }, [tasks, selected]);
+
+  const startPollingStatus = (taskId, callId) => {
+    if (pollersRef.current[taskId]) clearInterval(pollersRef.current[taskId]);
+    pollersRef.current[taskId] = setInterval(async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/voice/call/${callId}/status`);
+        const data = await res.json();
+        setCallMap(prev => ({ ...prev, [taskId]: { callId, status: data.status } }));
+        if (!data || data.status === 'ended' || data.status === 'unknown') {
+          clearInterval(pollersRef.current[taskId]);
+          delete pollersRef.current[taskId];
+        }
+      } catch (e) {
+        // stop polling on error
+        clearInterval(pollersRef.current[taskId]);
+        delete pollersRef.current[taskId];
+      }
+    }, 1500);
+  };
+
+  const handleCallAI = async (t) => {
+    try {
+      const override = window.prompt('Номер телефона сотрудника (можно оставить пустым — возьмём из Bitrix):', '');
+      const body = {
+        task_id: Number(t.ID),
+        title: t.TITLE,
+        description: t.DESCRIPTION,
+        responsible_id: Number(t.RESPONSIBLE_ID || 0) || null,
+      };
+      if (override && override.trim()) body.phone_number = override.trim();
+
+      const res = await fetch(`${BACKEND_URL}/api/tasks/call-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Ошибка звонка: ${data?.detail || res.status}`);
+        return;
+      }
+      setCallMap(prev => ({ ...prev, [t.ID]: { callId: data.call_id, status: data.status } }));
+      startPollingStatus(t.ID, data.call_id);
+    } catch (e) {
+      alert('Не удалось инициировать звонок ИИ');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(pollersRef.current).forEach(id => clearInterval(id));
+      pollersRef.current = {};
+    };
+  }, []);
 
   return (
     <div className="pt-2 px-3 pb-6 max-w-6xl mx-auto">
@@ -74,16 +130,22 @@ const Tasks = () => {
         <div className="space-y-2">
           {(grouped.all||[]).map(t => (
             <div key={t.ID} className="bg-white rounded-xl shadow-elegant p-3 flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <div className="text-sm font-medium text-gray-900">{t.TITLE}</div>
                 <div className="text-xs text-gray-500">До: {t.DEADLINE || '—'} · Ответственный: {t.RESPONSIBLE_ID}</div>
+                {callMap[t.ID] && (
+                  <div className="mt-1 text-xs text-blue-600">Статус звонка ИИ: {callMap[t.ID].status} (call: {callMap[t.ID].callId})</div>
+                )}
               </div>
-              <div className="text-xs">
+              <div className="flex items-center gap-3 text-xs">
                 {String(t.STATUS) === '5' ? (
                   <span className="text-green-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Готово</span>
                 ) : (
                   <span className="text-amber-600 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> В работе / Ожидает</span>
                 )}
+                <button onClick={() => handleCallAI(t)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border text-blue-700 hover:bg-blue-100">
+                  <Phone className="w-4 h-4" /> Позвонить ИИ
+                </button>
               </div>
             </div>
           ))}
