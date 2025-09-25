@@ -351,12 +351,6 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             logger.info(f"[CALL {call_id}] TTS configured: model={tts_model}, voice={tts_voice}")
         except Exception as e:
             logger.warning(f"[CALL {call_id}] TTS configure failed: {e}")
-                # small heartbeat
-                try:
-                    logger.info(f"[CALL {call_id}] loop heartbeat status={_call_states.get(call_id,{}).get('status')} room={room_name}")
-                except Exception:
-                    pass
-
             tts_cfg = None
 
         # Configure OpenAI realtime model via plugin and start agent session bound to the room
