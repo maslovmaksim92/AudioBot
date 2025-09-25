@@ -300,6 +300,12 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         jwt = token.to_jwt()
 
         # Connect to LiveKit room over SFU (RTC), not local worker
+        def _on_room_event(ev_name: str, data: Dict[str, Any] | None = None):
+            try:
+                logger.info(f"[CALL {call_id}] ROOM EVT {ev_name} data={data}")
+            except Exception:
+                pass
+
         from livekit import rtc as lk_rtc
         ws_url = os.environ.get('LIVEKIT_WS_URL')
         if not ws_url:
