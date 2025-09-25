@@ -1,5 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, UploadFile, File, Form
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends, UploadFile, File, Form, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import Request
 
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -9,25 +9,15 @@ import os
 import logging
 import httpx
 import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 import json
-import io
-import zipfile
 
 # DB / Vector
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy import text as sa_text
 
 # LLM / Files
 # removed emergentintegrations usage to allow OpenAI 1.109.0 for LiveKit OpenAI Realtime
-from openai import AsyncOpenAI
-from PyPDF2 import PdfReader
-from docx import Document as DocxDocument
-from openpyxl import load_workbook
-import tiktoken
 from uuid import uuid4
 
 ROOT_DIR = Path(__file__).parent
@@ -136,17 +126,12 @@ async def get_db() -> AsyncSession:
 # ====== LiveKit SIP Outbound calling (Novofon) ======
 try:
     from livekit import api as lk_api
-    from livekit import api as livekit_api
-    from livekit import api
-    from livekit import api as _lk_api
-    from livekit import api as _api
     from livekit.plugins import openai as lk_openai
     from livekit import agents as lk_agents
     LIVEKIT_AVAILABLE = True
 except Exception:
     LIVEKIT_AVAILABLE = False
 
-from pydantic import BaseModel
 
 class VoiceCallStartRequest(BaseModel):
     phone_number: str
