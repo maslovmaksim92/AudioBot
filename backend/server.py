@@ -758,7 +758,8 @@ async def tasks_bitrix_list(date: Optional[str] = Query(None), responsible_id: O
     if not resp.get('ok'):
         return { 'tasks': [] }
     items = resp.get('result') or []
-    if isinstance(items, dict): items = [items]
+    if isinstance(items, dict):
+        items = [items]
     return { 'tasks': items }
 
 @api_router.post('/tasks/from-meeting')
