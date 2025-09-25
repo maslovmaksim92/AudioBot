@@ -3519,8 +3519,8 @@ class VasDomAPITester:
 
 
 if __name__ == "__main__":
-    # Use the production URL from review request
-    base_url = "https://audiobot-qci2.onrender.com"
+    # Use the production URL from frontend .env
+    base_url = "https://callbot-api.preview.emergentagent.com"
     
     tester = VasDomAPITester(base_url)
     
