@@ -134,11 +134,11 @@ frontend:
 
   - task: "AI Outbound Dialer in Live Conversation (AIDialer)"
     implemented: true
-    working: true
+    working: pending
     file: "/app/frontend/src/components/LiveConversation/AIDialer.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         -working: false
         -agent: "main"
@@ -146,6 +146,9 @@ frontend:
         -working: true
         -agent: "testing"
         -comment: "AIDialer полностью функционален согласно review request. ✅ Поле ввода телефона работает корректно ✅ Кнопка 'Позвонить' активна и кликабельна ✅ Ввод номера +79001234567 выполнен успешно ✅ POST запрос на /api/voice/call/start отправляется корректно ✅ Получен ожидаемый ответ 500 'LiveKit not configured' (соответствует backend состоянию) ✅ Сообщение об ошибке отображается пользователю ✅ Интеграция с backend API работает через правильный REACT_APP_BACKEND_URL. Компонент готов к работе после настройки LiveKit на backend."
+        -working: pending
+        -agent: "main"
+        -comment: "Пользователь запросил автотест фронтенда; запускаем сценарий: открыть Live Conversation, ввести +79843330712, нажать Позвонить, ждать 200 OK и статус ringing/active; повторить с номером 8888 для IP подтверждения Novofon при необходимости."
 
   - task: "AI Chat functionality"
     implemented: true
