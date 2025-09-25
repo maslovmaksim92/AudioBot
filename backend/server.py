@@ -498,12 +498,6 @@ async def create_realtime_session(req: RealtimeSessionRequest):
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
         'input_audio_transcription': { 'model': 'whisper-1' },
-        finally:
-            try:
-                await cli.aclose()
-            except Exception:
-                pass
-
         'tools': [
             {
                 'type': 'function',
