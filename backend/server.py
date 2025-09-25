@@ -350,31 +350,42 @@ async def voice_call_start(req: VoiceCallStartRequest):
     trunk_id = await _ensure_outbound_trunk()
     if not trunk_id:
         raise HTTPException(status_code=500, detail='SIP trunk not available')
+    phone = (req.phone_number or os.environ.get('DEFAULT_CALLEE_NUMBER') or '').strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail='phone_number required')
     call_id = str(uuid4())
     room_name = f'call-{call_id}'
+    logger.info(f'[CALL {call_id}] start → room={room_name} to={phone} trunk={trunk_id}')
     # Create room
     try:
         await client.room.create_room(lk_api.CreateRoomRequest(name=room_name))
+        logger.info(f'[CALL {call_id}] room created')
     except Exception as e:
-        logger.warning(f'Create room warning: {e}')
+        logger.warning(f'[CALL {call_id}] create room warning: {e}')
     # Create SIP participant (outbound call)
     try:
-        part = await client.sip.create_sip_participant(lk_api.CreateSIPParticipantRequest(
+        req_obj = lk_api.CreateSIPParticipantRequest(
             sip_trunk_id=trunk_id,
-            sip_call_to=req.phone_number,
+            sip_call_to=phone,
             room_name=room_name,
-            participant_identity=f"pstn-{req.phone_number.replace('+','').replace(' ','').replace('-','')}",
+            participant_identity=f"pstn-{phone.replace('+','').replace(' ','').replace('-','')}",
             participant_name=req.caller_id or "PSTN",
-        ))
-        _call_states[call_id] = {'status': 'ringing', 'room': room_name, 'sip_participant_id': getattr(part, 'sip_participant_id', None)}
+        )
+        part = await client.sip.create_sip_participant(req_obj)
+        sip_pid = getattr(part, 'sip_participant_id', None)
+        logger.info(f'[CALL {call_id}] SIP participant created: {sip_pid}')
+        _call_states[call_id] = {
+            'status': 'ringing', 'room': room_name, 'sip_participant_id': sip_pid,
+            'to': phone, 'created_at': datetime.now(timezone.utc).isoformat()
+        }
         # Start AI agent in background
         asyncio.create_task(_start_openai_agent(call_id, room_name, req.voice or 'marin', req.instructions))
-        return VoiceCallStartResponse(call_id=call_id, room_name=room_name, status='ringing', sip_participant_id=getattr(part, 'sip_participant_id', None))
+        return VoiceCallStartResponse(call_id=call_id, room_name=room_name, status='ringing', sip_participant_id=sip_pid)
     except lk_api.TwirpError as e:
-        logger.error(f'LiveKit SIP error: {e}')
+        logger.error(f'[CALL {call_id}] LiveKit SIP error: {e}')
         raise HTTPException(status_code=502, detail=f'LiveKit SIP error: {e}')
     except Exception as e:
-        logger.error(f'Create SIP participant failed: {e}')
+        logger.error(f'[CALL {call_id}] Create SIP participant failed: {e}')
         raise HTTPException(status_code=500, detail='Failed to start call')
 
 class VoiceCallStatus(BaseModel):
