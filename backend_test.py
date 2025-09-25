@@ -3755,8 +3755,8 @@ class VasDomAPITester:
                         "❌ No call data available for summary")
 
 if __name__ == "__main__":
-    # Use the production URL from frontend .env
-    base_url = "https://callbot-api.preview.emergentagent.com"
+    # Use the target URL from review request for Novofon IP confirmation
+    base_url = "https://audiobot-qci2.onrender.com"
     
     tester = VasDomAPITester(base_url)
     
