@@ -414,6 +414,16 @@ async def voice_call_start(req: VoiceCallStartRequest):
     if not trunk_id:
         raise HTTPException(status_code=500, detail='SIP trunk not available')
     phone = (req.phone_number or os.environ.get('DEFAULT_CALLEE_NUMBER') or '').strip()
+
+@api_router.post('/voice/call/webhook/livekit')
+async def livekit_sip_webhook(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = { 'raw': await request.body() }
+    logger.info(f"[SIP WEBHOOK] payload={payload}")
+    return { 'ok': True }
+
     if not phone:
         raise HTTPException(status_code=400, detail='phone_number required')
     call_id = str(uuid4())
