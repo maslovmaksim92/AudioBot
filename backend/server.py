@@ -51,6 +51,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# aiohttp cleanup to avoid 'Unclosed client session'
+try:
+    import aiohttp
+    _http_session: Optional[aiohttp.ClientSession] = None
+except Exception:
+    aiohttp = None
+    _http_session = None
+
 @app.on_event('shutdown')
 async def _shutdown_cleanup():
     try:
