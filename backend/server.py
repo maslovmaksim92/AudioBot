@@ -392,6 +392,12 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         _call_states[call_id]['status'] = 'ended'
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
+        # extra diagnostics around SIP participant creation
+        try:
+            logger.info(f"[CALL {call_id}] creating SIP participant → trunk={trunk_id}, to={phone}, room={room_name}")
+        except Exception:
+            pass
+
         _call_states[call_id]['agent_error'] = str(e)
     finally:
         try:
