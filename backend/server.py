@@ -451,8 +451,17 @@ async def livekit_sip_webhook(request: Request):
             participant_name=req.caller_id or "PSTN",
         )
         part = await client.sip.create_sip_participant(req_obj)
-        sip_pid = getattr(part, 'sip_participant_id', None)
-        logger.info(f'[CALL {call_id}] SIP participant created: {sip_pid}')
+        try:
+            part_dict = {
+                'sip_participant_id': getattr(part, 'sip_participant_id', None),
+                'status': getattr(part, 'status', None),
+                'sip_call_id': getattr(part, 'sip_call_id', None),
+                'name': getattr(part, 'name', None),
+            }
+        except Exception:
+            part_dict = {'repr': str(part)}
+        sip_pid = part_dict.get('sip_participant_id')
+        logger.info(f"[CALL {call_id}] SIP participant created: {sip_pid} details={part_dict}")
         _call_states[call_id] = {
             'status': 'ringing', 'room': room_name, 'sip_participant_id': sip_pid,
             'to': phone, 'created_at': datetime.now(timezone.utc).isoformat()
