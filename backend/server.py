@@ -1,6 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query
-from fastapi import Request
-
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -12,13 +10,13 @@ import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 import json
+from uuid import uuid4
 
-# DB / Vector
+# DB / Vector (kept minimal)
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-# LLM / Files
-# removed emergentintegrations usage to allow OpenAI 1.109.0 for LiveKit OpenAI Realtime
-from uuid import uuid4
+# LLM / Files (some imports kept for other modules)
+from openai import AsyncOpenAI  # noqa: F401
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -115,14 +113,6 @@ async def get_db() -> AsyncSession:
     async with async_session() as session:
         yield session
 
-# ===== Meetings (Summarize + Send to Telegram) + STT (omitted here for brevity in this snippet) =====
-# ... existing endpoints here ...
-
-# ===== Meetings: Save to Knowledge Base & Recent (omitted here for brevity) =====
-# ... existing endpoints here ...
-
-# ====== OpenAI Realtime: Ephemeral session endpoint ======
-
 # ====== LiveKit SIP Outbound calling (Novofon) ======
 try:
     from livekit import api as lk_api
@@ -131,7 +121,6 @@ try:
     LIVEKIT_AVAILABLE = True
 except Exception:
     LIVEKIT_AVAILABLE = False
-
 
 class VoiceCallStartRequest(BaseModel):
     phone_number: str
@@ -175,17 +164,10 @@ async def _get_livekit_client() -> Optional[lk_api.LiveKitAPI]:
     return _livekit_client
 
 async def _ensure_outbound_trunk() -> Optional[str]:
-    """Resolve or create outbound SIP trunk id.
-    Priority:
-    1) env LIVEKIT_SIP_TRUNK_ID / SIP_TRUNK_ID / LIVEKIT_TRUNK_ID
-    2) list existing trunks by name LIVEKIT_SIP_TRUNK_NAME (default 'novofon-trunk')
-    3) create trunk from NOVOFON_* env and re-list to get id
-    """
     global _livekit_trunk_id
     if _livekit_trunk_id:
         return _livekit_trunk_id
 
-    # 1) explicit env override
     for k in ('LIVEKIT_SIP_TRUNK_ID','SIP_TRUNK_ID','LIVEKIT_TRUNK_ID'):
         v = (os.environ.get(k) or '').strip()
         if v:
@@ -198,38 +180,19 @@ async def _ensure_outbound_trunk() -> Optional[str]:
         return None
 
     name = os.environ.get('LIVEKIT_SIP_TRUNK_NAME', 'novofon-trunk')
-
-    # Helper: extract list array from response
-    async def _list_outbound_trunks():
-        try:
-            resp = await client.sip.list_sip_outbound_trunk(lk_api.ListSIPOutboundTrunkRequest())
-            for attr in ('trunks','items','data','outbound_trunks'):
-                if hasattr(resp, attr):
-                    return getattr(resp, attr) or []
-            # Fallback: try converting to dict-ish string
-            try:
-                return list(resp)  # if iterable
-            except Exception:
-                return []
-        except Exception as e:
-            logger.warning(f'LiveKit list outbound trunks failed: {e}')
-            return []
-
-    # 2) try find by name
-    trunks = await _list_outbound_trunks()
-    for t in trunks:
-        try:
-            tname = getattr(t, 'name', '')
-            if tname == name:
+    try:
+        resp = await client.sip.list_sip_outbound_trunk(lk_api.ListSIPOutboundTrunkRequest())
+        trunks = getattr(resp, 'trunks', None) or getattr(resp, 'items', None) or []
+        for t in trunks:
+            if getattr(t, 'name', '') == name:
                 tid = getattr(t, 'trunk_id', None) or getattr(t, 'id', None)
                 if tid:
                     _livekit_trunk_id = tid
                     logger.info(f'Found existing SIP trunk "{name}": {tid}')
                     return _livekit_trunk_id
-        except Exception:
-            continue
+    except Exception as e:
+        logger.warning(f'List trunks failed: {e}')
 
-    # 3) Create trunk
     try:
         trunk = lk_api.SIPOutboundTrunkInfo(
             name=name,
@@ -238,38 +201,17 @@ async def _ensure_outbound_trunk() -> Optional[str]:
             auth_username=os.environ.get('NOVOFON_SIP_USERNAME') or '',
             auth_password=os.environ.get('NOVOFON_SIP_PASSWORD') or '',
         )
-        req = lk_api.CreateSIPOutboundTrunkRequest(trunk=trunk)
-        created = await client.sip.create_sip_outbound_trunk(req)
-        # Try to read id from different shapes
-        tid = None
-        for attr in ('trunk_id','id'):
-            tid = tid or getattr(created, attr, None)
-        # Some versions return wrapper with .trunk
+        created = await client.sip.create_sip_outbound_trunk(lk_api.CreateSIPOutboundTrunkRequest(trunk=trunk))
+        tid = getattr(created, 'trunk_id', None) or getattr(created, 'id', None)
         if not tid and hasattr(created, 'trunk'):
-            inner = getattr(created, 'trunk', None)
-            for attr in ('trunk_id','id'):
-                tid = tid or getattr(inner, attr, None)
+            tid = getattr(created.trunk, 'trunk_id', None) or getattr(created.trunk, 'id', None)
         if tid:
             _livekit_trunk_id = tid
             logger.info(f'LiveKit outbound trunk created: {tid}')
             return _livekit_trunk_id
-        # If id still unknown — re-list and find by name
-        trunks2 = await _list_outbound_trunks()
-        for t in trunks2:
-            try:
-                if getattr(t, 'name', '') == name:
-                    tid = getattr(t, 'trunk_id', None) or getattr(t, 'id', None)
-                    if tid:
-                        _livekit_trunk_id = tid
-                        logger.info(f'Found created SIP trunk by name: {tid}')
-                        return _livekit_trunk_id
-            except Exception:
-                continue
-        logger.error('Create outbound trunk succeeded but id not found in response/list')
-        return None
     except Exception as e:
         logger.error(f'Create outbound trunk failed: {e}')
-        return None
+    return None
 
 async def _start_openai_agent(call_id: str, room_name: str, voice: str, instructions: Optional[str]):
     if not LIVEKIT_AVAILABLE:
@@ -277,52 +219,28 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
     room = None
     session = None
     try:
-        # Build LiveKit token for agent
+        # Build token
         token = lk_api.AccessToken(api_key=os.environ.get('LIVEKIT_API_KEY'), api_secret=os.environ.get('LIVEKIT_API_SECRET'))
         token = token.with_identity(f'ai_agent_{call_id}').with_name('AI Assistant')
         grants = lk_api.VideoGrants(room_join=True, room=room_name)
         token = token.with_grants(grants)
         jwt = token.to_jwt()
 
-        # Connect to LiveKit room over SFU (RTC), not local worker
-        def _on_room_event(ev_name: str, data: Dict[str, Any] | None = None):
-            try:
-                logger.info(f"[CALL {call_id}] ROOM EVT {ev_name} data={data}")
-            except Exception:
-                pass
+        # Connect to room
         from livekit import rtc as lk_rtc
         ws_url = os.environ.get('LIVEKIT_WS_URL')
         if not ws_url:
             raise RuntimeError('LIVEKIT_WS_URL is not set')
         room = lk_rtc.Room()
-        room.on('connected', lambda: _on_room_event('connected'))
-        room.on('disconnected', lambda: _on_room_event('disconnected'))
-        room.on('track_published', lambda pub, participant=None: _on_room_event('track_published', {'pub': str(getattr(pub,'track_sid',None)), 'by': getattr(participant,'identity',None)}))
-        room.on('track_subscribed', lambda track, pub, participant=None: _on_room_event('track_subscribed', {'by': getattr(participant,'identity',None)}))
-        def _on_participant_connected(p):
-            try:
-                logger.info(f'[CALL {call_id}] participant connected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}')
-            except Exception:
-                pass
-        def _on_participant_disconnected(p):
-            try:
-                logger.info(f'[CALL {call_id}] participant disconnected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}')
-            except Exception:
-                pass
-        room.on('participant_connected', _on_participant_connected)
-        room.on('participant_disconnected', _on_participant_disconnected)
-
+        room.on('participant_connected', lambda p: logger.info(f'[CALL {call_id}] participant connected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}'))
+        room.on('participant_disconnected', lambda p: logger.info(f'[CALL {call_id}] participant disconnected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}'))
         await room.connect(ws_url, jwt)
 
-        # Configure OpenAI TTS for speech output (fixes: missing TTS model)
+        # TTS config
         try:
-            # Debug heartbeat while running loop is below; here только подготовка комнаты/сессии
-            allowed_tts_voices = {
-                'alloy','verse','coral','sage','ash','ballad','echo','fable','onyx','nova','shimmer'
-            }
+            allowed = {'alloy','verse','coral','sage','ash','ballad','echo','fable','onyx','nova','shimmer'}
             tts_voice = (voice or os.environ.get('OPENAI_TTS_VOICE') or 'alloy').strip()
-            if tts_voice not in allowed_tts_voices:
-                # Map unknown voices (e.g., 'marin' from Realtime) to a safe default
+            if tts_voice not in allowed:
                 logger.info(f"[CALL {call_id}] requested voice '{tts_voice}' not in TTS set, falling back to 'alloy'")
                 tts_voice = 'alloy'
             tts_model = os.environ.get('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts')
@@ -332,22 +250,14 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             logger.warning(f"[CALL {call_id}] TTS configure failed: {e}")
             tts_cfg = None
 
-        # Configure OpenAI realtime model via plugin and start agent session bound to the room
-        model = lk_openai.realtime.RealtimeModel(
-            voice=voice or 'marin',
-            modalities=['audio','text'],
-        )
-        # Attach TTS to the agent session so .say() can synthesize speech
-        if tts_cfg is not None:
-            session = lk_agents.voice.AgentSession(llm=model, tts=tts_cfg)
-        else:
-            session = lk_agents.voice.AgentSession(llm=model)
+        # Realtime model and session
+        model = lk_openai.realtime.RealtimeModel(voice=voice or 'marin', modalities=['audio','text'])
+        session = lk_agents.voice.AgentSession(llm=model, tts=tts_cfg) if tts_cfg else lk_agents.voice.AgentSession(llm=model)
         instr_text = instructions or 'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. Отвечайте по-русски.'
         try:
             agent = lk_agents.voice.Agent(instructions=instr_text)
         except TypeError:
             agent = lk_agents.voice.Agent()
-        # Room input options: keep session alive on brief disconnects
         try:
             from livekit.agents.voice import room_io as lk_room_io
             room_in_opts = lk_room_io.RoomInputOptions(close_on_disconnect=False)
@@ -355,7 +265,8 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         except Exception:
             await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
-        # Keep session alive while PSTN participant is connected (max 15 minutes)
+
+        # Main loop
         import time
         start_ts = time.time()
         had_pstn = False
@@ -385,13 +296,6 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
                 logger.warning(f'[CALL {call_id}] loop warn: {loop_e}')
                 await asyncio.sleep(1)
         _call_states[call_id]['status'] = 'ended'
-    except lk_api.TwirpError as e:
-        # Log full twirp error text for diagnostics
-        try:
-            logger.error(f"[CALL {call_id}] TwirpError detail: code={getattr(e,'code',None)} msg={getattr(e,'message',None)} meta={getattr(e,'meta',None)}")
-        except Exception:
-            pass
-        _call_states[call_id]['agent_error'] = f"twirp:{getattr(e,'message',None)}"
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
         _call_states[call_id]['agent_error'] = str(e)
@@ -416,29 +320,22 @@ async def voice_call_start(req: VoiceCallStartRequest):
     if not trunk_id:
         raise HTTPException(status_code=500, detail='SIP trunk not available')
     phone = (req.phone_number or os.environ.get('DEFAULT_CALLEE_NUMBER') or '').strip()
-
-@api_router.post('/voice/call/webhook/livekit')
-async def livekit_sip_webhook(request: Request):
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = { 'raw': await request.body() }
-    logger.info(f"[SIP WEBHOOK] payload={payload}")
-    return { 'ok': True }
-
     if not phone:
         raise HTTPException(status_code=400, detail='phone_number required')
     call_id = str(uuid4())
     room_name = f'call-{call_id}'
     logger.info(f'[CALL {call_id}] start → room={room_name} to={phone} trunk={trunk_id}')
+
     # Create room
     try:
         await client.room.create_room(lk_api.CreateRoomRequest(name=room_name))
         logger.info(f'[CALL {call_id}] room created')
     except Exception as e:
         logger.warning(f'[CALL {call_id}] create room warning: {e}')
+
     # Create SIP participant (outbound call)
     try:
+        logger.info(f"[CALL {call_id}] creating SIP participant → trunk={trunk_id}, to={phone}, room={room_name}")
         req_obj = lk_api.CreateSIPParticipantRequest(
             sip_trunk_id=trunk_id,
             sip_call_to=phone,
@@ -486,6 +383,19 @@ async def voice_call_status(call_id: str):
         raise HTTPException(status_code=404, detail='Call not found')
     return VoiceCallStatus(call_id=call_id, status=st.get('status','unknown'), room_name=st.get('room',''), sip_participant_id=st.get('sip_participant_id'))
 
+# LiveKit Webhook (diagnostics)
+@api_router.post('/voice/webhooks/livekit')
+async def livekit_webhook(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        body = await request.body()
+        payload = {'raw': body.decode('utf-8', errors='ignore')}
+    headers = {k: v for k, v in request.headers.items()}
+    logger.info(f"[LIVEKIT WEBHOOK] headers={headers} payload={payload}")
+    return {'ok': True}
+
+# ===== Realtime sessions (unchanged) =====
 class RealtimeSessionRequest(BaseModel):
     voice: Optional[str] = Field(default='marin')
     instructions: Optional[str] = Field(default='Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу. Если пользователь спрашивает про объект (адрес, периодичность, дату уборки), вызовите инструмент get_house_brief с параметром query.')
@@ -558,17 +468,10 @@ async def create_realtime_session(req: RealtimeSessionRequest):
         logger.error(f'Realtime session create error: {e}')
         raise HTTPException(status_code=500, detail='Failed to create realtime session')
 
-# ===== Bitrix Tasks (no Mongo) =====
-# Inline Bitrix service (removed app_main dependency)
+# ===== Bitrix Tasks (subset) =====
 class BitrixService:
     def __init__(self):
         self.webhook_url = os.environ.get('BITRIX24_WEBHOOK_URL', '').rstrip('/')
-        self._deals_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_full_cache: Dict[str, Any] = {"ts": 0, "data": []}
-        self._deals_ttl = int(os.environ.get('DEALS_CACHE_TTL', '120'))
-        self._uf_enums: Dict[str, Dict[str, str]] = {}
-        self._uf_enums_ts: int = 0
-        self._uf_enums_ttl = int(os.environ.get('BITRIX_UF_ENUMS_TTL', '900'))
 
     async def _call(self, method: str, params: Dict = None) -> Dict:
         if not self.webhook_url:
@@ -584,62 +487,7 @@ class BitrixService:
             logger.error(f"Bitrix error: {e}")
             return {"ok": False}
 
-    async def _list_all(self, method: str, params: Dict) -> List[Dict]:
-        items: List[Dict] = []
-        q = dict(params or {})
-        next_start = None
-        for _ in range(50):
-            if next_start is not None:
-                q['start'] = next_start
-            resp = await self._call(method, q)
-            if not resp.get('ok'):
-                break
-            part = resp.get('result') or []
-            if isinstance(part, dict):
-                part = [part]
-            items.extend(part)
-            next_start = resp.get('next')
-            if next_start is None:
-                break
-        return items
-
-    async def deals(self, limit=500) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_cache["ts"] < self._deals_ttl and self._deals_cache["data"]:
-            return self._deals_cache["data"]
-        items = await self._list_all("crm.deal.list", {
-            "select": ["ID","TITLE","UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166","ASSIGNED_BY_NAME","COMPANY_TITLE","STAGE_ID"],
-            "filter": {"CATEGORY_ID":"34"},
-            "order": {"ID":"DESC"},
-            "limit": min(limit,1000)
-        })
-        if not items:
-            return self._deals_cache["data"] or []
-        self._deals_cache = {"ts": now, "data": items}
-        return items
-
-    async def deals_full(self) -> List[Dict]:
-        now = int(datetime.now(timezone.utc).timestamp())
-        if now - self._deals_full_cache["ts"] < self._deals_ttl and self._deals_full_cache["data"]:
-            return self._deals_full_cache["data"]
-        items = await self._list_all("crm.deal.list", {
-            "select": [
-                "ID","TITLE","STAGE_ID","COMPANY_ID","COMPANY_TITLE",
-                "ASSIGNED_BY_ID","ASSIGNED_BY_NAME","CATEGORY_ID",
-                "UF_CRM_1669561599956","UF_CRM_1669704529022","UF_CRM_1669705507390","UF_CRM_1669704631166",
-                # cleaning schedule custom UF_* fields will be included as is
-            ],
-            "filter": {"CATEGORY_ID": "34"},
-            "order": {"ID": "DESC"},
-            "limit": 1000
-        })
-        if not items:
-            return self._deals_full_cache["data"] or []
-        self._deals_full_cache = {"ts": now, "data": items}
-        return items
-
     async def user_phone(self, user_id: int) -> Optional[str]:
-        """Try to resolve employee phone by Bitrix user.get"""
         try:
             if not user_id:
                 return None
@@ -647,7 +495,6 @@ class BitrixService:
             if not resp.get('ok'):
                 return None
             u = resp.get('result') or {}
-            # Prefer mobile
             for key in ('PERSONAL_MOBILE', 'WORK_PHONE', 'PERSONAL_PHONE'):
                 v = (u or {}).get(key)
                 if isinstance(v, str) and v.strip():
@@ -658,206 +505,6 @@ class BitrixService:
 
 bitrix = BitrixService()
 
-# Helpers to compute periodicity and next cleaning date from UF_* blocks
-def _extract_dates_from_deal(deal: Dict[str, Any]) -> List[str]:
-    dates: List[str] = []
-    for k, v in (deal or {}).items():
-        if not str(k).startswith('UF_CRM_'):
-            continue
-        try:
-            if isinstance(v, str) and (v.strip().startswith('{') or v.strip().startswith('[')):
-                obj = json.loads(v)
-                if isinstance(obj, dict) and isinstance(obj.get('dates'), list):
-                    for d in obj.get('dates'):
-                        if isinstance(d, str):
-                            dates.append(d)
-                elif isinstance(obj, list):
-                    for d in obj:
-                        if isinstance(d, str):
-                            dates.append(d)
-            elif isinstance(v, dict) and isinstance(v.get('dates'), list):
-                for d in v.get('dates'):
-                    if isinstance(d, str):
-                        dates.append(d)
-            elif isinstance(v, list):
-                for d in v:
-                    if isinstance(d, str):
-                        dates.append(d)
-        except Exception:
-            continue
-    # keep unique and sort
-    uniq = sorted(set(dates))
-    return uniq
-
-def _next_cleaning_date(deal: Dict[str, Any]) -> Optional[str]:
-    today = datetime.now(timezone.utc).date()
-    best: Optional[str] = None
-    for d in _extract_dates_from_deal(deal):
-        try:
-            dt = datetime.fromisoformat(d).date()
-            if dt >= today:
-                if best is None or dt < datetime.fromisoformat(best).date():
-                    best = d
-        except Exception:
-            continue
-    return best
-
-def _approximate_periodicity(deal: Dict[str, Any]) -> str:
-    # naive heuristic from available dates
-    dates = _extract_dates_from_deal(deal)
-    if len(dates) >= 4:
-        return "4 раза"
-    if len(dates) >= 2:
-        return "2 раза"
-    return "индивидуальная"
-
-class BitrixTaskCreate(BaseModel):
-    title: str
-    description: Optional[str] = ''
-    responsible_id: Optional[int] = None
-    deadline: Optional[str] = None  # ISO 'YYYY-MM-DDTHH:MM:SSZ' or 'YYYY-MM-DD HH:MM:SS'
-    priority: Optional[int] = 2  # 0 low, 1 medium, 2 high
-
-class BitrixTaskUpdate(BaseModel):
-    id: int
-    fields: Dict[str, Any]
-
-class MeetingTaskItem(BaseModel):
-    title: str
-    owner: Optional[str] = None
-    due: Optional[str] = None
-    description: Optional[str] = ''
-
-class MeetingTasksPayload(BaseModel):
-    tasks: List[MeetingTaskItem]
-
-async def _bitrix_user_search(name: str) -> Optional[int]:
-    if not name:
-        return None
-    # Try user.search by name
-    try:
-        resp = await bitrix._call('user.search', { 'FILTER': { 'ACTIVE': 'true', 'FIND': name } })
-        if resp.get('ok'):
-            items = resp.get('result') or []
-            if isinstance(items, dict):
-                items = [items]
-            if items:
-                # pick exact match by NAME or LAST_NAME first
-                for u in items:
-                    full = f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip()
-                    if full and name.lower() in full.lower():
-                        return int(u.get('ID'))
-                return int(items[0].get('ID'))
-    except Exception:
-        pass
-    # fallback to default assignee
-    try:
-        da = os.environ.get('BITRIX_DEFAULT_ASSIGNEE_ID')
-        return int(da) if da else None
-    except Exception:
-        return None
-
-@api_router.post('/tasks/bitrix/create')
-async def tasks_bitrix_create(req: BitrixTaskCreate):
-    if not bitrix.webhook_url:
-        raise HTTPException(status_code=500, detail='Bitrix webhook not configured')
-    rid = req.responsible_id
-    if not rid:
-        rid = await _bitrix_user_search('')  # default
-    fields = {
-        'TITLE': req.title,
-        'DESCRIPTION': req.description or '',
-        'RESPONSIBLE_ID': rid,
-        'PRIORITY': req.priority if req.priority is not None else 2,
-    }
-    if req.deadline:
-        fields['DEADLINE'] = req.deadline
-    resp = await bitrix._call('tasks.task.add', { 'fields': fields })
-    if not resp.get('ok'):
-        raise HTTPException(status_code=500, detail='Bitrix create task failed')
-    return { 'ok': True, 'task_id': resp.get('result') }
-
-@api_router.patch('/tasks/bitrix/update')
-async def tasks_bitrix_update(req: BitrixTaskUpdate):
-    if not bitrix.webhook_url:
-        raise HTTPException(status_code=500, detail='Bitrix webhook not configured')
-    resp = await bitrix._call('tasks.task.update', { 'taskId': int(req.id), 'fields': req.fields or {} })
-    if not resp.get('ok'):
-        raise HTTPException(status_code=500, detail='Bitrix update task failed')
-    return { 'ok': True }
-
-@api_router.get('/tasks/bitrix/list')
-async def tasks_bitrix_list(date: Optional[str] = Query(None), responsible_id: Optional[int] = Query(None), status: Optional[str] = Query(None)):
-    if not bitrix.webhook_url:
-        raise HTTPException(status_code=500, detail='Bitrix webhook not configured')
-    flt: Dict[str, Any] = {}
-    if responsible_id:
-        flt['RESPONSIBLE_ID'] = int(responsible_id)
-    # Filter by deadline for a date
-    if date:
-        try:
-            d = datetime.fromisoformat(date)
-            start = d.replace(hour=0, minute=0, second=0, microsecond=0)
-            end = d.replace(hour=23, minute=59, second=59, microsecond=0)
-            flt['>=DEADLINE'] = start.strftime('%Y-%m-%dT%H:%M:%S')
-            flt['<=DEADLINE'] = end.strftime('%Y-%m-%dT%H:%M:%S')
-        except Exception:
-            pass
-    if status:
-        flt['STATUS'] = status
-    # Minimal select set
-    params = {
-        'filter': flt,
-        'select': ['ID','TITLE','DESCRIPTION','RESPONSIBLE_ID','CREATED_BY','DEADLINE','STATUS','PRIORITY']
-    }
-    resp = await bitrix._call('tasks.task.list', params)
-    if not resp.get('ok'):
-        return { 'tasks': [] }
-    items = resp.get('result') or []
-    if isinstance(items, dict):
-        items = [items]
-    return { 'tasks': items }
-
-@api_router.post('/tasks/from-meeting')
-async def tasks_from_meeting(payload: MeetingTasksPayload):
-    if not bitrix.webhook_url:
-        raise HTTPException(status_code=500, detail='Bitrix webhook not configured')
-    out = []
-    for t in payload.tasks or []:
-        rid = await _bitrix_user_search(t.owner or '')
-        fields = {
-            'TITLE': t.title,
-            'DESCRIPTION': t.description or '',
-            'RESPONSIBLE_ID': rid,
-            'PRIORITY': 2
-        }
-        if t.due:
-            fields['DEADLINE'] = t.due
-        resp = await bitrix._call('tasks.task.add', { 'fields': fields })
-        if resp.get('ok'):
-            out.append({ 'title': t.title, 'task_id': resp.get('result'), 'responsible_id': rid })
-    return { 'ok': True, 'created': out }
-
-@api_router.get('/employees/office')
-async def employees_office():
-    if not bitrix.webhook_url:
-        return { 'employees': [] }
-    # Try to list active users
-    try:
-        resp = await bitrix._call('user.search', { 'FILTER': { 'ACTIVE': 'true' } })
-        if not resp.get('ok'):
-            return { 'employees': [] }
-        items = resp.get('result') or []
-        if isinstance(items, dict):
-            items = [items]
-        out = []
-        for u in items:
-            out.append({ 'id': int(u.get('ID')), 'name': f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip() or u.get('LOGIN') })
-        return { 'employees': out }
-    except Exception:
-        return { 'employees': [] }
-
-# ====== Call AI from Tasks ======
 class TaskCallAIRequest(BaseModel):
     task_id: Optional[int] = None
     title: Optional[str] = None
@@ -870,12 +517,10 @@ class TaskCallAIResponse(VoiceCallStartResponse):
     used_phone: str
     instructions: Optional[str] = None
 
-
 def _normalize_phone(phone: str) -> str:
     if not phone:
         return phone
     p = ''.join(ch for ch in phone if ch.isdigit() or ch == '+')
-    # RU helper: 8XXXXXXXXXX -> +7XXXXXXXXXX
     if p and p[0] == '8' and len(p) == 11:
         p = '+7' + p[1:]
     if p and p[0] != '+':
@@ -884,7 +529,6 @@ def _normalize_phone(phone: str) -> str:
 
 @api_router.post('/tasks/call-ai', response_model=TaskCallAIResponse)
 async def tasks_call_ai(req: TaskCallAIRequest):
-    # resolve phone priority: override -> by responsible_id -> error
     phone = (req.phone_number or '').strip()
     if not phone and req.responsible_id:
         phone = await bitrix.user_phone(int(req.responsible_id)) or ''
@@ -892,7 +536,6 @@ async def tasks_call_ai(req: TaskCallAIRequest):
     if not phone:
         raise HTTPException(status_code=400, detail='Phone number not found for this task/responsible user')
 
-    # compose instructions with task context
     base_instr = (
         'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. '
         'Звонок сотруднику по задаче: уточните статус выполнения, сроки и следующие шаги; зафиксируйте договорённости.'
@@ -905,14 +548,33 @@ async def tasks_call_ai(req: TaskCallAIRequest):
     instr = base_instr + ('\n' + '\n'.join(task_bits) if task_bits else '')
 
     logger.info(f"[TASK CALL] task_id={req.task_id} to={phone} resp_id={req.responsible_id} voice={req.voice}")
-    # reuse existing voice call start logic
     vc_req = VoiceCallStartRequest(phone_number=phone, caller_id=None, instructions=instr, voice=req.voice or 'marin')
     vc_resp = await voice_call_start(vc_req)
-    # extend logs
     logger.info(f"[TASK CALL] started call_id={vc_resp.call_id} room={vc_resp.room_name} status={vc_resp.status}")
     return TaskCallAIResponse(call_id=vc_resp.call_id, room_name=vc_resp.room_name, status=vc_resp.status, sip_participant_id=vc_resp.sip_participant_id, used_phone=phone, instructions=instr)
 
-# Health endpoints for readiness
+# ===== Utility: burst calls to 8888 for IP confirmation =====
+class CallBurstRequest(BaseModel):
+    phone_number: Optional[str] = Field(default='8888')
+    count: int = Field(default=4, ge=1, le=10)
+    interval_sec: int = Field(default=12, ge=5, le=60)
+    voice: Optional[str] = Field(default='marin')
+
+@api_router.post('/voice/call/burst')
+async def voice_call_burst(req: CallBurstRequest):
+    call_ids: List[str] = []
+    for i in range(req.count):
+        try:
+            start_req = VoiceCallStartRequest(phone_number=req.phone_number or '8888', voice=req.voice)
+            resp = await voice_call_start(start_req)
+            call_ids.append(resp.call_id)
+            logger.info(f"[BURST] started {i+1}/{req.count} call_id={resp.call_id} room={resp.room_name}")
+        except Exception as e:
+            logger.error(f"[BURST] start error idx={i}: {e}")
+        await asyncio.sleep(req.interval_sec)
+    return {'ok': True, 'calls': call_ids}
+
+# Health endpoints
 @api_router.get('/health')
 async def health():
     return {'ok': True, 'ts': int(datetime.now(timezone.utc).timestamp())}
@@ -921,14 +583,13 @@ async def health():
 async def ready():
     return {'ready': True}
 
-# Mount main API router
+# Mount router
 app.include_router(api_router)
 logger.info('Main API router mounted')
 
-
-# Mount AI Knowledge router for AI Chat endpoints
+# Try mount AI Knowledge router if present
 try:
-    from app.routers import ai_knowledge as _ai_kb_mod
+    from app.routers import ai_knowledge as _ai_kb_mod  # noqa: E402
     _kb_router = getattr(_ai_kb_mod, 'router', None)
     if _kb_router:
         app.include_router(_kb_router)
