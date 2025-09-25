@@ -683,7 +683,8 @@ async def _bitrix_user_search(name: str) -> Optional[int]:
         resp = await bitrix._call('user.search', { 'FILTER': { 'ACTIVE': 'true', 'FIND': name } })
         if resp.get('ok'):
             items = resp.get('result') or []
-            if isinstance(items, dict): items = [items]
+            if isinstance(items, dict):
+                items = [items]
             if items:
                 # pick exact match by NAME or LAST_NAME first
                 for u in items:
