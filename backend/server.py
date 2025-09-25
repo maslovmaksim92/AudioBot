@@ -303,6 +303,11 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         def _on_room_event(ev_name: str, data: Dict[str, Any] | None = None):
             try:
                 logger.info(f"[CALL {call_id}] ROOM EVT {ev_name} data={data}")
+        room.on('connected', lambda: _on_room_event('connected'))
+        room.on('disconnected', lambda: _on_room_event('disconnected'))
+        room.on('track_published', lambda pub, participant=None: _on_room_event('track_published', {'pub': str(getattr(pub,'track_sid',None)), 'by': getattr(participant,'identity',None)}))
+        room.on('track_subscribed', lambda track, pub, participant=None: _on_room_event('track_subscribed', {'by': getattr(participant,'identity',None)}))
+
             except Exception:
                 pass
 
