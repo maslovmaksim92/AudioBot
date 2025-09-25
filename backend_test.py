@@ -3791,9 +3791,11 @@ if __name__ == "__main__":
             tester.test_ai_agent_worker_creation()
         elif test_type == "tts-outbound":
             tester.test_tts_outbound_call_review_request()
+        elif test_type == "novofon":
+            tester.test_novofon_ip_confirmation_sequence()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity, ai-agent, tts-outbound")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity, ai-agent, tts-outbound, novofon")
             sys.exit(1)
     else:
         # Default: run TTS outbound call test as per current review request
