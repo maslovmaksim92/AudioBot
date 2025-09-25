@@ -21,9 +21,9 @@ from typing import Dict, Any, Optional
 
 class VasDomAPITester:
     def __init__(self, base_url=None):
-        # Use the deployed URL from review request
+        # Use the deployed URL from frontend .env
         if base_url is None:
-            base_url = "https://audiobot-qci2.onrender.com"
+            base_url = "https://callbot-api.preview.emergentagent.com"
         
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
