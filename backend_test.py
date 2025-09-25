@@ -1183,6 +1183,177 @@ class VasDomAPITester:
             self.log_test("AI Chat Answer - Unexpected Response", False, 
                         f"❌ Unexpected status: {status} (expected 200, 404, or 500)")
 
+    def test_tts_outbound_call_review_request(self):
+        """Test TTS outbound call voice flow after TTS wiring as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - TTS Outbound Call Voice Flow Testing")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing TTS outbound call voice flow per review request:")
+        print("1) GET /api/health → 200 (smoke-check FastAPI running and router mounted)")
+        print("2) POST /api/realtime/sessions → if OPENAI_API_KEY missing, expect 500 with 'OPENAI_API_KEY not configured'")
+        print("3) POST /api/voice/call/start with {\"phone_number\":\"+79001234567\"} → expect 200 if LiveKit configured, otherwise 4xx/5xx detailed error")
+        print("4) Check server logs for '[CALL <id>] TTS configured: model=gpt-4o-mini-tts' after room connect")
+        print("5) Verify absence of 'trying to generate speech from text without a TTS model' error")
+        print("6) Check for 'Unclosed client session' warnings")
+        print("=" * 80)
+        
+        # Test 1: GET /api/health
+        self.test_health_endpoint()
+        
+        # Test 2: POST /api/realtime/sessions
+        self.test_realtime_sessions_recheck()
+        
+        # Test 3: POST /api/voice/call/start and log analysis
+        call_id = self.test_voice_call_start_with_logs()
+        
+        # Test 4: Check backend logs for TTS configuration and error patterns
+        if call_id:
+            self.test_backend_logs_analysis(call_id)
+        else:
+            print("⚠️ No call_id available for log analysis - checking general log patterns")
+            self.test_backend_logs_analysis(None)
+        
+        # Final summary
+        self.print_summary()
+
+    def test_voice_call_start_with_logs(self):
+        """Test POST /api/voice/call/start and return call_id for log analysis"""
+        print("\n3️⃣ Testing POST /api/voice/call/start with log monitoring")
+        print("   Body: {\"phone_number\":\"+79001234567\"}")
+        print("   Expected: 200 if LiveKit configured, otherwise 4xx/5xx detailed error")
+        
+        request_data = {"phone_number": "+79001234567"}
+        
+        success, data, status = self.make_request('POST', '/api/voice/call/start', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓ (LiveKit configured)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            call_id = data.get('call_id')
+            room_name = data.get('room_name')
+            call_status = data.get('status')
+            
+            if call_id and room_name and call_status:
+                self.log_test("Voice Call Start - TTS Flow", True, 
+                            f"✅ Status 200 ✓, call_id: {call_id[:8]}..., room_name: {room_name}, status: {call_status}")
+                return call_id
+            else:
+                self.log_test("Voice Call Start - TTS Flow", False, 
+                            f"❌ Status 200 but missing required fields in response")
+                return None
+                
+        elif success and (400 <= status < 600):
+            print(f"   ✅ Status: {status} ✓ (Expected 4xx/5xx when LiveKit not fully configured)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            
+            # Check if it's a detailed error (not just "LiveKit not configured")
+            if detail and len(detail) > 20:  # Detailed error should be more descriptive
+                self.log_test("Voice Call Start - Detailed Error", True, 
+                            f"✅ Status {status} ✓ with detailed error: '{detail[:100]}...'")
+            else:
+                self.log_test("Voice Call Start - Detailed Error", False, 
+                            f"❌ Status {status} but error not detailed enough: '{detail}'")
+            return None
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Voice Call Start - Unexpected Response", False, 
+                        f"❌ Unexpected status: {status}, Data: {data}")
+            return None
+
+    def test_backend_logs_analysis(self, call_id):
+        """Analyze backend logs for TTS configuration and error patterns"""
+        print(f"\n4️⃣ Analyzing backend logs for TTS configuration and error patterns")
+        if call_id:
+            print(f"   Looking for call_id: {call_id[:8]}...")
+        
+        try:
+            import subprocess
+            
+            # Get recent backend logs
+            result = subprocess.run(['tail', '-n', '100', '/var/log/supervisor/backend.err.log'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                logs = result.stdout
+                print(f"   📋 Backend error logs (last 100 lines):")
+                print(f"   {logs[-500:]}")  # Show last 500 chars
+                
+                # Check for TTS configuration log
+                tts_configured_found = False
+                if call_id:
+                    tts_pattern = f"[CALL {call_id}] TTS configured: model=gpt-4o-mini-tts"
+                    if tts_pattern in logs:
+                        tts_configured_found = True
+                        self.log_test("Backend Logs - TTS Configuration", True, 
+                                    f"✅ Found TTS configuration log for call {call_id[:8]}...")
+                    else:
+                        # Check for any TTS configured pattern
+                        if "TTS configured: model=gpt-4o-mini-tts" in logs:
+                            tts_configured_found = True
+                            self.log_test("Backend Logs - TTS Configuration", True, 
+                                        "✅ Found TTS configuration log (general pattern)")
+                        else:
+                            self.log_test("Backend Logs - TTS Configuration", False, 
+                                        f"❌ TTS configuration log not found for call {call_id[:8]}...")
+                else:
+                    # Check for any TTS configured pattern
+                    if "TTS configured: model=gpt-4o-mini-tts" in logs:
+                        tts_configured_found = True
+                        self.log_test("Backend Logs - TTS Configuration", True, 
+                                    "✅ Found TTS configuration log (general pattern)")
+                
+                # Check for absence of old TTS error
+                old_tts_error = "trying to generate speech from text without a TTS model"
+                if old_tts_error not in logs:
+                    self.log_test("Backend Logs - No Old TTS Error", True, 
+                                "✅ Old TTS error message not found (good)")
+                else:
+                    self.log_test("Backend Logs - No Old TTS Error", False, 
+                                "❌ Found old TTS error message in logs")
+                
+                # Check for unclosed client session warnings
+                unclosed_session = "Unclosed client session"
+                if unclosed_session not in logs:
+                    self.log_test("Backend Logs - No Unclosed Sessions", True, 
+                                "✅ No 'Unclosed client session' warnings found")
+                else:
+                    self.log_test("Backend Logs - No Unclosed Sessions", False, 
+                                "❌ Found 'Unclosed client session' warnings in logs")
+                
+            else:
+                print(f"   ❌ Failed to read backend error logs: {result.stderr}")
+                self.log_test("Backend Logs - Error Log Access", False, 
+                            f"❌ Could not access backend error logs: {result.stderr}")
+            
+            # Also check stdout logs
+            result_out = subprocess.run(['tail', '-n', '100', '/var/log/supervisor/backend.out.log'], 
+                                      capture_output=True, text=True, timeout=10)
+            
+            if result_out.returncode == 0:
+                logs_out = result_out.stdout
+                print(f"   📋 Backend output logs (last 100 lines):")
+                print(f"   {logs_out[-500:]}")  # Show last 500 chars
+                
+                # Check for TTS configuration in output logs too
+                if call_id:
+                    tts_pattern = f"[CALL {call_id}] TTS configured: model=gpt-4o-mini-tts"
+                    if tts_pattern in logs_out and not tts_configured_found:
+                        self.log_test("Backend Logs - TTS Configuration (stdout)", True, 
+                                    f"✅ Found TTS configuration log in stdout for call {call_id[:8]}...")
+                elif "TTS configured: model=gpt-4o-mini-tts" in logs_out and not tts_configured_found:
+                    self.log_test("Backend Logs - TTS Configuration (stdout)", True, 
+                                "✅ Found TTS configuration log in stdout (general pattern)")
+                
+        except subprocess.TimeoutExpired:
+            self.log_test("Backend Logs - Timeout", False, 
+                        "❌ Timeout while reading backend logs")
+        except Exception as e:
+            self.log_test("Backend Logs - Exception", False, 
+                        f"❌ Exception while reading backend logs: {e}")
+
     def test_specific_review_request(self):
         """Specific review request testing: db-check and search endpoints only"""
         print(f"🚀 VasDom AudioBot Backend API - Повторный быстрый тест на проде")
