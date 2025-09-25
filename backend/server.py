@@ -62,9 +62,12 @@ except Exception:
 @app.on_event('shutdown')
 async def _shutdown_cleanup():
     try:
-        global _livekit_client
+        global _livekit_client, _http_session
         if _livekit_client:
             await _livekit_client.aclose()
+        if _http_session:
+            await _http_session.close()
+            _http_session = None
     except Exception:
         pass
 
