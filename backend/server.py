@@ -329,7 +329,11 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             logger.warning(f"[CALL {call_id}] TTS configure failed: {e}")
             tts_cfg = None
 
-        session = lk_agents.voice.AgentSession(llm=model)
+        # Attach TTS to the agent session so .say() can synthesize speech
+        if tts_cfg is not None:
+            session = lk_agents.voice.AgentSession(llm=model, tts=tts_cfg)
+        else:
+            session = lk_agents.voice.AgentSession(llm=model)
         instr_text = instructions or 'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. Отвечайте по-русски.'
         try:
             agent = lk_agents.voice.Agent(instructions=instr_text)
