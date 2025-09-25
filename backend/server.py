@@ -312,6 +312,23 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             voice=voice or 'marin',
             modalities=['audio','text'],
         )
+        # Configure OpenAI TTS for speech output (fixes: missing TTS model)
+        try:
+            allowed_tts_voices = {
+                'alloy','verse','coral','sage','ash','ballad','echo','fable','onyx','nova','shimmer'
+            }
+            tts_voice = (voice or os.environ.get('OPENAI_TTS_VOICE') or 'alloy').strip()
+            if tts_voice not in allowed_tts_voices:
+                # Map unknown voices (e.g., 'marin' from Realtime) to a safe default
+                logger.info(f"[CALL {call_id}] requested voice '{tts_voice}' not in TTS set, falling back to 'alloy'")
+                tts_voice = 'alloy'
+            tts_model = os.environ.get('OPENAI_TTS_MODEL', 'gpt-4o-mini-tts')
+            tts_cfg = lk_openai.TTS(model=tts_model, voice=tts_voice)
+            logger.info(f"[CALL {call_id}] TTS configured: model={tts_model}, voice={tts_voice}")
+        except Exception as e:
+            logger.warning(f"[CALL {call_id}] TTS configure failed: {e}")
+            tts_cfg = None
+
         session = lk_agents.voice.AgentSession(llm=model)
         instr_text = instructions or 'Вы — голосовой ассистент VasDom. Общайтесь кратко, вежливо и по делу. Отвечайте по-русски.'
         try:
