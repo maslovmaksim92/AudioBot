@@ -134,11 +134,11 @@ frontend:
 
   - task: "AI Outbound Dialer in Live Conversation (AIDialer)"
     implemented: true
-    working: pending
+    working: false
     file: "/app/frontend/src/components/LiveConversation/AIDialer.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         -working: false
         -agent: "main"
@@ -149,6 +149,9 @@ frontend:
         -working: pending
         -agent: "main"
         -comment: "Пользователь запросил автотест фронтенда; запускаем сценарий: открыть Live Conversation, ввести +79843330712, нажать Позвонить, ждать 200 OK и статус ringing/active; повторить с номером 8888 для IP подтверждения Novofon при необходимости."
+        -working: false
+        -agent: "testing"
+        -comment: "E2E AUTOTEST ЗАВЕРШЁН: КРИТИЧЕСКАЯ ПРОБЛЕМА ОБНАРУЖЕНА. Результаты тестирования: ❌ Запрошенный URL https://audiobot-qci2.onrender.com возвращает 404 (приложение недоступно) ✅ Тестирование проведено на рабочем URL https://audiobot-suite.preview.emergentagent.com ✅ UI полностью функционален: навигация в 'Живой разговор', блок 'Исходящий звонок ИИ', поле ввода телефона, кнопка 'Позвонить' ✅ Сценарий 1 (+79843330712): POST /api/voice/call/start → 500 'LiveKit not configured' ✅ Сценарий 2 (8888): POST /api/voice/call/start → 500 'LiveKit not configured' ❌ ПРОБЛЕМА: Ожидался 200 статус с Call ID и статусом 'ringing'/'active', но получен 500. Backend не настроен для production. ❌ Call ID и статус не отображаются из-за ошибки API ❌ Кнопка 'обновить' статус недоступна без успешного вызова. Все 9 скриншотов сохранены. UI работает корректно, проблема в backend конфигурации LiveKit."
 
   - task: "AI Chat functionality"
     implemented: true
