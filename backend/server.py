@@ -405,25 +405,18 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
                         break
                 await asyncio.sleep(1)
             except Exception as loop_e:
+                logger.warning(f'[CALL {call_id}] loop warn: {loop_e}')
+                await asyncio.sleep(1)
+        _call_states[call_id]['status'] = 'ended'
     except lk_api.TwirpError as e:
         # Log full twirp error text for diagnostics
         try:
             logger.error(f"[CALL {call_id}] TwirpError detail: code={getattr(e,'code',None)} msg={getattr(e,'message',None)} meta={getattr(e,'meta',None)}")
         except Exception:
             pass
-        raise
-
-                logger.warning(f'[CALL {call_id}] loop warn: {loop_e}')
-                await asyncio.sleep(1)
-        _call_states[call_id]['status'] = 'ended'
+        _call_states[call_id]['agent_error'] = f"twirp:{getattr(e,'message',None)}"
     except Exception as e:
         logger.error(f'AI agent start failed: {e}')
-        # extra diagnostics around SIP participant creation
-        try:
-            logger.info(f"[CALL {call_id}] creating SIP participant → trunk={trunk_id}, to={phone}, room={room_name}")
-        except Exception:
-            pass
-
         _call_states[call_id]['agent_error'] = str(e)
     finally:
         try:
