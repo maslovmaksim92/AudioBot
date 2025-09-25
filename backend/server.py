@@ -316,6 +316,13 @@ async def voice_call_start(req: VoiceCallStartRequest):
     client = await _get_livekit_client()
     if not client:
         raise HTTPException(status_code=500, detail='LiveKit not configured')
+
+# Helper to run a burst programmatically via GET for easy triggering from browser
+@api_router.get('/voice/call/burst/go')
+async def voice_call_burst_go(phone_number: Optional[str] = '8888', count: int = 4, interval: int = 12, voice: Optional[str] = 'marin'):
+    payload = CallBurstRequest(phone_number=phone_number or '8888', count=max(1, min(count, 10)), interval_sec=max(5, min(interval, 60)), voice=voice)
+    return await voice_call_burst(payload)
+
     trunk_id = await _ensure_outbound_trunk()
     if not trunk_id:
         raise HTTPException(status_code=500, detail='SIP trunk not available')
