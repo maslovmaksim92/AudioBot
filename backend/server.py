@@ -292,6 +292,19 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         if not ws_url:
             raise RuntimeError('LIVEKIT_WS_URL is not set')
         room = lk_rtc.Room()
+        def _on_participant_connected(p):
+            try:
+                logger.info(f'[CALL {call_id}] participant connected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}')
+            except Exception:
+                pass
+        def _on_participant_disconnected(p):
+            try:
+                logger.info(f'[CALL {call_id}] participant disconnected: id={getattr(p,"identity",None)} name={getattr(p,"name",None)}')
+            except Exception:
+                pass
+        room.on('participant_connected', _on_participant_connected)
+        room.on('participant_disconnected', _on_participant_disconnected)
+
         await room.connect(ws_url, jwt)
 
         # Configure OpenAI realtime model via plugin and start agent session bound to the room
@@ -315,16 +328,19 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
         while time.time() - start_ts < max_alive_sec:
             try:
                 rp = list(room.remote_participants.values()) if hasattr(room, 'remote_participants') else []
+                logger.info(f'[CALL {call_id}] participants={len(rp)}')
                 if rp:
                     if _call_states.get(call_id, {}).get('status') != 'active':
                         _call_states[call_id]['status'] = 'active'
+                        logger.info(f'[CALL {call_id}] PSTN joined, set status=active')
                     had_pstn = True
                 else:
                     if had_pstn:
-                        # PSTN left, end call
+                        logger.info(f'[CALL {call_id}] PSTN left, finishing session')
                         break
                 await asyncio.sleep(1)
-            except Exception:
+            except Exception as loop_e:
+                logger.warning(f'[CALL {call_id}] loop warn: {loop_e}')
                 await asyncio.sleep(1)
         _call_states[call_id]['status'] = 'ended'
     except Exception as e:
