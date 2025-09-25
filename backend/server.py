@@ -621,10 +621,12 @@ def _extract_dates_from_deal(deal: Dict[str, Any]) -> List[str]:
                             dates.append(d)
             elif isinstance(v, dict) and isinstance(v.get('dates'), list):
                 for d in v.get('dates'):
-                    if isinstance(d, str): dates.append(d)
+                    if isinstance(d, str):
+                        dates.append(d)
             elif isinstance(v, list):
                 for d in v:
-                    if isinstance(d, str): dates.append(d)
+                    if isinstance(d, str):
+                        dates.append(d)
         except Exception:
             continue
     # keep unique and sort
