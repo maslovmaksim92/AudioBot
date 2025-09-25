@@ -318,12 +318,19 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
             agent = lk_agents.voice.Agent(instructions=instr_text)
         except TypeError:
             agent = lk_agents.voice.Agent()
-        await session.start(agent=agent, room=room)
+        # Room input options: keep session alive on brief disconnects
+        try:
+            from livekit.agents.voice import room_io as lk_room_io
+            room_in_opts = lk_room_io.RoomInputOptions(close_on_disconnect=False)
+            await session.start(agent=agent, room=room, room_input_options=room_in_opts)
+        except Exception:
+            await session.start(agent=agent, room=room)
         _call_states[call_id]['agent'] = 'started'
         # Keep session alive while PSTN participant is connected (max 15 minutes)
         import time
         start_ts = time.time()
         had_pstn = False
+        greeted = False
         max_alive_sec = int(os.environ.get('AI_CALL_MAX_SECONDS', '900'))
         while time.time() - start_ts < max_alive_sec:
             try:
@@ -334,6 +341,12 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
                         _call_states[call_id]['status'] = 'active'
                         logger.info(f'[CALL {call_id}] PSTN joined, set status=active')
                     had_pstn = True
+                    if not greeted:
+                        try:
+                            await session.say('Здравствуйте, это VasDom. Слышно ли меня?')
+                            greeted = True
+                        except Exception as se:
+                            logger.warning(f'[CALL {call_id}] greeting failed: {se}')
                 else:
                     if had_pstn:
                         logger.info(f'[CALL {call_id}] PSTN left, finishing session')
