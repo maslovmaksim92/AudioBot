@@ -1,61 +1,88 @@
 <analysis>
-The AI engineer's work has significantly expanded the VasDom AudioBot, transitioning it from an MVP to a feature-rich application. Key efforts focused on enhancing the Meetings module with high-quality, semi-realtime transcription and a redesigned mobile UI. A Live Conversation feature, leveraging OpenAI Realtime via WebRTC for voice interaction, was successfully integrated with Bitrix24 CRM, allowing the AI agent to dynamically retrieve and verbalize house cleaning details. A new Bitrix-centric Tasks module was introduced, enabling task creation from meeting protocols, a Plan of the Day view, and Telegram export.
+The AI engineer's work focused on implementing outbound calling functionality for the VasDom AudioBot, integrating Novofon SIP with LiveKit Cloud and OpenAI Realtime. This involved an iterative debugging process, starting from initial setup and configuration to resolving numerous API-level incompatibilities and environmental challenges. Key issues included dependency conflicts (usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
 
-Major challenges included resolving persistent PostgreSQL  connection errors during deployment and fixing a  by refactoring 's logic into . Frontend issues with  handling, which impacted the AI Chat and Dashboard loading, were also addressed. The application currently supports advanced voice functionalities and robust Bitrix24 integration. The immediate focus is now on enabling the AI agent to initiate outbound phone calls.
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit versions), various LiveKit SDK errors (SIP trunk identification, ,  fields,  grants,  parameters, local  connection), and persistent Novofon IP whitelist problems. The work progressed through careful configuration, code adjustments, and extensive logging, ultimately reaching a state where calls connect, PSTN participants join the LiveKit room, but the AI agent fails to speak due to a missing TTS model.
 </analysis>
 
 <product_requirements>
-The VasDom AudioBot is a comprehensive application for cleaning operations management. Its features include:
-1.  **Works (Houses) Tab**: Displays accurate Bitrix24 house data (address, apartments, etc.) with pagination, filters, and detailed modals.
-2.  **Dashboard**: Shows compact KPI cards for houses, apartments, entrances, floors, and real-time Bitrix data, now with corrected loading.
-3.  **AI Chat**: Real-time voice conversations using OpenAI STT/TTS via WebSockets, integrated with RAG from the AI Knowledge Base, with fallback to GPT-4o-mini. The UI now correctly handles backend URL resolution.
-4.  **Meetings (Планёрка)**: Features live transcription using Web Speech API, with high-quality transcription via MediaRecorder and OpenAI STT (gpt-4o-mini-transcribe/Whisper-1 fallback) for semi-realtime text display. Summarization into structured protocols (GPT-4o-mini), text export, Send to Telegram with feedback, Save protocol to Knowledge Base, and a unified protocol form. The UI has undergone a significant mobile-first redesign with tabs and a single, enhanced recording button.
-5.  **AI Training**: Supports PDF, DOCX, TXT, XLSX, ZIP uploads for text extraction, chunking, embeddings (), summarization (GPT-4o-mini), and saving to PostgreSQL (). Includes file preview, category selection, and document management.
-6.  **Tasks (New, Bitrix-integrated)**: A new tab for managing tasks *directly from Bitrix24* (no MongoDB). It allows tasks to be generated from meeting protocols, provides a Plan of the Day aggregated by employee with status metrics (Open/Done), and supports exporting this plan to Telegram.
-7.  **Logistics**: OpenRouteService integration for route calculation and map visualization.
-8.  **Live Conversation (New)**: Realtime voice chat using OpenAI Realtime (, WebRTC) with multiple voice options. It is integrated with Bitrix24 CRM via tools, allowing the AI agent to retrieve and vocalize brief house information (address, periodicity, next cleaning date) from CRM data in real-time.
-9.  **UI/UX Refinements**: General design improvements, consistent spacing, compact layouts, and specific mobile-first design for the Meetings page. Frontend routing fixed using .
+The VasDom AudioBot is a comprehensive cleaning operations management application. Key features include a Works tab for Bitrix24 house data, a Dashboard for KPIs, an AI Chat for voice conversations with RAG, and an enhanced Meetings module for transcription, summarization, and task creation. A new Tasks module integrates directly with Bitrix24 for task management and Plan of the Day views. Logistics provides route calculation. The Live Conversation module offers real-time voice interaction with an OpenAI Realtime agent, integrated with Bitrix24 for retrieving house information. The current explicit request is to enable the AI agent within the Live Conversation module to initiate outbound phone calls, specifically integrating with Novofon via LiveKit and OpenAI Realtime. UI/UX refinements for mobile-first design and correct backend URL resolution have also been implemented.
 </product_requirements>
 
 <key_technical_concepts>
--   **Backend**: FastAPI, PostgreSQL (, , SQLAlchemy Async, Alembic, ), Bitrix24 API integration, OpenAI STT, OpenAI Realtime API.
--   **Frontend**: React, , TailwindCSS, Web Speech API, MediaRecorder, WebRTC.
--   **Integrations**: Bitrix24 CRM, Emergent LLM SDK (GPT-4o-mini, text-embedding-3-small), Telegram Bot API.
--   **Deployment**: Render, Kubernetes, Supervisor, DSN normalization.
+- **Backend**: FastAPI, PostgreSQL (), Bitrix24 API, OpenAI Realtime API (GPT-4o), LiveKit Cloud API/SDK (, ), Novofon SIP.
+- **Frontend**: React, , TailwindCSS, WebRTC.
+- **Integrations**: LiveKit SIP Gateway, OpenAI STT/TTS, Bitrix24 CRM, Telegram Bot API.
+- **Deployment**: Render, Kubernetes, Supervisor, DSN normalization.
 </key_technical_concepts>
 
 <code_architecture>
 
--   : The central FastAPI application. It has been extensively modified to consolidate all core backend logic, including all API routers for , , , new  (WebRTC),  (Bitrix-integrated),  (CRM access), and  functionality. Crucially, it now incorporates the  and associated utilities (dealing with CRM data, cache, periodicity calculations) that were previously in . This consolidation fixed . It also contains robust DSN normalization logic for PostgreSQL  compatibility (removing  and forcing  from the connection string).
--   : This file's content has been fully migrated into  and is effectively deprecated to resolve  during deployment.
--   : Manages endpoints for Meetings, including ,  (to Telegram), , and the new high-quality STT endpoint .
--   : Underwent a major overhaul. It now features a tabbed mobile UI (Transcription, Protocol, History), a single record/stop button with a timer and semi-realtime text display (using MediaRecorder and ), auto-summarization, and buttons to Save protocol to KB and Create tasks (integrated with Bitrix).
--   : Modified to use a unified and robust method for resolving the  environment variable (handling both  and ) to ensure API calls are correctly made in production, resolving previous loading issues.
--   : Updated to use the unified  acquisition method to correctly fetch dashboard statistics. A new card for Live Conversation was added.
--   : A newly created component for the OpenAI Realtime WebRTC feature. It handles UI for voice selection, interaction with the  endpoint, and processing of  events from the AI agent to interact with CRM tools (e.g., ).
--   : A newly created component for Bitrix-integrated task management. It provides a UI for filtering tasks, quick actions (status, reassign, reschedule), a Plan of the Day view (aggregated by employee), and an Export to Telegram button for the plan. It directly interacts with Bitrix24 APIs via backend endpoints.
--   : Modified to include navigation links for the new Live Conversation and Tasks sections in the sidebar.
+-   : Central FastAPI application. Now includes the core logic for LiveKit SIP outbound calls (, ) and the associated AI agent orchestration. It handles LiveKit API client initialization, SIP Trunk management, room creation, and agent session lifecycle. It was modified to fix , PostgreSQL  issues, and repeatedly updated to resolve LiveKit SDK API incompatibilities (e.g., SIP trunk ID parsing, , ,  grants,  parameters, direct  connection), and manage agent session (, auto-greeting, TTS model connection). This file also absorbed logic from .
+-   : Deprecated, logic moved to .
+-   : Previously used  for AI Chat. Due to dependency conflicts,  was removed, and AI Chat now uses direct OpenAI SDK calls with soft fallbacks.
+-   : Enhanced with a mobile UI, semi-realtime transcription, and Bitrix-integrated task creation.
+-   : Updated for robust  resolution.
+-   : Uses unified  acquisition; includes a Live Conversation card.
+-   : Main component for real-time WebRTC AI conversations. Modified to include the  component for outbound calls.
+-   : **Newly created**. Provides UI for initiating outbound calls, including a phone number input and call status display (e.g., ringing, active).
+-   : New Bitrix-integrated task management component, supporting task generation from meetings, Plan of the Day, and Telegram export.
+-   : Updated navigation for Live Conversation and Tasks.
 </code_architecture>
 
 <pending_tasks>
--   **Agent Call Functionality**: Integrate the ability for the AI agent (Realtime) to initiate outbound calls to employees or users. This requires selecting a telephony provider (e.g., Telnyx, Twilio, Novofon, or Bitrix24 telephony) and configuring the necessary bridge.
+- Enable the AI agent to produce voice during outbound calls by correctly configuring the TTS model.
+- Connect the Call AI button functionality within the Tasks section for calls to employees.
+- Implement the display of call status and a summary/protocol of the conversation in the UI.
+- Address the Unclosed client session warning from  for cleaner shutdown.
 </pending_tasks>
 
 <current_work>
-The AI engineer has most recently completed the full integration of the Live Conversation module and the Tasks module, while also resolving critical deployment and frontend loading issues.
+The AI engineer has most recently focused on debugging the outbound calling functionality through Novofon and LiveKit Cloud. All major LiveKit SDK and API-related issues have been resolved, including SIP trunk setup, participant identity, access token grants, and agent worker initialization. The backend successfully initiates calls (POST  returns 200), creates LiveKit rooms, and detects PSTN participants entering the room (). Frontend UI for dialing exists in .
 
-For **Live Conversation**, a new dashboard tab was created, enabling real-time WebRTC voice interactions with an OpenAI Realtime agent. This agent now offers a selection of voices (marin, alloy, shimmer, aria, verse, breeze, coral, cobalt, amber, nova) and has direct access to the Bitrix24 CRM via an integrated  tool. This tool allows the AI to respond vocally to user queries about cleaning addresses, periodicity, and next cleaning dates, fetching data from  (which pulls from Bitrix24 deal fields). Frontend code for this is in  and  includes the route.
+The primary issue preventing the AI from speaking is a greeting failed: trying to generate speech from text without a TTS model error, indicating that the TTS model is not correctly initialized or linked to the agent session. This needs to be addressed for the AI to verbalize its greeting and responses.
 
-The **Tasks** module was implemented as a new tab, deeply integrated with Bitrix24 (without using MongoDB). It provides backend endpoints (, , , , , , ) and a frontend UI (). Users can now generate tasks in Bitrix directly from Meetings protocols. The module features a Plan of the Day view, aggregating tasks by employee with status counters (Open/Done), and a Export to Telegram button to share the plan.
-
-Crucial bug fixes were also applied:
--   **PostgreSQL  errors**: The backend () was updated multiple times to correctly normalize the  DSN for , specifically removing  parameters from the query string and forcing  in  to ensure database connectivity on Render.
--   ****: This deployment error was resolved by migrating all essential logic from  (including  and CRM-related helpers) directly into , thereby eliminating the problematic import.
--   **Frontend  issues**: The AI Chat () and Dashboard () components were updated to use a unified approach for fetching  (checking both  and ), fixing previous 404 errors and ensuring correct API call routing.
-
-The application is deployed, and these functionalities are expected to be working, as confirmed by automated backend tests. The user's most recent request is to enable the AI agent to make outbound calls.
+Throughout this process, the AI engineer also battled persistent Novofon IP whitelist issues, requiring the user to manually confirm LiveKit egress IPs by calling 8888 and adjusting Novofon settings. Enhanced logging has been added to the backend to track call flow and participant status, which is crucial for ongoing diagnostics. The user has recently updated SIP password and Caller ID for Novofon/LiveKit.
 </current_work>
 
 <optional_next_step>
-The next step is to choose a telephony provider for enabling outbound calls from the AI agent.
+Connect the OpenAI TTS model () to the AgentSession to resolve the greeting failed: trying to generate speech from text without a TTS model error.
 </optional_next_step>
+
+<next_step_quotes>
+From Chat Message 281: Что я сделал - Подключил OpenAI TTS к AgentSession, чтобы session.say работал. Модель: gpt-4o-mini-tts Голос: marin
+</next_step_quotes>
