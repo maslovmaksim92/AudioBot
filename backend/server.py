@@ -329,17 +329,9 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
 
         await room.connect(ws_url, jwt)
 
-                # Debug: dump remote participants identities
-                try:
-                    rp_info = [getattr(p, 'identity', None) for p in rp]
-                    logger.info(f"[CALL {call_id}] remote participants: {rp_info}")
-                except Exception:
-                    pass
-
         # Configure OpenAI TTS for speech output (fixes: missing TTS model)
         try:
-        # Debug heartbeat while running loop is below; here только подготовка комнаты/сессии
-
+            # Debug heartbeat while running loop is below; here только подготовка комнаты/сессии
             allowed_tts_voices = {
                 'alloy','verse','coral','sage','ash','ballad','echo','fable','onyx','nova','shimmer'
             }
