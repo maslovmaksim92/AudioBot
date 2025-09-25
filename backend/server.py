@@ -338,6 +338,8 @@ async def _start_openai_agent(call_id: str, room_name: str, voice: str, instruct
 
         # Configure OpenAI TTS for speech output (fixes: missing TTS model)
         try:
+        # Debug heartbeat while running loop is below; here только подготовка комнаты/сессии
+
             allowed_tts_voices = {
                 'alloy','verse','coral','sage','ash','ballad','echo','fable','onyx','nova','shimmer'
             }
