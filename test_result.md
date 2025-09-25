@@ -116,6 +116,19 @@ backend:
         -agent: "testing"
         -comment: "RETEST AFTER REMOVING TURNDETECTION УСПЕШНО ЗАВЕРШЁН: Повторное тестирование после удаления TurnDetection показало полную функциональность. Результаты: 1) POST https://audiobot-qci2.onrender.com/api/voice/call/start с {\"phone_number\":\"+79001234567\"} возвращает 200 ✓ с корректной схемой: call_id='47c04989-6830-4257-bc78-074801fa7087', room_name='call-47c04989-6830-4257-bc78-074801fa7087', status='ringing' ✓ 2) Логи НЕ содержат ошибку 'AI agent start failed' ✓ - проверено через grep в /var/log/supervisor/ 3) Status polling дважды работает стабильно: оба вызова GET /api/voice/call/{call_id}/status возвращают 200 с консистентными данными ✓ 4) Никаких Worker.__init__ ошибок в логах не обнаружено ✓. Success rate: 100% (2/2 tests passed). Все требования review request выполнены полностью."
 
+
+  - task: "AI voice TTS on outbound calls"
+    implemented: true
+    working: pending
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        -working: false
+        -agent: "main"
+        -comment: "Attached OpenAI TTS (gpt-4o-mini-tts) to AgentSession; greeting should synthesize; added detailed logging and aiohttp shutdown cleanup to address 'Unclosed client session'."
+
 frontend:
   - task: "Live Conversation tab (WebRTC Realtime)"
     implemented: true
