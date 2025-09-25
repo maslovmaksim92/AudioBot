@@ -792,7 +792,8 @@ async def employees_office():
         if not resp.get('ok'):
             return { 'employees': [] }
         items = resp.get('result') or []
-        if isinstance(items, dict): items = [items]
+        if isinstance(items, dict):
+            items = [items]
         out = []
         for u in items:
             out.append({ 'id': int(u.get('ID')), 'name': f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip() or u.get('LOGIN') })
