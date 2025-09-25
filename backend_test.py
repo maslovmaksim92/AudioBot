@@ -3517,6 +3517,242 @@ class VasDomAPITester:
             print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
             self.log_test("Final Close Delete", False, f"❌ Status: {status} (expected 200), Data: {data}")
 
+    def test_novofon_ip_confirmation_sequence(self):
+        """Test Novofon IP confirmation sequence as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - Novofon IP Confirmation Sequence")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing Novofon IP confirmation sequence per review request:")
+        print("1) POST /api/voice/call/burst with default body {\"phone_number\":\"8888\",\"count\":4,\"interval_sec\":12,\"voice\":\"marin\"}")
+        print("2) Wait for ~60s and collect backend logs")
+        print("3) Validate backend behavior after each call:")
+        print("   - Expect logs: '[CALL ...] start', 'room created', 'SIP participant created', 'TTS configured', 'PSTN joined'")
+        print("   - Confirm absence of 'missing TTS model' error")
+        print("4) Report LiveKit webhook incoming events (if any) during this period")
+        print("5) Provide exact call_id list returned by API and timestamps")
+        print("=" * 80)
+        
+        # Step 1: Trigger burst calls to 8888
+        call_ids = self.test_burst_calls_8888()
+        
+        if call_ids:
+            # Step 2: Wait for ~60s and collect logs
+            print(f"\n⏳ Waiting 60 seconds for calls to complete and collecting logs...")
+            import time
+            time.sleep(60)
+            
+            # Step 3: Validate backend behavior and collect logs
+            self.test_validate_backend_logs(call_ids)
+            
+            # Step 4: Check for LiveKit webhook events
+            self.test_check_livekit_webhooks()
+            
+            # Step 5: Provide call_id list and timestamps
+            self.test_provide_call_summary(call_ids)
+        else:
+            print("❌ Cannot proceed with log validation - no call_ids from burst request")
+        
+        # Final summary
+        self.print_summary()
+
+    def test_burst_calls_8888(self):
+        """Step 1: POST /api/voice/call/burst with default parameters"""
+        print("\n1️⃣ Testing POST /api/voice/call/burst")
+        print("   Body: {\"phone_number\":\"8888\",\"count\":4,\"interval_sec\":12,\"voice\":\"marin\"}")
+        print("   Expected: 200 with call_ids list")
+        
+        request_data = {
+            "phone_number": "8888",
+            "count": 4,
+            "interval_sec": 12,
+            "voice": "marin"
+        }
+        
+        # Record start time
+        start_time = datetime.now()
+        print(f"   🕐 Burst call start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        success, data, status = self.make_request('POST', '/api/voice/call/burst', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            ok = data.get('ok', False)
+            calls = data.get('calls', [])
+            
+            if ok and isinstance(calls, list) and len(calls) > 0:
+                self.log_test("Burst Calls - API Response", True, 
+                            f"✅ ok=true ✓, calls array with {len(calls)} call_ids ✓")
+                
+                # Store call_ids with timestamps
+                self.burst_call_data = {
+                    'call_ids': calls,
+                    'start_time': start_time,
+                    'expected_count': request_data['count'],
+                    'phone_number': request_data['phone_number']
+                }
+                
+                print(f"   📋 Call IDs returned:")
+                for i, call_id in enumerate(calls, 1):
+                    print(f"   {i}. {call_id}")
+                
+                return calls
+            else:
+                issues = []
+                if not ok:
+                    issues.append(f"ok={ok} (expected true)")
+                if not isinstance(calls, list):
+                    issues.append(f"calls should be array, got {type(calls)}")
+                if len(calls) == 0:
+                    issues.append("calls array is empty")
+                self.log_test("Burst Calls - API Response", False, f"❌ Issues: {', '.join(issues)}")
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("Burst Calls - API Response", False, f"❌ Status: {status} (expected 200), Data: {data}")
+        
+        return None
+
+    def test_validate_backend_logs(self, call_ids):
+        """Step 3: Validate backend behavior after each call"""
+        print(f"\n3️⃣ Validating backend logs for {len(call_ids)} calls")
+        print("   Expected logs: '[CALL ...] start', 'room created', 'SIP participant created', 'TTS configured', 'PSTN joined'")
+        print("   Checking absence of: 'missing TTS model' error")
+        
+        try:
+            import subprocess
+            
+            # Get recent backend logs (last 200 lines to capture all calls)
+            result = subprocess.run(['tail', '-n', '200', '/var/log/supervisor/backend.err.log'], 
+                                  capture_output=True, text=True, timeout=15)
+            
+            if result.returncode == 0:
+                logs = result.stdout
+                print(f"   📋 Backend logs analysis:")
+                
+                # Check for each call_id
+                for i, call_id in enumerate(call_ids, 1):
+                    print(f"\n   Call {i}/{len(call_ids)}: {call_id}")
+                    
+                    # Expected log patterns
+                    patterns = {
+                        'start': f'[CALL {call_id}] start',
+                        'room_created': f'[CALL {call_id}] room created',
+                        'sip_participant': f'[CALL {call_id}] SIP participant created',
+                        'tts_configured': f'[CALL {call_id}] TTS configured',
+                        'pstn_joined': f'[CALL {call_id}] PSTN joined'
+                    }
+                    
+                    found_patterns = {}
+                    for pattern_name, pattern in patterns.items():
+                        found_patterns[pattern_name] = pattern in logs
+                        status_icon = "✅" if found_patterns[pattern_name] else "❌"
+                        print(f"   {status_icon} {pattern_name}: {found_patterns[pattern_name]}")
+                    
+                    # Count successful patterns
+                    success_count = sum(found_patterns.values())
+                    total_patterns = len(patterns)
+                    
+                    if success_count == total_patterns:
+                        self.log_test(f"Call {call_id[:8]} - Log Validation", True, 
+                                    f"✅ All {total_patterns} expected log patterns found")
+                    else:
+                        missing = [name for name, found in found_patterns.items() if not found]
+                        self.log_test(f"Call {call_id[:8]} - Log Validation", False, 
+                                    f"❌ {success_count}/{total_patterns} patterns found, missing: {missing}")
+                
+                # Check for absence of 'missing TTS model' error
+                missing_tts_error = 'missing TTS model' in logs or 'trying to generate speech from text without a TTS model' in logs
+                if not missing_tts_error:
+                    self.log_test("Backend Logs - TTS Error Check", True, 
+                                "✅ No 'missing TTS model' errors found in logs")
+                else:
+                    self.log_test("Backend Logs - TTS Error Check", False, 
+                                "❌ Found 'missing TTS model' error in logs")
+                
+                # Show relevant log excerpts
+                print(f"\n   📄 Recent log excerpts (last 500 chars):")
+                print(f"   {logs[-500:]}")
+                
+            else:
+                print(f"   ❌ Failed to read backend logs: {result.stderr}")
+                self.log_test("Backend Logs - Access", False, 
+                            f"❌ Could not access backend logs: {result.stderr}")
+                
+        except Exception as e:
+            print(f"   ❌ Error analyzing backend logs: {e}")
+            self.log_test("Backend Logs - Analysis", False, 
+                        f"❌ Error analyzing logs: {e}")
+
+    def test_check_livekit_webhooks(self):
+        """Step 4: Check for LiveKit webhook events during the test period"""
+        print(f"\n4️⃣ Checking for LiveKit webhook events")
+        print("   Looking for room/participant events in logs during test period")
+        
+        try:
+            import subprocess
+            
+            # Check for webhook-related logs
+            result = subprocess.run(['grep', '-i', 'webhook', '/var/log/supervisor/backend.err.log'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                webhook_logs = result.stdout
+                if webhook_logs.strip():
+                    print(f"   📋 LiveKit webhook events found:")
+                    print(f"   {webhook_logs}")
+                    self.log_test("LiveKit Webhooks - Events", True, 
+                                f"✅ Found webhook events in logs")
+                else:
+                    print(f"   ℹ️ No webhook events found in logs")
+                    self.log_test("LiveKit Webhooks - Events", True, 
+                                "ℹ️ No webhook events found (may be normal for test calls)")
+            else:
+                print(f"   ℹ️ No webhook-related logs found")
+                self.log_test("LiveKit Webhooks - Events", True, 
+                            "ℹ️ No webhook logs found (may be normal)")
+                
+        except Exception as e:
+            print(f"   ⚠️ Error checking webhook logs: {e}")
+            self.log_test("LiveKit Webhooks - Check", False, 
+                        f"⚠️ Error checking webhook logs: {e}")
+
+    def test_provide_call_summary(self, call_ids):
+        """Step 5: Provide exact call_id list and timestamps"""
+        print(f"\n5️⃣ Call Summary for Novofon IP Confirmation")
+        print("   Exact call_id list and timestamps for matching with Novofon reports")
+        
+        if hasattr(self, 'burst_call_data'):
+            data = self.burst_call_data
+            start_time = data['start_time']
+            phone_number = data['phone_number']
+            expected_count = data['expected_count']
+            
+            print(f"\n   📊 CALL SUMMARY:")
+            print(f"   🕐 Start Time: {start_time.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            print(f"   📞 Target Number: {phone_number}")
+            print(f"   🔢 Expected Calls: {expected_count}")
+            print(f"   ✅ Actual Calls: {len(call_ids)}")
+            print(f"\n   📋 CALL IDS FOR NOVOFON MATCHING:")
+            
+            for i, call_id in enumerate(call_ids, 1):
+                # Estimate call time (start_time + (i-1) * interval_sec)
+                estimated_time = start_time + timedelta(seconds=(i-1) * 12)
+                print(f"   {i}. {call_id}")
+                print(f"      Estimated time: {estimated_time.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            
+            print(f"\n   🔍 INSTRUCTIONS FOR HUMAN:")
+            print(f"   1. Check Novofon reports for calls to {phone_number} around {start_time.strftime('%H:%M:%S')}")
+            print(f"   2. Match the above call_ids with Novofon call records")
+            print(f"   3. Extract 'IP клиента' (egress IP) from matched Novofon reports")
+            print(f"   4. Add the egress IP to Novofon whitelist if needed")
+            
+            self.log_test("Call Summary - Documentation", True, 
+                        f"✅ Provided {len(call_ids)} call_ids with timestamps for Novofon matching")
+        else:
+            print(f"   ❌ No burst call data available for summary")
+            self.log_test("Call Summary - Documentation", False, 
+                        "❌ No call data available for summary")
 
 if __name__ == "__main__":
     # Use the production URL from frontend .env
