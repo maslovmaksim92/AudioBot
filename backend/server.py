@@ -407,3 +407,26 @@ async def voice_call_status(call_id: str):
     return CallStatusResponse(call_id=call_id, status=info.get('status','unknown'), details={k:v for k,v in info.items() if k not in ('status','call_id')})
 
 logger.info('Main API router mounted')
+@api_router.get('/voice/debug/check')
+async def voice_debug_check():
+    host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
+    api_key_set = bool(os.environ.get('LIVEKIT_API_KEY'))
+    api_secret_set = bool(os.environ.get('LIVEKIT_API_SECRET'))
+    trunk_id = os.environ.get('LIVEKIT_SIP_TRUNK_ID')
+    caller = os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM')
+    norm_host = host
+    if norm_host:
+      if norm_host.startswith('wss://'):
+          norm_host = 'https://' + norm_host[len('wss://'):]
+      elif norm_host.startswith('ws://'):
+          norm_host = 'http://' + norm_host[len('ws://'):]
+    return {
+        'livekit_host_raw': host,
+        'livekit_host_api': norm_host,
+        'api_key_set': api_key_set,
+        'api_secret_set': api_secret_set,
+        'trunk_id_set': bool(trunk_id),
+        'trunk_id': trunk_id[:4] + '****' if trunk_id else None,
+        'default_caller': caller,
+        'routes': ['/api/voice/call/start', '/api/voice/call/{call_id}/status']
+    }
