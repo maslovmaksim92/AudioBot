@@ -318,11 +318,16 @@ async def _get_livekit_client() -> lk_api.LiveKitAPI:
         raise HTTPException(status_code=500, detail='LiveKit SDK not available')
     global _livekit_client
     if _livekit_client is None:
-        host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST')
+        host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
         api_key = os.environ.get('LIVEKIT_API_KEY')
         api_secret = os.environ.get('LIVEKIT_API_SECRET')
         if not host or not api_key or not api_secret:
             raise HTTPException(status_code=500, detail='LIVEKIT_URL/API_KEY/API_SECRET not configured')
+        # Normalize ws(s) -> http(s) for LiveKit server API base
+        if host.startswith('wss://'):
+            host = 'https://' + host[len('wss://'):]
+        elif host.startswith('ws://'):
+            host = 'http://' + host[len('ws://'):]
         _livekit_client = lk_api.LiveKitAPI(host, api_key, api_secret)
     return _livekit_client
 
