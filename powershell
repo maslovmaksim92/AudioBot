@@ -1,0 +1,19 @@
+[general]
+static=yes
+writeprotect=no
+clearglobalvars=no
+
+[default]
+exten => 8888,1,Answer()
+ same => n,NoOp(Echo test)
+ same => n,Echo()
+ same => n,Hangup()
+
+[from-novofon]
+exten => _X.,1,NoOp(Inbound from Novofon: ${EXTEN})
+ same => n,Goto(default,8888,1)
+
+[from-livekit]
+exten => _X.,1,NoOp(From LiveKit to PSTN: ${EXTEN})
+ same => n,Dial(PJSIP/${EXTEN}@novofon-endpoint,60)
+ same => n,Hangup()
