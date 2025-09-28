@@ -291,4 +291,114 @@ async def health():
     return {'ok': True, 'ts': int(datetime.now(timezone.utc).timestamp())}
 
 app.include_router(api_router)
+# ====== Outbound Voice via LiveKit SIP Gateway ======
+_livekit_client: Optional[lk_api.LiveKitAPI] = None if LIVEKIT_AVAILABLE else None
+_call_store: Dict[str, Dict[str, Any]] = {}
+
+
+def _normalize_phone(num: str) -> str:
+    if not num:
+        return ''
+    s = ''.join(ch for ch in str(num) if ch.isdigit() or ch == '+')
+    # allow short codes like 8888
+    if s.startswith('+'):
+        return s
+    # if short extension keep as-is
+    if len(s) <= 6:
+        return s
+    # Russia-specific quick normalize: leading 8 -> +7
+    if s.startswith('8') and len(s) == 11:
+        return '+7' + s[1:]
+    if not s.startswith('+'):
+        return '+' + s
+    return s
+
+async def _get_livekit_client() -> lk_api.LiveKitAPI:
+    if not LIVEKIT_AVAILABLE:
+        raise HTTPException(status_code=500, detail='LiveKit SDK not available')
+    global _livekit_client
+    if _livekit_client is None:
+        host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST')
+        api_key = os.environ.get('LIVEKIT_API_KEY')
+        api_secret = os.environ.get('LIVEKIT_API_SECRET')
+        if not host or not api_key or not api_secret:
+            raise HTTPException(status_code=500, detail='LIVEKIT_URL/API_KEY/API_SECRET not configured')
+        _livekit_client = lk_api.LiveKitAPI(host, api_key, api_secret)
+    return _livekit_client
+
+class StartCallRequest(BaseModel):
+    phone_number: str
+    trunk_id: Optional[str] = None
+    from_number: Optional[str] = None
+    wait_for_answer: Optional[bool] = False
+
+class StartCallResponse(BaseModel):
+    call_id: str
+    status: str
+
+class CallStatusResponse(BaseModel):
+    call_id: str
+    status: str
+    details: Optional[Dict[str, Any]] = None
+
+@api_router.post('/voice/call/start', response_model=StartCallResponse)
+async def voice_call_start(req: StartCallRequest):
+    lk = await _get_livekit_client()
+    call_id = uuid4().hex
+    to = _normalize_phone(req.phone_number)
+    if not to:
+        raise HTTPException(status_code=400, detail='phone_number is empty')
+    trunk_id = req.trunk_id or os.environ.get('LIVEKIT_SIP_TRUNK_ID')
+    if not trunk_id:
+        raise HTTPException(status_code=500, detail='LIVEKIT_SIP_TRUNK_ID not configured')
+    from_number = _normalize_phone(req.from_number or os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM') or '')
+    if not from_number:
+        # not fatal; LiveKit may use trunk default
+        from_number = None
+
+    _call_store[call_id] = {
+        'call_id': call_id,
+        'status': 'initiating',
+        'to': to,
+        'from': from_number,
+        'ts': int(datetime.now(timezone.utc).timestamp())
+    }
+
+    try:
+        # Create SIP participant (outbound call)
+        req_payload = lk_api.sip.CreateSIPParticipantRequest(
+            sip_trunk_id=trunk_id,
+            sip_call_to=to,
+            sip_number=from_number or '',
+            participant_name=f'Outbound {to}',
+            wait_until_answered=bool(req.wait_for_answer),
+        )
+        result = await lk.sip.create_sip_participant(req_payload)
+        _call_store[call_id]['status'] = 'ringing' if not req.wait_for_answer else 'connected'
+        _call_store[call_id]['participant_identity'] = getattr(result, 'identity', None)
+        # some attrs may include SIP Call-ID
+        try:
+            _call_store[call_id]['sip_attrs'] = dict(getattr(result, 'attributes', {}) or {})
+        except Exception:
+            pass
+        logger.info(f"[CALL] started call_id={call_id} to={to} trunk={trunk_id} participant={getattr(result, 'identity', None)}")
+        return StartCallResponse(call_id=call_id, status=_call_store[call_id]['status'])
+    except lk_api.TwirpError as e:
+        logger.error(f"[CALL] LiveKit error: {e}")
+        _call_store[call_id]['status'] = 'failed'
+        _call_store[call_id]['error'] = {'code': getattr(e, 'code', ''), 'message': str(e)}
+        raise HTTPException(status_code=502, detail=f'LiveKit error: {e}')
+    except Exception as e:
+        logger.exception("[CALL] unexpected error")
+        _call_store[call_id]['status'] = 'failed'
+        _call_store[call_id]['error'] = {'message': str(e)}
+        raise HTTPException(status_code=500, detail='Failed to start call')
+
+@api_router.get('/voice/call/{call_id}/status', response_model=CallStatusResponse)
+async def voice_call_status(call_id: str):
+    info = _call_store.get(call_id)
+    if not info:
+        raise HTTPException(status_code=404, detail='call not found')
+    return CallStatusResponse(call_id=call_id, status=info.get('status','unknown'), details={k:v for k,v in info.items() if k not in ('status','call_id')})
+
 logger.info('Main API router mounted')
