@@ -190,6 +190,13 @@ const Dashboard = () => {
     <div className="pt-0 px-2 pb-2 max-w-7xl mx-auto space-y-4">
       {/* Header */}
       <PageHeader />
+
+      {/* Быстрый звонок (в самом верху, чтобы не пришлось искать) */}
+      <div className="card-modern animate-slide-up mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Быстрый звонок (через AI)</h3>
+        <div className="max-w-md"><AIDialer /></div>
+      </div>
+
       <div className="hidden">
         <h1 className="text-4xl font-bold gradient-text">
           VasDom AudioBot
