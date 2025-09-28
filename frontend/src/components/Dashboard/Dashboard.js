@@ -320,7 +320,7 @@ const Dashboard = () => {
         <div className="card-modern animate-slide-up" style={{ animationDelay: '500ms' }}>
           <div className="mb-3">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Быстрый звонок (через AI)</h3>
-            <AIDialer />
+            <div className="max-w-md"><AIDialer /></div>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Zap className="w-5 h-5 mr-2 text-green-600" />
