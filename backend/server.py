@@ -687,3 +687,8 @@ async def voice_debug_check():
         'default_caller': caller,
         'routes': ['/api/voice/call/start', '/api/voice/ai-call', '/api/voice/call/{call_id}/status']
     }
+
+
+# Mount API router with all voice endpoints
+app.include_router(api_router)
+logger.info('API router mounted with all voice endpoints')
