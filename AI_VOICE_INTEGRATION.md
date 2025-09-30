@@ -131,19 +131,57 @@ DEFAULT_CALLER_ID=+79843330712
 
 ## Использование Prompt ID
 
-OpenAI Realtime API поддерживает stored prompts:
+### ⚠️ Важно: Ограничения LiveKit Realtime API
 
+**Текущая реализация:**
+LiveKit's `RealtimeModel` не поддерживает напрямую stored prompt IDs из OpenAI Platform. Код пытается отправить prompt ID через `session.send_event()`, но это может не работать.
+
+**Рекомендуемые решения:**
+
+**Вариант 1: Скопировать содержимое промпта (Рекомендуется)**
 ```python
-# Отправка session.update с prompt ID
-await session.send_event({
+realtime_model = lk_openai.realtime.RealtimeModel(
+    model='gpt-4o-realtime-preview',
+    voice='marin',
+    temperature=0.8,
+    api_key=openai_key,
+    # Вставьте полное содержимое вашего prompt сюда
+    instructions="""
+    Вы - AI ассистент для клининговой компании VasDom.
+    Ваша задача: принять заказ на уборку.
+    - Поздоровайтесь с клиентом
+    - Узнайте адрес и тип уборки
+    - Уточните дату и время
+    - Подтвердите заказ
+    """
+)
+```
+
+**Вариант 2: Попытка использовать prompt ID (Experimental)**
+```python
+# После создания session, отправить session.update
+session.send_event({
     "type": "session.update",
     "session": {
         "prompt": {
-            "id": "pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5"
+            "id": "pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5",
+            "variables": {
+                # Если ваш prompt использует переменные
+                "company_name": {"type": "input_text", "text": "VasDom"}
+            }
         }
     }
 })
 ```
+
+**Вариант 3: Использовать прямой OpenAI Realtime WebSocket**
+Для полной поддержки stored prompts, нужно использовать OpenAI Realtime API напрямую, без LiveKit обертки.
+
+### Текущая Реализация
+Код использует fallback механизм:
+1. Пытается отправить prompt ID через `send_event()`
+2. Если не работает - использует простые fallback instructions
+3. Логирует все попытки для debugging
 
 Prompt настраивается через [OpenAI Platform](https://platform.openai.com/prompts).
 
