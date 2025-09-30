@@ -290,7 +290,6 @@ async def ai_invite_resolve(token: str):
 async def health():
     return {'ok': True, 'ts': int(datetime.now(timezone.utc).timestamp())}
 
-app.include_router(api_router)
 # ====== Outbound Voice via LiveKit SIP Gateway ======
 _livekit_client: Optional[lk_api.LiveKitAPI] = None if LIVEKIT_AVAILABLE else None
 _call_store: Dict[str, Dict[str, Any]] = {}
