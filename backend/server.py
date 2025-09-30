@@ -407,11 +407,225 @@ async def voice_call_status(call_id: str):
     return CallStatusResponse(call_id=call_id, status=info.get('status','unknown'), details={k:v for k,v in info.items() if k not in ('status','call_id')})
 
 logger.info('Main API router mounted')
+# ====== AI-Powered Outbound Calls ======
+class AICallRequest(BaseModel):
+    phone_number: str
+    prompt_id: Optional[str] = Field(default='pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5')
+    voice: Optional[str] = Field(default='marin')
+    greeting: Optional[str] = Field(default='Здравствуйте! Это VasDom AudioBot.')
+    trunk_id: Optional[str] = None
+    from_number: Optional[str] = None
+
+class AICallResponse(BaseModel):
+    call_id: str
+    room_name: str
+    status: str
+
+_ai_call_workers: Dict[str, Any] = {}
+
+async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voice: str, greeting: str):
+    """Background task to run AI agent for a call"""
+    if not LIVEKIT_AVAILABLE:
+        logger.error(f"[AI-CALL {call_id}] LiveKit SDK not available")
+        return
+    
+    try:
+        from livekit.agents import (
+            JobContext,
+            WorkerOptions,
+            cli as lk_cli,
+        )
+        import livekit.rtc as rtc
+        
+        logger.info(f"[AI-CALL {call_id}] Starting AI agent worker for room={room_name}, prompt={prompt_id}")
+        
+        # Get LiveKit connection details
+        host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
+        api_key = os.environ.get('LIVEKIT_API_KEY')
+        api_secret = os.environ.get('LIVEKIT_API_SECRET')
+        openai_key = os.environ.get('OPENAI_API_KEY')
+        
+        if not all([host, api_key, api_secret, openai_key]):
+            logger.error(f"[AI-CALL {call_id}] Missing credentials")
+            _call_store[call_id]['ai_agent_status'] = 'failed'
+            _call_store[call_id]['ai_agent_error'] = 'Missing credentials'
+            return
+        
+        # Normalize host for WebSocket
+        ws_url = host
+        if ws_url.startswith('https://'):
+            ws_url = 'wss://' + ws_url[len('https://'):]
+        elif ws_url.startswith('http://'):
+            ws_url = 'ws://' + ws_url[len('http://'):]
+        elif not ws_url.startswith('ws'):
+            ws_url = 'wss://' + ws_url
+        
+        logger.info(f"[AI-CALL {call_id}] Connecting to LiveKit: {ws_url}")
+        
+        # Create Room connection
+        room = rtc.Room()
+        
+        # Generate access token for AI agent
+        from livekit import api as lk_api_token
+        token = lk_api_token.AccessToken(api_key, api_secret)
+        token.identity = f'ai_agent_{call_id}'
+        token.name = 'AI Assistant'
+        grant = lk_api_token.VideoGrants(room_join=True, room=room_name)
+        token.add_grant(grant)
+        agent_token = token.to_jwt()
+        
+        logger.info(f"[AI-CALL {call_id}] Connecting agent to room...")
+        await room.connect(ws_url, agent_token)
+        logger.info(f"[AI-CALL {call_id}] Agent connected to room")
+        
+        # Initialize OpenAI Realtime connection
+        logger.info(f"[AI-CALL {call_id}] Initializing OpenAI Realtime with prompt={prompt_id}")
+        
+        # Create OpenAI Realtime model with prompt ID
+        realtime_model = lk_openai.realtime.RealtimeModel(
+            instructions=f"Using prompt ID: {prompt_id}",
+            voice=voice,
+            temperature=0.8,
+            modalities=['text', 'audio'],
+        )
+        
+        # After connection, send session.update with prompt ID
+        # This will be done through the agent session
+        
+        # Create agent session
+        assistant = lk_openai.realtime.RealtimeAgent(
+            model=realtime_model,
+            api_key=openai_key,
+        )
+        
+        logger.info(f"[AI-CALL {call_id}] Starting agent session...")
+        
+        # Start the agent
+        session = await assistant.start(room)
+        
+        # Send greeting after a brief delay to ensure connection is stable
+        await asyncio.sleep(1.5)
+        
+        logger.info(f"[AI-CALL {call_id}] Sending greeting: {greeting}")
+        
+        # Send initial greeting
+        await session.send_text(greeting)
+        
+        _call_store[call_id]['ai_agent_status'] = 'active'
+        _call_store[call_id]['ai_session_id'] = session.sid if hasattr(session, 'sid') else 'unknown'
+        
+        logger.info(f"[AI-CALL {call_id}] AI agent is now active")
+        
+        # Keep the agent running
+        # The agent will handle the conversation automatically
+        # Store worker info for cleanup
+        _ai_call_workers[call_id] = {
+            'room': room,
+            'session': session,
+            'assistant': assistant
+        }
+        
+    except Exception as e:
+        logger.exception(f"[AI-CALL {call_id}] AI agent error: {e}")
+        if call_id in _call_store:
+            _call_store[call_id]['ai_agent_status'] = 'failed'
+            _call_store[call_id]['ai_agent_error'] = str(e)
+
+@api_router.post('/voice/ai-call', response_model=AICallResponse)
+async def voice_ai_call(req: AICallRequest):
+    """Create an AI-powered outbound call with OpenAI Realtime API and prompt ID"""
+    lk = await _get_livekit_client()
+    call_id = uuid4().hex
+    to = _normalize_phone(req.phone_number)
+    
+    if not to:
+        raise HTTPException(status_code=400, detail='phone_number is empty')
+    
+    # Validate OpenAI API key
+    openai_key = os.environ.get('OPENAI_API_KEY')
+    if not openai_key:
+        raise HTTPException(status_code=500, detail='OPENAI_API_KEY not configured')
+    
+    trunk_id = req.trunk_id or os.environ.get('LIVEKIT_SIP_TRUNK_ID')
+    if not trunk_id:
+        raise HTTPException(status_code=500, detail='LIVEKIT_SIP_TRUNK_ID not configured')
+    
+    from_number = _normalize_phone(req.from_number or os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM') or '')
+    if not from_number:
+        from_number = None
+    
+    # Create room name
+    room_name = f'ai_call_{call_id}'
+    
+    _call_store[call_id] = {
+        'call_id': call_id,
+        'room_name': room_name,
+        'status': 'initiating',
+        'to': to,
+        'from': from_number,
+        'ts': int(datetime.now(timezone.utc).timestamp()),
+        'ai_enabled': True,
+        'prompt_id': req.prompt_id,
+        'voice': req.voice,
+        'greeting': req.greeting,
+        'ai_agent_status': 'starting'
+    }
+    
+    try:
+        logger.info(f"[AI-CALL {call_id}] Creating SIP participant for {to}")
+        
+        # Create SIP participant (outbound call)
+        sip_req = lk_api.sip.CreateSIPParticipantRequest(
+            sip_trunk_id=trunk_id,
+            sip_call_to=to,
+            room_name=room_name,  # Specify room name for the call
+            sip_number=from_number or '',
+            participant_identity=f'pstn_{call_id}',
+            participant_name=f'Outbound {to}',
+        )
+        
+        result = await lk.sip.create_sip_participant(sip_req)
+        
+        _call_store[call_id]['status'] = 'ringing'
+        _call_store[call_id]['sip_participant_identity'] = getattr(result, 'identity', None)
+        _call_store[call_id]['sip_participant_id'] = getattr(result, 'participant_id', None)
+        
+        logger.info(f"[AI-CALL {call_id}] SIP participant created, starting AI agent...")
+        
+        # Start AI agent in background
+        asyncio.create_task(_run_ai_agent_worker(
+            room_name=room_name,
+            call_id=call_id,
+            prompt_id=req.prompt_id or 'pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5',
+            voice=req.voice or 'marin',
+            greeting=req.greeting or 'Здравствуйте! Это VasDom AudioBot.'
+        ))
+        
+        logger.info(f"[AI-CALL {call_id}] AI call initiated successfully")
+        
+        return AICallResponse(
+            call_id=call_id,
+            room_name=room_name,
+            status='ringing'
+        )
+        
+    except lk_api.TwirpError as e:
+        logger.error(f"[AI-CALL {call_id}] LiveKit SIP error: {e}")
+        _call_store[call_id]['status'] = 'failed'
+        _call_store[call_id]['error'] = {'code': getattr(e, 'code', ''), 'message': str(e)}
+        raise HTTPException(status_code=502, detail=f'LiveKit SIP error: {e}')
+    except Exception as e:
+        logger.exception(f"[AI-CALL {call_id}] Unexpected error")
+        _call_store[call_id]['status'] = 'failed'
+        _call_store[call_id]['error'] = {'message': str(e)}
+        raise HTTPException(status_code=500, detail=f'Failed to start AI call: {str(e)}')
+
 @api_router.get('/voice/debug/check')
 async def voice_debug_check():
     host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
     api_key_set = bool(os.environ.get('LIVEKIT_API_KEY'))
     api_secret_set = bool(os.environ.get('LIVEKIT_API_SECRET'))
+    openai_key_set = bool(os.environ.get('OPENAI_API_KEY'))
     trunk_id = os.environ.get('LIVEKIT_SIP_TRUNK_ID')
     caller = os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM')
     norm_host = host
@@ -425,8 +639,9 @@ async def voice_debug_check():
         'livekit_host_api': norm_host,
         'api_key_set': api_key_set,
         'api_secret_set': api_secret_set,
+        'openai_key_set': openai_key_set,
         'trunk_id_set': bool(trunk_id),
         'trunk_id': trunk_id[:4] + '****' if trunk_id else None,
         'default_caller': caller,
-        'routes': ['/api/voice/call/start', '/api/voice/call/{call_id}/status']
+        'routes': ['/api/voice/call/start', '/api/voice/ai-call', '/api/voice/call/{call_id}/status']
     }
