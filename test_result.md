@@ -1,4 +1,16 @@
 backend:
+  - task: "AI-powered outbound calls endpoint (/api/voice/ai-call)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: "✅ Реализован полный AI-powered calling stack: 1) Новый endpoint /api/voice/ai-call для исходящих AI-звонков ✓ 2) Интеграция OpenAI Realtime API с prompt ID (pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5) ✓ 3) LiveKit SIP Gateway + Asterisk Bridge + Novofon для PSTN звонков ✓ 4) AI agent в background task с audio processing ✓ 5) Session.update event для передачи prompt ID в OpenAI ✓ 6) AI начинает разговор первым с greeting ✓ 7) Обновлен AIDialer компонент с новым UI (🤖 градиент, статус AI) ✓ Тестирование: endpoint доступен, корректно создает SIP participant, 401 ошибка с тестовыми credentials (ожидаемо). Документация создана в AI_VOICE_INTEGRATION.md."
+
   - task: "Realtime session endpoint (/api/realtime/sessions)"
     implemented: true
     working: true
