@@ -487,12 +487,20 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         await asyncio.sleep(2.0)
         
         # Create OpenAI Realtime model
-        logger.info(f"[AI-CALL {call_id}] Initializing OpenAI Realtime model")
+        logger.info(f"[AI-CALL {call_id}] Initializing OpenAI Realtime model with prompt ID: {prompt_id}")
+        
+        # Note: LiveKit's RealtimeModel doesn't directly support prompt IDs in constructor
+        # We'll set instructions that reference the prompt, or use custom instructions
+        # If you have specific prompt content, it should be set as instructions here
+        
         realtime_model = lk_openai.realtime.RealtimeModel(
             model='gpt-4o-realtime-preview',
             voice=voice or 'marin',
             temperature=0.8,
             api_key=openai_key,
+            # Instructions can be set here, but for stored prompts on OpenAI platform,
+            # you may need to manually copy the prompt content
+            # For now, using a simple instruction
         )
         
         # Create RealtimeSession
@@ -504,15 +512,16 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         
         session.on('error', on_session_error)
         
-        logger.info(f"[AI-CALL {call_id}] Updating instructions with prompt ID: {prompt_id}")
+        logger.info(f"[AI-CALL {call_id}] Session created, configuring with prompt reference")
         
-        # Update instructions to use the prompt ID
-        # Note: OpenAI Realtime API requires sending session.update event with prompt ID
-        instructions = f"You are using stored prompt ID: {prompt_id}. Start the conversation with the greeting."
-        await session.update_instructions(instructions)
+        # Note: OpenAI stored prompts (pmpt_*) require special handling
+        # Option 1: Copy the actual prompt content from OpenAI platform and use as instructions
+        # Option 2: Use OpenAI's session.update with prompt ID (which we're doing below)
         
-        # Send session update event with prompt ID directly
+        # Try to update session with prompt ID
+        # This may or may not work depending on LiveKit's implementation
         try:
+            # Method 1: Try direct session update with prompt
             session.send_event({
                 "type": "session.update",
                 "session": {
@@ -523,7 +532,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             })
             logger.info(f"[AI-CALL {call_id}] Sent session.update with prompt ID")
         except Exception as e:
-            logger.warning(f"[AI-CALL {call_id}] Failed to send prompt ID update: {e}")
+            logger.warning(f"[AI-CALL {call_id}] Failed to send prompt ID via send_event: {e}")
+            
+            # Method 2: Fallback to simple instructions
+            try:
+                simple_instructions = f"You are a helpful AI assistant for VasDom cleaning service. Greet the caller and ask how you can help. Use the greeting: {greeting}"
+                await session.update_instructions(simple_instructions)
+                logger.info(f"[AI-CALL {call_id}] Using fallback instructions instead of prompt ID")
+            except Exception as e2:
+                logger.error(f"[AI-CALL {call_id}] Failed to set fallback instructions: {e2}")
         
         # Start audio processing
         logger.info(f"[AI-CALL {call_id}] Starting audio processing...")
