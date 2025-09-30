@@ -404,7 +404,15 @@ async def voice_call_status(call_id: str):
     info = _call_store.get(call_id)
     if not info:
         raise HTTPException(status_code=404, detail='call not found')
-    return CallStatusResponse(call_id=call_id, status=info.get('status','unknown'), details={k:v for k,v in info.items() if k not in ('status','call_id')})
+    
+    # Include AI agent status if it's an AI call
+    details = {k:v for k,v in info.items() if k not in ('status','call_id')}
+    if info.get('ai_enabled'):
+        details['ai_agent_status'] = info.get('ai_agent_status', 'unknown')
+        if 'ai_agent_error' in info:
+            details['ai_agent_error'] = info['ai_agent_error']
+    
+    return CallStatusResponse(call_id=call_id, status=info.get('status','unknown'), details=details)
 
 logger.info('Main API router mounted')
 # ====== AI-Powered Outbound Calls ======
