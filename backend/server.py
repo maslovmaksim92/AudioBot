@@ -651,17 +651,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             _call_store[call_id]['ai_agent_status'] = 'failed'
             _call_store[call_id]['ai_agent_error'] = str(e)
 
-async def _forward_audio(session, audio_stream, call_id):
-    """Forward audio from PSTN to OpenAI Realtime"""
-    try:
-        async for frame in audio_stream:
-            await session.push_audio(frame.data)
-    except Exception as e:
-        logger.error(f"[AI-CALL {call_id}] Audio forwarding error: {e}")
-
 @api_router.post('/voice/ai-call', response_model=AICallResponse)
 async def voice_ai_call(req: AICallRequest):
-    """Create an AI-powered outbound call with OpenAI Realtime API and prompt ID"""
+    """Create an AI-powered outbound call with Direct OpenAI Realtime API and prompt ID"""
     lk = await _get_livekit_client()
     call_id = uuid4().hex
     to = _normalize_phone(req.phone_number)
