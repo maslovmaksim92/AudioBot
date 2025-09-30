@@ -679,7 +679,7 @@ async def voice_debug_check():
     norm_host = host
     if norm_host:
       if norm_host.startswith('wss://'):
-          norm_host = 'https://' + norm_host[len('wss://):]
+          norm_host = 'https://' + norm_host[len('wss://'):]
       elif norm_host.startswith('ws://'):
           norm_host = 'http://' + norm_host[len('ws://'):]
     return {
