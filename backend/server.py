@@ -498,6 +498,12 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         # Create RealtimeSession
         session = lk_openai.realtime.RealtimeSession(realtime_model)
         
+        # Add error handler for detailed logging
+        def on_session_error(error):
+            logger.error(f"[AI-CALL {call_id}] OpenAI Realtime Session Error: {error}")
+        
+        session.on('error', on_session_error)
+        
         logger.info(f"[AI-CALL {call_id}] Updating instructions with prompt ID: {prompt_id}")
         
         # Update instructions to use the prompt ID
