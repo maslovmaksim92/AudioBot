@@ -1,9 +1,11 @@
-# AI Voice Integration с OpenAI Realtime API
+# AI Voice Integration с OpenAI Realtime API (Direct Connection)
 
 ## Обзор
 
 Интегрирована функция AI-powered исходящих звонков с использованием:
-- **OpenAI Realtime API** с поддержкой stored prompts
+- **OpenAI Realtime API (Direct WebSocket)** - прямое подключение без обертки LiveKit
+- **Лучшая модель**: `gpt-4o-realtime-preview-2024-12-17`
+- **Stored Prompts**: Полная поддержка prompt IDs (`pmpt_*`)
 - **LiveKit SIP Gateway** для звонков через Asterisk/Novofon
 - **Prompt ID**: `pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5`
 
@@ -14,7 +16,15 @@ Frontend (AIDialer)
     ↓
 Backend (/api/voice/ai-call)
     ↓
-LiveKit SIP Gateway
+┌─────────────────────────────────┐
+│ LiveKit Room                    │
+│   ├─ SIP Participant (PSTN)     │
+│   └─ AI Agent                   │
+│       ├─ PSTN Audio → OpenAI    │
+│       └─ OpenAI Audio → PSTN    │
+└─────────────────────────────────┘
+    ↓
+OpenAI Realtime API (WebSocket)
     ↓
 Asterisk Bridge (Yandex VM)
     ↓
