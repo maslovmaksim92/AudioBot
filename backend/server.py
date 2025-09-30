@@ -617,16 +617,16 @@ async def voice_ai_call(req: AICallRequest):
         logger.info(f"[AI-CALL {call_id}] Creating SIP participant for {to}")
         
         # Create SIP participant (outbound call)
-        sip_req = lk_api.sip.CreateSIPParticipantRequest(
-            sip_trunk_id=trunk_id,
-            sip_call_to=to,
-            room_name=room_name,  # Specify room name for the call
-            sip_number=from_number or '',
-            participant_identity=f'pstn_{call_id}',
-            participant_name=f'Outbound {to}',
+        result = await lk.sip.create_sip_participant(
+            lk_api.CreateSIPParticipantRequest(
+                sip_trunk_id=trunk_id,
+                sip_call_to=to,
+                room_name=room_name,
+                sip_number=from_number or '',
+                participant_identity=f'pstn_{call_id}',
+                participant_name=f'Outbound {to}',
+            )
         )
-        
-        result = await lk.sip.create_sip_participant(sip_req)
         
         _call_store[call_id]['status'] = 'ringing'
         _call_store[call_id]['sip_participant_identity'] = getattr(result, 'identity', None)
