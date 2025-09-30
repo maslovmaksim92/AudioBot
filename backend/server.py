@@ -438,16 +438,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         return
     
     try:
-        from livekit.agents import (
-            JobContext,
-            WorkerOptions,
-            cli as lk_cli,
-        )
         import livekit.rtc as rtc
         
         logger.info(f"[AI-CALL {call_id}] Starting AI agent worker for room={room_name}, prompt={prompt_id}")
         
-        # Get LiveKit connection details
+        # Get credentials
         host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
         api_key = os.environ.get('LIVEKIT_API_KEY')
         api_secret = os.environ.get('LIVEKIT_API_SECRET')
@@ -470,67 +465,99 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         
         logger.info(f"[AI-CALL {call_id}] Connecting to LiveKit: {ws_url}")
         
-        # Create Room connection
-        room = rtc.Room()
-        
         # Generate access token for AI agent
         from livekit import api as lk_api_token
         token = lk_api_token.AccessToken(api_key, api_secret)
         token.identity = f'ai_agent_{call_id}'
         token.name = 'AI Assistant'
-        grant = lk_api_token.VideoGrants(room_join=True, room=room_name)
-        token.add_grant(grant)
+        token.with_grants(lk_api_token.VideoGrants(
+            room_join=True,
+            room=room_name,
+            can_publish=True,
+            can_subscribe=True,
+            can_publish_data=True
+        ))
         agent_token = token.to_jwt()
         
-        logger.info(f"[AI-CALL {call_id}] Connecting agent to room...")
+        # Create and connect Room
+        room = rtc.Room()
         await room.connect(ws_url, agent_token)
         logger.info(f"[AI-CALL {call_id}] Agent connected to room")
         
-        # Initialize OpenAI Realtime connection
-        logger.info(f"[AI-CALL {call_id}] Initializing OpenAI Realtime with prompt={prompt_id}")
+        # Wait for PSTN participant to join
+        await asyncio.sleep(2.0)
         
-        # Create OpenAI Realtime model with prompt ID
+        # Create OpenAI Realtime model
+        logger.info(f"[AI-CALL {call_id}] Initializing OpenAI Realtime model")
         realtime_model = lk_openai.realtime.RealtimeModel(
-            instructions=f"Using prompt ID: {prompt_id}",
-            voice=voice,
+            model='gpt-4o-realtime-preview',
+            voice=voice or 'marin',
             temperature=0.8,
-            modalities=['text', 'audio'],
-        )
-        
-        # After connection, send session.update with prompt ID
-        # This will be done through the agent session
-        
-        # Create agent session
-        assistant = lk_openai.realtime.RealtimeAgent(
-            model=realtime_model,
             api_key=openai_key,
         )
         
-        logger.info(f"[AI-CALL {call_id}] Starting agent session...")
+        # Create RealtimeSession
+        session = lk_openai.realtime.RealtimeSession(realtime_model)
         
-        # Start the agent
-        session = await assistant.start(room)
+        logger.info(f"[AI-CALL {call_id}] Updating instructions with prompt ID: {prompt_id}")
         
-        # Send greeting after a brief delay to ensure connection is stable
-        await asyncio.sleep(1.5)
+        # Update instructions to use the prompt ID
+        # Note: OpenAI Realtime API requires sending session.update event with prompt ID
+        instructions = f"You are using stored prompt ID: {prompt_id}. Start the conversation with the greeting."
+        await session.update_instructions(instructions)
         
+        # Send session update event with prompt ID directly
+        try:
+            await session.send_event({
+                "type": "session.update",
+                "session": {
+                    "prompt": {
+                        "id": prompt_id
+                    }
+                }
+            })
+            logger.info(f"[AI-CALL {call_id}] Sent session.update with prompt ID")
+        except Exception as e:
+            logger.warning(f"[AI-CALL {call_id}] Failed to send prompt ID update: {e}")
+        
+        # Start audio processing
+        logger.info(f"[AI-CALL {call_id}] Starting audio processing...")
+        
+        # Subscribe to remote tracks
+        def on_track_subscribed(track: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
+            logger.info(f"[AI-CALL {call_id}] Track subscribed: {track.kind} from {participant.identity}")
+            if track.kind == rtc.TrackKind.KIND_AUDIO:
+                # Forward audio to OpenAI Realtime
+                audio_stream = rtc.AudioStream(track)
+                asyncio.create_task(_forward_audio(session, audio_stream, call_id))
+        
+        room.on("track_subscribed", on_track_subscribed)
+        
+        # Create local audio track for AI speech
+        source = rtc.AudioSource(sample_rate=24000, num_channels=1)
+        track = rtc.LocalAudioTrack.create_audio_track("ai_voice", source)
+        options = rtc.TrackPublishOptions()
+        options.source = rtc.TrackSource.SOURCE_MICROPHONE
+        
+        await room.local_participant.publish_track(track, options)
+        logger.info(f"[AI-CALL {call_id}] Published local audio track")
+        
+        # Send greeting
+        await asyncio.sleep(1.0)
         logger.info(f"[AI-CALL {call_id}] Sending greeting: {greeting}")
         
-        # Send initial greeting
-        await session.send_text(greeting)
+        # Generate AI response for greeting
+        await session.generate_reply()
         
         _call_store[call_id]['ai_agent_status'] = 'active'
-        _call_store[call_id]['ai_session_id'] = session.sid if hasattr(session, 'sid') else 'unknown'
-        
         logger.info(f"[AI-CALL {call_id}] AI agent is now active")
         
-        # Keep the agent running
-        # The agent will handle the conversation automatically
-        # Store worker info for cleanup
+        # Store worker info
         _ai_call_workers[call_id] = {
             'room': room,
             'session': session,
-            'assistant': assistant
+            'track': track,
+            'source': source
         }
         
     except Exception as e:
@@ -538,6 +565,14 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         if call_id in _call_store:
             _call_store[call_id]['ai_agent_status'] = 'failed'
             _call_store[call_id]['ai_agent_error'] = str(e)
+
+async def _forward_audio(session, audio_stream, call_id):
+    """Forward audio from PSTN to OpenAI Realtime"""
+    try:
+        async for frame in audio_stream:
+            await session.push_audio(frame.data)
+    except Exception as e:
+        logger.error(f"[AI-CALL {call_id}] Audio forwarding error: {e}")
 
 @api_router.post('/voice/ai-call', response_model=AICallResponse)
 async def voice_ai_call(req: AICallRequest):
