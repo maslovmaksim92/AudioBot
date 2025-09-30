@@ -503,11 +503,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         # Update instructions to use the prompt ID
         # Note: OpenAI Realtime API requires sending session.update event with prompt ID
         instructions = f"You are using stored prompt ID: {prompt_id}. Start the conversation with the greeting."
-        await session.update_instructions(instructions)
+        session.update_instructions(instructions)
         
         # Send session update event with prompt ID directly
         try:
-            await session.send_event({
+            session.send_event({
                 "type": "session.update",
                 "session": {
                     "prompt": {
