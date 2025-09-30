@@ -437,7 +437,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         return
     
     import websockets
-    import json
     import base64
     
     try:
