@@ -679,7 +679,7 @@ async def voice_debug_check():
     norm_host = host
     if norm_host:
       if norm_host.startswith('wss://'):
-          norm_host = 'https://' + norm_host[len('wss://'):]
+          norm_host = 'https://' + norm_host[len('wss://):]
       elif norm_host.startswith('ws://'):
           norm_host = 'http://' + norm_host[len('ws://'):]
     return {
@@ -693,6 +693,20 @@ async def voice_debug_check():
         'default_caller': caller,
         'routes': ['/api/voice/call/start', '/api/voice/ai-call', '/api/voice/call/{call_id}/status']
     }
+
+@api_router.post('/voice/webhooks/livekit')
+async def livekit_webhook(request: Request):
+    """Handle LiveKit webhooks (room events, participant events, etc.)"""
+    try:
+        body = await request.json()
+        event_type = body.get('event')
+        logger.info(f"[WEBHOOK] LiveKit event: {event_type}")
+        # Log the webhook for debugging but don't process it for now
+        # In production, you might want to verify the webhook signature
+        return {'ok': True}
+    except Exception as e:
+        logger.error(f"[WEBHOOK] Error processing webhook: {e}")
+        return {'ok': False, 'error': str(e)}
 
 
 # Mount API router with all voice endpoints
