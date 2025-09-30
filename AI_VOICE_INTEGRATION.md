@@ -141,59 +141,52 @@ DEFAULT_CALLER_ID=+79843330712
 
 ## Использование Prompt ID
 
-### ⚠️ Важно: Ограничения LiveKit Realtime API
+### ✅ Прямое Подключение к OpenAI Realtime API
 
-**Текущая реализация:**
-LiveKit's `RealtimeModel` не поддерживает напрямую stored prompt IDs из OpenAI Platform. Код пытается отправить prompt ID через `session.send_event()`, но это может не работать.
+**Текущая реализация использует прямое WebSocket подключение к OpenAI**, что обеспечивает:
 
-**Рекомендуемые решения:**
+1. **Полную поддержку Stored Prompt IDs** - ваш промпт `pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5` используется напрямую
+2. **Лучшая модель** - `gpt-4o-realtime-preview-2024-12-17`
+3. **Нативная передача prompt через session.update**:
 
-**Вариант 1: Скопировать содержимое промпта (Рекомендуется)**
 ```python
-realtime_model = lk_openai.realtime.RealtimeModel(
-    model='gpt-4o-realtime-preview',
-    voice='marin',
-    temperature=0.8,
-    api_key=openai_key,
-    # Вставьте полное содержимое вашего prompt сюда
-    instructions="""
-    Вы - AI ассистент для клининговой компании VasDom.
-    Ваша задача: принять заказ на уборку.
-    - Поздоровайтесь с клиентом
-    - Узнайте адрес и тип уборки
-    - Уточните дату и время
-    - Подтвердите заказ
-    """
-)
-```
-
-**Вариант 2: Попытка использовать prompt ID (Experimental)**
-```python
-# После создания session, отправить session.update
-session.send_event({
+session_config = {
     "type": "session.update",
     "session": {
+        "modalities": ["text", "audio"],
+        "voice": "alloy",
+        "temperature": 0.8,
         "prompt": {
-            "id": "pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5",
-            "variables": {
-                # Если ваш prompt использует переменные
-                "company_name": {"type": "input_text", "text": "VasDom"}
-            }
+            "id": "pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5"
         }
     }
-})
+}
 ```
 
-**Вариант 3: Использовать прямой OpenAI Realtime WebSocket**
-Для полной поддержки stored prompts, нужно использовать OpenAI Realtime API напрямую, без LiveKit обертки.
+### Audio Pipeline
 
-### Текущая Реализация
-Код использует fallback механизм:
-1. Пытается отправить prompt ID через `send_event()`
-2. Если не работает - использует простые fallback instructions
-3. Логирует все попытки для debugging
+**PSTN → OpenAI:**
+1. PSTN participant audio stream → LiveKit AudioStream
+2. Audio frames → Base64 encoding
+3. Send to OpenAI: `{"type": "input_audio_buffer.append", "audio": "..."}`
 
-Prompt настраивается через [OpenAI Platform](https://platform.openai.com/prompts).
+**OpenAI → PSTN:**
+1. Receive from OpenAI: `{"type": "response.audio.delta", "delta": "..."}`
+2. Base64 decode → PCM16 audio
+3. Create AudioFrame → Push to LiveKit source → PSTN participant
+
+### Greeting Flow
+
+AI начинает разговор через `response.create`:
+```python
+greeting_event = {
+    "type": "response.create",
+    "response": {
+        "modalities": ["audio"],
+        "instructions": f"Start the conversation by saying: {greeting}"
+    }
+}
+```
 
 ## Тестирование
 
