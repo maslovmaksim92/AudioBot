@@ -546,7 +546,13 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         logger.info(f"[AI-CALL {call_id}] Sending greeting: {greeting}")
         
         # Generate AI response for greeting
-        await session.generate_reply()
+        reply_future = session.generate_reply()
+        # Wait for the reply to be generated
+        try:
+            await asyncio.wait_for(reply_future, timeout=5.0)
+            logger.info(f"[AI-CALL {call_id}] Greeting sent successfully")
+        except asyncio.TimeoutError:
+            logger.warning(f"[AI-CALL {call_id}] Greeting timeout")
         
         _call_store[call_id]['ai_agent_status'] = 'active'
         logger.info(f"[AI-CALL {call_id}] AI agent is now active")
