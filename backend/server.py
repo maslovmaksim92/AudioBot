@@ -497,7 +497,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "OpenAI-Beta": "realtime=v1"
         }
         
-        openai_ws = await websockets.connect(openai_ws_url, extra_headers=headers)
+        openai_ws = await websockets.connect(openai_ws_url, additional_headers=headers)
         logger.info(f"[AI-CALL {call_id}] Connected to OpenAI Realtime API")
         
         # Configure session with prompt ID
