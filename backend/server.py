@@ -623,7 +623,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         greeting_event = {
             "type": "response.create",
             "response": {
-                "modalities": ["audio"],
+                "modalities": ["audio", "text"],
                 "instructions": f"Start the conversation by saying: {greeting}"
             }
         }
