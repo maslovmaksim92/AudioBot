@@ -677,7 +677,13 @@ async def voice_ai_call(req: AICallRequest):
     if not trunk_id:
         raise HTTPException(status_code=500, detail='LIVEKIT_SIP_TRUNK_ID not configured')
     
-    from_number = _normalize_phone(req.from_number or os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM') or '')
+    from_number = _normalize_phone(
+        req.from_number or 
+        os.environ.get('NOVOFON_CALLER_ID') or 
+        os.environ.get('DEFAULT_CALLER_ID') or 
+        os.environ.get('LIVEKIT_DEFAULT_FROM') or 
+        ''
+    )
     if not from_number:
         from_number = None
     
