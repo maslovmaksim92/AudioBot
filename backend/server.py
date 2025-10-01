@@ -762,7 +762,7 @@ async def voice_debug_check():
     api_secret_set = bool(os.environ.get('LIVEKIT_API_SECRET'))
     openai_key_set = bool(os.environ.get('OPENAI_API_KEY'))
     trunk_id = os.environ.get('LIVEKIT_SIP_TRUNK_ID')
-    caller = os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM')
+    caller = os.environ.get('NOVOFON_CALLER_ID') or os.environ.get('DEFAULT_CALLER_ID') or os.environ.get('LIVEKIT_DEFAULT_FROM')
     norm_host = host
     if norm_host:
       if norm_host.startswith('wss://'):
