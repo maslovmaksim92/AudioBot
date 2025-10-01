@@ -691,7 +691,7 @@ async def voice_ai_call(req: AICallRequest):
     }
     
     try:
-        logger.info(f"[AI-CALL {call_id}] Creating SIP participant for {to}")
+        logger.info(f"[AI-CALL {call_id}] Creating SIP participant for {to} (from: {from_number}, trunk: {trunk_id})")
         
         # Create SIP participant (outbound call)
         result = await lk.sip.create_sip_participant(
@@ -708,6 +708,8 @@ async def voice_ai_call(req: AICallRequest):
         _call_store[call_id]['status'] = 'ringing'
         _call_store[call_id]['sip_participant_identity'] = getattr(result, 'identity', None)
         _call_store[call_id]['sip_participant_id'] = getattr(result, 'participant_id', None)
+        
+        logger.info(f"[AI-CALL {call_id}] SIP participant created: identity={getattr(result, 'identity', None)}, id={getattr(result, 'participant_id', None)}")
         
         logger.info(f"[AI-CALL {call_id}] SIP participant created, starting AI agent...")
         
