@@ -543,7 +543,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 pstn_track = track_obj
                 logger.info(f"[AI-CALL {call_id}] PSTN audio track captured")
         
+        def on_participant_disconnected(participant: rtc.RemoteParticipant):
+            logger.warning(f"[AI-CALL {call_id}] Participant disconnected: {participant.identity}, reason: call ended or not answered")
+            if 'pstn' in participant.identity:
+                logger.error(f"[AI-CALL {call_id}] PSTN participant disconnected - call may not have been answered!")
+                _call_store[call_id]['status'] = 'failed'
+                _call_store[call_id]['error'] = {'message': 'Call not answered or disconnected'}
+        
         room.on("track_subscribed", on_track_subscribed)
+        room.on("participant_disconnected", on_participant_disconnected)
         
         # Handle OpenAI responses
         async def handle_openai_messages():
