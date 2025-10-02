@@ -655,8 +655,12 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         async def forward_pstn_to_openai():
             nonlocal is_running
             # wait until we get a track
+            t0 = time.time()
             while is_running and not pstn_track:
                 await asyncio.sleep(0.1)
+                if time.time() - t0 > 15:
+                    logger.warning(f"[AI-CALL {call_id}] Timeout waiting for PSTN audio track (15s)")
+                    break
             if not pstn_track:
                 logger.warning(f"[AI-CALL {call_id}] No PSTN track found")
                 return
@@ -664,6 +668,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 audio_stream = rtc.AudioStream(pstn_track)
                 logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI")
                 frame_count = 0
+                bytes_sent = 0
+                last_log = time.time()
                 async for frame in audio_stream:
                     if not is_running:
                         break
@@ -695,9 +701,14 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
                     frame_count += 1
+                    bytes_sent += len(data)
                     # commit every ~10 frames
                     if frame_count % 10 == 0:
                         await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                    # periodic diagnostics
+                    if time.time() - last_log > 2.0:
+                        logger.info(f"[AI-CALL {call_id}] PSTN->OpenAI: frames={frame_count}, bytes_sent={bytes_sent}, sr={sr}, ch={ch}")
+                        last_log = time.time()
                 # final commit
                 await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
             except Exception as e:
