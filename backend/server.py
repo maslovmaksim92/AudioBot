@@ -558,6 +558,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         
         def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
             try:
+        room.on("track_published", on_track_published)
+        room.on("track_subscription_failed", on_track_subscription_failed)
+        room.on("participant_connected", on_participant_connected)
+
                 logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} subscribed={publication.subscribed}")
                 if publication.kind == rtc.TrackKind.KIND_AUDIO:
                     # Ensure subscription is enabled
