@@ -510,14 +510,16 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         # Event handlers to reliably subscribe to PSTN audio
         def on_track_subscribed(track_obj: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
             nonlocal pstn_track
-            logger.info(f"[AI-CALL {call_id}] Track subscribed: kind={track_obj.kind} from {participant.identity}")
+            logger.info(f"[AI-CALL {call_id}] Track subscribed: kind={track_obj.kind} from {participant.identity} pub_sid={getattr(publication, 'sid', None)}")
             try:
                 if track_obj.kind == rtc.TrackKind.KIND_AUDIO:
+                    # Ensure subscription
                     if hasattr(publication, 'subscribed') and not publication.subscribed:
                         publication.set_subscribed(True)
-                    if 'pstn' in (participant.identity or ''):
+                    # Treat first remote audio as PSTN if not our AI participant
+                    if (participant.identity or '') != f'ai_agent_{call_id}' and pstn_track is None:
                         pstn_track = track_obj
-                        logger.info(f"[AI-CALL {call_id}] PSTN audio track captured")
+                        logger.info(f"[AI-CALL {call_id}] Remote audio captured as PSTN from participant={participant.identity}")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] on_track_subscribed error: {e}")
 
