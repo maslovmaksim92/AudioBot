@@ -556,6 +556,30 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 _call_store[call_id]['status'] = 'failed'
                 _call_store[call_id]['error'] = {'message': 'Call not answered or disconnected'}
         
+        def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
+            try:
+                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} subscribed={publication.subscribed}")
+                if publication.kind == rtc.TrackKind.KIND_AUDIO:
+                    # Ensure subscription is enabled
+                    publication.set_subscribed(True)
+                    logger.info(f"[AI-CALL {call_id}] Forced subscribe to audio publication from {participant.identity}")
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] Error handling track_published: {e}")
+
+        def on_track_subscription_failed(track_sid: str, participant: rtc.RemoteParticipant):
+            logger.error(f"[AI-CALL {call_id}] Track subscription failed for sid={track_sid} participant={participant.identity}")
+
+        def on_participant_connected(participant: rtc.RemoteParticipant):
+            try:
+                pubs = getattr(participant, 'track_publications', []) or []
+                logger.info(f"[AI-CALL {call_id}] Participant connected: id={participant.identity}, tracks={len(pubs)}")
+                for pub in pubs:
+                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
+                        pub.set_subscribed(True)
+                        logger.info(f"[AI-CALL {call_id}] Subscribing to existing audio publication from {participant.identity}")
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] Error on participant_connected: {e}")
+
         room.on("track_subscribed", on_track_subscribed)
         room.on("participant_disconnected", on_participant_disconnected)
         
