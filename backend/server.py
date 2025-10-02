@@ -813,16 +813,31 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 bytes_sent = 0
                 last_log = time.time()
                 first_frame_logged = False
-                async for frame in audio_stream:
+                async for evt in audio_stream:
+                    # Unwrap AudioFrameEvent -> AudioFrame when needed
+                    frame_obj = getattr(evt, 'frame', evt)
+                    sr = getattr(frame_obj, 'sample_rate', 48000)
+                    ch = getattr(frame_obj, 'num_channels', 1)
+                    data = getattr(frame_obj, 'data', None)
+                    if data is None:
+                        # Try alternate properties just in case
+                        data = getattr(frame_obj, 'pcm', None) or getattr(frame_obj, 'buffer', None)
+                        if data is not None and not isinstance(data, (bytes, bytearray)):
+                            try:
+                                data = bytes(data)
+                            except Exception:
+                                data = None
                     if not first_frame_logged:
-                        logger.info(f"[AI-CALL {call_id}] PSTN AudioStream first frame received: sr={getattr(frame,'sample_rate',None)} ch={getattr(frame,'num_channels',None)} size={len(getattr(frame,'data',b''))}")
+                        size = len(data) if isinstance(data, (bytes, bytearray)) else 0
+                        logger.info(f"[AI-CALL {call_id}] PSTN AudioStream first frame received: sr={sr} ch={ch} size={size}")
                         first_frame_logged = True
                     if not is_running:
                         break
-                    data = frame.data  # bytes, PCM16
-                    sr = getattr(frame, 'sample_rate', 48000)
-                    ch = getattr(frame, 'num_channels', 1)
-                    # to mono
+                    if not data:
+                        logger.warning(f"[AI-CALL {call_id}] Audio frame has no data, skipping")
+                        continue
+                    # data is PCM16 interleaved bytes
+                    # to mono if needed
                     if ch and ch > 1:
                         try:
                             data = audioop.tomono(data, 2, 0.5, 0.5)
