@@ -534,6 +534,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         def on_track_subscribed(track_obj: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
             nonlocal pstn_track
             try:
+        def _pub_values(participant: rtc.RemoteParticipant):
+            try:
+                pubs = getattr(participant, 'track_publications', {}) or {}
+                if isinstance(pubs, dict):
+                    return list(pubs.values())
+                return list(pubs)
+            except Exception:
+                return []
+
                 info = _describe_pub(publication)
                 logger.info(f"[AI-CALL {call_id}] Track subscribed: track_kind={getattr(track_obj,'kind',None)} pub={info} participant={participant.identity}")
                 if getattr(track_obj, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
