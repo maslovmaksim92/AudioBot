@@ -611,6 +611,12 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 for pub in pubs:
                     logger.info(f"[AI-CALL {call_id}] Existing pub kind={getattr(pub, 'kind', None)} sid={getattr(pub, 'sid', None)} subscribed={getattr(pub,'subscribed',None)}")
         # Periodic subscribe retry for resilience
+            for pub in pubs:
+                # we will subscribe below and also via retries
+                pass
+        except Exception as e:
+            logger.error(f"[AI-CALL {call_id}] Error while enumerating existing participants: {e}")
+
         async def _periodic_subscribe_retry():
             try:
                 attempts = 0
