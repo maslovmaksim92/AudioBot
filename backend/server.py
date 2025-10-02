@@ -618,22 +618,19 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             logger.error(f"[AI-CALL {call_id}] Error while enumerating existing participants: {e}")
 
         async def _periodic_subscribe_retry():
-            try:
-                attempts = 0
-                while is_running and attempts < 30 and pstn_track is None:
-                    await asyncio.sleep(1.0)
-                    attempts += 1
-                    try:
-                        remotes = getattr(room, 'remote_participants', {}) or {}
-                        participants = list(remotes.values()) if isinstance(remotes, dict) else list(remotes)
-                        for p in participants:
-                            pubs = list(getattr(p, 'track_publications', []) or [])
-                            for pub in pubs:
-                                await _force_subscribe(pub, p, reason=f"retry#{attempts}")
-                    except Exception as e:
-                        logger.error(f"[AI-CALL {call_id}] periodic subscribe retry error: {e}")
-            except Exception:
-                pass
+            attempts = 0
+            while is_running and attempts < 30 and pstn_track is None:
+                await asyncio.sleep(1.0)
+                attempts += 1
+                try:
+                    remotes = getattr(room, 'remote_participants', {}) or {}
+                    participants = list(remotes.values()) if isinstance(remotes, dict) else list(remotes)
+                    for p in participants:
+                        pubs = list(getattr(p, 'track_publications', []) or [])
+                        for pub in pubs:
+                            await _force_subscribe(pub, p, reason=f"retry#{attempts}")
+                except Exception as e:
+                    logger.error(f"[AI-CALL {call_id}] periodic subscribe retry error: {e}")
 
                     if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
                         pub.set_subscribed(True)
