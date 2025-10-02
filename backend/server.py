@@ -749,7 +749,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         # Handle OpenAI responses -> push audio to LiveKit
         async def handle_openai_messages():
-            nonlocal is_running
+            nonlocal is_running, got_openai_audio
             openai_audio_bytes = 0
             openai_audio_frames = 0
             try:
