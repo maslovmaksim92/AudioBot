@@ -590,6 +590,14 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 _call_store[call_id]['status'] = 'failed'
                 _call_store[call_id]['error'] = {'message': 'Call not answered or disconnected'}
 
+        # Fallback to enable auto_subscribe if API available
+        try:
+            if hasattr(room, 'set_auto_subscribe'):
+                room.set_auto_subscribe(True)
+                logger.info(f"[AI-CALL {call_id}] Enabled auto_subscribe via API")
+        except Exception as e:
+            logger.warning(f"[AI-CALL {call_id}] auto_subscribe setup not available: {e}")
+
         # Register listeners
         room.on("participant_connected", on_participant_connected)
         room.on("track_published", on_track_published)
