@@ -562,7 +562,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             try:
                 info = _describe_pub(publication)
                 logger.info(f"[AI-CALL {call_id}] Track subscribed: track_kind={getattr(track_obj,'kind',None)} pub={info} participant={participant.identity}")
-                if getattr(track_obj, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
+                if _is_audio_pub(publication):
                     # Ensure subscription
                     asyncio.create_task(_force_subscribe(publication, participant, reason="track_subscribed"))
                     # Treat first remote audio as PSTN if not our AI participant
