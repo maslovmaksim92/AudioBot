@@ -630,14 +630,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         # Ensure we subscribe to any already-connected PSTN participant
         try:
             remotes = getattr(room, 'remote_participants', {}) or {}
-            # livekit.rtc.Room may store as dict or list
-            if isinstance(remotes, dict):
-                participants = list(remotes.values())
-            else:
-                participants = list(remotes)
+            participants = list(remotes.values()) if isinstance(remotes, dict) else list(remotes)
             logger.info(f"[AI-CALL {call_id}] Existing remote participants: {len(participants)}")
             for p in participants:
-                pubs = list(getattr(p, 'track_publications', []) or [])
+                pubs = _pub_values(p)
                 logger.info(f"[AI-CALL {call_id}] Existing participant={getattr(p, 'identity', '')}, pubs={len(pubs)}")
                 for pub in pubs:
                     logger.info(f"[AI-CALL {call_id}] Existing pub kind={getattr(pub, 'kind', None)} sid={getattr(pub, 'sid', None)} subscribed={getattr(pub,'subscribed',None)}")
