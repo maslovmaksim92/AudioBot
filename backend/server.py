@@ -445,8 +445,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
     import websockets
     import base64
     import audioop
-        import time
-        import audioop
+    import time
 
 
     try:
