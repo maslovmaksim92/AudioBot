@@ -869,6 +869,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             }
         }))
 
+        # Start watchdog for greeting audio
+        watchdog_task = asyncio.create_task(_openai_greeting_watchdog())
+
         _call_store[call_id]['ai_agent_status'] = 'active'
         logger.info(f"[AI-CALL {call_id}] Direct OpenAI AI agent is now active")
 
