@@ -813,6 +813,16 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 bytes_sent = 0
                 last_log = time.time()
                 first_frame_logged = False
+                # Commit policy
+                BYTES_PER_MS = 48  # 24kHz mono PCM16 -> 48 bytes/ms
+                MIN_COMMIT_MS = 160  # target commit size ~160ms
+                MIN_COMMIT_BYTES = BYTES_PER_MS * MIN_COMMIT_MS
+                MIN_STRICT_MS = 100  # never commit below 100ms
+                MIN_STRICT_BYTES = BYTES_PER_MS * MIN_STRICT_MS
+                MAX_WAIT_S = 0.6  # commit at most every 600ms if enough audio
+                bytes_since_commit = 0
+                last_commit = time.time()
+
                 async for evt in audio_stream:
                     # Unwrap AudioFrameEvent -> AudioFrame when needed
                     frame_obj = getattr(evt, 'frame', evt)
@@ -834,7 +844,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     if not is_running:
                         break
                     if not data:
-                        logger.warning(f"[AI-CALL {call_id}] Audio frame has no data, skipping")
+                        # Skip empty frames
                         continue
                     # data is PCM16 interleaved bytes
                     # to mono if needed
@@ -858,20 +868,39 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             ch = 1
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
-                    # send chunk
+                    # send chunk (append)
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
                     frame_count += 1
                     bytes_sent += len(data)
-                    # commit every ~10 frames
-                    if frame_count % 10 == 0:
+                    bytes_since_commit += len(data)
+
+                    # commit policy decision
+                    elapsed = time.time() - last_commit
+                    ms_since_commit = bytes_since_commit / BYTES_PER_MS
+                    do_commit = False
+                    if bytes_since_commit >= MIN_COMMIT_BYTES:
+                        do_commit = True
+                    elif elapsed >= MAX_WAIT_S and bytes_since_commit >= MIN_STRICT_BYTES:
+                        do_commit = True
+
+                    if do_commit:
                         await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                        logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s")
+                        bytes_since_commit = 0
+                        last_commit = time.time()
+
                     # periodic diagnostics
                     if time.time() - last_log > 2.0:
                         logger.info(f"[AI-CALL {call_id}] PSTN->OpenAI: frames={frame_count}, bytes_sent={bytes_sent}, sr={sr}, ch={ch}")
                         last_log = time.time()
-                # final commit
-                await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                # final commit if we have enough audio
+                if bytes_since_commit >= MIN_STRICT_BYTES:
+                    await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                    ms_since_commit = bytes_since_commit / BYTES_PER_MS
+                    logger.info(f"[AI-CALL {call_id}] Final commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes)")
+                else:
+                    logger.info(f"[AI-CALL {call_id}] Final commit skipped (only {bytes_since_commit/ BYTES_PER_MS:.1f} ms queued)")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] PSTN audio forwarding error: {e}")
 
