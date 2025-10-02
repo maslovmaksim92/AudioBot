@@ -807,11 +807,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 return
             try:
                 audio_stream = rtc.AudioStream(pstn_track)
-                logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI")
+                logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI (starting stream)")
                 frame_count = 0
                 bytes_sent = 0
                 last_log = time.time()
+                first_frame_logged = False
                 async for frame in audio_stream:
+                    if not first_frame_logged:
+                        logger.info(f"[AI-CALL {call_id}] PSTN AudioStream first frame received: sr={getattr(frame,'sample_rate',None)} ch={getattr(frame,'num_channels',None)} size={len(getattr(frame,'data',b''))}")
+                        first_frame_logged = True
                     if not is_running:
                         break
                     data = frame.data  # bytes, PCM16
