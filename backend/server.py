@@ -542,6 +542,22 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         # Event handlers to reliably subscribe to PSTN audio
         def on_track_subscribed(track_obj: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
+        def _is_audio_pub(pub) -> bool:
+            try:
+                k = _safe_attr(pub, 'kind')
+                if k is None:
+                    return False
+                # Support enum, int, or string representations
+                if hasattr(rtc.TrackKind, 'KIND_AUDIO') and k == rtc.TrackKind.KIND_AUDIO:
+                    return True
+                if isinstance(k, int) and k == 1:
+                    return True
+                if str(k).lower() in ('1', 'audio', 'trackkind.kind_audio', 'kindaudio'):
+                    return True
+            except Exception:
+                return False
+            return False
+
             nonlocal pstn_track
             try:
                 info = _describe_pub(publication)
