@@ -573,6 +573,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 logger.error(f"[AI-CALL {call_id}] on_track_subscribed error: {e}")
 
         async def _force_subscribe(pub: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant, reason: str = "event"):
+            nonlocal pstn_track
             try:
                 info = _describe_pub(pub)
                 logger.info(f"[AI-CALL {call_id}] [subscribe:{reason}] pub={info} participant={participant.identity}")
@@ -583,6 +584,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     pub.set_subscribed(True)
                 if hasattr(pub, 'is_subscribed') and not pub.is_subscribed and hasattr(pub, 'set_subscribed'):
                     pub.set_subscribed(True)
+                # If track object is available after subscription, capture it
+                trk = getattr(pub, 'track', None)
+                if trk and pstn_track is None and _is_audio_pub(pub) and (getattr(participant, 'identity', '') != f'ai_agent_{call_id}'):
+                    pstn_track = trk
+                    logger.info(f"[AI-CALL {call_id}] Captured PSTN track from publication.track after subscribe")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] force_subscribe error: {e}")
 
