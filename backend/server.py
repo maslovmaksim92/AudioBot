@@ -441,27 +441,28 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
     if not LIVEKIT_AVAILABLE:
         logger.error(f"[AI-CALL {call_id}] LiveKit SDK not available")
         return
-    
+
     import websockets
     import base64
-    
+    import audioop
+
     try:
         import livekit.rtc as rtc
-        
+
         logger.info(f"[AI-CALL {call_id}] Starting Direct OpenAI Realtime agent for room={room_name}, prompt={prompt_id}")
-        
+
         # Get credentials
         host = os.environ.get('LIVEKIT_URL') or os.environ.get('LIVEKIT_HOST') or os.environ.get('LIVEKIT_WS_URL')
         api_key = os.environ.get('LIVEKIT_API_KEY')
         api_secret = os.environ.get('LIVEKIT_API_SECRET')
         openai_key = os.environ.get('OPENAI_API_KEY')
-        
+
         if not all([host, api_key, api_secret, openai_key]):
             logger.error(f"[AI-CALL {call_id}] Missing credentials")
             _call_store[call_id]['ai_agent_status'] = 'failed'
             _call_store[call_id]['ai_agent_error'] = 'Missing credentials'
             return
-        
+
         # Normalize host for WebSocket
         ws_url = host
         if ws_url.startswith('https://'):
@@ -470,9 +471,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             ws_url = 'ws://' + ws_url[len('http://'):]
         elif not ws_url.startswith('ws'):
             ws_url = 'wss://' + ws_url
-        
+
         logger.info(f"[AI-CALL {call_id}] Connecting to LiveKit: {ws_url}")
-        
+
         # Generate access token for AI agent
         from livekit import api as lk_api_token
         token = lk_api_token.AccessToken(api_key, api_secret)
@@ -486,15 +487,96 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             can_publish_data=True
         ))
         agent_token = token.to_jwt()
-        
+
         # Create and connect Room
         room = rtc.Room()
         await room.connect(ws_url, agent_token)
         logger.info(f"[AI-CALL {call_id}] Agent connected to LiveKit room")
-        
-        # Wait for PSTN participant
+
+        # Create local audio track for AI speech (24k mono)
+        source = rtc.AudioSource(sample_rate=24000, num_channels=1)
+        track = rtc.LocalAudioTrack.create_audio_track("ai_voice", source)
+        options = rtc.TrackPublishOptions()
+        options.source = rtc.TrackSource.SOURCE_MICROPHONE
+        await room.local_participant.publish_track(track, options)
+        logger.info(f"[AI-CALL {call_id}] Published local audio track")
+
+        # Audio forwarding state
+        pstn_track = None
+        is_running = True
+
+        # Event handlers to reliably subscribe to PSTN audio
+        def on_track_subscribed(track_obj: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
+            nonlocal pstn_track
+            logger.info(f"[AI-CALL {call_id}] Track subscribed: kind={track_obj.kind} from {participant.identity}")
+            try:
+                if track_obj.kind == rtc.TrackKind.KIND_AUDIO:
+                    if hasattr(publication, 'subscribed') and not publication.subscribed:
+                        publication.set_subscribed(True)
+                    if 'pstn' in (participant.identity or ''):
+                        pstn_track = track_obj
+                        logger.info(f"[AI-CALL {call_id}] PSTN audio track captured")
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] on_track_subscribed error: {e}")
+
+        def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
+            try:
+                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} subscribed={getattr(publication, 'subscribed', None)}")
+                if getattr(publication, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
+                    publication.set_subscribed(True)
+                    logger.info(f"[AI-CALL {call_id}] Forced subscribe to audio publication from {participant.identity}")
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] Error handling track_published: {e}")
+
+        def on_track_subscription_failed(track_sid: str, participant: rtc.RemoteParticipant):
+            logger.error(f"[AI-CALL {call_id}] Track subscription failed for sid={track_sid} participant={participant.identity}")
+
+        def on_participant_connected(participant: rtc.RemoteParticipant):
+            try:
+                pubs = list(getattr(participant, 'track_publications', []) or [])
+                logger.info(f"[AI-CALL {call_id}] Participant connected: id={participant.identity}, pubs={len(pubs)}")
+                for pub in pubs:
+                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
+                        pub.set_subscribed(True)
+                        logger.info(f"[AI-CALL {call_id}] Subscribing to existing audio publication from {participant.identity}")
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] Error on participant_connected: {e}")
+
+        def on_participant_disconnected(participant: rtc.RemoteParticipant):
+            logger.warning(f"[AI-CALL {call_id}] Participant disconnected: {participant.identity}")
+            if 'pstn' in (participant.identity or ''):
+                logger.error(f"[AI-CALL {call_id}] PSTN participant disconnected - call may not have been answered!")
+                _call_store[call_id]['status'] = 'failed'
+                _call_store[call_id]['error'] = {'message': 'Call not answered or disconnected'}
+
+        # Register listeners
+        room.on("participant_connected", on_participant_connected)
+        room.on("track_published", on_track_published)
+        room.on("track_subscribed", on_track_subscribed)
+        room.on("track_subscription_failed", on_track_subscription_failed)
+        room.on("participant_disconnected", on_participant_disconnected)
+
+        # Ensure we subscribe to any already-connected PSTN participant
+        try:
+            remotes = getattr(room, 'remote_participants', {}) or {}
+            # livekit.rtc.Room may store as dict or list
+            if isinstance(remotes, dict):
+                participants = list(remotes.values())
+            else:
+                participants = list(remotes)
+            logger.info(f"[AI-CALL {call_id}] Existing remote participants: {len(participants)}")
+            for p in participants:
+                pubs = list(getattr(p, 'track_publications', []) or [])
+                for pub in pubs:
+                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
+                        pub.set_subscribed(True)
+                        logger.info(f"[AI-CALL {call_id}] Forced subscribe to existing audio pub from {getattr(p, 'identity', '')}")
+        except Exception as e:
+            logger.error(f"[AI-CALL {call_id}] Error while subscribing existing participants: {e}")
+
+        # Wait briefly for PSTN to join
         await asyncio.sleep(2.0)
-        
+
         # Connect to OpenAI Realtime API
         logger.info(f"[AI-CALL {call_id}] Connecting to OpenAI Realtime API...")
         openai_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
@@ -502,10 +584,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "Authorization": f"Bearer {openai_key}",
             "OpenAI-Beta": "realtime=v1"
         }
-        
         openai_ws = await websockets.connect(openai_ws_url, extra_headers=headers)
         logger.info(f"[AI-CALL {call_id}] Connected to OpenAI Realtime API")
-        
+
         # Configure session with prompt ID
         session_config = {
             "type": "session.update",
@@ -517,100 +598,36 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     "type": "server_vad",
                     "threshold": 0.5,
                     "prefix_padding_ms": 300,
-                    "silence_duration_ms": 500
+                    "silence_duration_ms": 500,
+                    "create_response": True
                 },
-                "prompt": { "id": prompt_id },
+                "prompt": {"id": prompt_id},
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
-                "input_audio_transcription": { "model": "whisper-1" },
+                "input_audio_transcription": {"model": "whisper-1"},
                 "tool_choice": "auto",
                 "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу.",
                 "max_response_output_tokens": 1024
             }
         }
-        
         await openai_ws.send(json.dumps(session_config))
         logger.info(f"[AI-CALL {call_id}] Sent session config with prompt ID: {prompt_id}")
-        
-        # Create local audio track for AI speech
-        source = rtc.AudioSource(sample_rate=24000, num_channels=1)
-        track = rtc.LocalAudioTrack.create_audio_track("ai_voice", source)
-        options = rtc.TrackPublishOptions()
-        options.source = rtc.TrackSource.SOURCE_MICROPHONE
-        
-        await room.local_participant.publish_track(track, options)
-        logger.info(f"[AI-CALL {call_id}] Published local audio track")
-        
-        # Audio forwarding state
-        pstn_track = None
-        is_running = True
-        
-        # Subscribe to PSTN participant audio
-        def on_track_subscribed(track_obj: rtc.Track, publication: rtc.TrackPublication, participant: rtc.RemoteParticipant):
-            nonlocal pstn_track
-            logger.info(f"[AI-CALL {call_id}] Track subscribed: {track_obj.kind} from {participant.identity}")
-            if track_obj.kind == rtc.TrackKind.KIND_AUDIO and 'pstn' in participant.identity:
-                pstn_track = track_obj
-                logger.info(f"[AI-CALL {call_id}] PSTN audio track captured")
-        
-        def on_participant_disconnected(participant: rtc.RemoteParticipant):
-            logger.warning(f"[AI-CALL {call_id}] Participant disconnected: {participant.identity}, reason: call ended or not answered")
-            if 'pstn' in participant.identity:
-                logger.error(f"[AI-CALL {call_id}] PSTN participant disconnected - call may not have been answered!")
-                _call_store[call_id]['status'] = 'failed'
-                _call_store[call_id]['error'] = {'message': 'Call not answered or disconnected'}
-        
-        def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
-            try:
-        room.on("track_published", on_track_published)
-        room.on("track_subscription_failed", on_track_subscription_failed)
-        room.on("participant_connected", on_participant_connected)
 
-                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} subscribed={publication.subscribed}")
-                if publication.kind == rtc.TrackKind.KIND_AUDIO:
-                    # Ensure subscription is enabled
-                    publication.set_subscribed(True)
-                    logger.info(f"[AI-CALL {call_id}] Forced subscribe to audio publication from {participant.identity}")
-            except Exception as e:
-                logger.error(f"[AI-CALL {call_id}] Error handling track_published: {e}")
-
-        def on_track_subscription_failed(track_sid: str, participant: rtc.RemoteParticipant):
-            logger.error(f"[AI-CALL {call_id}] Track subscription failed for sid={track_sid} participant={participant.identity}")
-
-        def on_participant_connected(participant: rtc.RemoteParticipant):
-            try:
-                pubs = getattr(participant, 'track_publications', []) or []
-                logger.info(f"[AI-CALL {call_id}] Participant connected: id={participant.identity}, tracks={len(pubs)}")
-                for pub in pubs:
-                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
-                        pub.set_subscribed(True)
-                        logger.info(f"[AI-CALL {call_id}] Subscribing to existing audio publication from {participant.identity}")
-            except Exception as e:
-                logger.error(f"[AI-CALL {call_id}] Error on participant_connected: {e}")
-
-        room.on("track_subscribed", on_track_subscribed)
-        room.on("participant_disconnected", on_participant_disconnected)
-        
-        # Handle OpenAI responses
+        # Handle OpenAI responses -> push audio to LiveKit
         async def handle_openai_messages():
             nonlocal is_running
             try:
                 async for message in openai_ws:
                     event = json.loads(message)
-                    event_type = event.get('type')
-                    
-                    if event_type == 'session.created':
+                    etype = event.get('type')
+                    if etype == 'session.created':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session created")
-                        
-                    elif event_type == 'session.updated':
+                    elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
-                        
-                    elif event_type == 'response.audio.delta':
-                        # Audio from OpenAI - send to LiveKit
+                    elif etype == 'response.audio.delta':
                         audio_b64 = event.get('delta', '')
                         if audio_b64:
                             audio_bytes = base64.b64decode(audio_b64)
-                            # Convert to PCM16 and push to source
                             frame = rtc.AudioFrame(
                                 data=audio_bytes,
                                 sample_rate=24000,
@@ -618,66 +635,83 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 samples_per_channel=len(audio_bytes) // 2
                             )
                             await source.capture_frame(frame)
-                    
-                    elif event_type == 'error':
-                        error_msg = event.get('error', {})
-                        logger.error(f"[AI-CALL {call_id}] OpenAI error: {error_msg}")
-                        
+                    elif etype == 'error':
+                        logger.error(f"[AI-CALL {call_id}] OpenAI error: {event.get('error')}")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] OpenAI message handler error: {e}")
             finally:
                 is_running = False
-        
-        # Handle PSTN audio -> OpenAI
+
+        # Forward PSTN audio to OpenAI (resample to 24k mono PCM16)
         async def forward_pstn_to_openai():
             nonlocal is_running
+            # wait until we get a track
             while is_running and not pstn_track:
                 await asyncio.sleep(0.1)
-            
             if not pstn_track:
                 logger.warning(f"[AI-CALL {call_id}] No PSTN track found")
                 return
-            
             try:
                 audio_stream = rtc.AudioStream(pstn_track)
                 logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI")
-                
+                frame_count = 0
                 async for frame in audio_stream:
                     if not is_running:
                         break
-                    
-                    # Convert frame to base64 and send to OpenAI
-                    audio_b64 = base64.b64encode(frame.data).decode('utf-8')
-                    audio_event = {
-                        "type": "input_audio_buffer.append",
-                        "audio": audio_b64
-                    }
-                    await openai_ws.send(json.dumps(audio_event))
-                    
+                    data = frame.data  # bytes, PCM16
+                    sr = getattr(frame, 'sample_rate', 48000)
+                    ch = getattr(frame, 'num_channels', 1)
+                    # to mono
+                    if ch and ch > 1:
+                        try:
+                            data = audioop.tomono(data, 2, 0.5, 0.5)
+                            ch = 1
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] tomono failed: {e}")
+                    # resample to 24k if needed
+                    if sr and sr != 24000:
+                        try:
+                            data, _ = audioop.ratecv(data, 2, ch or 1, sr, 24000, None)
+                            sr = 24000
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] ratecv failed (sr={sr}): {e}")
+                    # ensure mono
+                    if (ch or 1) != 1:
+                        try:
+                            data = audioop.tomono(data, 2, 1.0, 0.0)
+                            ch = 1
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
+                    # send chunk
+                    audio_b64 = base64.b64encode(data).decode('utf-8')
+                    await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
+                    frame_count += 1
+                    # commit every ~10 frames
+                    if frame_count % 10 == 0:
+                        await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                # final commit
+                await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] PSTN audio forwarding error: {e}")
-        
+
         # Start both handlers
         openai_task = asyncio.create_task(handle_openai_messages())
         pstn_task = asyncio.create_task(forward_pstn_to_openai())
-        
-        # Send initial greeting
+
+        # Initial greeting
         await asyncio.sleep(1.0)
         logger.info(f"[AI-CALL {call_id}] Sending initial greeting via OpenAI")
-        
-        # Ask AI to generate greeting
-        greeting_event = {
+        await openai_ws.send(json.dumps({
             "type": "response.create",
             "response": {
                 "modalities": ["audio", "text"],
                 "instructions": f"Start the conversation by saying: {greeting}"
             }
-        }
-        await openai_ws.send(json.dumps(greeting_event))
-        
+        }))
+
         _call_store[call_id]['ai_agent_status'] = 'active'
         logger.info(f"[AI-CALL {call_id}] Direct OpenAI AI agent is now active")
-        
+
         # Store worker info
         _ai_call_workers[call_id] = {
             'room': room,
@@ -686,10 +720,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             'source': source,
             'tasks': [openai_task, pstn_task]
         }
-        
+
         # Wait for tasks
         await asyncio.gather(openai_task, pstn_task, return_exceptions=True)
-        
+
     except Exception as e:
         logger.exception(f"[AI-CALL {call_id}] Direct OpenAI agent error: {e}")
         if call_id in _call_store:
