@@ -835,9 +835,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         try:
                             data = audioop.tomono(data, 2, 1.0, 0.0)
                             ch = 1
-        # Start watchdog for greeting audio
-        asyncio.create_task(_openai_greeting_watchdog())
-
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
                     # send chunk
