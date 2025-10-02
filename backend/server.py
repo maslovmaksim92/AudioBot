@@ -590,8 +590,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             try:
                 info = _describe_pub(publication)
                 logger.info(f"[AI-CALL {call_id}] Track published: pub={info} by={participant.identity}")
-                # Aggressive subscribe retry in background
-                asyncio.create_task(_force_subscribe(publication, participant, reason="track_published"))
+                if _is_audio_pub(publication):
+                    asyncio.create_task(_force_subscribe(publication, participant, reason="track_published"))
+                else:
+                    logger.info(f"[AI-CALL {call_id}] Ignoring non-audio publication")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] Error handling track_published: {e}")
 
