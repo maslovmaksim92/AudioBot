@@ -525,7 +525,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
             try:
-                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} subscribed={getattr(publication, 'subscribed', None)}")
+                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} pub_sid={getattr(publication, 'sid', None)} subscribed={getattr(publication, 'subscribed', None)}")
                 if getattr(publication, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
                     publication.set_subscribed(True)
                     logger.info(f"[AI-CALL {call_id}] Forced subscribe to audio publication from {participant.identity}")
