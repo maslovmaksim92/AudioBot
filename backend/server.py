@@ -762,6 +762,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         audio_b64 = event.get('delta', '')
                         if audio_b64:
                             audio_bytes = base64.b64decode(audio_b64)
+                            got_openai_audio = True
                             openai_audio_bytes += len(audio_bytes)
                             openai_audio_frames += 1
                             if openai_audio_frames % 50 == 0:
