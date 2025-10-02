@@ -704,6 +704,26 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 "temperature": 0.8,
                 "turn_detection": {
                     "type": "server_vad",
+                    "threshold": 0.5,
+                    "prefix_padding_ms": 300,
+                    "silence_duration_ms": 500,
+                    "create_response": True
+                },
+                "prompt": {"id": prompt_id},
+                "input_audio_format": "pcm16",
+                "output_audio_format": "pcm16",
+                "input_audio_transcription": {"model": "whisper-1"},
+                "tool_choice": "auto",
+                "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу.",
+                "max_response_output_tokens": 1024
+            }
+        }
+        await openai_ws.send(json.dumps(session_config))
+        logger.info(f"[AI-CALL {call_id}] Sent session config with prompt ID: {prompt_id}")
+
+        # Start periodic subscribe retry in background
+        retry_task = asyncio.create_task(_periodic_subscribe_retry())
+
         # Watchdog for OpenAI audio after greeting
         got_openai_audio = False
         async def _openai_greeting_watchdog():
@@ -717,6 +737,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             "type": "response.create",
                             "response": {
                                 "modalities": ["audio", "text"],
+                                "voice": voice or "alloy",
+                                "output_audio_format": "pcm16",
                                 "instructions": f"Start the conversation by saying: {greeting}"
                             }
                         }))
@@ -724,33 +746,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         logger.error(f"[AI-CALL {call_id}] Failed to re-trigger greeting: {e}")
             except Exception:
                 pass
-
-                    "threshold": 0.5,
-                    "prefix_padding_ms": 300,
-                    "silence_duration_ms": 500,
-                    "create_response": True
-                },
-                "prompt": {"id": prompt_id},
-                "input_audio_format": "pcm16",
-                "output_audio_format": "pcm16",
-                "input_audio_transcription": {"model": "whisper-1"},
-                "tool_choice": "auto",
-                "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу.",
-                "max_response_output_tokens": 1024
-                    elif etype == 'response.completed':
-                        logger.info(f"[AI-CALL {call_id}] OpenAI response completed")
-                    elif etype == 'response.output_text.delta':
-                        text = event.get('delta', '')
-                        if text:
-                            logger.info(f"[AI-CALL {call_id}] OpenAI text delta: {text[:120]}")
-
-            }
-        }
-        await openai_ws.send(json.dumps(session_config))
-        logger.info(f"[AI-CALL {call_id}] Sent session config with prompt ID: {prompt_id}")
-        # Start periodic subscribe retry in background
-        retry_task = asyncio.create_task(_periodic_subscribe_retry())
-
 
         # Handle OpenAI responses -> push audio to LiveKit
         async def handle_openai_messages():
