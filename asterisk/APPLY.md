@@ -1,38 +1,71 @@
-# Apply VasDom Asterisk configs
+# Как Применить Конфигурацию Asterisk
 
-1) SSH (Windows PowerShell):
-   
-   & "C:\\Windows\\System32\\OpenSSH\\ssh.exe" -i C:\\sshkeys\\yc_ru_2025 ubuntu@51.250.74.43
+## Шаг 1: Подключитесь к VM
 
-   sudo -s
+```bash
+ssh root@51.250.74.43
+```
 
-2) pjsip.conf
-   
-   nano /etc/asterisk/pjsip.conf
-   (paste contents from /app/asterisk/pjsip_working.conf)
+## Шаг 2: Откройте pjsip.conf
 
-3) extensions.conf
-   
-   nano /etc/asterisk/extensions.conf
-   (paste contents from /app/asterisk/extensions_working.conf)
+```bash
+nano /etc/asterisk/pjsip.conf
+```
 
-4) (Optional but recommended) quieter console
-   
-   cp /etc/asterisk/logger.conf /etc/asterisk/logger.conf.bak
-   nano /etc/asterisk/logger.conf
-   (paste contents from /app/asterisk/logger_quiet.conf)
-   asterisk -rx "logger reload"
+**Действия в nano:**
+1. Нажмите `Ctrl+K` много раз, чтобы удалить весь текст
+2. Скопируйте содержимое `pjsip_ready.conf` с вашего компьютера
+3. Нажмите `Ctrl+V` для вставки
+4. Нажмите `Ctrl+X`, затем `Y`, затем `Enter` для сохранения
 
-5) Restart Asterisk
-   
-   asterisk -rx "core restart now"
+## Шаг 3: Откройте extensions.conf
 
-6) Quick test
-   
-   asterisk -rx "channel originate Local/8888@from-livekit application Wait 5"
-   asterisk -rx "channel originate Local/79200924550@from-livekit application Wait 20"
+```bash
+nano /etc/asterisk/extensions.conf
+```
 
-Notes:
-- Do not enable outbound_proxy in [novofon-endpoint]; it breaks R-URI and causes 484.
-- Request-URI is forced by Dial(.../sip:${EXTEN}@sip.novofon.ru:5060,60).
-- Codecs kept to alaw,ulaw for max compatibility.
+**Действия в nano:**
+1. Нажмите `Ctrl+K` много раз, чтобы удалить весь текст
+2. Скопируйте содержимое `extensions_ready.conf` с вашего компьютера
+3. Нажмите `Ctrl+V` для вставки
+4. Нажмите `Ctrl+X`, затем `Y`, затем `Enter` для сохранения
+
+## Шаг 4: Перезагрузите Asterisk
+
+```bash
+asterisk -rx "core reload"
+```
+
+## Шаг 5: Проверьте статус
+
+```bash
+asterisk -rx "pjsip show endpoints"
+asterisk -rx "pjsip show registrations"
+```
+
+**Ожидаемый результат:**
+```
+novofon-endpoint: Registered
+livekit-endpoint: Not in use (это нормально)
+```
+
+## Шаг 6: Тестовый звонок
+
+Из вашего приложения сделайте AI звонок. Вы должны услышать AI голос вместо эха!
+
+## Важные Изменения:
+
+✅ **LiveKit endpoint** настроен для приема звонков из LiveKit Cloud
+✅ **Context from-livekit** правильно маршрутизирует звонки на PSTN через Novofon
+✅ **Answer + Wait(0.5)** дает время AI агенту для подключения перед Dial
+✅ **Поддержка всех форматов номеров**: +7XXXXXXXXXX, 7XXXXXXXXXX, и других
+
+## Отладка:
+
+Если звонок не работает, смотрите логи в реальном времени:
+
+```bash
+tail -f /var/log/asterisk/full
+```
+
+Ищите строки с "from-livekit" и проверяйте, как обрабатывается звонок.
