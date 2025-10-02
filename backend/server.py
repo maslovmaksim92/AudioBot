@@ -518,6 +518,28 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         publication.set_subscribed(True)
                     # Treat first remote audio as PSTN if not our AI participant
                     if (participant.identity or '') != f'ai_agent_{call_id}' and pstn_track is None:
+        # Helpers for diagnostics
+        def _safe_attr(obj, name, default=None):
+            try:
+                return getattr(obj, name)
+            except Exception:
+                return default
+
+        def _describe_pub(pub):
+            return {
+                'sid': _safe_attr(pub, 'sid'),
+                'track_sid': _safe_attr(pub, 'track_sid'),
+                'kind': str(_safe_attr(pub, 'kind')),
+                'track_kind': str(_safe_attr(pub, 'track_kind')),
+                'source': str(_safe_attr(pub, 'source')),
+                'subscribed': _safe_attr(pub, 'subscribed'),
+                'is_subscribed': _safe_attr(pub, 'is_subscribed'),
+                'muted': _safe_attr(pub, 'muted'),
+                'disabled': _safe_attr(pub, 'disabled'),
+                'track_name': _safe_attr(pub, 'track_name'),
+                'stream_state': _safe_attr(pub, 'stream_state')
+            }
+
                         pstn_track = track_obj
                         logger.info(f"[AI-CALL {call_id}] Remote audio captured as PSTN from participant={participant.identity}")
             except Exception as e:
