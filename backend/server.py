@@ -521,6 +521,12 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 },
                 "prompt": {
                     "id": prompt_id
+                "input_audio_format": "pcm16",
+                "output_audio_format": "pcm16",
+                "input_audio_transcription": { "model": "whisper-1" },
+                "tool_choice": "auto",
+                "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу."
+
                 }
             }
         }
