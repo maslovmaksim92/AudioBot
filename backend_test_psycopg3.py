@@ -24,7 +24,7 @@ class VasDomAPITester:
                             base_url = line.split('=', 1)[1].strip()
                             break
             except:
-                base_url = "https://rusip.preview.emergentagent.com"
+                base_url = "https://aidialer-1.preview.emergentagent.com"
         
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0

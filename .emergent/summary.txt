@@ -1,81 +1,78 @@
 <analysis>
-The trajectory details a multi-phase project to implement real-time AI voice capabilities for the VasDom AudioBot application. The initial goal was to use LiveKit with Novofon's SIP service, but a major pivot was required due to Novofon's Russian infrastructure requirement. The solution evolved into deploying an Asterisk SIP bridge on a Yandex Cloud VM in Russia.
+The trajectory outlines the development and intense debugging of an AI-powered outbound calling feature for the VasDom AudioBot. The project began with a significant architectural pivot, moving from a direct LiveKit-Novofon integration to a more complex setup involving a self-hosted Asterisk server on a Yandex Cloud VM in Russia to meet SIP provider requirements.
 
-The first phase involved extensive, iterative troubleshooting to establish SSH access to the VM from the user's Windows machine. This covered SSH key generation, permissions (), passphrases (SSH_AUTH_SOCK=/tmp/ssh-isKXI2znVtgf/agent.170; export SSH_AUTH_SOCK;
-SSH_AGENT_PID=171; export SSH_AGENT_PID;
-echo Agent pid 171;), and correct configuration in the Yandex Cloud metadata.
+The initial phase involved extensive troubleshooting of infrastructure, primarily establishing SSH access and configuring the Asterisk SIP bridge. This was followed by the core application development phase. An AI engineer created a new backend endpoint () and a corresponding frontend component ().
 
-The second phase focused on installing and configuring Asterisk on the VM. This was marked by significant user difficulty with copy-pasting multi-line commands and configuration files, leading to numerous syntax errors. The AI engineer patiently guided the user through debugging  and , resolving SIP registration failures (from  to , finally to ) by correcting credentials. Subsequently, outbound call failures () were diagnosed and fixed by correctly formatting the  in SIP  packets.
+The integration process was iterative and fraught with technical challenges. Initial attempts using the  library were abandoned in favor of a more direct approach using Python's usage: websockets [--version | <uri>] library to connect to the OpenAI Realtime API. This led to multiple rounds of debugging, fixing issues like incorrect FastAPI router placement, invalid WebSocket headers, and incorrect API parameters ().
 
-The final phase, which is the current work, shifts back to application integration. Having established a working telephony backend, the task is to connect the application's frontend to it via LiveKit's SIP Gateway and integrate a specific OpenAI Realtime AI prompt for voice conversations.
+The final and most critical phase involved deep-level SIP and RTP debugging between LiveKit and the Asterisk server. After the application code was stabilized, calls would connect but fail immediately. Using , the root cause was identified as a codec/encryption mismatch ( error), as LiveKit required SRTP (encrypted media), which was disabled in Asterisk. Enabling SRTP () resolved the connection issue, but resulted in a new problem: the call connects, but there is only silence. The most recent logs indicate the AI agent is not receiving the audio track from the PSTN participant.
 </analysis>
 
 <product_requirements>
-The VasDom AudioBot is a cleaning operations management application. The core requirement is to enable real-time, AI-powered voice interactions. The initial implementation targeted outbound calls initiated by an AI agent, leveraging LiveKit for WebRTC and Novofon for SIP termination.
+The goal is to integrate an AI-powered, real-time voice agent into the VasDom AudioBot application for making outbound calls. The AI should use a specific OpenAI prompt () and initiate the conversation upon connection.
 
-A critical constraint emerged: Novofon's SIP service requires the calling infrastructure to be located in Russia. This forced an architectural pivot. The current implementation addresses this by using a dedicated Virtual Machine on Yandex Cloud (a Russian provider) to host an Asterisk server. This server acts as a SIP bridge, registering with Novofon from a permitted IP address.
+A key technical constraint is that the SIP provider, Novofon, requires all SIP traffic to originate from a Russian IP address. This led to the current architecture:
+1.  A React frontend () initiates the call.
+2.  A FastAPI backend () orchestrates the process.
+3.  The backend uses the LiveKit Cloud API to create a SIP participant.
+4.  LiveKit's SIP Gateway routes the call to a custom Asterisk server hosted on a Yandex Cloud VM (in Russia).
+5.  The Asterisk server acts as a bridge, forwarding the call via its registered Novofon SIP trunk to the Public Switched Telephone Network (PSTN).
+6.  Simultaneously, the backend connects an AI agent directly to OpenAI's Realtime API via WebSockets and bridges the audio streams within the LiveKit room.
 
-The complete call flow is now: Frontend UI -> Backend API -> LiveKit Cloud -> LiveKit SIP Gateway -> Asterisk SIP Bridge (on Yandex VM) -> Novofon SIP Trunk -> Public Switched Telephone Network (PSTN).
-
-The immediate next feature is to integrate a specific OpenAI Realtime prompt () into the call flow, enabling the AI to conduct conversations based on this prompt when a call is initiated from the application's frontend.
+The feature is partially implemented: the call connects, but there is silence instead of an AI conversation.
 </product_requirements>
 
 <key_technical_concepts>
-- **Backend**: FastAPI, Python.
-- **Frontend**: React, JavaScript.
-- **Telephony & Real-time**: LiveKit (Cloud API, SIP Gateway), Asterisk (pjsip), Novofon (SIP Trunk), WebRTC.
-- **AI**: OpenAI Realtime API (for voice conversation with a specific prompt).
-- **Infrastructure**: Yandex Cloud (Ubuntu VM), SSH (, SSH_AUTH_SOCK=/tmp/ssh-svSaIK13vmsK/agent.183; export SSH_AUTH_SOCK;
-SSH_AGENT_PID=184; export SSH_AGENT_PID;
-echo Agent pid 184;, ), UFW (firewall).
-- **SIP Concepts**: NAT Traversal (), SIP Registration, Trunks, Request-URI formatting, SIP error codes (, ).
+- **Backend**: FastAPI (Python)
+- **Frontend**: React (JavaScript)
+- **Telephony**: LiveKit (Cloud API, SIP Gateway), Asterisk (PJSIP), Novofon (SIP Trunk)
+- **Real-time Comms**: WebRTC, WebSockets, SIP, RTP, SRTP (Secure RTP)
+- **AI**: OpenAI Realtime API (direct WebSocket connection)
+- **Infrastructure**: Yandex Cloud VM (Ubuntu), SSH, UFW Firewall
+- **Debugging Tools**: , Asterisk CLI, extensive logging
 </key_technical_concepts>
 
 <code_architecture>
-The application follows a standard client-server architecture with a separate, dedicated server for telephony processing.
-
-**High-Level Flow:**
-React Frontend -> FastAPI Backend -> LiveKit Cloud API -> LiveKit SIP Gateway -> Asterisk Server -> Novofon SIP Trunk -> PSTN
+The high-level architecture is a React frontend communicating with a FastAPI backend, which orchestrates a complex telephony flow involving LiveKit Cloud, a custom Asterisk server, and the OpenAI API.
 
 **Directory Structure:**
 
 
-- **Yandex VM Files (not in repo):**
-  - 
-    - **Summary:** This is the core configuration for Asterisk's PJSIP module. It defines the UDP transport, the registration and endpoint details for the Novofon SIP trunk, and an endpoint for receiving calls from LiveKit. It was the subject of extensive debugging to achieve successful registration and outbound calls. The final version has  disabled to prevent  errors.
-    - **Final working code (from trajectory):**
-      
+---
 
-  - 
-    - **Summary:** This file defines Asterisk's dialplan—how it routes calls. It was modified to correctly format the  for outbound calls via Novofon, using . It includes contexts for handling calls from LiveKit () and from Novofon (), with a test echo extension ().
-    - **Final working code (from trajectory):**
-      
+-   ****
+    -   **Importance**: This is the core of the application logic. It exposes all API endpoints, including the new  for initiating AI-powered conversations. It handles the complex orchestration of creating a LiveKit room, creating a SIP participant via the LiveKit API, and spawning a background task to manage the WebSocket connection to the OpenAI Realtime API and bridge audio streams.
+    -   **Changes**: This file was extensively modified. A new endpoint, , was added. The implementation pivoted from using the  library to a direct WebSocket connection to OpenAI. It underwent significant debugging to fix issues with API parameters ( to , ), async/await misuse, and adding detailed logging. A webhook endpoint  was also added to handle events from LiveKit.
 
-- **Application Repo Files:**
-  - : Modified to add endpoints (, , ) for orchestrating outbound calls via the LiveKit API. It reads LiveKit credentials from environment variables.
-  - : Modified to import and display the  component, providing a UI for initiating calls directly from the main dashboard.
-  - : A new, empty CSS file created solely to resolve a frontend build error where the corresponding JS file was trying to import it.
+-   ****
+    -   **Importance**: This React component provides the user interface for initiating the AI call. It contains the input field for the phone number and the button that triggers the API call to the backend.
+    -   **Changes**: The component was updated to make a  request to the new  endpoint, sending the target phone number in the request body.
+
+-   ** (Mirrors  on VM)**
+    -   **Importance**: This Asterisk configuration file defines the SIP endpoints. It contains the configuration for registering with the Novofon SIP trunk and, critically, a dedicated endpoint () to receive incoming calls from the LiveKit SIP Gateway.
+    -   **Changes**: The  section was the focus of the final debugging phase. The key change was modifying  to  to enable SRTP, which resolved the  error from LiveKit. The allowed codecs were also tuned to match what LiveKit was offering in its INVITE.
+    -   **Final  Code Snippet:**
+        
+
+-   ** (Mirrors  on VM)**
+    -   **Importance**: This file contains the Asterisk dialplan, which controls call routing. The  context is crucial as it dictates how calls received from LiveKit are handled.
+    -   **Changes**: The  context was updated to correctly dial the external number via the , ensuring calls are routed to the PSTN. It includes logic to answer the call and wait briefly, giving the AI agent time to connect.
 </code_architecture>
 
 <pending_tasks>
-- Integrate the specified OpenAI Realtime prompt ().
-- Create a new backend endpoint () to handle AI-powered calls.
-- Update the  frontend component to call the new AI endpoint.
-- Deploy the updated backend code to the Render environment, ensuring the  is set.
-- Push the final, working code to the  branch of the GitHub repository.
+- **Resolve Silence on Call Issue**: The primary task is to fix the one-way (or no-way) audio problem. Although the call connects successfully, the AI agent does not receive the audio stream from the PSTN participant, resulting in silence. This requires debugging the audio track subscription and forwarding logic within the backend's LiveKit worker function.
 </pending_tasks>
 
 <current_work>
-The work immediately preceding this summary was the successful establishment and verification of the entire telephony backend. This multi-step process involved:
-1.  **Setting up the Infrastructure:** A Yandex Cloud VM was provisioned, and SSH access was secured after extensive troubleshooting.
-2.  **Configuring the SIP Bridge:** Asterisk was installed and configured. This required a lengthy debugging process to fix user copy-paste errors in configuration files.
-3.  **Connecting to the Provider:** A SIP registration with Novofon was successfully established, resolving a  error by using the correct SIP credentials instead of web login credentials.
-4.  **Enabling Outbound Calls:** The Novofon SIP Trunk was successfully confirmed. This involved resolving a  error by correcting the Asterisk dialplan and  to ensure the outbound  request contained the dialed number in the .
-5.  **Successful Test Call:** A final test call from the Asterisk CLI to an external phone number () was successful, confirming the end-to-end path from Asterisk to the PSTN is fully functional.
+The most recent work was a deep and successful debugging session of the SIP connection between LiveKit and the Asterisk server. The core problem was that LiveKit was initiating calls using SRTP (encrypted audio), while Asterisk was configured to reject it, causing a  error and immediate call failure.
 
-The last user request was to build upon this success by integrating a specific OpenAI Realtime prompt into the call flow and enabling these AI-powered calls from the frontend. The AI engineer was about to start this work, having just requested the necessary .
+This was diagnosed using  on the Asterisk server to inspect the raw SIP  packets sent by LiveKit. The packet analysis revealed the  profile and  attributes, confirming the SRTP requirement.
+
+The issue was resolved by modifying  on the Yandex VM. For the , the setting was changed from  to .
+
+After this change, a test call from the frontend application successfully connected to the target phone number. However, the call resulted in silence. The backend logs from this successful connection attempt showed a new error:  and , indicating that the audio stream from the phone call is not being correctly received or processed by the AI agent's logic in the backend. The current state is that the call control layer is working, but the media layer is not being bridged correctly.
 </current_work>
 
 <optional_next_step>
-Request the  from the user, as it is required to integrate the OpenAI Realtime prompt for the AI-powered calls.
+Debug the audio track handling in . I will add detailed logging to the  event handler within the AI agent's worker function to verify if the agent is successfully subscribing to the audio track of the PSTN participant when they join the room.
 </optional_next_step>
