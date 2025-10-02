@@ -684,6 +684,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         }
         await openai_ws.send(json.dumps(session_config))
         logger.info(f"[AI-CALL {call_id}] Sent session config with prompt ID: {prompt_id}")
+        # Start periodic subscribe retry in background
+        retry_task = asyncio.create_task(_periodic_subscribe_retry())
+
 
         # Handle OpenAI responses -> push audio to LiveKit
         async def handle_openai_messages():
