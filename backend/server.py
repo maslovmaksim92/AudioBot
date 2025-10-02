@@ -583,7 +583,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         def on_participant_connected(participant: rtc.RemoteParticipant):
             try:
-                pubs = list(getattr(participant, 'track_publications', []) or [])
+                pubs = _pub_values(participant)
                 logger.info(f"[AI-CALL {call_id}] Participant connected: id={participant.identity}, pubs={len(pubs)}")
                 for pub in pubs:
                     info = _describe_pub(pub)
