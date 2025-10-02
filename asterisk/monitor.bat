@@ -1,14 +1,13 @@
 @echo off
 echo ========================================
-echo     Asterisk Monitor - Чистые Логи
+echo     Asterisk Monitor - ВСЕ события
 echo ========================================
-echo Показываются ТОЛЬКО реальные звонки
-echo Весь спам автоматически отфильтрован
+echo Убран ВЕСЬ спам, показываются ВСЕ звонки
 echo ========================================
 echo.
 echo Ожидание подключения...
 echo.
 
-ssh -i C:\sshkeys\yc_ru_2025 ubuntu@51.250.74.43 -t "sudo tail -f /var/log/asterisk/full | grep -v 'REGISTER' | grep -v 'netsock2' | grep -v 'authenticator_digest' | grep -v 'Failed to authenticate' | grep -v 'No matching endpoint found' | grep -E 'INVITE|livekit|VERBOSE|WARNING|ERROR|161.115|35.'"
+ssh -i C:\sshkeys\yc_ru_2025 ubuntu@51.250.74.43 -t "sudo tail -f /var/log/asterisk/full | grep -v 'REGISTER' | grep -v 'netsock2.c' | grep -v 'authenticator_digest.c' | grep -v '37.49.225.223' | grep -v '198.23.190.62'"
 
 pause
