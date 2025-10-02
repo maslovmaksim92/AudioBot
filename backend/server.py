@@ -628,12 +628,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 except Exception as e:
                     logger.error(f"[AI-CALL {call_id}] periodic subscribe retry error: {e}")
 
-                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
-                        pub.set_subscribed(True)
-                        logger.info(f"[AI-CALL {call_id}] Forced subscribe to existing audio pub from {getattr(p, 'identity', '')}")
-        except Exception as e:
-            logger.error(f"[AI-CALL {call_id}] Error while subscribing existing participants: {e}")
-
         # Wait briefly for PSTN to join
         await asyncio.sleep(2.0)
 
