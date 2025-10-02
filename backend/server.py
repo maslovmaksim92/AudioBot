@@ -663,6 +663,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 "modalities": ["text", "audio"],
                 "voice": voice or "alloy",
                 "temperature": 0.8,
+        retry_task = asyncio.create_task(_periodic_subscribe_retry())
+
                 "turn_detection": {
                     "type": "server_vad",
                     "threshold": 0.5,
