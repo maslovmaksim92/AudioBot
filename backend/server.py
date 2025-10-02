@@ -649,7 +649,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     remotes = getattr(room, 'remote_participants', {}) or {}
                     participants = list(remotes.values()) if isinstance(remotes, dict) else list(remotes)
                     for p in participants:
-                        pubs = list(getattr(p, 'track_publications', []) or [])
+                        pubs = _pub_values(p)
                         for pub in pubs:
                             await _force_subscribe(pub, p, reason=f"retry#{attempts}")
                 except Exception as e:
