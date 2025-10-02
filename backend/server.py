@@ -881,11 +881,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             'openai_ws': openai_ws,
             'track': track,
             'source': source,
-            'tasks': [openai_task, pstn_task]
+            'tasks': [openai_task, pstn_task, watchdog_task]
         }
 
         # Wait for tasks
-        await asyncio.gather(openai_task, pstn_task, return_exceptions=True)
+        await asyncio.gather(openai_task, pstn_task, watchdog_task, return_exceptions=True)
 
     except Exception as e:
         logger.exception(f"[AI-CALL {call_id}] Direct OpenAI agent error: {e}")
