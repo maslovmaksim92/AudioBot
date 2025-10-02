@@ -571,7 +571,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             logger.info(f"[AI-CALL {call_id}] Existing remote participants: {len(participants)}")
             for p in participants:
                 pubs = list(getattr(p, 'track_publications', []) or [])
+                logger.info(f"[AI-CALL {call_id}] Existing participant={getattr(p, 'identity', '')}, pubs={len(pubs)}")
                 for pub in pubs:
+                    logger.info(f"[AI-CALL {call_id}] Existing pub kind={getattr(pub, 'kind', None)} sid={getattr(pub, 'sid', None)} subscribed={getattr(pub,'subscribed',None)}")
                     if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
                         pub.set_subscribed(True)
                         logger.info(f"[AI-CALL {call_id}] Forced subscribe to existing audio pub from {getattr(p, 'identity', '')}")
