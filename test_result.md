@@ -138,6 +138,10 @@ backend:
     needs_retesting: false
     status_history:
         -working: false
+        -working: false
+        -agent: "main"
+        -comment: "Добавлено детальное логирование и форс-подписка на аудио PSTN (track_published/track_subscribed/participant_connected), ресемплинг PCM16 до 24kHz для OpenAI Realtime, исправлено подключение WS. Требуется повторное e2e тестирование тишины."
+
         -agent: "main"
         -comment: "Attached OpenAI TTS (gpt-4o-mini-tts) to AgentSession; greeting should synthesize; added detailed logging and aiohttp shutdown cleanup to address 'Unclosed client session'."
         -working: true
