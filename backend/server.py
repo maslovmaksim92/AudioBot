@@ -596,6 +596,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 room.set_auto_subscribe(True)
                 logger.info(f"[AI-CALL {call_id}] Enabled auto_subscribe via API")
         # Register event listeners using constants when available
+        except Exception:
+            pass
+
         try:
             if REvent:
                 room.on(REvent.ParticipantConnected, on_participant_connected)
