@@ -737,6 +737,13 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 "tool_choice": "auto",
                 "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу.",
                 "max_response_output_tokens": 1024
+                    elif etype == 'response.completed':
+                        logger.info(f"[AI-CALL {call_id}] OpenAI response completed")
+                    elif etype == 'response.output_text.delta':
+                        text = event.get('delta', '')
+                        if text:
+                            logger.info(f"[AI-CALL {call_id}] OpenAI text delta: {text[:120]}")
+
             }
         }
         await openai_ws.send(json.dumps(session_config))
