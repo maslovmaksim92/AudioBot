@@ -519,15 +519,13 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     "prefix_padding_ms": 300,
                     "silence_duration_ms": 500
                 },
-                "prompt": {
-                    "id": prompt_id
+                "prompt": { "id": prompt_id },
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
                 "input_audio_transcription": { "model": "whisper-1" },
                 "tool_choice": "auto",
-                "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу."
-
-                }
+                "instructions": "Вы — голосовой ассистент VasDom. Отвечайте кратко и по делу.",
+                "max_response_output_tokens": 1024
             }
         }
         
