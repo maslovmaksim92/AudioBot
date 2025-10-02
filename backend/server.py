@@ -704,6 +704,27 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 "temperature": 0.8,
                 "turn_detection": {
                     "type": "server_vad",
+        # Watchdog for OpenAI audio after greeting
+        got_openai_audio = False
+        async def _openai_greeting_watchdog():
+            try:
+                # wait a short period; if no audio chunks received, re-trigger greeting
+                await asyncio.sleep(2.0)
+                if not got_openai_audio:
+                    logger.info(f"[AI-CALL {call_id}] No OpenAI audio yet, re-triggering greeting")
+                    try:
+                        await openai_ws.send(json.dumps({
+                            "type": "response.create",
+                            "response": {
+                                "modalities": ["audio", "text"],
+                                "instructions": f"Start the conversation by saying: {greeting}"
+                            }
+                        }))
+                    except Exception as e:
+                        logger.error(f"[AI-CALL {call_id}] Failed to re-trigger greeting: {e}")
+            except Exception:
+                pass
+
                     "threshold": 0.5,
                     "prefix_padding_ms": 300,
                     "silence_duration_ms": 500,
