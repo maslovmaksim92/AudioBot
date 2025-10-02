@@ -865,6 +865,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "type": "response.create",
             "response": {
                 "modalities": ["audio", "text"],
+                "voice": voice or "alloy",
+                "output_audio_format": "pcm16",
                 "instructions": f"Start the conversation by saying: {greeting}"
             }
         }))
