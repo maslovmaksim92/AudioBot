@@ -576,9 +576,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 pubs = list(getattr(participant, 'track_publications', []) or [])
                 logger.info(f"[AI-CALL {call_id}] Participant connected: id={participant.identity}, pubs={len(pubs)}")
                 for pub in pubs:
-                    if getattr(pub, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
-                        pub.set_subscribed(True)
-                        logger.info(f"[AI-CALL {call_id}] Subscribing to existing audio publication from {participant.identity}")
+                    info = _describe_pub(pub)
+                    logger.info(f"[AI-CALL {call_id}] Participant pub on connect: pub={info}")
+                    asyncio.create_task(_force_subscribe(pub, participant, reason="participant_connected"))
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] Error on participant_connected: {e}")
 
