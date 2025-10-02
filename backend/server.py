@@ -811,6 +811,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         if call_id in _call_store:
             _call_store[call_id]['ai_agent_status'] = 'failed'
             _call_store[call_id]['ai_agent_error'] = str(e)
+        try:
+            await retry_task
+        except Exception:
+            pass
+
 
 @api_router.post('/voice/ai-call', response_model=AICallResponse)
 async def voice_ai_call(req: AICallRequest):
