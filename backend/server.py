@@ -545,12 +545,26 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] on_track_subscribed error: {e}")
 
+        async def _force_subscribe(pub: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant, reason: str = "event"):
+            try:
+                info = _describe_pub(pub)
+                logger.info(f"[AI-CALL {call_id}] [subscribe:{reason}] pub={info} participant={participant.identity}")
+                # Try multiple ways to ensure subscription
+                if hasattr(pub, 'set_subscribed'):
+                    pub.set_subscribed(True)
+                if hasattr(pub, 'subscribed') and not pub.subscribed and hasattr(pub, 'set_subscribed'):
+                    pub.set_subscribed(True)
+                if hasattr(pub, 'is_subscribed') and not pub.is_subscribed and hasattr(pub, 'set_subscribed'):
+                    pub.set_subscribed(True)
+            except Exception as e:
+                logger.error(f"[AI-CALL {call_id}] force_subscribe error: {e}")
+
         def on_track_published(publication: rtc.RemoteTrackPublication, participant: rtc.RemoteParticipant):
             try:
-                logger.info(f"[AI-CALL {call_id}] Track published: kind={publication.kind} by {participant.identity} pub_sid={getattr(publication, 'sid', None)} subscribed={getattr(publication, 'subscribed', None)}")
-                if getattr(publication, 'kind', None) == rtc.TrackKind.KIND_AUDIO:
-                    publication.set_subscribed(True)
-                    logger.info(f"[AI-CALL {call_id}] Forced subscribe to audio publication from {participant.identity}")
+                info = _describe_pub(publication)
+                logger.info(f"[AI-CALL {call_id}] Track published: pub={info} by={participant.identity}")
+                # Aggressive subscribe retry in background
+                asyncio.create_task(_force_subscribe(publication, participant, reason="track_published"))
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] Error handling track_published: {e}")
 
