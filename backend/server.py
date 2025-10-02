@@ -586,8 +586,20 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "Authorization": f"Bearer {openai_key}",
             "OpenAI-Beta": "realtime=v1"
         }
-        openai_ws = await websockets.connect(openai_ws_url, extra_headers=headers)
-        logger.info(f"[AI-CALL {call_id}] Connected to OpenAI Realtime API")
+        # Build headers for different websockets versions
+        header_tuples = [("Authorization", f"Bearer {openai_key}"), ("OpenAI-Beta", "realtime=v1")]
+        openai_ws = None
+        try:
+            # Most versions support extra_headers with list of tuples
+            openai_ws = await websockets.connect(openai_ws_url, extra_headers=header_tuples)
+            logger.info(f"[AI-CALL {call_id}] Connected to OpenAI Realtime API via extra_headers")
+        except TypeError as e:
+            if 'extra_headers' in str(e):
+                logger.warning(f"[AI-CALL {call_id}] websockets.connect extra_headers unsupported, retrying with additional_headers")
+                openai_ws = await websockets.connect(openai_ws_url, additional_headers=header_tuples)
+                logger.info(f"[AI-CALL {call_id}] Connected to OpenAI Realtime API via additional_headers")
+            else:
+                raise
 
         # Configure session with prompt ID
         session_config = {
