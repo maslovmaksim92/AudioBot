@@ -595,6 +595,18 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             if hasattr(room, 'set_auto_subscribe'):
                 room.set_auto_subscribe(True)
                 logger.info(f"[AI-CALL {call_id}] Enabled auto_subscribe via API")
+        # Register event listeners using constants when available
+        try:
+            if REvent:
+                room.on(REvent.ParticipantConnected, on_participant_connected)
+                room.on(REvent.TrackPublished, on_track_published)
+                room.on(REvent.TrackSubscribed, on_track_subscribed)
+                room.on(REvent.TrackSubscriptionFailed, on_track_subscription_failed)
+                room.on(REvent.ParticipantDisconnected, on_participant_disconnected)
+                logger.info(f"[AI-CALL {call_id}] Event listeners registered via RoomEvent")
+        except Exception as e:
+            logger.warning(f"[AI-CALL {call_id}] RoomEvent constants not available: {e}")
+
         except Exception as e:
             logger.warning(f"[AI-CALL {call_id}] auto_subscribe setup not available: {e}")
 
