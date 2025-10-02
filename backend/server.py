@@ -450,6 +450,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
     try:
         import livekit.rtc as rtc
+        REvent = getattr(rtc, "RoomEvent", None)
 
         logger.info(f"[AI-CALL {call_id}] Starting Direct OpenAI Realtime agent for room={room_name}, prompt={prompt_id}")
 
