@@ -869,11 +869,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             ch = 1
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] tomono failed: {e}")
-                    # resample to 24k if needed
-                    if sr and sr != 24000:
+                    # resample to 16k if needed (требование OpenAI Realtime для стабильного S2S)
+                    if sr and sr != 16000:
                         try:
-                            data, _ = audioop.ratecv(data, 2, ch or 1, sr, 24000, None)
-                            sr = 24000
+                            data, _ = audioop.ratecv(data, 2, ch or 1, sr, 16000, None)
+                            sr = 16000
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] ratecv failed (sr={sr}): {e}")
                     # ensure mono
