@@ -842,25 +842,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             finally:
                 ai_talking = False
 
-                # wait a short period; if no audio chunks received, re-trigger greeting
-                await asyncio.sleep(2.0)
-                if not got_openai_audio:
-                    logger.info(f"[AI-CALL {call_id}] No OpenAI audio yet, re-triggering greeting")
-                    try:
-                        await openai_ws.send(json.dumps({
-                            "type": "response.create",
-                            "response": {
-                                "modalities": ["audio", "text"],
-                                "voice": voice or "marin",
-                                "output_audio_format": "pcm16",
-                                "instructions": f"Start the conversation by saying: {greeting}"
-                            }
-                        }))
-                    except Exception as e:
-                        logger.error(f"[AI-CALL {call_id}] Failed to re-trigger greeting: {e}")
-            except Exception:
-                pass
-
         # Handle OpenAI responses -> push audio to LiveKit
         ai_talking = False
 
