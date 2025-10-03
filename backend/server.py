@@ -968,8 +968,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     # resample to 24k if needed (OpenAI Realtime prefers 24kHz)
                     if sr and sr != 24000:
                         try:
+                            before = len(data)
                             data, _ = audioop.ratecv(data, 2, ch or 1, sr, 24000, None)
                             sr = 24000
+                            logger.debug(f"[AI-CALL {call_id}] PSTN resampled to 24k: bytes {before}->{len(data)}")
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] ratecv failed (sr={sr}): {e}")
                     
