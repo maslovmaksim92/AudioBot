@@ -947,6 +947,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         size = len(data) if isinstance(data, (bytes, bytearray)) else 0
                         logger.info(f"[AI-CALL {call_id}] PSTN AudioStream first frame received: sr={sr} ch={ch} size={size}")
                         first_frame_logged = True
+                    # log mismatches once
+                    if (sr != 24000 or ch != 1) and not mismatch_logged:
+                        logger.warning(f"[AI-CALL {call_id}] PSTN frame mismatch detected: incoming sr={sr}, ch={ch}; will convert to sr=24000, ch=1")
+                        mismatch_logged = True
                     if not is_running:
                         break
                     if not data:
