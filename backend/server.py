@@ -1046,6 +1046,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     # Simple periodic logging
                     if time.time() - last_log > 5.0:
                         logger.info(f"[AI-CALL {call_id}] PSTN->OpenAI: frames={frame_count}, bytes_sent={bytes_sent}, sr={sr}, ch={ch}")
+                        _add_call_log(call_id, 'metric', f'PSTN->OpenAI frames={frame_count} bytes={bytes_sent} sr={sr} ch={ch}')
                         last_log = time.time()
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] PSTN audio forwarding error: {e}")
