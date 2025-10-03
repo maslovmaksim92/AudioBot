@@ -1017,14 +1017,14 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
                         ms_since_commit = bytes_since_commit / BYTES_PER_MS
                         logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
-                        # после коммита — создать ответ вручную (явный turn-taking)
+                        # после коммита — создать ответ (текстовый → наш TTS marin)
                         try:
                             await openai_ws.send(json.dumps({
                                 "type": "response.create",
                                 "response": {
-                                    "modalities": ["audio", "text"],
-                                    "voice": voice or "marin",
-                                    "output_audio_format": "pcm16"
+                                    "modalities": ["text"],
+                                    "instructions": "Отвечай кратко по теме отчётности сотрудника на русском.",
+                                    "temperature": 0.4
                                 }
                             }))
                         except Exception as e:
