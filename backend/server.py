@@ -976,6 +976,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         if not prev_ai_talking:
                             logger.info(f"[AI-CALL {call_id}] AI started talking, resetting audio buffer counter (was {bytes_since_commit} bytes)")
                             bytes_since_commit = 0
+                            max_rms_since_commit = 0
                             chunk_ms = 0.0
                             silence_ms = 0.0
                             last_commit = time.time()
@@ -986,6 +987,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         if prev_ai_talking:
                             logger.info(f"[AI-CALL {call_id}] AI stopped talking, resetting counters and ready to receive user audio")
                             bytes_since_commit = 0
+                            max_rms_since_commit = 0
                             chunk_ms = 0.0
                             silence_ms = 0.0
                             last_commit = time.time()
