@@ -141,7 +141,7 @@ async def _openai_realtime_create(voice: str, instructions: str, temperature: fl
     if not api_key:
         raise HTTPException(status_code=500, detail='OPENAI_API_KEY not configured')
     payload = {
-        'model': 'gpt-4o-realtime-preview',
+        'model': 'gpt-realtime',
         'voice': voice or 'marin',
         'instructions': instructions or '',
         'temperature': temperature,
