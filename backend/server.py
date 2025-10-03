@@ -1103,6 +1103,15 @@ async def voice_ai_call(req: AICallRequest):
         
         # Create SIP participant (outbound call)
         result = await lk.sip.create_sip_participant(
+
+@api_router.get('/voice/ai-call/{call_id}/logs')
+async def voice_ai_call_logs(call_id: string):
+    try:
+        logs = _ai_call_logs.get(call_id) or []
+        return {'call_id': call_id, 'logs': logs}
+    except Exception as e:
+        return {'call_id': call_id, 'logs': [], 'error': str(e)}
+
             lk_api.CreateSIPParticipantRequest(
                 sip_trunk_id=trunk_id,
                 sip_call_to=to,
