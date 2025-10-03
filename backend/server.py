@@ -782,7 +782,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 # Some rtc implementations expect 16-bit samples; source drives the clock
                                 frame = rtc.AudioFrame(
                                     data=audio_bytes,
-                                    sample_rate=24000,
+                                    sample_rate=16000,
                                     num_channels=1,
                                     samples_per_channel=len(audio_bytes) // 2
                                 )
