@@ -1041,6 +1041,21 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         logger.info(f"[AI-CALL {call_id}] PSTN->OpenAI: frames={frame_count}, bytes_sent={bytes_sent}, sr={sr}, ch={ch}")
                         _add_call_log(call_id, 'metric', f'PSTN->OpenAI frames={frame_count} bytes={bytes_sent} sr={sr} ch={ch}')
                         last_log = time.time()
+
+            # Barge-in based on PSTN activity while AI is talking
+            # Debounce 600ms to avoid aggressive cancels
+            if ai_talking:
+                try:
+                    now = time.time()
+                    if (now - last_cancel_ts) > 0.6:
+                        # Simple heuristic: if frame has enough energy/size
+                        if isinstance(data, (bytes, bytearray)) and len(data) >= 960:  # ~20ms at 24k mono
+                            await openai_ws.send(json.dumps({"type": "response.cancel"}))
+                            last_cancel_ts = now
+                            _add_call_log(call_id, 'info', 'barge-in: response.cancel sent')
+                except Exception:
+                    pass
+
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] PSTN audio forwarding error: {e}")
 
