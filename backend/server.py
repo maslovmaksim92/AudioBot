@@ -497,12 +497,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         logger.info(f"[AI-CALL {call_id}] Agent connected to LiveKit room")
 
         # Create local audio track for AI speech (24k mono to match OpenAI Realtime PCM16 output)
-        source = rtc.AudioSource(sample_rate=24000, num_channels=1)
+        source_sr = 24000
+        source_ch = 1
+        logger.info(f"[AI-CALL {call_id}] Creating AI AudioSource: sr={source_sr}, ch={source_ch}")
+        source = rtc.AudioSource(sample_rate=source_sr, num_channels=source_ch)
         track = rtc.LocalAudioTrack.create_audio_track("ai_voice", source)
         options = rtc.TrackPublishOptions()
         options.source = rtc.TrackSource.SOURCE_MICROPHONE
         await room.local_participant.publish_track(track, options)
-        logger.info(f"[AI-CALL {call_id}] Published local audio track")
+        logger.info(f"[AI-CALL {call_id}] Published local audio track (target sr={source_sr}, ch={source_ch})")
 
         # Audio forwarding state
         pstn_track = None
