@@ -899,6 +899,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     else:
                         silence_ms += frame_ms
 
+                    # Если ИИ говорит, не «барджим» — пауза отправки входа, чтобы не мешать и не самопрослушивать
+                    if ai_talking:
+                        continue
+
                     # отправка чанка в буфер OpenAI
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
