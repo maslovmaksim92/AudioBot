@@ -927,6 +927,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 bytes_sent = 0
                 last_log = time.time()
                 first_frame_logged = False
+                mismatch_logged = False
 
                 async for evt in audio_stream:
                     # Unwrap AudioFrameEvent -> AudioFrame when needed
