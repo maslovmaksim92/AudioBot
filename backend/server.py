@@ -963,18 +963,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
 
-                    # оценка энергии текущего фрейма
-                    try:
-                        rms = audioop.rms(data, 2)
-                    except Exception:
-                        rms = 0
-                    frame_ms = len(data) / BYTES_PER_MS
-                    chunk_ms += frame_ms
-                    if rms > VAD_THRESHOLD:
-                        silence_ms = 0.0
-                    else:
-                        silence_ms += frame_ms
-
                     # Если ИИ говорит, не «барджим» — пауза отправки входа, чтобы не мешать и не самопрослушивать
                     if ai_talking:
                         # Если AI только что начал говорить, сбрасываем счетчик буфера
@@ -987,9 +975,13 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             prev_ai_talking = True
                         continue
                     else:
-                        # AI закончил говорить
+                        # AI закончил говорить - сбрасываем все счетчики для синхронизации с пустым буфером OpenAI
                         if prev_ai_talking:
-                            logger.info(f"[AI-CALL {call_id}] AI stopped talking, ready to receive user audio")
+                            logger.info(f"[AI-CALL {call_id}] AI stopped talking, resetting counters and ready to receive user audio")
+                            bytes_since_commit = 0
+                            chunk_ms = 0.0
+                            silence_ms = 0.0
+                            last_commit = time.time()
                             prev_ai_talking = False
 
                     # отправка чанка в буфер OpenAI
@@ -998,6 +990,18 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     frame_count += 1
                     bytes_sent += len(data)
                     bytes_since_commit += len(data)
+                    
+                    # оценка энергии и обновление счетчиков ПОСЛЕ отправки
+                    try:
+                        rms = audioop.rms(data, 2)
+                    except Exception:
+                        rms = 0
+                    frame_ms = len(data) / BYTES_PER_MS
+                    chunk_ms += frame_ms
+                    if rms > VAD_THRESHOLD:
+                        silence_ms = 0.0
+                    else:
+                        silence_ms += frame_ms
 
                     # решение о коммите: конец реплики или слишком длинный кусок/таймаут
                     elapsed = time.time() - last_commit
