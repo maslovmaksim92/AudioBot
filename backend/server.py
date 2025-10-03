@@ -848,8 +848,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         async def handle_openai_messages():
             nonlocal is_running, got_openai_audio, ai_talking
-            openai_audio_bytes = 0
-            openai_audio_frames = 0
+            # metrics disabled when ignoring model audio
+            # openai_audio_bytes = 0
+            # openai_audio_frames = 0
             try:
                 async for message in openai_ws:
                     event = json.loads(message)
