@@ -883,12 +883,14 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 except Exception:
                                     pass
 
+                                samples = len(pcm)//sampwidth
                                 frame = rtc.AudioFrame(
                                     data=pcm,
                                     sample_rate=target_sr,
                                     num_channels=target_ch,
-                                    samples_per_channel=len(pcm)//sampwidth
+                                    samples_per_channel=samples
                                 )
+                                logger.debug(f"[AI-CALL {call_id}] OpenAI delta frame: bytes={len(pcm)}, samples={samples}, sr={target_sr}, ch={target_ch}")
                                 await source.capture_frame(frame)
                                 openai_audio_frames += 1
                             except Exception as e:
