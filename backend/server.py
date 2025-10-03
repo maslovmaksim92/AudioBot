@@ -740,9 +740,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 "temperature": 0.9,  # Более естественные ответы
                 "turn_detection": {
                     "type": "server_vad",
-                    "threshold": 0.5,  # Более чувствительная детекция
-                    "prefix_padding_ms": 300,  # Больше контекста перед речью
-                    "silence_duration_ms": 500  # Больше паузы перед ответом (естественнее)
+                    "threshold": 0.35,
+                    "prefix_padding_ms": 250,
+                    "silence_duration_ms": 350
                 },
                 "prompt": {"id": prompt_id},
                 "input_audio_format": "pcm16",
