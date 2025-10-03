@@ -1003,6 +1003,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         rms = audioop.rms(data, 2)
                     except Exception:
                         rms = 0
+                    
+                    # Отслеживаем максимальный RMS с момента последнего коммита
+                    if rms > max_rms_since_commit:
+                        max_rms_since_commit = rms
+                    
                     frame_ms = len(data) / BYTES_PER_MS
                     chunk_ms += frame_ms
                     if rms > VAD_THRESHOLD:
@@ -1021,12 +1026,15 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     elif elapsed >= MAX_WAIT_S and bytes_since_commit >= MIN_STRICT_BYTES:
                         do_commit = True
 
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: не коммитим если была только тишина (OpenAI отбрасывает тишину)
+                    MIN_REAL_AUDIO_RMS = 100  # Минимальный RMS для реального звука (не тишина)
+                    
                     if do_commit:
-                        # Дополнительная проверка: не коммитим если буфер слишком мал
-                        if bytes_since_commit >= MIN_STRICT_BYTES:
+                        # Проверяем что буфер не пустой И был реальный звук
+                        if bytes_since_commit >= MIN_STRICT_BYTES and max_rms_since_commit >= MIN_REAL_AUDIO_RMS:
                             await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
                             ms_since_commit = bytes_since_commit / BYTES_PER_MS
-                            logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
+                            logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, max_rms={max_rms_since_commit}")
                             # после коммита — создать ответ (текстовый → наш TTS marin)
                             try:
                                 await openai_ws.send(json.dumps({
@@ -1040,6 +1048,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             except Exception as e:
                                 logger.error(f"[AI-CALL {call_id}] response.create error: {e}")
                             bytes_since_commit = 0
+                            max_rms_since_commit = 0
                             last_commit = time.time()
                             chunk_ms = 0.0
                             silence_ms = 0.0
