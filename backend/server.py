@@ -888,9 +888,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             finally:
                 is_running = False
 
-        # Forward PSTN audio to OpenAI (resample to 24k mono PCM16)
+        # Forward PSTN audio to OpenAI - ПРОСТАЯ отправка без manual VAD
         async def forward_pstn_to_openai():
-            nonlocal is_running, ai_talking
+            nonlocal is_running
             # wait until we get a track
             t0 = time.time()
             while is_running and not pstn_track:
@@ -903,31 +903,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 return
             try:
                 audio_stream = rtc.AudioStream(pstn_track)
-                logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI (starting stream)")
+                logger.info(f"[AI-CALL {call_id}] Forwarding PSTN audio to OpenAI (Server VAD mode)")
                 frame_count = 0
                 bytes_sent = 0
                 last_log = time.time()
                 first_frame_logged = False
-                # Commit policy + simple RMS-based VAD
-                # Подаём в OpenAI 16 кГц PCM16 (32 байт/мс)
-                BYTES_PER_MS = 32  # 16kHz mono PCM16 -> 32 bytes/ms
-                # MIN_COMMIT_MS = 150  # целевой размер чанка ~150мс
-                # MIN_COMMIT_BYTES = BYTES_PER_MS * MIN_COMMIT_MS  # not used with VAD policy
-                MIN_STRICT_MS = 100  # никогда не коммитим <100мс
-                MIN_STRICT_BYTES = BYTES_PER_MS * MIN_STRICT_MS
-                # VAD параметры
-                VAD_THRESHOLD = 450  # чуточку чувствительнее
-                SILENCE_END_MS = 220  # раньше завершать реплику для меньшей задержки
-                MAX_CHUNK_MS = 1600   # короче кусок речи
-                # аварийный таймаут коммита, если что-то зависло
-                MAX_WAIT_S = 0.6
-
-                bytes_since_commit = 0
-                last_commit = time.time()
-                chunk_ms = 0.0
-                silence_ms = 0.0
-                prev_ai_talking = False
-                max_rms_since_commit = 0  # Отслеживаем максимальный RMS для проверки реального звука
 
                 async for evt in audio_stream:
                     # Unwrap AudioFrameEvent -> AudioFrame when needed
