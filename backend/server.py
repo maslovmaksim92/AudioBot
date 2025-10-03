@@ -707,21 +707,20 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "session": {
                 "modalities": ["text", "audio"],
                 "voice": voice or "marin",
-                "temperature": 0.7,
+                "temperature": 0.9,  # Более естественные ответы
                 "turn_detection": {
                     "type": "server_vad",
-                    "threshold": 0.35,
-                    "prefix_padding_ms": 150,
-                    "silence_duration_ms": 250,
-                    "create_response": False
+                    "threshold": 0.5,  # Более чувствительная детекция
+                    "prefix_padding_ms": 300,  # Больше контекста перед речью
+                    "silence_duration_ms": 500  # Больше паузы перед ответом (естественнее)
                 },
                 "prompt": {"id": prompt_id},
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
                 "input_audio_transcription": {"model": "whisper-1", "language": "ru"},
                 "tool_choice": "auto",
-                "instructions": "Вы — ассистент VasDom для сбора кратких отчетов от сотрудников. Ведите разговор по делу, на русском. Если не расслышали — переспрашивайте. Не отклоняйтесь от темы работы и задач. Не рассказывайте про умные дома или другие несвязанные темы. Держите ответы краткими. После каждого ответа задавайте следующий уточняющий вопрос по отчету.",
-                "max_response_output_tokens": 1024
+                "instructions": "Ты — живой человек, ассистент VasDom, собираешь отчеты от сотрудников по телефону. Говори естественно, коротко, как в обычном разговоре. Иногда используй 'хм', 'ага', 'понятно'. Задавай короткие уточняющие вопросы. Не говори что ты AI.",
+                "max_response_output_tokens": 300  # Короче, естественнее
             }
         }
         await openai_ws.send(json.dumps(session_config))
