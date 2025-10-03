@@ -858,6 +858,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         logger.info(f"[AI-CALL {call_id}] OpenAI session created")
                     elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
+                    elif etype == 'response.output_text.delta':
+                        # text delta -> TTS synth to marin
+                        text_delta = event.get('delta') or ''
+                        if text_delta:
+                            await _synth_and_play_tts(text_delta)
                     elif etype == 'response.audio.delta':
                         ai_talking = True
                         audio_b64 = event.get('delta', '')
