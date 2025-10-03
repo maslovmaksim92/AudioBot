@@ -820,7 +820,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 last_log = time.time()
                 first_frame_logged = False
                 # Commit policy + simple RMS-based VAD
-                BYTES_PER_MS = 48  # 24kHz mono PCM16 -> 48 bytes/ms
+                # Подаём в OpenAI 16 кГц PCM16 (32 байт/мс)
+                BYTES_PER_MS = 32  # 16kHz mono PCM16 -> 32 bytes/ms
                 # MIN_COMMIT_MS = 150  # целевой размер чанка ~150мс
                 # MIN_COMMIT_BYTES = BYTES_PER_MS * MIN_COMMIT_MS  # not used with VAD policy
                 MIN_STRICT_MS = 100  # никогда не коммитим <100мс
