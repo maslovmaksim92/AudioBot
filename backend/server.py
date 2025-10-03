@@ -997,25 +997,29 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         do_commit = True
 
                     if do_commit:
-                        await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
-                        ms_since_commit = bytes_since_commit / BYTES_PER_MS
-                        logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
-                        # после коммита — создать ответ (текстовый → наш TTS marin)
-                        try:
-                            await openai_ws.send(json.dumps({
-                                "type": "response.create",
-                                "response": {
-                                    "modalities": ["text"],
-                                    "instructions": "Отвечай кратко по теме отчётности сотрудника на русском.",
-                                    "temperature": 0.4
-                                }
-                            }))
-                        except Exception as e:
-                            logger.error(f"[AI-CALL {call_id}] response.create error: {e}")
-                        bytes_since_commit = 0
-                        last_commit = time.time()
-                        chunk_ms = 0.0
-                        silence_ms = 0.0
+                        # Дополнительная проверка: не коммитим если буфер слишком мал
+                        if bytes_since_commit >= MIN_STRICT_BYTES:
+                            await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
+                            ms_since_commit = bytes_since_commit / BYTES_PER_MS
+                            logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
+                            # после коммита — создать ответ (текстовый → наш TTS marin)
+                            try:
+                                await openai_ws.send(json.dumps({
+                                    "type": "response.create",
+                                    "response": {
+                                        "modalities": ["text"],
+                                        "instructions": "Отвечай кратко по теме отчётности сотрудника на русском.",
+                                        "temperature": 0.7
+                                    }
+                                }))
+                            except Exception as e:
+                                logger.error(f"[AI-CALL {call_id}] response.create error: {e}")
+                            bytes_since_commit = 0
+                            last_commit = time.time()
+                            chunk_ms = 0.0
+                            silence_ms = 0.0
+                        else:
+                            logger.debug(f"[AI-CALL {call_id}] Commit skipped: buffer too small ({bytes_since_commit} bytes, {bytes_since_commit/BYTES_PER_MS:.1f} ms < {MIN_STRICT_MS} ms required)")
 
                     # periodic diagnostics
                     if time.time() - last_log > 2.0:
