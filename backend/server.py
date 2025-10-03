@@ -514,6 +514,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         room = rtc.Room()
         await room.connect(ws_url, agent_token)
         logger.info(f"[AI-CALL {call_id}] Agent connected to LiveKit room")
+        _add_call_log(call_id, 'info', 'Agent connected to LiveKit room')
 
         # Create local audio track for AI speech (24k mono to match OpenAI Realtime PCM16 output)
         source_sr = 24000
