@@ -767,6 +767,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
                     elif etype == 'response.audio.delta':
+                        nonlocal ai_talking
+                        ai_talking = True
                         audio_b64 = event.get('delta', '')
                         if audio_b64:
                             audio_bytes = base64.b64decode(audio_b64)
@@ -786,6 +788,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 await source.capture_frame(frame)
                             except Exception as e:
                                 logger.error(f"[AI-CALL {call_id}] capture_frame error: {e} (len={len(audio_bytes)})")
+                    elif etype == 'response.done':
+                        nonlocal ai_talking, awaiting_ai_response
+                        ai_talking = False
+                        awaiting_ai_response = False
+                        logger.info(f"[AI-CALL {call_id}] OpenAI response.done")
                     elif etype == 'error':
                         logger.error(f"[AI-CALL {call_id}] OpenAI error: {event.get('error')}")
             except Exception as e:
