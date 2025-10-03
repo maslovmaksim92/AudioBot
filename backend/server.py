@@ -815,7 +815,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 first_frame_logged = False
                 # Commit policy
                 BYTES_PER_MS = 48  # 24kHz mono PCM16 -> 48 bytes/ms
-                MIN_COMMIT_MS = 160  # target commit size ~160ms
+                MIN_COMMIT_MS = 150  # target commit size ~150ms
                 MIN_COMMIT_BYTES = BYTES_PER_MS * MIN_COMMIT_MS
                 MIN_STRICT_MS = 100  # never commit below 100ms
                 MIN_STRICT_BYTES = BYTES_PER_MS * MIN_STRICT_MS
