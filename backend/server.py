@@ -706,7 +706,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "type": "session.update",
             "session": {
                 "modalities": ["text", "audio"],
-                "voice": voice or "alloy",
+                "voice": voice or "marin",
                 "temperature": 0.8,
                 "turn_detection": {
                     "type": "server_vad",
@@ -743,7 +743,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             "type": "response.create",
                             "response": {
                                 "modalities": ["audio", "text"],
-                                "voice": voice or "alloy",
+                                "voice": voice or "marin",
                                 "output_audio_format": "pcm16",
                                 "instructions": f"Start the conversation by saying: {greeting}"
                             }
@@ -928,7 +928,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 "type": "response.create",
                                 "response": {
                                     "modalities": ["audio", "text"],
-                                    "voice": voice or "alloy",
+                                    "voice": voice or "marin",
                                     "output_audio_format": "pcm16"
                                 }
                             }))
@@ -964,7 +964,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "type": "response.create",
             "response": {
                 "modalities": ["audio", "text"],
-                "voice": voice or "alloy",
+                "voice": voice or "marin",
                 "output_audio_format": "pcm16",
                 "instructions": f"Start the conversation by saying: {greeting}"
             }
