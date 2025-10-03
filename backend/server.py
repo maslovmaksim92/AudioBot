@@ -849,13 +849,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             response_text_acc = []
             canceled_current_response = False
             last_cancel_ts = 0.0
-        # Playback chunking for smoother audio (20ms @ 24kHz -> 960 bytes)
-        AI_FRAME_BYTES = int(0.02 * 24000 * 2)
-        ai_out_buf = bytearray()
-        ai_backlog_limit = AI_FRAME_BYTES * 50  # ~1 секунда максимум
-        response_text_acc = []
-        canceled_current_response = False
-        last_cancel_ts = 0.0
+                    # playback chunking defined at worker scope
 
                     total = 0
                     for i in range(0, len(pcm), frame_bytes):
