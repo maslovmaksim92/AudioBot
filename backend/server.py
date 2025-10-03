@@ -1054,6 +1054,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             last_commit = time.time()
                             chunk_ms = 0.0
                             silence_ms = 0.0
+                        elif max_rms_since_commit < MIN_REAL_AUDIO_RMS:
+                            logger.debug(f"[AI-CALL {call_id}] Commit skipped: only silence/noise detected (max_rms={max_rms_since_commit} < {MIN_REAL_AUDIO_RMS} threshold)")
                         else:
                             logger.debug(f"[AI-CALL {call_id}] Commit skipped: buffer too small ({bytes_since_commit} bytes, {bytes_since_commit/BYTES_PER_MS:.1f} ms < {MIN_STRICT_MS} ms required)")
 
