@@ -1105,7 +1105,7 @@ async def voice_ai_call(req: AICallRequest):
         result = await lk.sip.create_sip_participant(
 
 @api_router.get('/voice/ai-call/{call_id}/logs')
-async def voice_ai_call_logs(call_id: string):
+async def voice_ai_call_logs(call_id: str):
     try:
         logs = _ai_call_logs.get(call_id) or []
         return {'call_id': call_id, 'logs': logs}
