@@ -813,15 +813,23 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 bytes_sent = 0
                 last_log = time.time()
                 first_frame_logged = False
-                # Commit policy
+                # Commit policy + simple RMS-based VAD
                 BYTES_PER_MS = 48  # 24kHz mono PCM16 -> 48 bytes/ms
-                MIN_COMMIT_MS = 150  # target commit size ~150ms
+                MIN_COMMIT_MS = 150  # целевой размер чанка ~150мс
                 MIN_COMMIT_BYTES = BYTES_PER_MS * MIN_COMMIT_MS
-                MIN_STRICT_MS = 100  # never commit below 100ms
+                MIN_STRICT_MS = 100  # никогда не коммитим <100мс
                 MIN_STRICT_BYTES = BYTES_PER_MS * MIN_STRICT_MS
-                MAX_WAIT_S = 0.6  # commit at most every 600ms if enough audio
+                # VAD параметры
+                VAD_THRESHOLD = 500  # простой порог RMS (подбирается эмпирически)
+                SILENCE_END_MS = 300  # конец реплики = тишина ≥300мс
+                MAX_CHUNK_MS = 2000   # максимум длина куска речи, чтобы не накапливать слишком долго
+                # аварийный таймаут коммита, если что-то зависло
+                MAX_WAIT_S = 0.8
+
                 bytes_since_commit = 0
                 last_commit = time.time()
+                chunk_ms = 0.0
+                silence_ms = 0.0
 
                 async for evt in audio_stream:
                     # Unwrap AudioFrameEvent -> AudioFrame when needed
@@ -868,27 +876,45 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             ch = 1
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
-                    # send chunk (append)
+
+                    # оценка энергии текущего фрейма
+                    try:
+                        rms = audioop.rms(data, 2)
+                    except Exception:
+                        rms = 0
+                    frame_ms = len(data) / BYTES_PER_MS
+                    chunk_ms += frame_ms
+                    if rms > VAD_THRESHOLD:
+                        silence_ms = 0.0
+                    else:
+                        silence_ms += frame_ms
+
+                    # отправка чанка в буфер OpenAI
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
                     frame_count += 1
                     bytes_sent += len(data)
                     bytes_since_commit += len(data)
 
-                    # commit policy decision
+                    # решение о коммите: конец реплики или слишком длинный кусок/таймаут
                     elapsed = time.time() - last_commit
-                    ms_since_commit = bytes_since_commit / BYTES_PER_MS
+                    is_speech_end = silence_ms >= SILENCE_END_MS
                     do_commit = False
-                    if bytes_since_commit >= MIN_COMMIT_BYTES:
+                    if is_speech_end and chunk_ms >= MIN_STRICT_MS:
+                        do_commit = True
+                    elif chunk_ms >= MAX_CHUNK_MS:
                         do_commit = True
                     elif elapsed >= MAX_WAIT_S and bytes_since_commit >= MIN_STRICT_BYTES:
                         do_commit = True
 
                     if do_commit:
                         await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
-                        logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s")
+                        ms_since_commit = bytes_since_commit / BYTES_PER_MS
+                        logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
                         bytes_since_commit = 0
                         last_commit = time.time()
+                        chunk_ms = 0.0
+                        silence_ms = 0.0
 
                     # periodic diagnostics
                     if time.time() - last_log > 2.0:
