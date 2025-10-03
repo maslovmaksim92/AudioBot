@@ -1004,6 +1004,35 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         break
                     if not data:
                         continue
+
+                    # AGC‑lite + noise‑gate
+                    try:
+                        # оценка RMS
+                        if isinstance(data, (bytes, bytearray)):
+                            # вычислим rms в целых сэмплах 16‑бит PCM
+                            import array
+                            arr = array.array('h')
+                            arr.frombytes(data)
+                            # избегаем деления на ноль
+                            if len(arr) > 0:
+                                import math
+                                rms = math.sqrt(sum(s*s for s in arr)/len(arr))
+                                # перевод в dBFS (макс. 32768)
+                                dbfs = 20 * math.log10(max(rms,1)/32768.0)
+                                # noise‑gate: всё ниже −50 dBFS гасим
+                                if dbfs < -50.0:
+                                    continue
+                                # нормализуем к −18 dBFS (целевой rms≈ 32768*10^(−18/20)≈ 4130)
+                                target_rms = 4130.0
+                                if rms > 0:
+                                    gain = min(4.0, target_rms / rms)
+                                    if abs(gain - 1.0) > 0.15:
+                                        # применяем gain с защитой от клиппинга
+                                        arr2 = array.array('h', (max(-32768, min(32767, int(s*gain))) for s in arr))
+                                        data = arr2.tobytes()
+                        
+                    except Exception:
+                        pass
                     
                     # Basic audio processing - convert to 24kHz mono PCM16 for OpenAI
                     # to mono if needed
@@ -1024,6 +1053,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] ratecv failed (sr={sr}): {e}")
                     
+                    # Half‑duplex + barge‑in: если ИИ говорит — не шлём аудио, но смотрим энергию
+                    if ai_talking:
+                        # дожидаемся паузы у ИИ (OpenAI сам остановит TTS по server_vad)
+                        continue
+
                     # Send directly to OpenAI - let server VAD handle everything
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
