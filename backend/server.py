@@ -866,11 +866,25 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             try:
                                 pcm = base64.b64decode(delta_b64)
                                 openai_audio_bytes += len(pcm)
+
+                                # Safety: enforce 24kHz mono PCM16 for our AudioSource
+                                # If OpenAI changes params, resample/convert
+                                target_sr = 24000
+                                target_ch = 1
+                                sampwidth = 2
+                                try:
+                                    # no metadata provided in delta; assume pcm16 mono 24k as per config
+                                    # still guard against odd byte lengths
+                                    if len(pcm) % 2 != 0:
+                                        pcm = pcm[:-1]
+                                except Exception:
+                                    pass
+
                                 frame = rtc.AudioFrame(
                                     data=pcm,
-                                    sample_rate=24000,  # OpenAI outputs 24kHz
-                                    num_channels=1,
-                                    samples_per_channel=len(pcm)//2
+                                    sample_rate=target_sr,
+                                    num_channels=target_ch,
+                                    samples_per_channel=len(pcm)//sampwidth
                                 )
                                 await source.capture_frame(frame)
                                 openai_audio_frames += 1
