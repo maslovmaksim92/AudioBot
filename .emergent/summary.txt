@@ -1,67 +1,67 @@
 <analysis>
-The trajectory details an iterative process of building and debugging an AI-powered outbound calling feature. Initially, the core issue was silence on call traced to  errors, resolved by implementing audio buffering. Subsequent issues included AI misunderstanding user input, incorrect voice/language, and a critical  during deployment. The AI engineered solutions like VAD (Voice Activity Detection) tuning, explicit language settings, custom TTS for a consistent marin voice, and manual turn-taking to improve conversation flow. The process culminated in identifying a  error for  and recurring  errors due to empty audio buffers. The last proposed action is to fix these.
+The trajectory details an AI engineer's iterative efforts to build and debug an AI-powered outbound calling feature. Initially, the focus was on resolving silence on call and AI comprehension issues, leading to complex audio buffering and Voice Activity Detection (VAD) logic, along with fixing  parameter errors. Despite multiple fixes, including refined buffer commit logic and RMS-based audio filtering, the core  error persisted, often even with valid audio. This led to a significant architectural pivot: the engineer abandoned custom VAD and TTS, opting for native OpenAI audio and server-side VAD to achieve a more human-like interaction as explicitly requested by the user. The latest change, a complete overhaul of the audio handling to leverage OpenAI's built-in capabilities, resulted in a new error:  during audio delta processing, indicating an issue with audio frame parameters.
 </analysis>
 
 <product_requirements>
-The goal is to develop an AI voice agent for outbound calls to PSTN numbers, collecting reports from employees. The AI must use a specific OpenAI prompt () and speak with a marin voice in Russian, responding relevantly to user queries without delays or irrelevant topics. Architectural requirements include using LiveKit for WebRTC, an Asterisk server in Russia (due to SIP provider constraints), and a direct WebSocket connection to OpenAI's Realtime API. Calls connect, and PSTN audio reaches the backend, but the AI initially suffered from not processing user speech due to small audio chunks (), then from misunderstanding, wrong voice/language, and deployment issues, finally leading to temperature configuration errors and silence.
+The primary objective is to develop an AI voice agent capable of making outbound calls to PSTN numbers to collect reports from employees. The AI must speak with a marin voice in Russian, strictly adhere to a specific OpenAI prompt (), and respond relevantly without delays or irrelevant topics. Critically, the user explicitly requested a human-like conversation where they cannot distinguish between the AI and a person. The system uses LiveKit for WebRTC, an Asterisk server, and a direct WebSocket connection to OpenAI's Realtime API. Challenges encountered so far include AI silence, misunderstanding user input, incorrect voice/language, deployment ,  configuration errors, and persistent  issues even with valid audio data. The goal is to ensure fluid, natural, and comprehensible two-way communication.
 </product_requirements>
 
 <key_technical_concepts>
-- **Backend**: FastAPI, asyncio
-- **Frontend**: React
-- **Telephony**: LiveKit (Cloud API, SIP Gateway, Python SDK), Asterisk, SIP, WebRTC, RTP, SRTP
-- **AI**: OpenAI Realtime API, , , 
-- **Audio Processing**: VAD (Voice Activity Detection), audio buffering, sample rate conversion (PCM16 16kHz/24kHz), RMS filtering
-- **Debugging**: , extensive logging
+-   **Backend**: FastAPI, asyncio
+-   **Frontend**: React
+-   **Telephony**: LiveKit (Cloud API, SIP Gateway, Python SDK), Asterisk, SIP, WebRTC
+-   **AI**: OpenAI Realtime API (, , ), Server VAD
+-   **Audio Processing**: VAD, audio buffering, sample rate conversion (PCM16 16kHz/24kHz), RMS filtering, native audio deltas
 </key_technical_concepts>
 
 <code_architecture>
-The application uses a standard client-server architecture with a React frontend and a FastAPI backend. The backend orchestrates multiple third-party services for real-time voice communication.
+The application employs a client-server architecture, featuring a React frontend and a FastAPI backend. The backend serves as the central hub for integrating various third-party services essential for real-time voice communication.
 
 **Directory Structure:**
 
 
-- ****
-    - **Importance**: This is the core logic for the AI outbound calling feature. It handles LiveKit integration, SIP participant creation, OpenAI Realtime API WebSocket connection, and real-time audio bridging and processing between PSTN and AI.
-    - **Summary of Changes**: This file has undergone extensive modifications throughout the trajectory to address audio issues, AI comprehension, and voice consistency:
-        - Implemented the  endpoint and  for call orchestration.
-        - Fixed WebSocket connection parameters ( to ).
-        - Added aggressive retry logic for LiveKit PSTN track subscription.
-        - Initial audio sample rate alignment to 24kHz for OpenAI, then later standardized to 16kHz PCM16.
-        - Implemented initial audio buffering (>=150ms) to resolve .
-        - Introduced and fine-tuned VAD logic with parameters like  (adjusted from 300 to 220ms), , , and .
-        - Implemented a half-duplex communication strategy to pause PSTN audio forwarding while AI speaks.
-        - Switched to manual turn-taking (OpenAI's ) with explicit  calls.
-        - Fixed a  related to  declaration.
-        - Ensured consistent  in  and .
-        - Integrated a custom TTS layer using  to guarantee the marin voice and disabled OpenAI's direct audio deltas.
-        - Explicitly set  for input audio transcription.
-        - Added detailed system instructions for OpenAI to keep responses relevant to reporting and in Russian.
-        - Modified the  parameter, initially lowering it (which caused errors), requiring it to be raised to >=0.6.
 
-- ****
-    - **Importance**: Provides the user interface for initiating AI outbound calls by inputting a phone number.
-    - **Summary of Changes**: This file sends a POST request to the backend's  endpoint. No recent changes were explicitly made or discussed in the provided trajectory.
+-   ****
+    -   **Importance**: This file contains the primary business logic for the AI outbound calling functionality. It orchestrates interactions with LiveKit for call management, creates SIP participants, establishes WebSocket connections to OpenAI's Realtime API, and manages real-time audio bridging and processing between the PSTN and the AI.
+    -   **Summary of Changes**: This file has undergone extensive and critical modifications to address a wide range of issues, from fundamental audio handling to AI conversational intelligence:
+        -   The  endpoint and  function were implemented for call orchestration.
+        -   Initial audio buffering (>=150ms) and later refinements were added to combat  errors.
+        -   Voice Activity Detection (VAD) logic, with adjustable parameters like , , , and , was introduced and repeatedly tuned.
+        -   A half-duplex communication strategy was implemented to prevent PSTN audio forwarding while the AI was speaking.
+        -   Manual turn-taking using OpenAI's  with explicit  calls was introduced, then later removed.
+        -   Fixed a  related to  declaration.
+        -   Ensured consistent  in  and  for custom TTS, then removed for native TTS.
+        -   Integrated a custom TTS layer using  with disabled OpenAI audio deltas, then removed to switch to native OpenAI audio.
+        -   Explicitly set  for input audio transcription.
+        -   Detailed system instructions were added for OpenAI to maintain relevance to reporting in Russian.
+        -   The  parameter was adjusted from 0.4 to 0.7 to meet OpenAI's minimum requirements and improve AI responsiveness.
+        -   The audio buffer commitment logic was extensively revised, including checks for buffer size (), tracking  state, and resetting counters upon AI speech initiation to prevent empty buffer commits.
+        -   Introduced  and  to prevent committing silent audio buffers to OpenAI, which was causing  errors.
+        -   **Most recent major change**: Switched to using native OpenAI audio processing and server-side VAD, removing all custom VAD, audio buffering, and manual turn-taking logic. This involved removing  from session configuration, deleting the  function, and simplifying  to directly forward audio frames. The handling of OpenAI responses now processes native audio deltas.
+
+-   ****
+    -   **Importance**: This component is responsible for the user interface, allowing users to initiate AI outbound calls by entering a phone number.
+    -   **Summary of Changes**: This file sends POST requests to the backend's  endpoint. No explicit modifications or discussions regarding this file were made in the provided trajectory.
 </code_architecture>
 
 <pending_tasks>
-- Raise the OpenAI  parameter to at least 0.6 (currently 0.4, causing  errors).
-- Refine the audio commit logic to prevent sending empty audio buffers, which currently still triggers  errors.
+-   The current work resulted in a new . This error needs to be debugged and resolved.
 </pending_tasks>
 
 <current_work>
-The most recent work focused on addressing user feedback regarding the AI's voice, language, and comprehension. The AI engineer implemented several significant changes in :
-1.  **Voice and Language**: Switched to a custom TTS layer using OpenAI's  with  to guarantee the desired voice and language (Russian), explicitly disabling OpenAI's default audio deltas.
-2.  **Comprehension and Relevance**: Implemented strict Russian system instructions for the AI to focus on reporting tasks, ask clarifying questions, and avoid irrelevant topics.
-3.  **Turn-taking and Latency**: Maintained half-duplex communication (pausing user audio when AI speaks) and manual turn-taking with VAD settings tuned for faster response after user speech (e.g., ).
-4.  **Audio Stream Standardization**: Standardized audio to 16kHz PCM16 throughout the pipeline.
-5.  **Deployment Fixes**: Corrected  related to .
+Immediately before this summary request, the AI engineer was addressing the persistent silence issue and the user's explicit request for a more human-like, indistinguishable AI conversation. The strategy shifted dramatically from custom VAD and TTS to leveraging native OpenAI audio processing and server-side VAD.
 
-However, the latest test call resulted in silence in the phone. The logs revealed two critical errors:
--   : This indicates the  parameter for OpenAI was set to 0.4, which is below the minimum allowed value of 0.6, preventing responses.
--   : Despite previous buffering efforts, this error persists, implying empty audio buffers are still being sent or committed.
+The following significant changes were implemented in :
+1.  **OpenAI Session Configuration**: The  parameter was removed from the OpenAI session configuration, enabling OpenAI's automatic turn-taking and response generation.
+2.  **Custom TTS Removal**: The custom Text-to-Speech (TTS) function () and all related logic were removed.
+3.  **Native Audio Handling**: The OpenAI message processing was updated to handle native audio deltas received from OpenAI, rather than synthesizing audio locally.
+4.  **Simplified Audio Forwarding**: The  function was drastically simplified. All manual VAD logic, audio buffering, silence detection, and RMS tracking were removed. It now focuses solely on forwarding raw audio frames from PSTN to OpenAI.
+5.  **Watchdog Adjustment**: The greeting watchdog logic was also updated to align with the new automatic turn-taking system.
+
+Despite these changes, a new critical error emerged during testing: . This error suggests a mismatch in the audio frame's sample rate or number of channels when audio is being sent from the OpenAI stream to LiveKit for playback. The system is currently in a state where it's attempting to use native OpenAI audio, but the integration with LiveKit for playback is misconfigured.
 </current_work>
 
 <optional_next_step>
-Increase the  parameter in  to 0.7 and refine the audio commit logic to prevent empty buffer commits.
+Debug and fix the  by ensuring correct audio frame parameters.
 </optional_next_step>
+
