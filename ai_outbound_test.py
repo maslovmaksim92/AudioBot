@@ -13,7 +13,7 @@ from datetime import datetime
 class AIOutboundTester:
     def __init__(self):
         # Use the correct backend URL from frontend .env
-        self.base_url = "https://call-bot.preview.emergentagent.com"
+        self.base_url = "https://ai-report-call.preview.emergentagent.com"
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []

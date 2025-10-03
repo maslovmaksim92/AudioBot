@@ -29,9 +29,9 @@ class LiveKitSIPTester:
                             base_url = line.split('=', 1)[1].strip()
                             break
                 if not base_url:
-                    base_url = "https://call-bot.preview.emergentagent.com"
+                    base_url = "https://ai-report-call.preview.emergentagent.com"
             except:
-                base_url = "https://call-bot.preview.emergentagent.com"
+                base_url = "https://ai-report-call.preview.emergentagent.com"
         
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
