@@ -889,7 +889,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
                     elif etype == 'response.audio.delta':
-                        # NATIVE OpenAI audio - напрямую в LiveKit
+                        # NATIVE OpenAI audio - напрямую в LiveKit с выравниванием по 20мс
                         delta_b64 = event.get('delta', '')
                         if delta_b64:
                             got_openai_audio = True
@@ -898,29 +898,27 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 pcm = base64.b64decode(delta_b64)
                                 openai_audio_bytes += len(pcm)
 
-                                # Safety: enforce 24kHz mono PCM16 for our AudioSource
-                                # If OpenAI changes params, resample/convert
-                                target_sr = 24000
-                                target_ch = 1
-                                sampwidth = 2
-                                try:
-                                    # no metadata provided in delta; assume pcm16 mono 24k as per config
-                                    # still guard against odd byte lengths
-                                    if len(pcm) % 2 != 0:
-                                        pcm = pcm[:-1]
-                                except Exception:
-                                    pass
+                                # буферизуем и порежем на ровные 20мс фреймы
+                                ai_out_buf.extend(pcm)
+                                # ограничение очереди ~1с чтобы не накапливать задержку
+                                if len(ai_out_buf) > ai_backlog_limit:
+                                    drop = len(ai_out_buf) - ai_backlog_limit
+                                    del ai_out_buf[:drop]
+                                    logger.debug(f"[AI-CALL {call_id}] Dropped backlog bytes={drop}")
 
-                                samples = len(pcm)//sampwidth
-                                frame = rtc.AudioFrame(
-                                    data=pcm,
-                                    sample_rate=target_sr,
-                                    num_channels=target_ch,
-                                    samples_per_channel=samples
-                                )
-                                logger.debug(f"[AI-CALL {call_id}] OpenAI delta frame: bytes={len(pcm)}, samples={samples}, sr={target_sr}, ch={target_ch}")
-                                await source.capture_frame(frame)
-                                openai_audio_frames += 1
+                                while len(ai_out_buf) >= AI_FRAME_BYTES:
+                                    chunk = ai_out_buf[:AI_FRAME_BYTES]
+                                    del ai_out_buf[:AI_FRAME_BYTES]
+                                    samples = len(chunk)//2
+                                    frame = rtc.AudioFrame(
+                                        data=bytes(chunk),
+                                        sample_rate=24000,
+                                        num_channels=1,
+                                        samples_per_channel=samples
+                                    )
+                                    logger.debug(f"[AI-CALL {call_id}] OpenAI delta frame: bytes={len(chunk)}, samples={samples}, sr=24000, ch=1")
+                                    await source.capture_frame(frame)
+                                    openai_audio_frames += 1
                             except Exception as e:
                                 logger.error(f"[AI-CALL {call_id}] Audio delta error: {e}")
                     elif etype == 'response.done':
