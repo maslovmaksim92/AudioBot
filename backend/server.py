@@ -1216,6 +1216,10 @@ async def livekit_webhook(request: Request):
         logger.info(f"[WEBHOOK] LiveKit event: {event_type}")
         # Log the webhook for debugging but don't process it for now
         # In production, you might want to verify the webhook signature
+        return {'ok': True}
+    except Exception as e:
+        logger.error(f"[WEBHOOK] Error processing webhook: {e}")
+        return {'ok': False, 'error': str(e)}
 
 @api_router.get('/voice/ai-call/{call_id}/logs')
 async def voice_ai_call_logs(call_id: str):
@@ -1224,11 +1228,6 @@ async def voice_ai_call_logs(call_id: str):
         return {'call_id': call_id, 'logs': logs}
     except Exception as e:
         return {'call_id': call_id, 'logs': [], 'error': str(e)}
-
-        return {'ok': True}
-    except Exception as e:
-        logger.error(f"[WEBHOOK] Error processing webhook: {e}")
-        return {'ok': False, 'error': str(e)}
 
 
 # Mount API router with all voice endpoints
