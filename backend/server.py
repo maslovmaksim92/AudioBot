@@ -977,7 +977,20 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
                     # Если ИИ говорит, не «барджим» — пауза отправки входа, чтобы не мешать и не самопрослушивать
                     if ai_talking:
+                        # Если AI только что начал говорить, сбрасываем счетчик буфера
+                        if not prev_ai_talking:
+                            logger.info(f"[AI-CALL {call_id}] AI started talking, resetting audio buffer counter (was {bytes_since_commit} bytes)")
+                            bytes_since_commit = 0
+                            chunk_ms = 0.0
+                            silence_ms = 0.0
+                            last_commit = time.time()
+                            prev_ai_talking = True
                         continue
+                    else:
+                        # AI закончил говорить
+                        if prev_ai_talking:
+                            logger.info(f"[AI-CALL {call_id}] AI stopped talking, ready to receive user audio")
+                            prev_ai_talking = False
 
                     # отправка чанка в буфер OpenAI
                     audio_b64 = base64.b64encode(data).decode('utf-8')
