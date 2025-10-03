@@ -847,9 +847,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         async def handle_openai_messages():
             nonlocal is_running, got_openai_audio, ai_talking
-            # metrics disabled when ignoring model audio
-            # openai_audio_bytes = 0
-            # openai_audio_frames = 0
+            openai_audio_bytes = 0
+            openai_audio_frames = 0
             try:
                 async for message in openai_ws:
                     event = json.loads(message)
@@ -858,23 +857,30 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         logger.info(f"[AI-CALL {call_id}] OpenAI session created")
                     elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
-                    elif etype == 'response.output_text.delta':
-                        # text delta -> TTS synth to marin
-                        text_delta = event.get('delta') or ''
-                        if text_delta:
-                            await _synth_and_play_tts(text_delta)
                     elif etype == 'response.audio.delta':
-                        # Ignore any model audio; we synthesize TTS with marin ourselves
-                        continue
+                        # NATIVE OpenAI audio - напрямую в LiveKit
+                        delta_b64 = event.get('delta', '')
+                        if delta_b64:
+                            got_openai_audio = True
+                            ai_talking = True
+                            try:
+                                pcm = base64.b64decode(delta_b64)
+                                openai_audio_bytes += len(pcm)
+                                frame = rtc.AudioFrame(
+                                    data=pcm,
+                                    sample_rate=24000,  # OpenAI outputs 24kHz
+                                    num_channels=1,
+                                    samples_per_channel=len(pcm)//2
+                                )
+                                await source.capture_frame(frame)
+                                openai_audio_frames += 1
+                            except Exception as e:
+                                logger.error(f"[AI-CALL {call_id}] Audio delta error: {e}")
                     elif etype == 'response.done':
                         ai_talking = False
-                        logger.info(f"[AI-CALL {call_id}] OpenAI response.done")
-                        # Явно очищаем input audio buffer после ответа OpenAI для синхронизации
-                        try:
-                            await openai_ws.send(json.dumps({"type": "input_audio_buffer.clear"}))
-                            logger.info(f"[AI-CALL {call_id}] Cleared input audio buffer after response.done")
-                        except Exception as e:
-                            logger.error(f"[AI-CALL {call_id}] Failed to clear input buffer: {e}")
+                        logger.info(f"[AI-CALL {call_id}] OpenAI response.done (audio_bytes={openai_audio_bytes}, frames={openai_audio_frames})")
+                        openai_audio_bytes = 0
+                        openai_audio_frames = 0
                     elif etype == 'error':
                         logger.error(f"[AI-CALL {call_id}] OpenAI error: {event.get('error')}")
             except Exception as e:
