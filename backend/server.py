@@ -707,7 +707,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             "session": {
                 "modalities": ["text", "audio"],
                 "voice": voice or "marin",
-                "temperature": 0.4,
+                "temperature": 0.7,
                 "turn_detection": {
                     "type": "server_vad",
                     "threshold": 0.35,
