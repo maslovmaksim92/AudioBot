@@ -74,6 +74,12 @@ export default function LiveConversation() {
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-xl font-bold mb-3">Живой разговор</h1>
 
+      {/* AI Outbound Dialer */}
+      <div className="bg-white rounded-xl shadow p-3 mb-4">
+        <div className="text-sm font-medium mb-2">Исходящий звонок ИИ</div>
+        <AIDialer />
+      </div>
+
       {/* Invite creation */}
       <div className="bg-white rounded-xl shadow p-3 mb-4">
         <div className="text-sm font-medium mb-2">Создать ссылку на разговор с ИИ</div>
