@@ -864,26 +864,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         if text_delta:
                             await _synth_and_play_tts(text_delta)
                     elif etype == 'response.audio.delta':
-                        ai_talking = True
-                        audio_b64 = event.get('delta', '')
-                        if audio_b64:
-                            audio_bytes = base64.b64decode(audio_b64)
-                            got_openai_audio = True
-                            openai_audio_bytes += len(audio_bytes)
-                            openai_audio_frames += 1
-                            if openai_audio_frames % 50 == 0:
-                                logger.info(f"[AI-CALL {call_id}] OpenAI->LK audio: frames={openai_audio_frames}, bytes={openai_audio_bytes}")
-                            try:
-                                # Some rtc implementations expect 16-bit samples; source drives the clock
-                                frame = rtc.AudioFrame(
-                                    data=audio_bytes,
-                                    sample_rate=16000,
-                                    num_channels=1,
-                                    samples_per_channel=len(audio_bytes) // 2
-                                )
-                                await source.capture_frame(frame)
-                            except Exception as e:
-                                logger.error(f"[AI-CALL {call_id}] capture_frame error: {e} (len={len(audio_bytes)})")
+                        # Ignore any model audio; we synthesize TTS with marin ourselves
+                        continue
                     elif etype == 'response.done':
                         ai_talking = False
                         logger.info(f"[AI-CALL {call_id}] OpenAI response.done")
