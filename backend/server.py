@@ -925,7 +925,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, rms={rms}")
                         # после коммита — создать ответ вручную (явный turn-taking)
                         try:
-                            awaiting_ai_response = True
                             await openai_ws.send(json.dumps({
                                 "type": "response.create",
                                 "response": {
