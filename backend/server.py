@@ -940,6 +940,10 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                 logger.error(f"[AI-CALL {call_id}] Audio delta error: {e}")
                     elif etype == 'response.done':
                         ai_talking = False
+                        # логируем краткий текст ответа
+                        if response_text_acc:
+                            _add_call_log(call_id, 'ai_text', ''.join(response_text_acc)[:1000])
+                            response_text_acc.clear()
                         logger.info(f"[AI-CALL {call_id}] OpenAI response.done (audio_bytes={openai_audio_bytes}, frames={openai_audio_frames})")
                         openai_audio_bytes = 0
                         openai_audio_frames = 0
