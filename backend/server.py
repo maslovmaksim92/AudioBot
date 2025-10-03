@@ -741,9 +741,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                         await openai_ws.send(json.dumps({
                             "type": "response.create",
                             "response": {
-                                "modalities": ["text"],
-                                "instructions": f"Скажи: {greeting}",
-                                "temperature": 0.7
+                                "modalities": ["text", "audio"],
+                                "instructions": f"Скажи естественно: {greeting}",
+                                "temperature": 0.9
                             }
                         }))
                     except Exception as e:
