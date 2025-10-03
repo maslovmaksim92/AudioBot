@@ -9,7 +9,7 @@ import sys
 
 def test_houses_endpoint():
     """Test the specific requirements from review request"""
-    base_url = "https://aidialer-1.preview.emergentagent.com"
+    base_url = "https://call-bot.preview.emergentagent.com"
     
     print("🎯 FOCUSED TEST - Review Request Requirements")
     print("=" * 60)
