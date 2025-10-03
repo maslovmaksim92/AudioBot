@@ -802,10 +802,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 is_running = False
 
         # Forward PSTN audio to OpenAI (resample to 24k mono PCM16)
-        ai_talking = False
-
         async def forward_pstn_to_openai():
-            nonlocal is_running
+            nonlocal is_running, ai_talking
             # wait until we get a track
             t0 = time.time()
             while is_running and not pstn_track:
