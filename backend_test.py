@@ -4470,9 +4470,11 @@ if __name__ == "__main__":
             tester.test_novofon_ip_confirmation_sequence()
         elif test_type == "audio-fix":
             tester.test_ai_outbound_flow_audio_fix_review_request()
+        elif test_type == "extended-audio-logging":
+            tester.test_extended_audio_logging_review_request()
         else:
             print(f"Unknown test type: {test_type}")
-            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity, ai-agent, tts-outbound, novofon, audio-fix")
+            print("Available types: stt, meetings, current, mini-flow, quick, specific, review, production, final, close, livekit, livekit-identity, ai-agent, tts-outbound, novofon, audio-fix, extended-audio-logging")
             sys.exit(1)
     else:
         # Default: run AI outbound flow audio fix test as per current review request
