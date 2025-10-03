@@ -148,9 +148,9 @@ async def _openai_realtime_create(voice: str, instructions: str, temperature: fl
         'max_response_output_tokens': max_tokens,
         'turn_detection': {
             'type': 'server_vad',
-            'threshold': 0.5,
-            'prefix_padding_ms': 300,
-            'silence_duration_ms': 500,
+            'threshold': 0.35,
+            'prefix_padding_ms': 250,
+            'silence_duration_ms': 350,
             'create_response': True
         },
         'input_audio_format': 'pcm16',
