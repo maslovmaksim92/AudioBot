@@ -436,6 +436,25 @@ class AICallResponse(BaseModel):
 
 _ai_call_workers: Dict[str, Any] = {}
 
+# In-memory call logs for observability (non-persistent)
+_ai_call_logs: Dict[str, List[Dict[str, Any]] ] = {}
+
+def _add_call_log(call_id: str, level: str, message: str):
+    try:
+        if call_id not in _ai_call_logs:
+            _ai_call_logs[call_id] = []
+        _ai_call_logs[call_id].append({
+            'ts': int(datetime.now(timezone.utc).timestamp()),
+            'level': level,
+            'message': message[:2000]
+        })
+        # cap at last 500 entries per call to bound memory
+        if len(_ai_call_logs[call_id]) > 500:
+            _ai_call_logs[call_id] = _ai_call_logs[call_id][-500:]
+    except Exception:
+        pass
+
+
 async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voice: str, greeting: str):
     """Background task to run AI agent with direct OpenAI Realtime API"""
     if not LIVEKIT_AVAILABLE:
