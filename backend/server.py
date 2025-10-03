@@ -734,6 +734,96 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         got_openai_audio = False
         async def _openai_greeting_watchdog():
             try:
+        # TTS synthesis with OpenAI gpt-4o-mini-tts (marin)
+        async def _synth_and_play_tts(text: str):
+            nonlocal ai_talking
+            if not text:
+                return
+            try:
+                import io, wave
+                ai_talking = True
+                # Call OpenAI TTS
+                try:
+                    async with httpx.AsyncClient(timeout=60) as cli:
+                        resp = await cli.post(
+                            'https://api.openai.com/v1/audio/speech',
+                            headers={
+                                'Authorization': f'Bearer {openai_key}',
+                                'Content-Type': 'application/json'
+                            },
+                            json={
+                                'model': 'gpt-4o-mini-tts',
+                                'voice': (voice or 'marin'),
+                                'input': text,
+                                'format': 'wav'
+                            }
+                        )
+                        if resp.status_code != 200:
+                            logger.error(f"[AI-CALL {call_id}] TTS error: {resp.status_code} {resp.text}")
+                            return
+                        wav_bytes = resp.content
+                except Exception as e:
+                    logger.error(f"[AI-CALL {call_id}] TTS request failed: {e}")
+                    return
+
+                # Decode WAV -> PCM16 mono 16k
+                try:
+                    bio = io.BytesIO(wav_bytes)
+                    w = wave.open(bio, 'rb')
+                    sr = w.getframerate()
+                    ch = w.getnchannels()
+                    sampw = w.getsampwidth()
+                    nframes = w.getnframes()
+                    pcm = w.readframes(nframes)
+                    w.close()
+                    # ensure 16-bit
+                    if sampw != 2:
+                        try:
+                            pcm = audioop.lin2lin(pcm, sampw, 2)
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] TTS lin2lin failed: {e}")
+                            return
+                    # to mono
+                    if ch and ch > 1:
+                        try:
+                            pcm = audioop.tomono(pcm, 2, 0.5, 0.5)
+                            ch = 1
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] TTS tomono failed: {e}")
+                            return
+                    # resample to 16k if needed
+                    if sr != 16000:
+                        try:
+                            pcm, _ = audioop.ratecv(pcm, 2, ch or 1, sr, 16000, None)
+                            sr = 16000
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] TTS ratecv failed: {e}")
+                            return
+                    # Stream into LiveKit source in ~20ms frames
+                    frame_bytes = int(0.02 * 16000 * 2)  # 640 bytes
+                    total = 0
+                    for i in range(0, len(pcm), frame_bytes):
+                        chunk = pcm[i:i+frame_bytes]
+                        if not chunk:
+                            continue
+                        try:
+                            frame = rtc.AudioFrame(
+                                data=chunk,
+                                sample_rate=16000,
+                                num_channels=1,
+                                samples_per_channel=len(chunk)//2
+                            )
+                            await source.capture_frame(frame)
+                            total += len(chunk)
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] TTS capture_frame error: {e}")
+                            break
+                    logger.info(f"[AI-CALL {call_id}] TTS played: bytes={total}, text_len={len(text)}")
+                except Exception as e:
+                    logger.error(f"[AI-CALL {call_id}] TTS decode/play failed: {e}")
+            finally:
+                ai_talking = False
+
                 # wait a short period; if no audio chunks received, re-trigger greeting
                 await asyncio.sleep(2.0)
                 if not got_openai_audio:
