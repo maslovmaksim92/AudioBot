@@ -820,11 +820,11 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                 MIN_STRICT_MS = 100  # никогда не коммитим <100мс
                 MIN_STRICT_BYTES = BYTES_PER_MS * MIN_STRICT_MS
                 # VAD параметры
-                VAD_THRESHOLD = 500  # простой порог RMS (подбирается эмпирически)
-                SILENCE_END_MS = 300  # конец реплики = тишина ≥300мс
-                MAX_CHUNK_MS = 2000   # максимум длина куска речи, чтобы не накапливать слишком долго
+                VAD_THRESHOLD = 450  # чуточку чувствительнее
+                SILENCE_END_MS = 220  # раньше завершать реплику для меньшей задержки
+                MAX_CHUNK_MS = 1600   # короче кусок речи
                 # аварийный таймаут коммита, если что-то зависло
-                MAX_WAIT_S = 0.8
+                MAX_WAIT_S = 0.6
 
                 bytes_since_commit = 0
                 last_commit = time.time()
