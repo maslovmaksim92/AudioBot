@@ -758,7 +758,8 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
             if not text:
                 return
             try:
-                import io, wave
+                import io
+                import wave
                 ai_talking = True
                 # Call OpenAI TTS
                 try:
