@@ -685,7 +685,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
 
         # Connect to OpenAI Realtime API
         logger.info(f"[AI-CALL {call_id}] Connecting to OpenAI Realtime API...")
-        openai_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
+        openai_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-realtime"
         # Build headers for different websockets versions
         header_tuples = [("Authorization", f"Bearer {openai_key}"), ("OpenAI-Beta", "realtime=v1")]
         openai_ws = None
