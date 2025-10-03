@@ -744,7 +744,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             "response": {
                                 "modalities": ["text"],
                                 "instructions": f"Скажи: {greeting}",
-                                "temperature": 0.4
+                                "temperature": 0.7
                             }
                         }))
                     except Exception as e:
