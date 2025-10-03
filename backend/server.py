@@ -870,6 +870,12 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     elif etype == 'response.done':
                         ai_talking = False
                         logger.info(f"[AI-CALL {call_id}] OpenAI response.done")
+                        # Явно очищаем input audio buffer после ответа OpenAI для синхронизации
+                        try:
+                            await openai_ws.send(json.dumps({"type": "input_audio_buffer.clear"}))
+                            logger.info(f"[AI-CALL {call_id}] Cleared input audio buffer after response.done")
+                        except Exception as e:
+                            logger.error(f"[AI-CALL {call_id}] Failed to clear input buffer: {e}")
                     elif etype == 'error':
                         logger.error(f"[AI-CALL {call_id}] OpenAI error: {event.get('error')}")
             except Exception as e:
