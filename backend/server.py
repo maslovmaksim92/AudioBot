@@ -930,9 +930,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     if not is_running:
                         break
                     if not data:
-                        # Skip empty frames
                         continue
-                    # data is PCM16 interleaved bytes
+                    
+                    # Basic audio processing - convert to 24kHz mono PCM16 for OpenAI
                     # to mono if needed
                     if ch and ch > 1:
                         try:
@@ -940,121 +940,25 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             ch = 1
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] tomono failed: {e}")
-                    # resample to 16k if needed (требование OpenAI Realtime для стабильного S2S)
-                    if sr and sr != 16000:
+                    
+                    # resample to 24k if needed (OpenAI Realtime prefers 24kHz)
+                    if sr and sr != 24000:
                         try:
-                            data, _ = audioop.ratecv(data, 2, ch or 1, sr, 16000, None)
-                            sr = 16000
+                            data, _ = audioop.ratecv(data, 2, ch or 1, sr, 24000, None)
+                            sr = 24000
                         except Exception as e:
                             logger.error(f"[AI-CALL {call_id}] ratecv failed (sr={sr}): {e}")
-                    # ensure mono
-                    if (ch or 1) != 1:
-                        try:
-                            data = audioop.tomono(data, 2, 1.0, 0.0)
-                            ch = 1
-                        except Exception as e:
-                            logger.error(f"[AI-CALL {call_id}] enforce mono failed: {e}")
-
-                    # Если ИИ говорит, не «барджим» — пауза отправки входа, чтобы не мешать и не самопрослушивать
-                    if ai_talking:
-                        # Если AI только что начал говорить, сбрасываем счетчик буфера
-                        if not prev_ai_talking:
-                            logger.info(f"[AI-CALL {call_id}] AI started talking, resetting audio buffer counter (was {bytes_since_commit} bytes)")
-                            bytes_since_commit = 0
-                            max_rms_since_commit = 0
-                            chunk_ms = 0.0
-                            silence_ms = 0.0
-                            last_commit = time.time()
-                            prev_ai_talking = True
-                        continue
-                    else:
-                        # AI закончил говорить - сбрасываем все счетчики для синхронизации с пустым буфером OpenAI
-                        if prev_ai_talking:
-                            logger.info(f"[AI-CALL {call_id}] AI stopped talking, resetting counters and ready to receive user audio")
-                            bytes_since_commit = 0
-                            max_rms_since_commit = 0
-                            chunk_ms = 0.0
-                            silence_ms = 0.0
-                            last_commit = time.time()
-                            prev_ai_talking = False
-
-                    # отправка чанка в буфер OpenAI
+                    
+                    # Send directly to OpenAI - let server VAD handle everything
                     audio_b64 = base64.b64encode(data).decode('utf-8')
                     await openai_ws.send(json.dumps({"type": "input_audio_buffer.append", "audio": audio_b64}))
                     frame_count += 1
                     bytes_sent += len(data)
-                    bytes_since_commit += len(data)
-                    
-                    # оценка энергии и обновление счетчиков ПОСЛЕ отправки
-                    try:
-                        rms = audioop.rms(data, 2)
-                    except Exception:
-                        rms = 0
-                    
-                    # Отслеживаем максимальный RMS с момента последнего коммита
-                    if rms > max_rms_since_commit:
-                        max_rms_since_commit = rms
-                    
-                    frame_ms = len(data) / BYTES_PER_MS
-                    chunk_ms += frame_ms
-                    if rms > VAD_THRESHOLD:
-                        silence_ms = 0.0
-                    else:
-                        silence_ms += frame_ms
 
-                    # решение о коммите: конец реплики или слишком длинный кусок/таймаут
-                    elapsed = time.time() - last_commit
-                    is_speech_end = silence_ms >= SILENCE_END_MS
-                    do_commit = False
-                    if is_speech_end and chunk_ms >= MIN_STRICT_MS:
-                        do_commit = True
-                    elif chunk_ms >= MAX_CHUNK_MS:
-                        do_commit = True
-                    elif elapsed >= MAX_WAIT_S and bytes_since_commit >= MIN_STRICT_BYTES:
-                        do_commit = True
-
-                    # КРИТИЧЕСКАЯ ПРОВЕРКА: не коммитим если была только тишина (OpenAI отбрасывает тишину)
-                    MIN_REAL_AUDIO_RMS = 100  # Минимальный RMS для реального звука (не тишина)
-                    
-                    if do_commit:
-                        # Проверяем что буфер не пустой И был реальный звук
-                        if bytes_since_commit >= MIN_STRICT_BYTES and max_rms_since_commit >= MIN_REAL_AUDIO_RMS:
-                            await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
-                            ms_since_commit = bytes_since_commit / BYTES_PER_MS
-                            logger.info(f"[AI-CALL {call_id}] Commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes), elapsed={elapsed:.3f}s; chunk_ms={chunk_ms:.1f}, silence_ms={silence_ms:.1f}, max_rms={max_rms_since_commit}")
-                            # после коммита — создать ответ (текстовый → наш TTS marin)
-                            try:
-                                await openai_ws.send(json.dumps({
-                                    "type": "response.create",
-                                    "response": {
-                                        "modalities": ["text"],
-                                        "instructions": "Отвечай кратко по теме отчётности сотрудника на русском.",
-                                        "temperature": 0.7
-                                    }
-                                }))
-                            except Exception as e:
-                                logger.error(f"[AI-CALL {call_id}] response.create error: {e}")
-                            bytes_since_commit = 0
-                            max_rms_since_commit = 0
-                            last_commit = time.time()
-                            chunk_ms = 0.0
-                            silence_ms = 0.0
-                        elif max_rms_since_commit < MIN_REAL_AUDIO_RMS:
-                            logger.debug(f"[AI-CALL {call_id}] Commit skipped: only silence/noise detected (max_rms={max_rms_since_commit} < {MIN_REAL_AUDIO_RMS} threshold)")
-                        else:
-                            logger.debug(f"[AI-CALL {call_id}] Commit skipped: buffer too small ({bytes_since_commit} bytes, {bytes_since_commit/BYTES_PER_MS:.1f} ms < {MIN_STRICT_MS} ms required)")
-
-                    # periodic diagnostics
-                    if time.time() - last_log > 2.0:
+                    # Simple periodic logging
+                    if time.time() - last_log > 5.0:
                         logger.info(f"[AI-CALL {call_id}] PSTN->OpenAI: frames={frame_count}, bytes_sent={bytes_sent}, sr={sr}, ch={ch}")
                         last_log = time.time()
-                # final commit if we have enough audio
-                if bytes_since_commit >= MIN_STRICT_BYTES:
-                    await openai_ws.send(json.dumps({"type": "input_audio_buffer.commit"}))
-                    ms_since_commit = bytes_since_commit / BYTES_PER_MS
-                    logger.info(f"[AI-CALL {call_id}] Final commit input buffer: appended_ms={ms_since_commit:.1f} ({bytes_since_commit} bytes)")
-                else:
-                    logger.info(f"[AI-CALL {call_id}] Final commit skipped (only {bytes_since_commit/ BYTES_PER_MS:.1f} ms queued)")
             except Exception as e:
                 logger.error(f"[AI-CALL {call_id}] PSTN audio forwarding error: {e}")
 
