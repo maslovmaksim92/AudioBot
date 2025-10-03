@@ -4033,6 +4033,211 @@ class VasDomAPITester:
             self.log_test("Call Summary - Documentation", False, 
                         "❌ No call data available for summary")
 
+    def test_ai_outbound_flow_audio_fix_review_request(self):
+        """Test AI outbound flow after audio source fix (24 kHz mono) and audio delta handler as per review request"""
+        print(f"🚀 VasDom AudioBot Backend API - AI Outbound Flow After Audio Fix")
+        print(f"📍 Base URL: {self.base_url}")
+        print("🔧 Testing AI outbound flow after audio source fix (24 kHz mono) and audio delta handler:")
+        print("1) GET /api/health → 200 {ok:true}")
+        print("2) GET /api/voice/debug/check → 200, credential flags true/false as in environment")
+        print("3) POST /api/voice/ai-call with JSON {\"phone_number\":\"+79200924550\"} → 200 with schema {call_id, room_name, status} and background worker launch")
+        print("4) Backend logs soon after point 3: should eliminate 'InvalidState - sample_rate and num_channels don't match' errors")
+        print("5) Check logs contain events: 'Agent connected to LiveKit room', 'Published local audio track', 'Connecting to OpenAI Realtime API', 'OpenAI session created/updated', 'OpenAI response.audio.delta' without InvalidState")
+        print("6) Check PSTN->OpenAI log line shows sr=24000 ch=1 and periodic statistics without errors")
+        print("7) If possible, wait for at least one 'OpenAI response.done' and absence of repeating InvalidState errors")
+        print("=" * 80)
+        
+        # Test 1: GET /api/health
+        self.test_health_endpoint()
+        
+        # Test 2: GET /api/voice/debug/check
+        self.test_voice_debug_check()
+        
+        # Test 3: POST /api/voice/ai-call
+        call_id = self.test_ai_call_endpoint_with_specific_number()
+        
+        # Test 4-7: Analyze backend logs for audio fix validation
+        if call_id:
+            self.test_backend_logs_audio_fix_analysis(call_id)
+        else:
+            print("⚠️ No call_id available for log analysis - checking general log patterns")
+            self.test_backend_logs_audio_fix_analysis(None)
+        
+        # Final summary
+        self.print_summary()
+
+    def test_ai_call_endpoint_with_specific_number(self):
+        """Test POST /api/voice/ai-call with specific phone number from review request"""
+        print("\n3️⃣ Testing POST /api/voice/ai-call")
+        print("   Body: {\"phone_number\":\"+79200924550\"}")
+        print("   Expected: 200 with schema {call_id, room_name, status} and background worker launch")
+        
+        request_data = {"phone_number": "+79200924550"}
+        
+        success, data, status = self.make_request('POST', '/api/voice/ai-call', request_data)
+        
+        if success and status == 200:
+            print(f"   ✅ Status: {status} ✓")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            # Check required schema keys: call_id, room_name, status
+            call_id = data.get('call_id')
+            room_name = data.get('room_name')
+            call_status = data.get('status')
+            
+            schema_ok = all([call_id, room_name, call_status])
+            
+            if schema_ok:
+                self.log_test("AI Call - Schema Validation", True, 
+                            f"✅ Status 200 ✓, schema keys present: call_id, room_name, status ✓")
+                self.log_test("AI Call - Response Details", True, 
+                            f"✅ call_id: {call_id[:8] if call_id else 'None'}..., room_name: {room_name}, status: {call_status}")
+                
+                # Wait a moment for background worker to start
+                print("   ⏳ Waiting 3 seconds for background worker to initialize...")
+                time.sleep(3)
+                
+                return call_id
+            else:
+                missing_keys = []
+                if not call_id:
+                    missing_keys.append("call_id")
+                if not room_name:
+                    missing_keys.append("room_name")
+                if not call_status:
+                    missing_keys.append("status")
+                self.log_test("AI Call - Schema Validation", False, 
+                            f"❌ Status 200 ✓, но отсутствуют ключи схемы: {missing_keys}")
+                return None
+                
+        elif success and (400 <= status < 600):
+            print(f"   ⚠️ Status: {status} (Expected error when credentials not configured)")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            
+            detail = data.get('detail', '')
+            
+            # Check if it's a structured error (not a stacktrace)
+            if detail and 'Traceback' not in str(data) and 'Exception' not in str(data):
+                self.log_test("AI Call - Structured Error", True, 
+                            f"✅ Status {status} ✓ with structured error (no stacktrace): '{detail[:100]}...'")
+            else:
+                self.log_test("AI Call - Structured Error", False, 
+                            f"❌ Status {status} but response contains stacktrace or unstructured error")
+            return None
+        else:
+            print(f"   ❌ Status: {status}")
+            print(f"   Response: {json.dumps(data, indent=2, ensure_ascii=False)}")
+            self.log_test("AI Call - Unexpected Response", False, 
+                        f"❌ Unexpected status: {status}, Data: {data}")
+            return None
+
+    def test_backend_logs_audio_fix_analysis(self, call_id):
+        """Test 4-7: Analyze backend logs for audio fix validation"""
+        print(f"\n4️⃣-7️⃣ Analyzing backend logs for audio fix validation")
+        if call_id:
+            print(f"   Call ID: {call_id}")
+        
+        # Try to read backend logs
+        log_patterns_to_check = [
+            ("InvalidState - sample_rate and num_channels don't match", "should be ABSENT"),
+            ("Agent connected to LiveKit room", "should be PRESENT"),
+            ("Published local audio track", "should be PRESENT"),
+            ("Connecting to OpenAI Realtime API", "should be PRESENT"),
+            ("OpenAI session created", "should be PRESENT"),
+            ("OpenAI session updated", "should be PRESENT"),
+            ("OpenAI response.audio.delta", "should be PRESENT"),
+            ("sr=24000 ch=1", "should be PRESENT"),
+            ("OpenAI response.done", "should be PRESENT if possible"),
+        ]
+        
+        try:
+            # Try to read supervisor backend logs
+            import subprocess
+            result = subprocess.run(['tail', '-n', '200', '/var/log/supervisor/backend.err.log'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                log_content = result.stdout
+                print(f"   📋 Analyzing last 200 lines of backend error log...")
+                
+                # Check each pattern
+                for pattern, expectation in log_patterns_to_check:
+                    found = pattern in log_content
+                    
+                    if "should be ABSENT" in expectation:
+                        if not found:
+                            self.log_test(f"Log Analysis - {pattern}", True, 
+                                        f"✅ '{pattern}' correctly ABSENT from logs ✓")
+                        else:
+                            # Count occurrences
+                            count = log_content.count(pattern)
+                            self.log_test(f"Log Analysis - {pattern}", False, 
+                                        f"❌ '{pattern}' found {count} times in logs (should be absent)")
+                    
+                    elif "should be PRESENT" in expectation:
+                        if found:
+                            count = log_content.count(pattern)
+                            self.log_test(f"Log Analysis - {pattern}", True, 
+                                        f"✅ '{pattern}' found {count} times in logs ✓")
+                        else:
+                            if "if possible" in expectation:
+                                self.log_test(f"Log Analysis - {pattern}", True, 
+                                            f"⚠️ '{pattern}' not found (optional check)")
+                            else:
+                                self.log_test(f"Log Analysis - {pattern}", False, 
+                                            f"❌ '{pattern}' not found in logs (expected)")
+                
+                # Show relevant log excerpts if call_id is available
+                if call_id:
+                    print(f"\n   📋 Log excerpts for call {call_id[:8]}...")
+                    lines = log_content.split('\n')
+                    relevant_lines = [line for line in lines if call_id[:8] in line or 'AI-CALL' in line]
+                    
+                    if relevant_lines:
+                        for line in relevant_lines[-10:]:  # Show last 10 relevant lines
+                            print(f"   {line}")
+                    else:
+                        print("   No specific log entries found for this call_id")
+                
+            else:
+                print(f"   ❌ Could not read backend error log: {result.stderr}")
+                self.log_test("Log Analysis - File Access", False, 
+                            "❌ Could not access backend error log file")
+                
+        except subprocess.TimeoutExpired:
+            print("   ❌ Timeout reading backend logs")
+            self.log_test("Log Analysis - Timeout", False, 
+                        "❌ Timeout while reading backend logs")
+        except Exception as e:
+            print(f"   ❌ Error reading backend logs: {e}")
+            self.log_test("Log Analysis - Error", False, 
+                        f"❌ Error reading backend logs: {e}")
+        
+        # Also try to read stdout log
+        try:
+            result = subprocess.run(['tail', '-n', '200', '/var/log/supervisor/backend.out.log'], 
+                                  capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                log_content = result.stdout
+                print(f"   📋 Also checking backend stdout log...")
+                
+                # Look for audio-related patterns in stdout
+                audio_patterns = [
+                    "sr=24000 ch=1",
+                    "PSTN->OpenAI",
+                    "OpenAI response.audio.delta",
+                    "response.done"
+                ]
+                
+                for pattern in audio_patterns:
+                    if pattern in log_content:
+                        count = log_content.count(pattern)
+                        print(f"   ✅ Found '{pattern}' {count} times in stdout log")
+                    
+        except Exception as e:
+            print(f"   ⚠️ Could not read stdout log: {e}")
+
 if __name__ == "__main__":
     # Use the target URL from review request for Novofon IP confirmation
     base_url = "https://audiobot-qci2.onrender.com"
