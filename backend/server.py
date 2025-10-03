@@ -935,21 +935,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                     del ai_out_buf[:AI_FRAME_BYTES]
                                     samples = len(chunk)//2
                                     frame = rtc.AudioFrame(
-                    # Барж-ин: если человек говорит во время речи ИИ — можем отменить
-                    # По умолчанию включаем, но аккуратно (дебаунс 600мс)
-                    try:
-                        if ai_talking:
-                            now = time.time()
-                            # если детектируем достаточно громкий кусок и есть риск перебивания
-                            # (без VAD — эвристика по размеру фрейма), отправим cancel не чаще 1 раза в 0.6с
-                            if len(data) >= AI_FRAME_BYTES and (now - last_cancel_ts) > 0.6:
-                                await openai_ws.send(json.dumps({"type": "response.cancel"}))
-                                last_cancel_ts = now
-                                canceled_current_response = True
-                                _add_call_log(call_id, 'info', 'barge-in: response.cancel sent')
-                    except Exception:
-                        pass
-
                                         data=bytes(chunk),
                                         sample_rate=24000,
                                         num_channels=1,
@@ -958,6 +943,7 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                                     logger.debug(f"[AI-CALL {call_id}] OpenAI delta frame: bytes={len(chunk)}, samples={samples}, sr=24000, ch=1")
                                     await source.capture_frame(frame)
                                     openai_audio_frames += 1
+                                # barge-in inside OpenAI loop not needed
                             except Exception as e:
                                 logger.error(f"[AI-CALL {call_id}] Audio delta error: {e}")
                     elif etype == 'response.done':
