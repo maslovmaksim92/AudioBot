@@ -886,6 +886,23 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                     etype = event.get('type')
                     if etype == 'session.created':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session created")
+                    elif etype == 'response.text.delta':
+                        # Накопим текст для логов наблюдаемости
+                        try:
+                            txt = event.get('delta') or ''
+                            if txt:
+                                response_text_acc.append(txt)
+                        except Exception:
+                            pass
+                    elif etype == 'response.output_text.delta':
+                        # альтернативное имя события у некоторых версий
+                        try:
+                            txt = event.get('delta') or ''
+                            if txt:
+                                response_text_acc.append(txt)
+                        except Exception:
+                            pass
+
                     elif etype == 'session.updated':
                         logger.info(f"[AI-CALL {call_id}] OpenAI session updated with prompt")
                     elif etype == 'response.audio.delta':
