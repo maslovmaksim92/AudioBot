@@ -1170,6 +1170,15 @@ async def voice_ai_call(req: AICallRequest):
         # Start AI agent in background
         asyncio.create_task(_run_ai_agent_worker(
             room_name=room_name,
+
+@api_router.get('/voice/ai-call/{call_id}/logs')
+async def voice_ai_call_logs(call_id: str):
+    try:
+        logs = _ai_call_logs.get(call_id) or []
+        return {'call_id': call_id, 'logs': logs}
+    except Exception as e:
+        return {'call_id': call_id, 'logs': [], 'error': str(e)}
+
             call_id=call_id,
             prompt_id=req.prompt_id or 'pmpt_68b199151b248193a68a8c70861adf550e6f2509209ed3a5',
             voice=req.voice or 'marin',
