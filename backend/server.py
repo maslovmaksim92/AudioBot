@@ -1058,10 +1058,9 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         await openai_ws.send(json.dumps({
             "type": "response.create",
             "response": {
-                "modalities": ["audio", "text"],
-                "voice": voice or "marin",
-                "output_audio_format": "pcm16",
-                "instructions": f"Start the conversation by saying: {greeting}"
+                "modalities": ["text"],
+                "instructions": f"Скажи: {greeting}",
+                "temperature": 0.4
             }
         }))
 
