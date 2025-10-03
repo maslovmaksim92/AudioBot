@@ -527,6 +527,13 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
         await room.local_participant.publish_track(track, options)
         logger.info(f"[AI-CALL {call_id}] Published local audio track (target sr={source_sr}, ch={source_ch})")
 
+        # Smoother playback chunking and text accumulator
+        AI_FRAME_BYTES = int(0.02 * 24000 * 2)  # 20ms @ 24k, 960 bytes
+        ai_out_buf = bytearray()
+        ai_backlog_limit = AI_FRAME_BYTES * 50  # ~1 sec max backlog
+        response_text_acc: list[str] = []
+        last_cancel_ts = 0.0
+
         # Audio forwarding state
         pstn_track = None
         is_running = True
