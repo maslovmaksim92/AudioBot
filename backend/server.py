@@ -790,7 +790,6 @@ async def _run_ai_agent_worker(room_name: str, call_id: str, prompt_id: str, voi
                             except Exception as e:
                                 logger.error(f"[AI-CALL {call_id}] capture_frame error: {e} (len={len(audio_bytes)})")
                     elif etype == 'response.done':
-                        nonlocal ai_talking
                         ai_talking = False
                         logger.info(f"[AI-CALL {call_id}] OpenAI response.done")
                     elif etype == 'error':
