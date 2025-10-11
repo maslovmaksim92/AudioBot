@@ -354,6 +354,63 @@ const AgentBuilder = () => {
               />
             </div>
 
+            {/* Расписание (для scheduler типа) */}
+            {newAgent.type === 'scheduler' && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Расписание запуска</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Время</label>
+                    <input
+                      type="time"
+                      value={newAgent.config?.schedule_time || '08:25'}
+                      onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), schedule_time: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Дни недели</label>
+                    <select
+                      value={newAgent.config?.schedule_days || 'weekdays'}
+                      onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), schedule_days: e.target.value}})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="weekdays">Пн-Пт</option>
+                      <option value="daily">Каждый день</option>
+                      <option value="weekend">Сб-Вс</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Настройка TG уведомлений */}
+            {(newAgent.type === 'scheduler' || newAgent.type === 'bot') && (
+              <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Telegram уведомления</label>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Chat ID или номера телефонов сотрудников (через запятую)</label>
+                  <textarea
+                    value={newAgent.config?.telegram_recipients || ''}
+                    onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), telegram_recipients: e.target.value}})}
+                    placeholder="Например: @vasdom_chat, +79991234567, +79991234568"
+                    rows="2"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="mt-3">
+                  <label className="block text-xs text-gray-600 mb-1">Текст сообщения</label>
+                  <textarea
+                    value={newAgent.config?.telegram_message || ''}
+                    onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), telegram_message: e.target.value}})}
+                    placeholder="Например: Доброе утро! Напоминаю о планёрке в 8:30"
+                    rows="2"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex gap-3">
               <button
