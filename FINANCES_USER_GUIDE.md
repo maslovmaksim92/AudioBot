@@ -4,7 +4,7 @@
 
 Модуль "Финансы" позволяет вести учёт всех денежных операций компании и автоматически генерировать финансовые отчёты.
 
-**URL:** https://smart-agent-system.preview.emergentagent.com/#/finances
+**URL:** https://smarthouse-ai.preview.emergentagent.com/#/finances
 
 ## 🚀 Как добавлять данные
 

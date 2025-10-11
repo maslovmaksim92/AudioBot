@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 # Get backend URL from frontend .env
-BACKEND_URL = "https://smart-agent-system.preview.emergentagent.com"
+BACKEND_URL = "https://smarthouse-ai.preview.emergentagent.com"
 
 class BackendTester:
     def __init__(self):

@@ -4,7 +4,7 @@ TESTING PROTOCOL SUMMARY
 - All backend API routes are prefixed with /api.
 
 RUN 2025-10-11: Backend API Smoke Tests - AI Assistant Router
-Backend URL: https://smart-agent-system.preview.emergentagent.com
+Backend URL: https://smarthouse-ai.preview.emergentagent.com
 
 COMPLETED TESTS:
 ✅ Health: GET /api/health -> 200 { "ok": true, "ts": 1760190645 }

@@ -94,7 +94,7 @@
 - APScheduler: 3 задачи запланированы
 
 **URLs:**
-- Preview: https://smart-agent-system.preview.emergentagent.com
+- Preview: https://smarthouse-ai.preview.emergentagent.com
 - API Docs: http://localhost:8001/docs
 
 ---

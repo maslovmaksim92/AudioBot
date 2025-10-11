@@ -140,8 +140,8 @@ git diff --name-only --cached
 ## 🎯 Preview URL
 
 **Приложение доступно:**
-- https://smart-agent-system.preview.emergentagent.com
-- https://smart-agent-system.preview.emergentagent.com/#/finances (новый раздел)
+- https://smarthouse-ai.preview.emergentagent.com
+- https://smarthouse-ai.preview.emergentagent.com/#/finances (новый раздел)
 
 ## ✅ Финальный чек-лист
 
