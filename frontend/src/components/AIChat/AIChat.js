@@ -8,6 +8,7 @@ const AIChat = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [debugMode, setDebugMode] = useState(false);
   const messagesEndRef = useRef(null);
   // Используем первого пользователя из БД (Маслов Максим)
   const userId = '7be8f89e-f2bd-4f24-9798-286fddc58358';
