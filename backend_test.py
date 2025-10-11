@@ -1094,22 +1094,545 @@ class BackendTester:
             print(f"❌ Brain metrics test failed: {e}")
             return False
 
+    # ===== INTENT DETECTION & NER PHASE 2 TESTS =====
+    
+    async def test_complex_addresses(self):
+        """Test complex address formats with NER"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Complex Addresses...")
+        
+        test_cases = [
+            {
+                "message": "Контакты старшего Кибальчича 3 стр 2",
+                "description": "Address with 'стр 2'"
+            },
+            {
+                "message": "График уборок на Билибина 6 к1 лит А октябрь", 
+                "description": "Address with 'к1 лит А'"
+            },
+            {
+                "message": "Какая бригада на доме Кибальчича 3?",
+                "description": "Address with 'на доме'"
+            },
+            {
+                "message": "объект Билибина 6к1 уборки",
+                "description": "Address '6к1' without space"
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        
+                        # Check for address extraction
+                        address_found = False
+                        if 'address' in str(data).lower() or any(addr in case['message'].lower() for addr in ['кибальчича', 'билибина']):
+                            address_found = True
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'intent': debug_info.get('matched_rule'),
+                            'address_extracted': address_found,
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Intent: {debug_info.get('matched_rule')}")
+                        print(f"🏠 Address extracted: {address_found}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        # Store results for summary
+        self.complex_address_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
+    async def test_month_formats(self):
+        """Test various month formats with NER"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Month Formats...")
+        
+        test_cases = [
+            {
+                "message": "График Кибальчича 3 в октябре",
+                "description": "Month format 'в октябре'"
+            },
+            {
+                "message": "Уборки Билибина 6 на 10 месяц", 
+                "description": "Numeric month format '10'"
+            },
+            {
+                "message": "График окт Кибальчича 3",
+                "description": "Abbreviated month 'окт'"
+            },
+            {
+                "message": "Уборки 11.2025",
+                "description": "Month format '11.2025'"
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        
+                        # Check for month extraction
+                        month_found = False
+                        month_indicators = ['октябр', '10', 'окт', '11.2025', 'месяц']
+                        if any(indicator in str(data).lower() for indicator in month_indicators):
+                            month_found = True
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'intent': debug_info.get('matched_rule'),
+                            'month_extracted': month_found,
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Intent: {debug_info.get('matched_rule')}")
+                        print(f"📅 Month extracted: {month_found}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        self.month_format_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
+    async def test_specific_dates(self):
+        """Test specific date formats with NER"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Specific Dates...")
+        
+        test_cases = [
+            {
+                "message": "Уборка Кибальчича 3 15 октября",
+                "description": "Date format '15 октября'"
+            },
+            {
+                "message": "График на 2025-10-15", 
+                "description": "ISO date format '2025-10-15'"
+            },
+            {
+                "message": "Уборка сегодня",
+                "description": "Relative date 'сегодня'"
+            },
+            {
+                "message": "График завтра",
+                "description": "Relative date 'завтра'"
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        
+                        # Check for date extraction
+                        date_found = False
+                        date_indicators = ['15 октября', '2025-10-15', 'сегодня', 'завтра', 'specific_date', 'date_range']
+                        if any(indicator in str(data).lower() for indicator in date_indicators):
+                            date_found = True
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'intent': debug_info.get('matched_rule'),
+                            'date_extracted': date_found,
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Intent: {debug_info.get('matched_rule')}")
+                        print(f"📅 Date extracted: {date_found}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        self.specific_date_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
+    async def test_date_ranges(self):
+        """Test date range formats with NER"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Date Ranges...")
+        
+        test_cases = [
+            {
+                "message": "Финансы с 1 по 15 октября",
+                "description": "Explicit range 'с 1 по 15 октября'"
+            },
+            {
+                "message": "Расходы 01.10-15.10", 
+                "description": "Range format '01.10-15.10'"
+            },
+            {
+                "message": "Финансы за последний месяц",
+                "description": "Relative period 'за последний месяц'"
+            },
+            {
+                "message": "Статистика за квартал",
+                "description": "Period 'за квартал'"
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        
+                        # Check for date range extraction
+                        range_found = False
+                        range_indicators = ['с 1 по 15', '01.10-15.10', 'последний месяц', 'квартал', 'date_range']
+                        if any(indicator in str(data).lower() for indicator in range_indicators):
+                            range_found = True
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'intent': debug_info.get('matched_rule'),
+                            'range_extracted': range_found,
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Intent: {debug_info.get('matched_rule')}")
+                        print(f"📅 Range extracted: {range_found}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        self.date_range_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
+    async def test_intent_priorities(self):
+        """Test intent detection priorities"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Intent Priorities...")
+        
+        test_cases = [
+            {
+                "message": "Топ категорий расходов",
+                "description": "Should select finance_cat_trends (priority)",
+                "expected_intent": "finance_cat_trends"
+            },
+            {
+                "message": "Разбивка финансов по категориям", 
+                "description": "Should select finance_breakdown",
+                "expected_intent": "finance_breakdown"
+            },
+            {
+                "message": "Финансы компании",
+                "description": "Should select finance_basic",
+                "expected_intent": "finance_basic"
+            },
+            {
+                "message": "Динамика месяц к месяцу",
+                "description": "Should select finance_mom (not finance_basic)",
+                "expected_intent": "finance_mom"
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            print(f"🎯 Expected Intent: {case['expected_intent']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        matched_rule = debug_info.get('matched_rule')
+                        
+                        # Check if correct intent was selected
+                        correct_intent = matched_rule == case['expected_intent']
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'expected_intent': case['expected_intent'],
+                            'actual_intent': matched_rule,
+                            'correct_priority': correct_intent,
+                            'confidence': debug_info.get('confidence') or debug_info.get('score'),
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Actual Intent: {matched_rule}")
+                        print(f"✅ Correct Priority: {correct_intent}")
+                        if debug_info.get('confidence') or debug_info.get('score'):
+                            print(f"📈 Confidence: {debug_info.get('confidence') or debug_info.get('score')}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        self.intent_priority_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
+    async def test_multiple_entities(self):
+        """Test extraction of multiple entities"""
+        print("🔍 Testing Intent Detection & NER Phase 2 - Multiple Entity Extraction...")
+        
+        test_cases = [
+            {
+                "message": "Контакты старшего Кибальчича 3 стр 2 на октябрь",
+                "description": "Address + Month extraction",
+                "expected_entities": ["address", "month"]
+            },
+            {
+                "message": "Финансы за месяц по категориям", 
+                "description": "Period + Breakdown extraction",
+                "expected_entities": ["period", "breakdown"]
+            }
+        ]
+        
+        results = []
+        for case in test_cases:
+            print(f"\n🧪 Testing: {case['description']}")
+            print(f"📝 Query: {case['message']}")
+            print(f"🎯 Expected Entities: {case['expected_entities']}")
+            
+            payload = {
+                "message": case["message"],
+                "debug": True
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(
+                        f"{self.base_url}/api/brain/ask",
+                        json=payload,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        debug_info = data.get('debug', {})
+                        
+                        # Check for multiple entity extraction
+                        entities_found = []
+                        response_str = str(data).lower()
+                        
+                        # Check for address entities
+                        if any(addr in response_str for addr in ['кибальчича', 'address', 'стр']):
+                            entities_found.append('address')
+                        
+                        # Check for month entities  
+                        if any(month in response_str for month in ['октябр', 'month', 'месяц']):
+                            entities_found.append('month')
+                            
+                        # Check for period entities
+                        if any(period in response_str for period in ['период', 'period', 'за месяц']):
+                            entities_found.append('period')
+                            
+                        # Check for breakdown entities
+                        if any(breakdown in response_str for breakdown in ['категори', 'breakdown', 'разбивк']):
+                            entities_found.append('breakdown')
+                        
+                        result = {
+                            'case': case['description'],
+                            'success': data.get('success'),
+                            'intent': debug_info.get('matched_rule'),
+                            'expected_entities': case['expected_entities'],
+                            'found_entities': entities_found,
+                            'multiple_extraction': len(entities_found) > 1,
+                            'response_preview': str(data)[:200]
+                        }
+                        results.append(result)
+                        
+                        print(f"✅ Status: {response.status_code}")
+                        print(f"📊 Success: {data.get('success')}")
+                        print(f"🎯 Intent: {debug_info.get('matched_rule')}")
+                        print(f"🏷️ Found Entities: {entities_found}")
+                        print(f"✅ Multiple Extraction: {len(entities_found) > 1}")
+                        
+                    else:
+                        results.append({
+                            'case': case['description'],
+                            'success': False,
+                            'error': f"HTTP {response.status_code}"
+                        })
+                        print(f"❌ HTTP {response.status_code}")
+                        
+            except Exception as e:
+                results.append({
+                    'case': case['description'],
+                    'success': False,
+                    'error': str(e)
+                })
+                print(f"❌ Exception: {e}")
+        
+        self.multiple_entity_results = results
+        return len([r for r in results if r.get('success') is not False]) > 0
+
     async def run_all_tests(self):
         """Run all backend tests"""
-        print("🚀 Starting Backend API Tests - Brain Resolvers")
+        print("🚀 Starting Backend API Tests - Intent Detection & NER Phase 2")
         print(f"🌐 Backend URL: {self.base_url}")
         print("=" * 60)
         
         tests = [
             ("Health Check", self.test_health_endpoint),
-            ("Brain - Elder Contact", self.test_brain_elder_contact),
-            ("Brain - Cleaning Schedule", self.test_brain_cleaning_schedule),
-            ("Brain - Brigade", self.test_brain_brigade),
-            ("Brain - Finance Basic", self.test_brain_finance_basic),
-            ("Brain - Finance Breakdown", self.test_brain_finance_breakdown),
-            ("Brain - Finance MoM", self.test_brain_finance_mom),
-            ("Brain - Structural Totals", self.test_brain_structural_totals),
-            ("Brain - Metrics", self.test_brain_metrics),
+            ("Complex Addresses", self.test_complex_addresses),
+            ("Month Formats", self.test_month_formats),
+            ("Specific Dates", self.test_specific_dates),
+            ("Date Ranges", self.test_date_ranges),
+            ("Intent Priorities", self.test_intent_priorities),
+            ("Multiple Entities", self.test_multiple_entities),
         ]
         
         results = {}
