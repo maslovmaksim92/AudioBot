@@ -179,20 +179,21 @@ class AIAssistant:
         Returns:
             Ответ AI с контекстом
         """
+        # Получаем контекст из источников
+        context = await self.get_context(user_query)
+
+        # Если запрос похож на вопрос по адресу — попробуем быстрый ответ без LLM
+        quick = self._try_answer_cleaning_dates_quick(user_query, context)
+        if quick:
+            return quick
+
         if not self.openai_key:
             return {
                 'success': False,
                 'error': 'OpenAI API key not configured'
             }
-            # Если запрос похож на вопрос по адресу — попробуем быстрый ответ без LLM
-            quick = self._try_answer_cleaning_dates_quick(user_query, context)
-            if quick:
-                return quick
 
-        
         try:
-            # Получаем контекст из БД
-            context = await self.get_context(user_query)
             
             # Формируем системный промпт
             system_prompt = self._build_system_prompt(context, voice_mode)
