@@ -101,18 +101,37 @@ def extract_address(text: str) -> Optional[str]:
 
 
 def extract_month(text: str) -> Optional[str]:
-    """Извлечь месяц из текста (october/november/december)"""
+    """
+    Продвинутое извлечение месяца из текста
+    Поддерживает все падежи, сокращения, числовые форматы
+    Возвращает: october/november/december
+    """
     if not text:
         return None
     
     text_lower = text.lower()
     
-    if any(k in text_lower for k in ['октябр', 'окт']):
-        return 'october'
-    elif any(k in text_lower for k in ['ноябр', 'ноя']):
-        return 'november'
-    elif any(k in text_lower for k in ['декабр', 'дек']):
-        return 'december'
+    # Словарь месяцев с различными формами
+    month_patterns = {
+        'october': [
+            'октябр', 'окт', 'октября', 'октябре', 'октябрь', 'октябрём',
+            r'\b10\b', r'\b10\.', r'10/2025', r'2025-10'
+        ],
+        'november': [
+            'ноябр', 'ноя', 'ноября', 'ноябре', 'ноябрь', 'ноябрём',
+            r'\b11\b', r'\b11\.', r'11/2025', r'2025-11'
+        ],
+        'december': [
+            'декабр', 'дек', 'декабря', 'декабре', 'декабрь', 'декабрём',
+            r'\b12\b', r'\b12\.', r'12/2025', r'2025-12'
+        ]
+    }
+    
+    # Проверяем каждый месяц
+    for month_key, patterns in month_patterns.items():
+        for pattern in patterns:
+            if re.search(pattern, text_lower):
+                return month_key
     
     return None
 
