@@ -614,6 +614,7 @@ class Bitrix24Service:
         brigade: Optional[str] = None,
         status: Optional[str] = None,
         management_company: Optional[str] = None,
+        address: Optional[str] = None,
         cleaning_date: Optional[str] = None,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
