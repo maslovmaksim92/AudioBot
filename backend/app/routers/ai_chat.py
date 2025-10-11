@@ -328,11 +328,12 @@ async def send_message(
             .where(ChatHistory.user_id == request.user_id)
             .order_by(ChatHistory.created_at.desc())
             .limit(10)
+        )
+
         # Быстрая ветка: если это вопрос про адрес — попробуем Bitrix напрямую
         try:
             addr = _extract_address_candidate(request.message)
             if addr:
-                # Нормализация + поиск домов в Bitrix
                 data = await bitrix_service.list_houses(address=addr, limit=20)
                 houses = (data or {}).get('houses') or []
                 if houses:
@@ -361,7 +362,6 @@ async def send_message(
                             f"Октябрь — даты уборок:\n{detailed}\n\n"
                             f"Ссылка в Bitrix: {h.get('bitrix_url') or '-'}"
                         )
-                        # Сохраняем ответ ассистента
                         assistant_message = ChatHistory(
                             id=str(uuid.uuid4()),
                             user_id=request.user_id,
@@ -374,7 +374,6 @@ async def send_message(
         except Exception as e:
             logger.warning(f"Fast address branch failed: {e}")
 
-        )
         history = result.scalars().all()
         
         # Формируем список сообщений (в обратном порядке)
