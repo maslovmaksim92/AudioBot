@@ -674,12 +674,16 @@ class Bitrix24Service:
                             # Быстрая проверка адреса до дорогих запросов
                             if address:
                                 raw_addr = (d.get('UF_CRM_1669561599956') or d.get('TITLE') or '')
-                                hay = _normalize_addr_local(raw_addr)
-                                if not hay or norm_addr not in hay:
+                                # Используем умное сравнение адресов
+                                match_score = address_match_score(address, raw_addr)
+                                if match_score == 0:
                                     continue
                             # Только при потенциальном совпадении грузим компанию и строим DTO
                             company_title = await self._company_title(client, d.get('COMPANY_ID'))
                             item = await self._deal_to_house_dto(client, d, company_title)
+                            # Добавляем score для сортировки
+                            if address:
+                                item['_match_score'] = address_match_score(address, item.get('address') or item.get('title') or '')
                             all_items.append(item)
                             # Если ищем по адресу — достаточно первых совпадений в пределах limit
                             if address and len(all_items) >= limit:
