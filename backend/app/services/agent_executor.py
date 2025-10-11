@@ -122,14 +122,21 @@ class AgentExecutor:
                     })
                     success = False
             
-            return {
+            executed_at = datetime.now(timezone.utc)
+            
+            result = {
                 'success': success,
                 'agent_id': agent['id'],
                 'agent_name': agent['name'],
-                'executed_at': datetime.now(timezone.utc).isoformat(),
+                'executed_at': executed_at.isoformat(),
                 'actions_executed': len(results),
                 'results': results
             }
+            
+            # Сохраняем лог выполнения
+            await self._save_execution_log(result)
+            
+            return result
         
         except Exception as e:
             logger.error(f"❌ Error executing agent {agent['name']}: {e}")
