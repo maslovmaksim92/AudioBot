@@ -325,7 +325,10 @@ AI звонок
 }
 ```
 
-## Logs
+## Logs & Observability
+
+### `GET /api/brain/metrics`
+Снимок метрик единого мозга (resolver_counts, resolver_times_ms, cache_hits/misses)
 
 ### `GET /api/logs`
 
