@@ -1,14 +1,6 @@
 [
   {
-    "content": "Добавить маршрут /finances в App.js",
-    "status": "completed"
-  },
-  {
-    "content": "Добавить 'Финансы' в Sidebar навигацию",
-    "status": "completed"
-  },
-  {
     "content": "Протестировать финансовый модуль",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]
