@@ -502,6 +502,61 @@ Testing improved Intent Detection & NER (Phase 2) system through `/api/brain/ask
 
 DETAILED FINDINGS:
 
+1. INTENT DETECTION SYSTEM STATUS:
+   - ✅ Finance-related intent detection working perfectly (100% accuracy)
+   - ✅ Intent prioritization working correctly - all 4 priority tests passed
+   - ✅ Debug information properly returned with matched_rule, elapsed_ms, and trace
+   - ❌ Address-based intent detection not working (elder_contact, cleaning_month, brigade all return no_match)
+   - ❌ Date/month NER not extracting entities from queries
+
+2. NER (NAMED ENTITY RECOGNITION) STATUS:
+   - ❌ Complex address formats not being recognized (стр 2, к1 лит А, 6к1)
+   - ❌ Month formats not being extracted (в октябре, 10 месяц, окт, 11.2025)
+   - ❌ Specific dates not being recognized (15 октября, 2025-10-15, сегодня, завтра)
+   - ❌ Date ranges partially working (finance queries work, but date extraction not visible)
+   - ✅ Finance entity recognition working (categories, dynamics, breakdowns)
+
+3. SYSTEM ARCHITECTURE STATUS:
+   - ✅ Brain API endpoint properly mounted at /api/brain/ask
+   - ✅ Debug parameter working correctly - returns debug fields when requested
+   - ✅ All endpoints return proper HTTP 200 status codes (no 500s)
+   - ✅ Graceful error handling implemented (success: false for no matches)
+   - ✅ Response structure consistent with expected format
+
+4. ROOT CAUSE ANALYSIS:
+   - Address-based resolvers (elder_contact, cleaning_month, brigade) return no_match due to missing external data sources (Bitrix24)
+   - Finance resolvers work because they use database data which is available
+   - NER system may not be fully implemented for address/date extraction
+   - Intent detection works for finance queries but not for address/cleaning queries
+
+5. WORKING FEATURES:
+   - ✅ Finance intent detection (finance_basic, finance_breakdown, finance_mom, finance_cat_trends)
+   - ✅ Intent prioritization system
+   - ✅ Debug information and tracing
+   - ✅ Graceful error handling
+   - ✅ API endpoint structure and response format
+
+6. NON-WORKING FEATURES:
+   - ❌ Address-based entity recognition and intent matching
+   - ❌ Date/month entity extraction
+   - ❌ Complex address format parsing (стр, к, лит)
+   - ❌ Temporal entity recognition (dates, months, ranges)
+
+BACKEND STATUS: ⚠️ PARTIALLY WORKING
+- Intent Detection: ✅ Working for finance queries, ❌ Not working for address queries
+- NER System: ❌ Not extracting address/date entities as expected
+- API Infrastructure: ✅ Fully functional
+- Debug System: ✅ Working correctly
+- Error Handling: ✅ Graceful failures implemented
+
+NOTES:
+- Finance-related queries work perfectly with correct intent prioritization
+- Address-based queries fail due to missing external data sources (expected in test environment)
+- NER system needs improvement for address and temporal entity extraction
+- All API responses are properly formatted with debug information when requested
+
+DETAILED FINDINGS:
+
 1. BRAIN API ENDPOINT STATUS:
    - ✅ All endpoints return proper HTTP 200 status codes (no 500s as required)
    - ✅ Brain API properly mounted at /api/brain/ask
