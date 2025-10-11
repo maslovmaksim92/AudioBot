@@ -59,28 +59,55 @@ async def create_agent(
 async def get_agents(
     status: str = None,
     type: str = None,
-    db: AsyncSession = Depends(get_db)
 ):
     """
     Получить список всех агентов
     """
     try:
-        query = select(Agent)
+        import asyncpg
+        import os
         
-        # Фильтры
-        filters = []
-        if status:
-            filters.append(Agent.status == status)
-        if type:
-            filters.append(Agent.type == type)
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
         
-        if filters:
-            query = query.where(and_(*filters))
-        
-        result = await db.execute(query.order_by(Agent.created_at.desc()))
-        agents = result.scalars().all()
-        
-        return [AgentResponse(**agent.to_dict()) for agent in agents]
+        try:
+            query = "SELECT * FROM agents WHERE 1=1"
+            params = []
+            
+            if status:
+                query += f" AND status = ${len(params) + 1}"
+                params.append(status)
+            if type:
+                query += f" AND type = ${len(params) + 1}"
+                params.append(type)
+            
+            query += " ORDER BY created_at DESC"
+            
+            rows = await conn.fetch(query, *params)
+            
+            agents = []
+            for row in rows:
+                agents.append(AgentResponse(
+                    id=row['id'],
+                    name=row['name'],
+                    description=row['description'],
+                    type=row['type'],
+                    status=row['status'],
+                    triggers=row['triggers'] or [],
+                    actions=row['actions'] or [],
+                    config=row['config'] or {},
+                    executions_total=row['executions_total'] or 0,
+                    executions_success=row['executions_success'] or 0,
+                    executions_failed=row['executions_failed'] or 0,
+                    last_execution=row['last_execution'].isoformat() if row['last_execution'] else None,
+                    created_at=row['created_at'].isoformat(),
+                    updated_at=row['updated_at'].isoformat(),
+                    created_by=row['created_by']
+                ))
+            
+            return agents
+        finally:
+            await conn.close()
     
     except Exception as e:
         logger.error(f"❌ Error fetching agents: {e}")
