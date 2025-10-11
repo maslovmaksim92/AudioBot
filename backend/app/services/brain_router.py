@@ -16,6 +16,9 @@ from backend.app.services.brain_resolvers import (
     resolve_structural_totals,
     resolve_finance_breakdown,
     resolve_finance_mom,
+    resolve_contractor_contacts,
+    resolve_tasks_by_address,
+    resolve_tasks_by_brigade,
 )
 from backend.app.services.brain_resolvers_stage6 import (
     resolve_finance_yoy,
