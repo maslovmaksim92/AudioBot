@@ -339,6 +339,46 @@ class AIAssistant:
         
         return prompt
     
+    def _try_answer_cleaning_dates_quick(self, user_query: str, context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Если найден дом по адресу (matched_houses), вернём подробный список дат уборок за октябрь без вызова LLM.
+        Формат: список дат и тип для october_1 и october_2.
+        """
+        try:
+            if not user_query:
+                return None
+            houses = context.get('matched_houses') or []
+            if not houses:
+                return None
+            h = houses[0]
+            cd = (h.get('cleaning_dates') or {})
+            def _fmt_month(key: str) -> Optional[str]:
+                v = cd.get(key) or {}
+                ds = v.get('dates') or []
+                t = v.get('type') or ''
+                if not ds:
+                    return None
+                dates_txt = ', '.join(ds)
+                return f"{key}: {dates_txt} — {t}" if t else f"{key}: {dates_txt}"
+            parts: List[str] = []
+            m1 = _fmt_month('october_1')
+            m2 = _fmt_month('october_2')
+            if m1:
+                parts.append(m1)
+            if m2:
+                parts.append(m2)
+            if not parts:
+                return None
+            detailed = "\n".join(parts)
+            text = (
+                f"🏠 Адрес: {h.get('title') or h.get('address')}.\n"
+                f"Периодичность: {h.get('periodicity') or 'не указана'}.\n"
+                f"Октябрь — даты уборок:\n{detailed}"
+            )
+            return {'success': True, 'response': text, 'source': 'bitrix', 'context_used': {'matched_houses': houses[:1]}}
+        except Exception:
+            return None
+
     async def analyze_data(self, analysis_type: str) -> Dict[str, Any]:
         """
         Автоматический анализ данных
