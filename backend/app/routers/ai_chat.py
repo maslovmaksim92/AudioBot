@@ -328,6 +328,52 @@ async def send_message(
             .where(ChatHistory.user_id == request.user_id)
             .order_by(ChatHistory.created_at.desc())
             .limit(10)
+        # Быстрая ветка: если это вопрос про адрес — попробуем Bitrix напрямую
+        try:
+            addr = _extract_address_candidate(request.message)
+            if addr:
+                # Нормализация + поиск домов в Bitrix
+                data = await bitrix_service.list_houses(address=addr, limit=20)
+                houses = (data or {}).get('houses') or []
+                if houses:
+                    h = houses[0]
+                    cd = h.get('cleaning_dates') or {}
+                    def _fmt_month(key: str) -> Optional[str]:
+                        v = cd.get(key) or {}
+                        ds = v.get('dates') or []
+                        t = v.get('type') or ''
+                        if not ds:
+                            return None
+                        dates_txt = ', '.join(ds)
+                        return f"{key}: {dates_txt} — {t}" if t else f"{key}: {dates_txt}"
+                    parts = []
+                    m1 = _fmt_month('october_1')
+                    m2 = _fmt_month('october_2')
+                    if m1:
+                        parts.append(m1)
+                    if m2:
+                        parts.append(m2)
+                    if parts:
+                        detailed = "\n".join(parts)
+                        reply = (
+                            f"🏠 Адрес: {h.get('title') or h.get('address')}.\n"
+                            f"Периодичность: {h.get('periodicity') or 'не указана'}.\n"
+                            f"Октябрь — даты уборок:\n{detailed}\n\n"
+                            f"Ссылка в Bitrix: {h.get('bitrix_url') or '-'}"
+                        )
+                        # Сохраняем ответ ассистента
+                        assistant_message = ChatHistory(
+                            id=str(uuid.uuid4()),
+                            user_id=request.user_id,
+                            role="assistant",
+                            content=reply,
+                        )
+                        db.add(assistant_message)
+                        await db.commit()
+                        return ChatResponse(message=reply, function_calls=[], created_at=datetime.utcnow().isoformat())
+        except Exception as e:
+            logger.warning(f"Fast address branch failed: {e}")
+
         )
         history = result.scalars().all()
         
