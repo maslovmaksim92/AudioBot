@@ -186,7 +186,8 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 - `GET /api/health` - Проверка здоровья
 - `GET /api/cleaning/houses` - Список домов
 - `GET /api/dashboard/stats` - Статистика
-- `POST /api/ai/chat` - AI чат
+- `POST /api/ai/chat` - AI чат (debug: true — мини-хинт с правилом/временем/источником)
+- `POST /api/brain/ask` - Единый мозг: прямой вызов быстрых ответов (debug: true — matched_rule(s), trace, sources)
 - `POST /api/voice/ai-call` - AI звонок
 - `POST /api/knowledge/upload` - Загрузка в БЗ
 - `POST /api/ai-tasks` - Создание AI задачи
