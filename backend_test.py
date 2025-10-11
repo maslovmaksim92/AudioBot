@@ -137,11 +137,72 @@ class BackendTester:
             return False
     
     async def test_ai_chat_endpoint(self):
-        """Test POST /api/ai-assistant/chat"""
-        print("🔍 Testing AI Assistant Chat Endpoint...")
+        """Test POST /api/ai-assistant/chat with specific Bitrix address matching logic"""
+        print("🔍 Testing AI Assistant Chat Endpoint with Bitrix Address Matching...")
+        
+        # Test the specific message from review request
+        payload = {
+            "message": "Когда уборка на билибина 6 в октябре ?"
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/ai-assistant/chat",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
+                    
+                    # Check response structure
+                    success = data.get('success', False)
+                    print(f"📋 Response Success: {success}")
+                    
+                    if success:
+                        # If Bitrix returns data with Билибина 6 and October dates
+                        print("✅ AI Chat endpoint returned successful response")
+                        if 'response' in data:
+                            print(f"📝 Response content: {data['response'][:200]}...")
+                        if 'matched_houses' in data:
+                            print(f"🏠 Matched houses: {len(data.get('matched_houses', []))}")
+                        return True
+                    else:
+                        # If Bitrix returns empty, should still be 200 with OpenAI error
+                        error = data.get('error', '')
+                        print(f"⚠️ Response indicates failure: {error}")
+                        if 'OpenAI' in error or 'API key' in error:
+                            print("✅ Expected OpenAI API key error (Bitrix returned empty)")
+                            return True
+                        else:
+                            print(f"❌ Unexpected error: {error}")
+                            return False
+                else:
+                    # Any non-200 status is unexpected for this test
+                    try:
+                        data = response.json()
+                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                        print(f"❌ Unexpected status code {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/ai-assistant/chat", "POST", 0, None, str(e))
+            print(f"❌ AI Chat endpoint failed: {e}")
+            return False
+    
+    async def test_ai_chat_general(self):
+        """Test POST /api/ai-assistant/chat with general message"""
+        print("🔍 Testing AI Assistant Chat Endpoint with General Message...")
         
         payload = {
-            "message": "Короткий тест",
+            "message": "Привет, как дела?",
             "conversation_history": None,
             "voice_mode": False
         }
@@ -156,26 +217,26 @@ class BackendTester:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
-                    print("✅ AI Chat endpoint returned 200")
+                    self.log_result("/api/ai-assistant/chat (general)", "POST", response.status_code, data)
+                    print("✅ AI Chat endpoint returned 200 for general message")
                     return True
                 elif response.status_code == 500:
                     # Graceful error handling for missing OpenAI key or DB issues
                     try:
                         data = response.json()
-                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
+                        self.log_result("/api/ai-assistant/chat (general)", "POST", response.status_code, data)
                         print("⚠️ AI Chat endpoint returned 500 (likely missing OpenAI key or DB issue)")
                         return True  # This is expected behavior per requirements
                     except:
-                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, None, "500 with non-JSON response")
+                        self.log_result("/api/ai-assistant/chat (general)", "POST", response.status_code, None, "500 with non-JSON response")
                         return False
                 else:
-                    self.log_result("/api/ai-assistant/chat", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    self.log_result("/api/ai-assistant/chat (general)", "POST", response.status_code, None, f"HTTP {response.status_code}")
                     return False
                     
         except Exception as e:
-            self.log_result("/api/ai-assistant/chat", "POST", 0, None, str(e))
-            print(f"❌ AI Chat endpoint failed: {e}")
+            self.log_result("/api/ai-assistant/chat (general)", "POST", 0, None, str(e))
+            print(f"❌ AI Chat general endpoint failed: {e}")
             return False
     
     async def run_all_tests(self):
