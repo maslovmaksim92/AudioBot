@@ -303,7 +303,7 @@ async def resolve_structural_totals(text: str, db: AsyncSession, ent: Optional[D
             sources = {"addr": address, "houses": meta}
         else:
             # Статистика по всем домам из БД
-            q = text(
+            q = sql_text(
                 """
                 SELECT 
                     COUNT(*) as total_houses,
