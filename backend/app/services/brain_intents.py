@@ -4,8 +4,29 @@ Extend intents (Stage 6): YoY and category trends
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+import re
 
-from .brain_intents import detect_intent as _detect_intent_base
+
+def _detect_intent_base(message: str) -> Optional[Dict[str, Any]]:
+    """Base intent detection for common patterns"""
+    if not message:
+        return None
+    
+    tl = message.lower()
+    
+    # Address/contact patterns
+    if any(k in tl for k in ["контакт", "телефон", "номер", "старш"]):
+        return {"type": "elder_contact"}
+    
+    # Cleaning schedule patterns  
+    if any(k in tl for k in ["уборк", "когда", "дат", "расписан"]):
+        return {"type": "cleaning_schedule"}
+    
+    # Finance patterns
+    if any(k in tl for k in ["расход", "доход", "финанс", "деньги", "категори"]):
+        return {"type": "finance"}
+    
+    return None
 
 
 def detect_intent(message: str) -> Optional[Dict[str, Any]]:
