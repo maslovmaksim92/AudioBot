@@ -3,7 +3,7 @@ API роутер для агентов - CRUD операции и статист
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, text
 from typing import List
 from datetime import datetime, timezone, timedelta
 import logging
