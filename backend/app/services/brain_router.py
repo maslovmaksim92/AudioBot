@@ -60,7 +60,8 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
                 return ans
         elif t == "finance_basic" and db is not None:
             ans = await _ret(await resolve_finance_basic(message, db, ent), "finance_basic")
-            if ans: return ans
+            if ans:
+                return ans
         elif t == "finance_breakdown" and db is not None:
             ans = await _ret(await resolve_finance_breakdown(message, db, ent), "finance_breakdown")
             if ans: return ans
