@@ -1,22 +1,10 @@
 [
   {
-    "content": "Перезапустить сервисы с новым кодом",
-    "status": "completed"
-  },
-  {
-    "content": "Проверить /api/health endpoint",
-    "status": "completed"
-  },
-  {
-    "content": "Проверить логи на ошибки",
-    "status": "completed"
-  },
-  {
     "content": "Проверить frontend по предпросмотру URL",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Протестировать основные функции (Dashboard, Works, AI Chat)",
-    "status": "pending"
+    "status": "completed"
   }
 ]
