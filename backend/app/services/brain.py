@@ -7,6 +7,17 @@ from typing import Optional
 import re
 
 
+_ADDR_STOPWORDS = {
+    "контакт", "контакты", "старшего", "старший", "телефон", "почта", "email",
+    "номер", "по", "адресу", "на", "—", "-",
+    # general query words to strip from address extraction
+    "уборка", "уборки", "график", "расписан", "когда", "дат", "дата", "даты",
+    "нужно", "интересует", "покажи", "сколько", "какая", "где", "месяц",
+    # month words to avoid polluting address candidates
+    "октябрь", "ноябрь", "декабрь", "окт", "ноя", "дек",
+}
+
+
 def _normalize_address_base(text: Optional[str]) -> str:
     """Base address normalization"""
     if not text:
