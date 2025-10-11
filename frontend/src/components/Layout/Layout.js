@@ -31,7 +31,7 @@ const Layout = ({ children }) => {
     { name: 'Сотрудники', href: '/employees', icon: Users, color: 'text-orange-600' },
     { name: 'AI Чат', href: '/ai', icon: Bot, color: 'text-purple-600' },
     { name: 'Живой разговор', href: '/live', icon: Bot, color: 'text-rose-600' },
-    { name: 'Конструктор', href: '/constructor', icon: Settings, color: 'text-yellow-600' },
+    { name: 'Конструктор', href: '/agents', icon: Settings, color: 'text-yellow-600' },
     { name: 'Планёрка', href: '/meetings', icon: ClipboardList, color: 'text-indigo-600' },
     { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
     { name: 'Задачи', href: '/tasks', icon: ClipboardList, color: 'text-blue-600' },
