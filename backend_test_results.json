@@ -1,53 +1,87 @@
 {
   "summary": {
-    "Health Check": false,
-    "Stage 6 - Finance Categories (Debug)": false,
-    "Stage 6 - YoY Dynamics (Debug)": false,
+    "Health Check": true,
+    "Stage 6 - Finance Categories (Debug)": true,
+    "Stage 6 - YoY Dynamics (Debug)": true,
     "Stage 6 - Top Decline Categories (Debug)": false,
-    "Stage 6 - Address NER (Debug)": false
+    "Stage 6 - Address NER (Debug)": true
   },
   "detailed_results": [
     {
       "endpoint": "/api/health",
       "method": "GET",
-      "status_code": 502,
-      "response": null,
-      "error": "HTTP 502",
-      "timestamp": "2025-10-11T17:20:06.304645"
+      "status_code": 200,
+      "response": {
+        "ok": true,
+        "ts": 1760203235
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:20:35.220256"
     },
     {
       "endpoint": "/api/brain/ask (Finance Categories)",
       "method": "POST",
-      "status_code": 502,
-      "response": null,
-      "error": "HTTP 502 with non-JSON response",
-      "timestamp": "2025-10-11T17:20:06.342385"
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:20:35.260826"
     },
     {
       "endpoint": "/api/brain/ask (YoY Dynamics)",
       "method": "POST",
-      "status_code": 502,
-      "response": null,
-      "error": "HTTP 502 with non-JSON response",
-      "timestamp": "2025-10-11T17:20:06.381325"
+      "status_code": 200,
+      "response": {
+        "success": true,
+        "response": "Г/Г динамика за 365 дней:\nДоход: 150000.00 (было 0.00, 0.0%)\nРасход: 0.00 (было 0.00, 0.0%)\nПрибыль: 150000.00 (было 0.00, 0.0%)",
+        "data": {
+          "income_now": 150000.0,
+          "expense_now": 0.0,
+          "profit_now": 150000.0,
+          "income_prev": 0.0,
+          "expense_prev": 0.0,
+          "profit_prev": 0.0,
+          "yoy_income": 0.0,
+          "yoy_expense": 0.0,
+          "yoy_profit": 0.0
+        },
+        "rule": "finance_yoy",
+        "debug": {
+          "matched_rule": "finance_yoy",
+          "elapsed_ms": 844
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:20:36.287033"
     },
     {
       "endpoint": "/api/brain/ask (Top Decline)",
       "method": "POST",
-      "status_code": 502,
+      "status_code": 500,
       "response": null,
-      "error": "HTTP 502 with non-JSON response",
-      "timestamp": "2025-10-11T17:20:06.425447"
+      "error": "500 with non-JSON response",
+      "timestamp": "2025-10-11T17:20:37.322453"
     },
     {
       "endpoint": "/api/brain/ask (Address NER)",
       "method": "POST",
-      "status_code": 502,
-      "response": null,
-      "error": "HTTP 502 with non-JSON response",
-      "timestamp": "2025-10-11T17:20:06.471466"
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:20:37.369482"
     }
   ],
-  "test_time": "2025-10-11T17:20:06.471780",
+  "test_time": "2025-10-11T17:20:37.369850",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
