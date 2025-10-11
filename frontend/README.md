@@ -37,6 +37,7 @@ frontend/
 │   │   ├── Sales/        # Воронка продаж
 │   │   ├── Logistics/    # Логистика
 │   │   ├── Logs/         # Системные логи
+│   │   ├── Finances/     # Финансовый модуль
 │   │   └── ui/           # shadcn/ui компоненты
 │   ├── hooks/
 │   │   └── use-toast.js
