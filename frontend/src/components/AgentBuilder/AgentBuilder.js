@@ -530,6 +530,50 @@ const AgentBuilder = () => {
                         )}
                       </div>
 
+                      {/* Triggers and Actions */}
+                      {(agent.triggers?.length > 0 || agent.actions?.length > 0) && (
+                        <div className="mb-4 space-y-2">
+                          {agent.triggers?.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Calendar className="w-4 h-4 text-blue-600 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-gray-700">Триггеры:</span>
+                                <div className="text-gray-600 mt-1 space-y-1">
+                                  {agent.triggers.map((trigger, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{trigger.type}</span>
+                                      <span>{trigger.name}</span>
+                                      {trigger.config?.cron && (
+                                        <code className="text-xs bg-gray-100 px-2 py-0.5 rounded">{trigger.config.cron}</code>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {agent.actions?.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Zap className="w-4 h-4 text-purple-600 mt-0.5" />
+                              <div>
+                                <span className="font-semibold text-gray-700">Действия:</span>
+                                <div className="text-gray-600 mt-1 space-y-1">
+                                  {agent.actions.map((action, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">{action.type}</span>
+                                      <span>{action.name}</span>
+                                      {action.config?.recipients && (
+                                        <span className="text-xs text-gray-500">→ {action.config.recipients}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleExecuteAgent(agent.id)}
