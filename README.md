@@ -190,6 +190,11 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 - `POST /api/knowledge/upload` - Загрузка в БЗ
 - `POST /api/ai-tasks` - Создание AI задачи
 - `POST /api/meetings` - Планёрка
+- `GET /api/finances/categories` - Категории финансов
+- `POST /api/finances/transactions` - Создать транзакцию
+- `GET /api/finances/cash-flow` - Отчёт о движении денег
+- `GET /api/finances/profit-loss` - Прибыли и убытки
+- `GET /api/finances/balance-sheet` - Баланс
 
 **Полная документация:** `/api/docs` (Swagger UI)
 
