@@ -179,7 +179,7 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 # Production: https://audiobot-qpi2.onrender.com
 ```
 
-## 📡 Основные API endpoints
+## 📡 Основные API endpoints (дополнено Единым мозгом)
 
 Все начинаются с `/api`:
 
