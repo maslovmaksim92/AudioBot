@@ -373,6 +373,7 @@ async def send_message(
                         return ChatResponse(message=reply, function_calls=[], created_at=datetime.utcnow().isoformat())
         except Exception as e:
             logger.warning(f"Fast address branch failed: {e}")
+            # Продолжаем обычный сценарий без прерывания
 
         history = result.scalars().all()
         
