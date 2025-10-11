@@ -618,3 +618,64 @@ NOTES:
 - Structural totals show significant data volume (499 houses, 30,621 apartments) indicating active database
 - All responses include proper debug metadata for troubleshooting
 - Cache system operational and being monitored through metrics endpoint
+
+=== RUN 2025-10-11: Address Accuracy Testing - Brain API Endpoint ===
+
+SPECIFIC TESTS REQUESTED:
+✅ GET /api/health -> 200 { "ok": true, "ts": 1760211073 }
+✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 1","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"График уборки Кибальчича 1 октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 3","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"График уборки Кибальчича 5 октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"Контакты старшего Билибина 6","debug":true} -> 200 {"success": false, "error": "no_match"}
+
+DETAILED FINDINGS:
+
+1. BRAIN API ENDPOINT BEHAVIOR:
+   - All endpoints return proper HTTP 200 status codes ✅
+   - No 500 errors encountered ✅ (per requirements)
+   - Health endpoint working correctly with expected structure ✅
+   - Brain API properly mounted at /api/brain/ask ✅
+   - Debug parameter working correctly - returns debug fields when requested ✅
+
+2. ADDRESS ACCURACY TESTING STATUS:
+   - ❌ CRITICAL ISSUE: Cannot test address accuracy due to Bitrix24 authentication failure
+   - ❌ All address queries return "no_match" due to missing external data source
+   - ✅ Brain resolvers are working correctly and being executed in proper order
+   - ✅ Intent detection system correctly identifies address-based queries (elder_contact, cleaning_month)
+   - ✅ Debug information shows proper resolver execution trace
+
+3. ROOT CAUSE ANALYSIS - BITRIX24 INTEGRATION FAILURE:
+   - ❌ Bitrix24 API returning 401 Unauthorized (authentication expired/invalid)
+   - ❌ Webhook URL: https://vas-dom.bitrix24.ru/rest/1/f3pvpfdzssjzm0i/* failing after 3 retry attempts
+   - ❌ Without Bitrix data, brain resolvers cannot find address matches
+   - ✅ System correctly returns graceful failures (success: false) instead of 500 errors
+   - ✅ Error handling working as expected (graceful failures)
+
+4. TECHNICAL INTEGRATION STATUS:
+   - ✅ Brain router successfully mounted and responding
+   - ✅ All resolvers being executed in correct priority order
+   - ✅ Debug functionality working correctly (matched_rule, elapsed_ms, trace)
+   - ✅ No crashes or unhandled exceptions
+   - ❌ External data dependency failing (Bitrix24 authentication)
+
+5. ADDRESS ACCURACY IMPLICATIONS:
+   - ⚠️ Cannot verify if system returns correct address (Кибальчича 1 vs Кибальчича 5)
+   - ⚠️ Cannot test if system prevents wrong address matches
+   - ✅ System architecture supports address accuracy testing when data is available
+   - ✅ Intent detection correctly identifies specific addresses in queries
+
+BACKEND STATUS: ✅ WORKING (Brain API fully functional, external data source unavailable)
+
+CRITICAL ISSUES IDENTIFIED:
+1. ❌ Bitrix24 webhook authentication expired/invalid (401 errors)
+2. ❌ Address accuracy testing impossible without external data source
+3. ✅ Brain API infrastructure working correctly
+4. ✅ All HTTP responses proper (no 500s as required)
+
+NOTES:
+- Address accuracy testing requires valid Bitrix24 authentication to access house/contact data
+- Brain resolvers correctly detect address-based queries but return no_match due to missing data
+- System gracefully handles missing external dependencies
+- All API responses include proper debug metadata for troubleshooting
+- When Bitrix24 data is available, the system would be able to test address accuracy as requested
