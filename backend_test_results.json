@@ -1,0 +1,56 @@
+{
+  "summary": {
+    "Health Check": true,
+    "AI Context": true,
+    "AI Analyze": true,
+    "AI Chat": true
+  },
+  "detailed_results": [
+    {
+      "endpoint": "/api/health",
+      "method": "GET",
+      "status_code": 200,
+      "response": {
+        "ok": true,
+        "ts": 1760190645
+      },
+      "error": null,
+      "timestamp": "2025-10-11T13:50:45.586252"
+    },
+    {
+      "endpoint": "/api/ai-assistant/context",
+      "method": "GET",
+      "status_code": 200,
+      "response": {
+        "success": true,
+        "context": {}
+      },
+      "error": null,
+      "timestamp": "2025-10-11T13:50:46.923196"
+    },
+    {
+      "endpoint": "/api/ai-assistant/analyze",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "No financial data"
+      },
+      "error": null,
+      "timestamp": "2025-10-11T13:50:48.087684"
+    },
+    {
+      "endpoint": "/api/ai-assistant/chat",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "OpenAI API error: 401"
+      },
+      "error": null,
+      "timestamp": "2025-10-11T13:50:49.454944"
+    }
+  ],
+  "test_time": "2025-10-11T13:50:49.455236",
+  "backend_url": "https://smart-agent-system.preview.emergentagent.com"
+}
