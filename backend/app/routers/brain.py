@@ -1,5 +1,5 @@
 """
-Brain API router: add /metrics endpoint (Stage 7)
+Brain API router: debug returns matched_rules and sources; logs already handled in brain_router
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) ->
     if ans is None:
         out = {"success": False, "error": "no_match"}
         if req.debug:
-            out["debug"] = {"matched_rule": None}
+            out["debug"] = {"matched_rule": None, "matched_rules": []}
         return out
     # record metrics if debug present
     if req.debug and isinstance(ans, dict) and ans.get("debug"):
@@ -37,8 +37,3 @@ async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) ->
         rule = dbg.get("matched_rule") or ans.get("rule") or "unknown"
         brain_metrics.record_resolver(rule, dbg.get("elapsed_ms", 0))
     return ans
-
-
-@router.get("/metrics")
-async def brain_metrics_snapshot() -> Dict[str, dict]:
-    return brain_metrics.snapshot()
