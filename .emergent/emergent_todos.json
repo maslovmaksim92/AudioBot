@@ -1,22 +1,22 @@
 [
   {
-    "content": "Установить новые зависимости (backend и frontend)",
+    "content": "Перезапустить сервисы с новым кодом",
     "status": "completed"
   },
   {
-    "content": "Перезапустить сервисы с новым кодом",
-    "status": "in_progress"
-  },
-  {
     "content": "Проверить /api/health endpoint",
-    "status": "pending"
-  },
-  {
-    "content": "Проверить frontend по предпросмотру URL",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Проверить логи на ошибки",
+    "status": "completed"
+  },
+  {
+    "content": "Проверить frontend по предпросмотру URL",
+    "status": "in_progress"
+  },
+  {
+    "content": "Протестировать основные функции (Dashboard, Works, AI Chat)",
     "status": "pending"
   }
 ]
