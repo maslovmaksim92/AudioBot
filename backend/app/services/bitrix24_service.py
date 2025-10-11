@@ -712,10 +712,11 @@ class Bitrix24Service:
                 return False
             if management_company and management_company.lower() not in (item.get('management_company') or '').lower():
                 return False
-            # Address match with normalization
+            # Address match with smart scoring
             if norm_addr:
-                hay = _normalize_addr_local(item.get('address') or item.get('title') or '')
-                if norm_addr not in hay:
+                target = item.get('address') or item.get('title') or ''
+                match_score = address_match_score(address, target)
+                if match_score == 0:
                     return False
             def has_date(d: str) -> bool:
                 for v in (item.get('cleaning_dates') or {}).values():
