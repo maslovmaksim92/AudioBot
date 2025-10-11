@@ -17,6 +17,7 @@ import Training from './components/Training/Training';
 import Logistics from './components/Logistics/Logistics';
 import Logs from './components/Logs/Logs';
 import AgentBuilder from './components/AgentBuilder/AgentBuilder';
+import AgentDashboard from './components/AgentDashboard/AgentDashboard';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
 
