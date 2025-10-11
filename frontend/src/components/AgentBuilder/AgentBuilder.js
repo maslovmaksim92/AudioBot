@@ -44,6 +44,7 @@ const AgentBuilder = () => {
     type: 'scheduler',
     triggers: [],
     actions: [],
+    config: {},
     status: 'active'
   });
 
