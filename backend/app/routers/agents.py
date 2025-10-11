@@ -327,7 +327,7 @@ async def initialize_agents_table(db: AsyncSession = Depends(get_db)):
     
     try:
         # Используем raw SQL через connection
-        await db.execute(CREATE_TABLE_SQL)
+        await db.execute(text(CREATE_TABLE_SQL))
         await db.commit()
         
         logger.info("✅ Agents table created successfully")
