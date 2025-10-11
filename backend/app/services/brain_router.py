@@ -106,12 +106,22 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
         elif t == "finance_cat_trends" and db is not None:
             res = await attempt("finance_cat_trends", resolve_finance_category_trends, message, db, ent)
             if res: return res
+        elif t == "contractor_contacts":
+            res = await attempt("contractor_contacts", resolve_contractor_contacts, message, ent)
+            if res: return res
+        elif t == "tasks_by_address" and db is not None:
+            res = await attempt("tasks_by_address", resolve_tasks_by_address, message, db, ent)
+            if res: return res
+        elif t == "tasks_by_brigade" and db is not None:
+            res = await attempt("tasks_by_brigade", resolve_tasks_by_brigade, message, db, ent)
+            if res: return res
 
     # Legacy fallback order
     order_wo_db: List[Tuple[str, Any]] = [
         ("elder_contact", resolve_elder_contact),
         ("cleaning_month", resolve_cleaning_month),
         ("brigade", resolve_brigade_by_address),
+        ("contractor_contacts", resolve_contractor_contacts),
     ]
     for rule, fn in order_wo_db:
         res = await attempt(rule, fn, message)
