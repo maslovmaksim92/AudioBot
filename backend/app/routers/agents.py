@@ -327,44 +327,79 @@ async def get_agent_stats():
 
 
 @router.post("/{agent_id}/execute")
-async def execute_agent(
-    agent_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def execute_agent(agent_id: str):
     """
-    Ручное выполнение агента (для тестирования)
+    Ручное выполнение агента
     """
     try:
-        result = await db.execute(select(Agent).where(Agent.id == agent_id))
-        agent = result.scalar_one_or_none()
+        import asyncpg
+        import os
+        from backend.app.services.agent_executor import agent_executor
         
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
         
-        if agent.status != 'active':
-            raise HTTPException(status_code=400, detail="Agent is not active")
-        
-        # Здесь будет логика выполнения агента
-        # Пока просто обновляем статистику
-        agent.executions_total += 1
-        agent.executions_success += 1
-        agent.last_execution = datetime.now(timezone.utc)
-        
-        await db.commit()
-        
-        logger.info(f"✅ Agent executed: {agent.name} (ID: {agent.id})")
-        
-        return {
-            "success": True,
-            "message": "Agent executed successfully",
-            "agent_id": agent.id,
-            "execution_time": agent.last_execution.isoformat()
-        }
+        try:
+            # Получаем агента
+            row = await conn.fetchrow("SELECT * FROM agents WHERE id = $1", agent_id)
+            
+            if not row:
+                raise HTTPException(status_code=404, detail="Agent not found")
+            
+            if row['status'] != 'active':
+                raise HTTPException(status_code=400, detail="Agent is not active")
+            
+            # Преобразуем в dict для executor
+            agent = {
+                'id': row['id'],
+                'name': row['name'],
+                'description': row['description'],
+                'type': row['type'],
+                'status': row['status'],
+                'triggers': row['triggers'] if isinstance(row['triggers'], list) else json.loads(row['triggers']) if row['triggers'] else [],
+                'actions': row['actions'] if isinstance(row['actions'], list) else json.loads(row['actions']) if row['actions'] else [],
+                'config': row['config'] if isinstance(row['config'], dict) else json.loads(row['config']) if row['config'] else {}
+            }
+            
+            # Выполняем агента
+            result = await agent_executor.execute_agent(agent)
+            
+            # Обновляем статистику
+            now = datetime.now(timezone.utc)
+            if result['success']:
+                await conn.execute("""
+                    UPDATE agents 
+                    SET executions_total = executions_total + 1,
+                        executions_success = executions_success + 1,
+                        last_execution = $1,
+                        updated_at = $1
+                    WHERE id = $2
+                """, now, agent_id)
+            else:
+                await conn.execute("""
+                    UPDATE agents 
+                    SET executions_total = executions_total + 1,
+                        executions_failed = executions_failed + 1,
+                        last_execution = $1,
+                        updated_at = $1
+                    WHERE id = $2
+                """, now, agent_id)
+            
+            logger.info(f"✅ Agent executed: {agent['name']} (ID: {agent_id})")
+            
+            return {
+                "success": result['success'],
+                "message": "Agent executed successfully" if result['success'] else "Agent execution failed",
+                "agent_id": agent_id,
+                "execution_time": now.isoformat(),
+                "details": result
+            }
+        finally:
+            await conn.close()
     
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
         logger.error(f"❌ Error executing agent {agent_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute agent: {str(e)}")
 
