@@ -79,7 +79,17 @@ const AgentBuilder = () => {
   useEffect(() => {
     loadAgents();
     loadStats();
+    loadEmployees();
   }, []);
+  
+  const loadEmployees = async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/employees`);
+      setEmployees(response.data);
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
+  };
 
   const loadAgents = async () => {
     try {
