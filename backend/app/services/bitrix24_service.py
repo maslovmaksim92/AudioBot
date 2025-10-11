@@ -684,7 +684,7 @@ class Bitrix24Service:
             all_items = []
 
         # Server filters
-        def _normalize_addr(s: Optional[str]) -> str:
+        def _normalize_addr_local(s: Optional[str]) -> str:
             if not s:
                 return ''
             ss = str(s).lower().strip()
@@ -693,7 +693,7 @@ class Bitrix24Service:
             ss = ss.replace(',', ' ').replace('.', ' ').replace('  ', ' ')
             return ss
 
-        norm_addr = _normalize_addr(address) if address else None
+        norm_addr = _normalize_addr_local(address) if address else None
 
         def _match(item: Dict[str, Any]) -> bool:
             if brigade and not self._match_brigade(item, brigade):
