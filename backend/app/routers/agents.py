@@ -21,36 +21,57 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 @router.post("/", response_model=AgentResponse)
 async def create_agent(
     agent_data: AgentCreate,
-    db: AsyncSession = Depends(get_db)
 ):
     """
     Создать нового агента
     """
     try:
-        new_agent = Agent(
-            id=str(uuid4()),
-            name=agent_data.name,
-            description=agent_data.description,
-            type=agent_data.type,
-            status=agent_data.status,
-            triggers=[t.dict() for t in agent_data.triggers],
-            actions=[a.dict() for a in agent_data.actions],
-            config=agent_data.config,
-            executions_total=0,
-            executions_success=0,
-            executions_failed=0
-        )
+        import asyncpg
+        import os
+        import json
         
-        db.add(new_agent)
-        await db.commit()
-        await db.refresh(new_agent)
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
         
-        logger.info(f"✅ Agent created: {new_agent.name} (ID: {new_agent.id})")
-        
-        return AgentResponse(**new_agent.to_dict())
+        try:
+            agent_id = str(uuid4())
+            now = datetime.now(timezone.utc)
+            
+            await conn.execute("""
+                INSERT INTO agents (id, name, description, type, status, triggers, actions, config, 
+                                    executions_total, executions_success, executions_failed, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            """, agent_id, agent_data.name, agent_data.description, agent_data.type, agent_data.status,
+                json.dumps([t.dict() for t in agent_data.triggers]),
+                json.dumps([a.dict() for a in agent_data.actions]),
+                json.dumps(agent_data.config),
+                0, 0, 0, now, now)
+            
+            row = await conn.fetchrow("SELECT * FROM agents WHERE id = $1", agent_id)
+            
+            logger.info(f"✅ Agent created: {agent_data.name} (ID: {agent_id})")
+            
+            return AgentResponse(
+                id=row['id'],
+                name=row['name'],
+                description=row['description'],
+                type=row['type'],
+                status=row['status'],
+                triggers=row['triggers'] or [],
+                actions=row['actions'] or [],
+                config=row['config'] or {},
+                executions_total=row['executions_total'] or 0,
+                executions_success=row['executions_success'] or 0,
+                executions_failed=row['executions_failed'] or 0,
+                last_execution=row['last_execution'].isoformat() if row['last_execution'] else None,
+                created_at=row['created_at'].isoformat(),
+                updated_at=row['updated_at'].isoformat(),
+                created_by=row['created_by']
+            )
+        finally:
+            await conn.close()
     
     except Exception as e:
-        await db.rollback()
         logger.error(f"❌ Error creating agent: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create agent: {str(e)}")
 
