@@ -145,3 +145,64 @@ def parse_address_candidate(text: Optional[str]) -> Optional[str]:
     if cand:
         return normalize_address(cand)
     return None
+
+
+def extract_house_number(address: str) -> Optional[str]:
+    """
+    Извлечь номер дома из адреса
+    Возвращает: "3", "5", "6" и т.д.
+    """
+    if not address:
+        return None
+    
+    # Паттерн: первое число после названия улицы
+    match = re.search(r'\b(\d+)\b', address)
+    if match:
+        return match.group(1)
+    
+    return None
+
+
+def address_match_score(query_address: str, target_address: str) -> int:
+    """
+    Вычислить score совпадения адресов
+    100 = точное совпадение номера дома и улицы
+    50 = совпадение улицы, номер не совпадает
+    0 = не совпадение
+    """
+    if not query_address or not target_address:
+        return 0
+    
+    query_norm = normalize_address(query_address).lower()
+    target_norm = normalize_address(target_address).lower()
+    
+    # Извлекаем номера домов
+    query_num = extract_house_number(query_norm)
+    target_num = extract_house_number(target_norm)
+    
+    # Извлекаем названия улиц (все до первого числа)
+    query_street = re.sub(r'\d.*$', '', query_norm).strip()
+    target_street = re.sub(r'\d.*$', '', target_norm).strip()
+    
+    # Проверяем совпадение улицы
+    street_match = False
+    if query_street and target_street:
+        # Учитываем различные префиксы (ул, улица)
+        query_street_clean = query_street.replace('ул', '').replace('улица', '').strip()
+        target_street_clean = target_street.replace('ул', '').replace('улица', '').strip()
+        
+        if query_street_clean in target_street_clean or target_street_clean in query_street_clean:
+            street_match = True
+    
+    if not street_match:
+        return 0
+    
+    # Если улица совпадает, проверяем номер дома
+    if query_num and target_num:
+        if query_num == target_num:
+            return 100  # Точное совпадение
+        else:
+            return 0  # Улица совпадает, но номер дома другой - НЕ совпадение!
+    
+    # Улица совпадает, но номер не указан в одном из адресов
+    return 50
