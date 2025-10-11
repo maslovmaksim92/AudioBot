@@ -746,6 +746,11 @@ class Bitrix24Service:
             return True
 
         filtered = [x for x in all_items if _match(x)]
+        
+        # Сортировка по match_score (если есть адрес)
+        if address:
+            filtered.sort(key=lambda x: x.get('_match_score', 0), reverse=True)
+        
         total = len(filtered)
         self.deals_cache.set(cache_key, filtered)
 
