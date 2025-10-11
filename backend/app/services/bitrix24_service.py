@@ -654,6 +654,18 @@ class Bitrix24Service:
 
                     # Обрабатываем сделки последовательно (с rate limiting внутри)
                     for d in deals:
+        # Server filters need normalization helpers defined before their first use above.
+        def _normalize_addr_local(s: Optional[str]) -> str:
+            if not s:
+                return ''
+            ss = str(s).lower().strip()
+            ss = ss.replace('улица', 'ул').replace('проспект', 'пр-кт').replace('просп.', 'пр-кт').replace('пр-т', 'пр-кт')
+            ss = ss.replace('дом', 'д').replace('корпус', 'к').replace('корп.', 'к')
+            ss = ss.replace(',', ' ').replace('.', ' ').replace('  ', ' ')
+            return ss
+
+        norm_addr = _normalize_addr_local(address) if address else None
+
                         try:
                             # Быстрая проверка адреса до дорогих запросов
                             if address:
