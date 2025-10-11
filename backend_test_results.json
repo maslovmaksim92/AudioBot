@@ -1,12 +1,11 @@
 {
   "summary": {
     "Health Check": true,
-    "Complex Addresses": false,
-    "Month Formats": false,
-    "Specific Dates": false,
-    "Date Ranges": true,
-    "Intent Priorities": true,
-    "Multiple Entities": true
+    "Кибальчича 1 vs Кибальчича 5": true,
+    "График уборки Кибальчича 1": true,
+    "Кибальчича 3 контакты": true,
+    "Кибальчича 5 график": true,
+    "Билибина 6 контакты": true
   },
   "detailed_results": [
     {
@@ -15,12 +14,352 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760209519
+        "ts": 1760211073
       },
       "error": null,
-      "timestamp": "2025-10-11T19:05:19.649853"
+      "timestamp": "2025-10-11T19:31:13.943812"
+    },
+    {
+      "endpoint": "/api/brain/ask (Кибальчича 1)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null,
+          "matched_rules": [],
+          "elapsed_ms": 3168,
+          "trace": [
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 3166
+            },
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "brigade",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "structural_totals",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_basic",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_breakdown",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_mom",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_yoy",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_cat_trends",
+              "status": "miss",
+              "elapsed_ms": 0
+            }
+          ]
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:31:17.156776"
+    },
+    {
+      "endpoint": "/api/brain/ask (График Кибальчича 1)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null,
+          "matched_rules": [],
+          "elapsed_ms": 0,
+          "trace": [
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "brigade",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "structural_totals",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_basic",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_breakdown",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_mom",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_yoy",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_cat_trends",
+              "status": "miss",
+              "elapsed_ms": 0
+            }
+          ]
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:31:17.203309"
+    },
+    {
+      "endpoint": "/api/brain/ask (Кибальчича 3)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null,
+          "matched_rules": [],
+          "elapsed_ms": 0,
+          "trace": [
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "brigade",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "structural_totals",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_basic",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_breakdown",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_mom",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_yoy",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_cat_trends",
+              "status": "miss",
+              "elapsed_ms": 0
+            }
+          ]
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:31:17.246279"
+    },
+    {
+      "endpoint": "/api/brain/ask (Кибальчича 5)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null,
+          "matched_rules": [],
+          "elapsed_ms": 0,
+          "trace": [
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "brigade",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "structural_totals",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_basic",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_breakdown",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_mom",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_yoy",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_cat_trends",
+              "status": "miss",
+              "elapsed_ms": 0
+            }
+          ]
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:31:17.302552"
+    },
+    {
+      "endpoint": "/api/brain/ask (Билибина 6)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "no_match",
+        "debug": {
+          "matched_rule": null,
+          "matched_rules": [],
+          "elapsed_ms": 0,
+          "trace": [
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "elder_contact",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "cleaning_month",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "brigade",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "structural_totals",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_basic",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_breakdown",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_mom",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_yoy",
+              "status": "miss",
+              "elapsed_ms": 0
+            },
+            {
+              "rule": "finance_cat_trends",
+              "status": "miss",
+              "elapsed_ms": 0
+            }
+          ]
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:31:17.347105"
     }
   ],
-  "test_time": "2025-10-11T19:05:32.069777",
+  "test_time": "2025-10-11T19:31:17.347432",
   "backend_url": "https://smarthouse-ai.preview.emergentagent.com"
 }
