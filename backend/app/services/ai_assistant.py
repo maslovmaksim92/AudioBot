@@ -21,17 +21,19 @@ class AIAssistant:
     
     async def get_context(self, user_query: str) -> Dict[str, Any]:
         """
-        Получить контекст из базы данных на основе запроса
+        Получить контекст из базы данных и Bitrix24 на основе запроса
         
         Args:
-            user_query: Запрос пользователя
-            
+            user_query: Запрос пользователя (может содержать адрес)
+        
+        Returns:
+            Контекст с данными о домах, сотрудниках, финансах и совпавших адресах
+        """
+        context: Dict[str, Any] = {}
+
         # Быстрый контекст адреса из Bitrix, если указан в запросе
         try:
             if user_query:
-                addr = user_query.lower()
-                # Простой поиск домов по адресу через Bitrix24 слой
-                # Используем существующий листинг с фильтром address для минимальной задержки
                 data = await bitrix24_service.list_houses(address=user_query, limit=20)
                 if data and isinstance(data.get('houses'), list):
                     context['matched_houses'] = [
@@ -43,129 +45,121 @@ class AIAssistant:
                             'periodicity': h.get('periodicity'),
                             'cleaning_dates': h.get('cleaning_dates'),
                             'bitrix_url': h.get('bitrix_url')
-                        } for h in data['houses'] if h.get('address')
+                        }
+                        for h in data['houses'] if h.get('address')
                     ]
         except Exception as e:
             logger.warning(f"Bitrix quick address context failed: {e}")
 
-        Returns:
-            Контекст с данными о домах, сотрудниках, финансах
-        """
-        import asyncpg
-        
-        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
-        conn = await asyncpg.connect(db_url)
-        
-        context = {}
-        
+        # Подтягиваем статистику из БД (если доступна)
         try:
-            # Получаем статистику по домам
-            houses_stats = await conn.fetchrow("""
-                SELECT 
-                    COUNT(*) as total_houses,
-                    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_houses,
-                    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_houses
-                FROM houses
-            """)
-            
-            context['houses'] = {
-                'total': houses_stats['total_houses'] or 0,
-                'active': houses_stats['active_houses'] or 0,
-                'completed': houses_stats['completed_houses'] or 0
-            }
-            
-            # Получаем топ домов
-            top_houses = await conn.fetch("""
-                SELECT title, address, status, client_name
-                FROM houses
-                ORDER BY created_at DESC
-                LIMIT 5
-            """)
-            
-            context['top_houses'] = [
-                {
-                    'title': h['title'],
-                    'address': h['address'],
-                    'status': h['status'],
-                    'client': h['client_name']
-                }
-                for h in top_houses
-            ]
-            
-            # Получаем статистику по сотрудникам
-            employees_stats = await conn.fetchrow("""
-                SELECT 
-                    COUNT(*) as total_employees,
-                    COUNT(CASE WHEN is_active = true THEN 1 END) as active_employees
-                FROM employees
-            """)
-            
-            context['employees'] = {
-                'total': employees_stats['total_employees'] or 0,
-                'active': employees_stats['active_employees'] or 0
-            }
-            
-            # Получаем список сотрудников
-            employees = await conn.fetch("""
-                SELECT full_name, position, phone, email, is_active
-                FROM employees
-                WHERE is_active = true
-                ORDER BY full_name
-                LIMIT 10
-            """)
-            
-            context['employees_list'] = [
-                {
-                    'name': e['full_name'],
-                    'position': e['position'],
-                    'phone': e['phone'],
-                    'email': e['email']
-                }
-                for e in employees
-            ]
-            
-            # Получаем финансовую статистику
-            finance_stats = await conn.fetchrow("""
-                SELECT 
-                    COUNT(*) as total_transactions,
-                    SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
-                    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense
-                FROM financial_transactions
-                WHERE date >= NOW() - INTERVAL '30 days'
-            """)
-            
-            if finance_stats:
-                context['finance'] = {
-                    'transactions_30d': finance_stats['total_transactions'] or 0,
-                    'income_30d': float(finance_stats['total_income'] or 0),
-                    'expense_30d': float(finance_stats['total_expense'] or 0),
-                    'profit_30d': float((finance_stats['total_income'] or 0) - (finance_stats['total_expense'] or 0))
-                }
-            
-            # Получаем статистику по агентам
-            agents_stats = await conn.fetchrow("""
-                SELECT 
-                    COUNT(*) as total_agents,
-                    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_agents,
-                    SUM(executions_total) as total_executions
-                FROM agents
-            """)
-            
-            if agents_stats:
-                context['agents'] = {
-                    'total': agents_stats['total_agents'] or 0,
-                    'active': agents_stats['active_agents'] or 0,
-                    'executions': agents_stats['total_executions'] or 0
-                }
-            
-            logger.info(f"✅ Context gathered: {len(context)} sections")
-            
+            import asyncpg
+            db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+            if not db_url:
+                return context
+            conn = await asyncpg.connect(db_url)
+            try:
+                # Статистика по домам
+                houses_stats = await conn.fetchrow("""
+                    SELECT 
+                        COUNT(*) as total_houses,
+                        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_houses,
+                        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_houses
+                    FROM houses
+                """)
+                if houses_stats:
+                    context['houses'] = {
+                        'total': houses_stats['total_houses'] or 0,
+                        'active': houses_stats['active_houses'] or 0,
+                        'completed': houses_stats['completed_houses'] or 0
+                    }
+
+                # Топ домов
+                top_houses = await conn.fetch("""
+                    SELECT title, address, status, client_name
+                    FROM houses
+                    ORDER BY created_at DESC
+                    LIMIT 5
+                """)
+                context['top_houses'] = [
+                    {
+                        'title': h['title'],
+                        'address': h['address'],
+                        'status': h['status'],
+                        'client': h['client_name']
+                    }
+                    for h in top_houses
+                ]
+
+                # Статистика по сотрудникам
+                employees_stats = await conn.fetchrow("""
+                    SELECT 
+                        COUNT(*) as total_employees,
+                        COUNT(CASE WHEN is_active = true THEN 1 END) as active_employees
+                    FROM employees
+                """)
+                if employees_stats:
+                    context['employees'] = {
+                        'total': employees_stats['total_employees'] or 0,
+                        'active': employees_stats['active_employees'] or 0
+                    }
+
+                # Список сотрудников
+                employees = await conn.fetch("""
+                    SELECT full_name, position, phone, email, is_active
+                    FROM employees
+                    WHERE is_active = true
+                    ORDER BY full_name
+                    LIMIT 10
+                """)
+                context['employees_list'] = [
+                    {
+                        'name': e['full_name'],
+                        'position': e['position'],
+                        'phone': e['phone'],
+                        'email': e['email']
+                    }
+                    for e in employees
+                ]
+
+                # Финансовая статистика
+                finance_stats = await conn.fetchrow("""
+                    SELECT 
+                        COUNT(*) as total_transactions,
+                        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
+                        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense
+                    FROM financial_transactions
+                    WHERE date >= NOW() - INTERVAL '30 days'
+                """)
+                if finance_stats:
+                    context['finance'] = {
+                        'transactions_30d': finance_stats['total_transactions'] or 0,
+                        'income_30d': float(finance_stats['total_income'] or 0),
+                        'expense_30d': float(finance_stats['total_expense'] or 0),
+                        'profit_30d': float((finance_stats['total_income'] or 0) - (finance_stats['total_expense'] or 0))
+                    }
+
+                # Статистика по агентам
+                agents_stats = await conn.fetchrow("""
+                    SELECT 
+                        COUNT(*) as total_agents,
+                        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_agents,
+                        SUM(executions_total) as total_executions
+                    FROM agents
+                """)
+                if agents_stats:
+                    context['agents'] = {
+                        'total': agents_stats['total_agents'] or 0,
+                        'active': agents_stats['active_agents'] or 0,
+                        'executions': agents_stats['total_executions'] or 0
+                    }
+
+                logger.info(f"✅ Context gathered: {len(context)} sections")
+            finally:
+                await conn.close()
         except Exception as e:
-            logger.error(f"❌ Error gathering context: {e}")
-        
-        finally:
-            await conn.close()
-        
+            logger.error(f"❌ Error gathering DB context: {e}")
+
         return context
     
     async def chat(
