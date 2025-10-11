@@ -1,34 +1,22 @@
 [
   {
-    "content": "Удалить MongoDB и интегрировать PostgreSQL в server.py",
-    "status": "completed"
-  },
-  {
-    "content": "Создать модульную структуру backend/app (config, routers, services)",
-    "status": "completed"
-  },
-  {
-    "content": "Интегрировать полный server.py из GitHub с всеми функциями",
-    "status": "completed"
-  },
-  {
-    "content": "Обновить frontend App.js с полным роутингом",
-    "status": "completed"
-  },
-  {
-    "content": "Создать все frontend компоненты (Dashboard, Works, AI Chat и т.д.)",
-    "status": "completed"
-  },
-  {
     "content": "Установить новые зависимости (backend и frontend)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Перезапустить сервисы с новым кодом",
+    "status": "in_progress"
+  },
+  {
+    "content": "Проверить /api/health endpoint",
     "status": "pending"
   },
   {
-    "content": "Проверить работоспособность всех функций",
+    "content": "Проверить frontend по предпросмотру URL",
+    "status": "pending"
+  },
+  {
+    "content": "Проверить логи на ошибки",
     "status": "pending"
   }
 ]
