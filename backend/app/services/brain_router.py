@@ -44,7 +44,8 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
         t = ent.get("type")
         if t == "elder_contact":
             ans = await _ret(await resolve_elder_contact(message, ent), "elder_contact")
-            if ans: return ans
+            if ans:
+                return ans
         elif t == "cleaning_month":
             ans = await _ret(await resolve_cleaning_month(message, ent), "cleaning_month")
             if ans: return ans
