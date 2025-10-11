@@ -184,6 +184,11 @@ class AIAssistant:
                 'success': False,
                 'error': 'OpenAI API key not configured'
             }
+            # Если запрос похож на вопрос по адресу — попробуем быстрый ответ без LLM
+            quick = self._try_answer_cleaning_dates_quick(user_query, context)
+            if quick:
+                return quick
+
         
         try:
             # Получаем контекст из БД
