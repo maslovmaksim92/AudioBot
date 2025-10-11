@@ -84,7 +84,10 @@ const AIChat = () => {
         role: 'assistant',
         text,
         timestamp: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-        function_calls: data.function_calls || []
+        function_calls: data.function_calls || [],
+        debug: data.debug || null,
+        sources: data.sources || null,
+        rule: data.rule || null
       };
 
       setMessages(prev => [...prev, assistantMessage]);
