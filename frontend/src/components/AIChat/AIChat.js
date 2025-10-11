@@ -67,7 +67,8 @@ const AIChat = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: q,
-          user_id: userId
+          user_id: userId,
+          debug: debugMode
         })
       });
       
