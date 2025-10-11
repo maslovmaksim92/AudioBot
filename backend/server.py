@@ -1268,6 +1268,8 @@ try:
 except Exception as e1:
     logger.warning(f'⚠️ First import attempt failed (backend.app.routers): {e1}')
     try:
+        from app.routers import ai_assistant_api as ai_assistant_api_router
+
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
         from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs
         logger.info('✅ Routers imported via app.routers')
