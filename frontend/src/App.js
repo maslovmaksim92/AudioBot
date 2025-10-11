@@ -57,6 +57,7 @@ function App() {
           <Route path="/logs" element={<Logs />} />
           <Route path="/finances" element={<Finances />} />
           <Route path="/agents" element={<AgentBuilder />} />
+          <Route path="/agents/dashboard" element={<AgentDashboard />} />
         </Routes>
       </Layout>
 
