@@ -264,7 +264,28 @@ Response:
 
 ### `GET /api/brain/metrics`
 
-Метрики “мозга”: `resolver_counts`, `resolver_times_ms`, `cache_hits`, `cache_misses`.
+Метрики производительности "мозга".
+
+**Response:**
+```json
+{
+  "started_at": "2025-01-10T12:00:00Z",
+  "resolver_counts": {
+    "elder_contact": 5,
+    "cleaning_month": 3,
+    "finance_basic": 10,
+    "structural_totals": 2
+  },
+  "resolver_times_ms": {
+    "elder_contact": 425,
+    "cleaning_month": 380,
+    "finance_basic": 150,
+    "structural_totals": 85
+  },
+  "cache_hits": 12,
+  "cache_misses": 8
+}
+```
 
 ---
 
