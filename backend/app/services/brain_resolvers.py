@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from datetime import datetime, timedelta
-from sqlalchemy import text
+from sqlalchemy import text as sql_text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.services.brain_intents import extract_address, extract_month
