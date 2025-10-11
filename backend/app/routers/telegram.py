@@ -180,7 +180,7 @@ async def handle_message(message: Dict[str, Any], db: AsyncSession):
     elif "text" in message:
         await handle_text(message, chat_id, user_name, user_username, db)
     
-    # Логирование
+    # Логирование (без timezone для PostgreSQL TIMESTAMP WITHOUT TIME ZONE)
     log = Log(
         id=str(uuid4()),
         level=LogLevel.INFO,
@@ -191,7 +191,7 @@ async def handle_message(message: Dict[str, Any], db: AsyncSession):
             "message_id": message_id,
             "user_id": from_user.get("id")
         },
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.utcnow()
     )
     
     db.add(log)
