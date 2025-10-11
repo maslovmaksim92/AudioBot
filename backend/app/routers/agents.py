@@ -8,6 +8,7 @@ from typing import List
 from datetime import datetime, timezone, timedelta
 import logging
 from uuid import uuid4
+import json
 
 from backend.app.config.database import get_db
 from backend.app.models.agent import Agent, AgentCreate, AgentUpdate, AgentResponse, AgentStats
