@@ -1293,7 +1293,8 @@ if health:
         app.include_router(ai_chat.router, prefix="/api")
         app.include_router(finances.router, prefix="/api")
         app.include_router(finance_transactions.router, prefix="/api/finances")
-        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions')
+        app.include_router(agents.router, prefix="/api")
+        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents')
     except Exception as e:
         logger.warning(f'⚠️ Could not mount new routers: {e}')
         import traceback
