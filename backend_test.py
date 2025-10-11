@@ -2468,11 +2468,10 @@ class BackendTester:
         
         # КРИТИЧЕСКИЕ ТЕСТЫ СНАЧАЛА (по запросу)
         critical_tests = [
-            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 1 (НЕ 5!)", self.test_critical_kibalchich_1_contact),
-            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 5 октябрь", self.test_critical_kibalchich_5_cleaning),
-            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 3", self.test_critical_kibalchich_3_contact),
-            ("🔥 КРИТИЧЕСКИЙ: Билибина 6", self.test_critical_bilybina_6_cleaning),
-            ("🔥 КРИТИЧЕСКИЙ: УК Кибальчича 1", self.test_critical_contractor_contacts),
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 1", self.test_critical_address_kibalchich_1),
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 3", self.test_critical_address_kibalchich_3),
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 5", self.test_critical_address_kibalchich_5),
+            ("🔥 КРИТИЧЕСКИЙ: Билибина 6", self.test_critical_address_bilybina_6),
         ]
         
         # Остальные тесты
