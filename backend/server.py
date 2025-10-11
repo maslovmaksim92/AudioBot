@@ -1261,19 +1261,19 @@ logger.info('API router mounted with all voice endpoints')
 # Import and mount new modular routers
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
-    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions
+    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents
     logger.info('✅ Routers imported via backend.app.routers')
 except Exception as e1:
     logger.warning(f'⚠️ First import attempt failed (backend.app.routers): {e1}')
     try:
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
-        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions
+        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents
         logger.info('✅ Routers imported via app.routers')
     except Exception as e2:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
         import traceback
         logger.error(f'Traceback: {traceback.format_exc()}')
-        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = None
+        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = agents = None
 
 if health:
     try:
