@@ -69,9 +69,9 @@ def _extract_address_candidate(text: str) -> Optional[str]:
         s = (text or '').lower()
         s = s.replace('\n', ' ').strip()
         # шаблоны: "на <адрес> в ", "на <адрес>?", "по адресу <адрес>"
-        m = re.search(r"на\s+(.+?)(?:\s+в\s|\?|!|\.|$)", s)
+        m = re.search(r"на\s+(.+?)(?:\s+в\s|\s+за\s|\?|!|\.|$)", s)
         if not m:
-            m = re.search(r"по\s+адресу\s+(.+?)(?:\s+в\s|\?|!|\.|$)", s)
+            m = re.search(r"по\s+адресу\s+(.+?)(?:\s+в\s|\s+за\s|\?|!|\.|$)", s)
         if m:
             cand = m.group(1).strip(' ,.!?')
             # Ограничим до 6 слов чтобы не захватить весь вопрос
