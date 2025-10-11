@@ -1647,7 +1647,7 @@ class BackendTester:
                 results[test_name] = False
         
         print("\n" + "=" * 60)
-        print("📊 TEST SUMMARY")
+        print("📊 TEST SUMMARY - INTENT DETECTION & NER PHASE 2")
         print("=" * 60)
         
         passed = 0
@@ -1661,10 +1661,83 @@ class BackendTester:
         
         print(f"\n🎯 Results: {passed}/{total} tests passed")
         
+        # Detailed reporting for each test category
+        print("\n" + "=" * 60)
+        print("📋 DETAILED TEST RESULTS")
+        print("=" * 60)
+        
+        # Complex Addresses
+        if hasattr(self, 'complex_address_results'):
+            print("\n🏠 COMPLEX ADDRESSES:")
+            for result in self.complex_address_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                print(f"  {status} {result['case']}")
+                if result.get('intent'):
+                    print(f"     Intent: {result['intent']}")
+                if result.get('address_extracted'):
+                    print(f"     Address Extracted: ✅")
+        
+        # Month Formats
+        if hasattr(self, 'month_format_results'):
+            print("\n📅 MONTH FORMATS:")
+            for result in self.month_format_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                print(f"  {status} {result['case']}")
+                if result.get('intent'):
+                    print(f"     Intent: {result['intent']}")
+                if result.get('month_extracted'):
+                    print(f"     Month Extracted: ✅")
+        
+        # Specific Dates
+        if hasattr(self, 'specific_date_results'):
+            print("\n📆 SPECIFIC DATES:")
+            for result in self.specific_date_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                print(f"  {status} {result['case']}")
+                if result.get('intent'):
+                    print(f"     Intent: {result['intent']}")
+                if result.get('date_extracted'):
+                    print(f"     Date Extracted: ✅")
+        
+        # Date Ranges
+        if hasattr(self, 'date_range_results'):
+            print("\n📊 DATE RANGES:")
+            for result in self.date_range_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                print(f"  {status} {result['case']}")
+                if result.get('intent'):
+                    print(f"     Intent: {result['intent']}")
+                if result.get('range_extracted'):
+                    print(f"     Range Extracted: ✅")
+        
+        # Intent Priorities
+        if hasattr(self, 'intent_priority_results'):
+            print("\n🎯 INTENT PRIORITIES:")
+            for result in self.intent_priority_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                priority_status = "✅" if result.get('correct_priority') else "❌"
+                print(f"  {status} {result['case']}")
+                print(f"     Expected: {result.get('expected_intent')}")
+                print(f"     Actual: {result.get('actual_intent')}")
+                print(f"     Priority Correct: {priority_status}")
+                if result.get('confidence'):
+                    print(f"     Confidence: {result['confidence']}")
+        
+        # Multiple Entities
+        if hasattr(self, 'multiple_entity_results'):
+            print("\n🏷️ MULTIPLE ENTITIES:")
+            for result in self.multiple_entity_results:
+                status = "✅" if result.get('success') is not False else "❌"
+                multi_status = "✅" if result.get('multiple_extraction') else "❌"
+                print(f"  {status} {result['case']}")
+                print(f"     Expected: {result.get('expected_entities')}")
+                print(f"     Found: {result.get('found_entities')}")
+                print(f"     Multiple Extraction: {multi_status}")
+        
         if passed == total:
-            print("🎉 All tests passed!")
+            print("\n🎉 All Intent Detection & NER Phase 2 tests passed!")
         else:
-            print("⚠️ Some tests failed - check logs above")
+            print("\n⚠️ Some tests failed - check detailed results above")
         
         return results
 
