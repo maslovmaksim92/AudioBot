@@ -1,11 +1,11 @@
 [
   {
     "content": "Обновить backend/.env с правильными переменными из Render",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Удалить MongoDB и интегрировать PostgreSQL в server.py",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Создать модульную структуру backend/app (config, routers, services)",
