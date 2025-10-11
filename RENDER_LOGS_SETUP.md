@@ -51,7 +51,7 @@ curl "http://localhost:8001/api/render-logs/local?log_file=backend&lines=100"
 ```
 
 ### Через UI:
-1. Откройте https://money-tracker-1172.preview.emergentagent.com/#/logs
+1. Откройте https://smart-agent-system.preview.emergentagent.com/#/logs
 2. Выберите источник: **Render** или **Local**
 3. Настройте количество строк и период
 4. Нажмите **Обновить**

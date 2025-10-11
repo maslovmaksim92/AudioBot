@@ -189,7 +189,7 @@
 - [x] Ветка: main
 
 ### Preview URL
-- [x] https://money-tracker-1172.preview.emergentagent.com работает
+- [x] https://smart-agent-system.preview.emergentagent.com работает
 - [x] Приложение доступно и функционирует
 
 ---
@@ -277,8 +277,8 @@ git push origin main
 ## 📞 Контакты и ссылки
 
 - **GitHub:** https://github.com/maslovmaksim92/AudioBot
-- **Preview:** https://money-tracker-1172.preview.emergentagent.com
-- **API Docs:** https://money-tracker-1172.preview.emergentagent.com/docs
+- **Preview:** https://smart-agent-system.preview.emergentagent.com
+- **API Docs:** https://smart-agent-system.preview.emergentagent.com/docs
 
 ---
 

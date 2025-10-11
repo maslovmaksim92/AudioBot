@@ -28,7 +28,7 @@ yarn start
 - Backend API: http://localhost:8001
 - Frontend: http://localhost:3000
 - API Docs: http://localhost:8001/docs
-- Preview: https://money-tracker-1172.preview.emergentagent.com
+- Preview: https://smart-agent-system.preview.emergentagent.com
 
 ## ✨ Основной функционал
 
@@ -291,7 +291,7 @@ git push origin main
 ## 📞 Контакты
 
 - **GitHub:** https://github.com/maslovmaksim92/AudioBot
-- **Preview:** https://money-tracker-1172.preview.emergentagent.com
+- **Preview:** https://smart-agent-system.preview.emergentagent.com
 - **Render:** https://audiobot-qpi2.onrender.com (backend)
 
 ---

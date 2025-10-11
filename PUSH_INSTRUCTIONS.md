@@ -140,8 +140,8 @@ git diff --name-only --cached
 ## 🎯 Preview URL
 
 **Приложение доступно:**
-- https://money-tracker-1172.preview.emergentagent.com
-- https://money-tracker-1172.preview.emergentagent.com/#/finances (новый раздел)
+- https://smart-agent-system.preview.emergentagent.com
+- https://smart-agent-system.preview.emergentagent.com/#/finances (новый раздел)
 
 ## ✅ Финальный чек-лист
 
