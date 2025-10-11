@@ -1,68 +1,53 @@
 {
   "summary": {
-    "Health Check": true,
-    "Stage 6 - Finance Categories (Debug)": true,
+    "Health Check": false,
+    "Stage 6 - Finance Categories (Debug)": false,
     "Stage 6 - YoY Dynamics (Debug)": false,
     "Stage 6 - Top Decline Categories (Debug)": false,
-    "Stage 6 - Address NER (Debug)": true
+    "Stage 6 - Address NER (Debug)": false
   },
   "detailed_results": [
     {
       "endpoint": "/api/health",
       "method": "GET",
-      "status_code": 200,
-      "response": {
-        "ok": true,
-        "ts": 1760203141
-      },
-      "error": null,
-      "timestamp": "2025-10-11T17:19:01.176602"
+      "status_code": 502,
+      "response": null,
+      "error": "HTTP 502",
+      "timestamp": "2025-10-11T17:20:06.304645"
     },
     {
       "endpoint": "/api/brain/ask (Finance Categories)",
       "method": "POST",
-      "status_code": 200,
-      "response": {
-        "success": false,
-        "error": "no_match",
-        "debug": {
-          "matched_rule": null
-        }
-      },
-      "error": null,
-      "timestamp": "2025-10-11T17:19:01.219244"
+      "status_code": 502,
+      "response": null,
+      "error": "HTTP 502 with non-JSON response",
+      "timestamp": "2025-10-11T17:20:06.342385"
     },
     {
       "endpoint": "/api/brain/ask (YoY Dynamics)",
       "method": "POST",
-      "status_code": 500,
+      "status_code": 502,
       "response": null,
-      "error": "500 with non-JSON response",
-      "timestamp": "2025-10-11T17:19:02.385940"
+      "error": "HTTP 502 with non-JSON response",
+      "timestamp": "2025-10-11T17:20:06.381325"
     },
     {
       "endpoint": "/api/brain/ask (Top Decline)",
       "method": "POST",
-      "status_code": 500,
+      "status_code": 502,
       "response": null,
-      "error": "500 with non-JSON response",
-      "timestamp": "2025-10-11T17:19:03.410512"
+      "error": "HTTP 502 with non-JSON response",
+      "timestamp": "2025-10-11T17:20:06.425447"
     },
     {
       "endpoint": "/api/brain/ask (Address NER)",
       "method": "POST",
-      "status_code": 200,
-      "response": {
-        "success": false,
-        "error": "no_match",
-        "debug": {
-          "matched_rule": null
-        }
-      },
-      "error": null,
-      "timestamp": "2025-10-11T17:19:03.454235"
+      "status_code": 502,
+      "response": null,
+      "error": "HTTP 502 with non-JSON response",
+      "timestamp": "2025-10-11T17:20:06.471466"
     }
   ],
-  "test_time": "2025-10-11T17:19:03.454626",
+  "test_time": "2025-10-11T17:20:06.471780",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
