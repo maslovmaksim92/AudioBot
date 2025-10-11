@@ -18,6 +18,7 @@ import Logistics from './components/Logistics/Logistics';
 import Logs from './components/Logs/Logs';
 import AgentBuilder from './components/AgentBuilder/AgentBuilder';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
+import Finances from './components/Finances/Finances';
 
 function App() {
   const [improvementModalOpen, setImprovementModalOpen] = useState(false);
