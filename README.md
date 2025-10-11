@@ -229,6 +229,7 @@ supervisorctl restart backend frontend
 - ✅ AI Chat
 - ✅ Голосовые звонки (LiveKit + OpenAI Realtime)
 - ✅ Telegram уведомления
+- ✅ Модуль "Финансы" с 6 подразделами и формой ввода данных
 
 **Запланированные задачи:**
 1. Синхронизация Bitrix24 - каждые 30 мин
