@@ -248,6 +248,7 @@ supervisorctl restart backend frontend
 
 1. **SETUP_GUIDE.md** - Детальная установка и настройка
 2. **API_REFERENCE.md** - Полный справочник API
+3. **FINANCES_USER_GUIDE.md** - Руководство по модулю "Финансы"
 
 **Всё остальное - в коде!** Используйте `/api/docs` для API и читайте комментарии в коде.
 
