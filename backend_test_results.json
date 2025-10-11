@@ -1,8 +1,8 @@
 {
   "summary": {
     "Health Check": true,
-    "AI Chat - Kibalchich Contact (Single Brain Priority)": false,
-    "AI Chat - Bilybina Cleaning (Single Brain Priority)": false
+    "AI Chat - Kibalchich Contact (Single Brain Priority)": true,
+    "AI Chat - Bilybina Cleaning (Single Brain Priority)": true
   },
   "detailed_results": [
     {
@@ -11,32 +11,36 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760200297
+        "ts": 1760200332
       },
       "error": null,
-      "timestamp": "2025-10-11T16:31:37.279649"
+      "timestamp": "2025-10-11T16:32:12.934262"
     },
     {
       "endpoint": "/api/ai/chat (Kibalchich)",
       "method": "POST",
-      "status_code": 500,
+      "status_code": 200,
       "response": {
-        "detail": "Ошибка при обработке сообщения: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table \"chat_history\" violates foreign key constraint \"chat_history_user_id_fkey\"\nDETAIL:  Key (user_id)=(550e8400-e29b-41d4-a716-446655440000) is not present in table \"users\".\n[SQL: INSERT INTO chat_history (id, user_id, role, content, telegram_message_id, message_metadata, synced_to_telegram, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::BOOLEAN, $8::TIMESTAMP WITHOUT TIME ZONE)]\n[parameters: ('653dc9c7-8875-4887-8090-3f924723d744', '550e8400-e29b-41d4-a716-446655440000', 'user', 'Контакты старшего Кибальчича 1', None, None, False, datetime.datetime(2025, 10, 11, 16, 31, 38, 27556))]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+        "message": "Извините, произошла ошибка при обработке вашего запроса: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**********************************************************iL-1. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "function_calls": [],
+        "created_at": "2025-10-11T16:32:18.271228"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:31:38.315342"
+      "timestamp": "2025-10-11T16:32:18.274648"
     },
     {
       "endpoint": "/api/ai/chat (Bilybina)",
       "method": "POST",
-      "status_code": 500,
+      "status_code": 200,
       "response": {
-        "detail": "Ошибка при обработке сообщения: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table \"chat_history\" violates foreign key constraint \"chat_history_user_id_fkey\"\nDETAIL:  Key (user_id)=(550e8400-e29b-41d4-a716-446655440000) is not present in table \"users\".\n[SQL: INSERT INTO chat_history (id, user_id, role, content, telegram_message_id, message_metadata, synced_to_telegram, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::BOOLEAN, $8::TIMESTAMP WITHOUT TIME ZONE)]\n[parameters: ('e5e7e158-5370-4626-85fa-5ef2693955d3', '550e8400-e29b-41d4-a716-446655440000', 'user', 'Когда уборка на Билибина 6 в октябре?', None, None, False, datetime.datetime(2025, 10, 11, 16, 31, 39, 59570))]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
+        "message": "Извините, произошла ошибка при обработке вашего запроса: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**********************************************************iL-1. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
+        "function_calls": [],
+        "created_at": "2025-10-11T16:32:20.621041"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:31:39.346029"
+      "timestamp": "2025-10-11T16:32:20.624789"
     }
   ],
-  "test_time": "2025-10-11T16:31:39.346335",
+  "test_time": "2025-10-11T16:32:20.625140",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
