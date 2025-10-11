@@ -211,29 +211,34 @@ async def update_agent(
 @router.delete("/{agent_id}")
 async def delete_agent(
     agent_id: str,
-    db: AsyncSession = Depends(get_db)
 ):
     """
     Удалить агента
     """
     try:
-        result = await db.execute(select(Agent).where(Agent.id == agent_id))
-        agent = result.scalar_one_or_none()
+        import asyncpg
+        import os
         
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
         
-        await db.delete(agent)
-        await db.commit()
-        
-        logger.info(f"✅ Agent deleted: {agent.name} (ID: {agent.id})")
-        
-        return {"success": True, "message": "Agent deleted successfully"}
+        try:
+            result = await conn.fetchrow("SELECT name FROM agents WHERE id = $1", agent_id)
+            
+            if not result:
+                raise HTTPException(status_code=404, detail="Agent not found")
+            
+            await conn.execute("DELETE FROM agents WHERE id = $1", agent_id)
+            
+            logger.info(f"✅ Agent deleted: {result['name']} (ID: {agent_id})")
+            
+            return {"success": True, "message": "Agent deleted successfully"}
+        finally:
+            await conn.close()
     
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
         logger.error(f"❌ Error deleting agent {agent_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete agent: {str(e)}")
 
@@ -241,58 +246,53 @@ async def delete_agent(
 # ============= Statistics =============
 
 @router.get("/stats/summary", response_model=AgentStats)
-async def get_agent_stats(
-    db: AsyncSession = Depends(get_db)
-):
+async def get_agent_stats():
     """
     Получить статистику по агентам
     """
     try:
-        # Общее количество агентов
-        total_result = await db.execute(select(func.count(Agent.id)))
-        total_agents = total_result.scalar() or 0
+        import asyncpg
+        import os
         
-        # Активные агенты
-        active_result = await db.execute(
-            select(func.count(Agent.id)).where(Agent.status == 'active')
-        )
-        active_agents = active_result.scalar() or 0
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
         
-        # Неактивные агенты
-        inactive_agents = total_agents - active_agents
-        
-        # Выполнения за сегодня
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        executions_today_result = await db.execute(
-            select(func.sum(Agent.executions_total)).where(
-                Agent.last_execution >= today_start
+        try:
+            # Общее количество агентов
+            total_agents = await conn.fetchval("SELECT COUNT(*) FROM agents")
+            
+            # Активные агенты
+            active_agents = await conn.fetchval("SELECT COUNT(*) FROM agents WHERE status = 'active'")
+            
+            # Неактивные агенты
+            inactive_agents = total_agents - active_agents
+            
+            # Сумма всех выполнений
+            total_exec = await conn.fetchval("SELECT COALESCE(SUM(executions_total), 0) FROM agents") or 0
+            success_exec = await conn.fetchval("SELECT COALESCE(SUM(executions_success), 0) FROM agents") or 0
+            
+            success_rate = (success_exec / total_exec * 100) if total_exec > 0 else 0
+            
+            # Выполнения за сегодня (приблизительно)
+            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            executions_today = await conn.fetchval(
+                "SELECT COALESCE(SUM(executions_total), 0) FROM agents WHERE last_execution >= $1",
+                today_start
+            ) or 0
+            
+            # Количество пользователей
+            total_users = await conn.fetchval("SELECT COUNT(DISTINCT created_by) FROM agents WHERE created_by IS NOT NULL") or 0
+            
+            return AgentStats(
+                total_agents=total_agents or 0,
+                active_agents=active_agents or 0,
+                inactive_agents=inactive_agents or 0,
+                executions_today=int(executions_today),
+                executions_success_rate=round(success_rate, 2),
+                total_users=total_users
             )
-        )
-        executions_today = executions_today_result.scalar() or 0
-        
-        # Процент успешности
-        total_exec_result = await db.execute(select(func.sum(Agent.executions_total)))
-        total_exec = total_exec_result.scalar() or 0
-        
-        success_exec_result = await db.execute(select(func.sum(Agent.executions_success)))
-        success_exec = success_exec_result.scalar() or 0
-        
-        success_rate = (success_exec / total_exec * 100) if total_exec > 0 else 0
-        
-        # Количество пользователей (уникальных created_by)
-        users_result = await db.execute(
-            select(func.count(func.distinct(Agent.created_by)))
-        )
-        total_users = users_result.scalar() or 0
-        
-        return AgentStats(
-            total_agents=total_agents,
-            active_agents=active_agents,
-            inactive_agents=inactive_agents,
-            executions_today=int(executions_today),
-            executions_success_rate=round(success_rate, 2),
-            total_users=total_users
-        )
+        finally:
+            await conn.close()
     
     except Exception as e:
         logger.error(f"❌ Error fetching agent stats: {e}")
