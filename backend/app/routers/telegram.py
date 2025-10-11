@@ -296,8 +296,8 @@ async def handle_text(
     if text.startswith("/"):
         await handle_command(text, chat_id, user_name, user_username, db)
     else:
-        # Обычное сообщение - можно добавить AI обработку
-        pass
+        # Обычное сообщение - используем Brain для умного ответа
+        await handle_brain_message(text, chat_id, user_name, user_username, db)
 
 async def handle_command(
     command: str,
