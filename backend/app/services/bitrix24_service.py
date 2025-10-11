@@ -652,6 +652,9 @@ class Bitrix24Service:
             return ss
 
         norm_addr = _normalize_addr_local(address) if address else None
+        
+        # Импортируем функцию умного сравнения адресов
+        from backend.app.services.brain import address_match_score
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
