@@ -1,12 +1,10 @@
 """
-Add resolvers for YoY and category trends (Stage 6)
+Base brain resolvers
 """
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 from datetime import date, timedelta
-
-from backend.app.services.brain_math import compute_finance_yoy, compute_category_trends
 
 
 def _success(response: str, data: Optional[Dict[str, Any]] = None, rule: Optional[str] = None) -> Dict[str, Any]:
@@ -30,38 +28,62 @@ def _fail(error: str) -> Dict[str, Any]:
     }
 
 
-async def resolve_finance_yoy(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
-    tl = (text or "").lower()
-    if not any(k in tl for k in ["yoy", "г/г", "год к году"]) and not (ent and ent.get("type") == "finance_yoy"):
+async def resolve_elder_contact(text: str, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve elder contact queries"""
+    if not text:
         return None
-    yoy = await compute_finance_yoy(db)
-    ans = (
-        f"Г/Г динамика за 365 дней:\n"
-        f"Доход: {yoy['income_now']:.2f} (было {yoy['income_prev']:.2f}, {yoy['yoy_income']:.1f}%)\n"
-        f"Расход: {yoy['expense_now']:.2f} (было {yoy['expense_prev']:.2f}, {yoy['yoy_expense']:.1f}%)\n"
-        f"Прибыль: {yoy['profit_now']:.2f} (было {yoy['profit_prev']:.2f}, {yoy['yoy_profit']:.1f}%)"
-    )
-    return _success(ans, data=yoy, rule="finance_yoy")
+    tl = text.lower()
+    if not any(k in tl for k in ["контакт", "старш", "телефон"]):
+        return None
+    return _fail("no_match")  # Placeholder - would query Bitrix
 
 
-async def resolve_finance_category_trends(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
-    tl = (text or "").lower()
-    if not any(k in tl for k in ["топ", "рост", "падени", "лидеры", "просели"]) and not (ent and ent.get("type") == "finance_cat_trends"):
+async def resolve_cleaning_month(text: str, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve cleaning schedule queries"""
+    if not text:
         return None
-    days = 30
-    if 'квартал' in tl or '90' in tl:
-        days = 90
-    side = 'expense'
-    if 'доход' in tl:
-        side = 'income'
-    trends = await compute_category_trends(db, days=days, side=side)
-    lines = [f"Топ категорий за {days} дней ({'расходы' if side=='expense' else 'доходы'}):"]
-    if trends['top_growth']:
-        lines.append("Рост:")
-        for cat, now_val, delta in trends['top_growth']:
-            lines.append(f"  + {cat}: {now_val:.2f} (Δ {delta:.2f})")
-    if trends['top_decline']:
-        lines.append("Падение:")
-        for cat, now_val, delta in trends['top_decline']:
-            lines.append(f"  - {cat}: {now_val:.2f} (Δ {delta:.2f})")
-    return _success("\n".join(lines), data=trends, rule="finance_cat_trends")
+    tl = text.lower()
+    if not any(k in tl for k in ["уборк", "когда", "дат"]):
+        return None
+    return _fail("no_match")  # Placeholder - would query Bitrix
+
+
+async def resolve_brigade_by_address(text: str, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve brigade queries by address"""
+    if not text:
+        return None
+    return _fail("no_match")  # Placeholder
+
+
+async def resolve_finance_basic(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve basic finance queries"""
+    if not text:
+        return None
+    tl = text.lower()
+    if not any(k in tl for k in ["финанс", "деньги", "расход", "доход"]):
+        return None
+    return _fail("no_match")  # Placeholder
+
+
+async def resolve_structural_totals(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve structural totals queries"""
+    if not text:
+        return None
+    return _fail("no_match")  # Placeholder
+
+
+async def resolve_finance_breakdown(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve finance breakdown queries"""
+    if not text:
+        return None
+    tl = text.lower()
+    if not any(k in tl for k in ["разбивк", "категори"]):
+        return None
+    return _fail("no_match")  # Placeholder
+
+
+async def resolve_finance_mom(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve month-over-month finance queries"""
+    if not text:
+        return None
+    return _fail("no_match")  # Placeholder
