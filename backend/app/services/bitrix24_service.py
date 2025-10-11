@@ -655,12 +655,25 @@ class Bitrix24Service:
                     # Обрабатываем сделки последовательно (с rate limiting внутри)
                     for d in deals:
                         try:
+                            # Быстрая проверка адреса до дорогих запросов
+                            if address:
+                                raw_addr = (d.get('UF_CRM_1669561599956') or d.get('TITLE') or '')
+                                hay = _normalize_addr(raw_addr)
+                                if not hay or norm_addr not in hay:
+                                    continue
+                            # Только при потенциальном совпадении грузим компанию и строим DTO
                             company_title = await self._company_title(client, d.get('COMPANY_ID'))
                             item = await self._deal_to_house_dto(client, d, company_title)
-                            # brigade filter will be applied after full list prepared
                             all_items.append(item)
+                            # Если ищем по адресу — достаточно первых совпадений в пределах limit
+                            if address and len(all_items) >= limit:
+                                break
                         except Exception as e:
                             logger.warning(f"deal parse skip: {e}")
+
+                    # Если уже набрали достаточно совпадений по адресу — выходим рано
+                    if address and len(all_items) >= limit:
+                        break
 
                     next_val = data.get('next')
                     if next_val is None:
