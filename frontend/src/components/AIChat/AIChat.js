@@ -116,6 +116,13 @@ const AIChat = () => {
         </p>
       </div>
 
+      <div className="ai-chat-admin-controls" style={{display:'flex',alignItems:'center',gap:8,margin:'8px 0 4px 0'}}>
+        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+          <input type="checkbox" checked={debugMode} onChange={(e)=>setDebugMode(e.target.checked)} />
+          <span>Debug режим (правило/время/источник)</span>
+        </label>
+      </div>
+
       <div className="ai-chat-messages">
         {messages.length === 0 && (
           <div className="empty-state">
