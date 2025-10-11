@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Bot,
   Zap,
@@ -17,53 +18,33 @@ import {
   Users,
   CheckCircle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Trash2,
+  Edit,
+  X
 } from 'lucide-react';
 
-const AgentBuilder = () => {
-  const [agents, setAgents] = useState([
-    {
-      id: 1,
-      name: 'Планёрка AI',
-      description: 'Напоминает о планёрке в 8:25, звонит сотрудникам в 16:55',
-      type: 'scheduler',
-      status: 'active',
-      triggers: ['Cron: 8:25', 'Cron: 16:55'],
-      actions: ['Telegram уведомление', 'AI звонок'],
-      icon: Calendar,
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      id: 2,
-      name: 'Bitrix Синхронизация',
-      description: 'Автоматически загружает дома из Bitrix24 каждые 15 минут',
-      type: 'integration',
-      status: 'active',
-      triggers: ['Cron: */15 * * * *'],
-      actions: ['Загрузка домов', 'Обновление БД'],
-      icon: Database,
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      id: 3,
-      name: 'Telegram Фото Бот',
-      description: 'Принимает ~300 фото/день от бригад и публикует в группу',
-      type: 'bot',
-      status: 'active',
-      triggers: ['Telegram webhook'],
-      actions: ['Сохранение фото', 'Публикация в группу'],
-      icon: MessageSquare,
-      color: 'from-purple-500 to-pink-500'
-    }
-  ]);
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
+const AgentBuilder = () => {
+  const [agents, setAgents] = useState([]);
+  const [stats, setStats] = useState({
+    total_agents: 0,
+    active_agents: 0,
+    executions_today: 0,
+    executions_success_rate: 0,
+    total_users: 0
+  });
+  const [loading, setLoading] = useState(true);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [editingAgent, setEditingAgent] = useState(null);
   const [newAgent, setNewAgent] = useState({
     name: '',
     description: '',
-    type: 'custom',
+    type: 'scheduler',
     triggers: [],
-    actions: []
+    actions: [],
+    status: 'active'
   });
 
   const agentTypes = [
@@ -91,11 +72,141 @@ const AgentBuilder = () => {
     { id: 'task_create', name: 'Создать задачу', icon: CheckCircle }
   ];
 
+  // Загрузка данных при монтировании компонента
+  useEffect(() => {
+    loadAgents();
+    loadStats();
+  }, []);
+
+  const loadAgents = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/agents`);
+      setAgents(response.data);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/agents/stats/summary`);
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const handleCreateAgent = async () => {
+    if (!newAgent.name || !newAgent.description) {
+      alert('Заполните название и описание агента');
+      return;
+    }
+
+    try {
+      await axios.post(`${BACKEND_URL}/api/agents`, newAgent);
+      setShowBuilder(false);
+      setNewAgent({
+        name: '',
+        description: '',
+        type: 'scheduler',
+        triggers: [],
+        actions: [],
+        status: 'active'
+      });
+      loadAgents();
+      loadStats();
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      alert('Ошибка при создании агента');
+    }
+  };
+
+  const handleUpdateAgent = async () => {
+    if (!editingAgent) return;
+
+    try {
+      await axios.put(`${BACKEND_URL}/api/agents/${editingAgent.id}`, newAgent);
+      setShowBuilder(false);
+      setEditingAgent(null);
+      setNewAgent({
+        name: '',
+        description: '',
+        type: 'scheduler',
+        triggers: [],
+        actions: [],
+        status: 'active'
+      });
+      loadAgents();
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      alert('Ошибка при обновлении агента');
+    }
+  };
+
+  const handleDeleteAgent = async (agentId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этого агента?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${BACKEND_URL}/api/agents/${agentId}`);
+      loadAgents();
+      loadStats();
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      alert('Ошибка при удалении агента');
+    }
+  };
+
+  const handleExecuteAgent = async (agentId) => {
+    try {
+      await axios.post(`${BACKEND_URL}/api/agents/${agentId}/execute`);
+      alert('Агент успешно выполнен');
+      loadAgents();
+      loadStats();
+    } catch (error) {
+      console.error('Error executing agent:', error);
+      alert('Ошибка при выполнении агента');
+    }
+  };
+
+  const startEditing = (agent) => {
+    setEditingAgent(agent);
+    setNewAgent({
+      name: agent.name,
+      description: agent.description,
+      type: agent.type,
+      triggers: agent.triggers || [],
+      actions: agent.actions || [],
+      status: agent.status
+    });
+    setShowBuilder(true);
+  };
+
   const getStatusColor = (status) => {
     return status === 'active' 
       ? 'bg-green-100 text-green-700' 
       : 'bg-gray-100 text-gray-700';
   };
+
+  const getTypeIcon = (type) => {
+    const typeInfo = agentTypes.find(t => t.id === type);
+    return typeInfo ? typeInfo.icon : Bot;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Загрузка агентов...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6">
@@ -114,7 +225,18 @@ const AgentBuilder = () => {
             </div>
             
             <button
-              onClick={() => setShowBuilder(!showBuilder)}
+              onClick={() => {
+                setEditingAgent(null);
+                setNewAgent({
+                  name: '',
+                  description: '',
+                  type: 'scheduler',
+                  triggers: [],
+                  actions: [],
+                  status: 'active'
+                });
+                setShowBuilder(!showBuilder);
+              }}
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
             >
               <Plus className="w-5 h-5" />
@@ -124,11 +246,11 @@ const AgentBuilder = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Bot className="w-8 h-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">{agents.length}</span>
+              <span className="text-2xl font-bold text-gray-900">{stats.active_agents}</span>
             </div>
             <p className="text-sm text-gray-600">Активных агентов</p>
           </div>
@@ -136,7 +258,7 @@ const AgentBuilder = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Zap className="w-8 h-8 text-yellow-600" />
-              <span className="text-2xl font-bold text-gray-900">1.2K</span>
+              <span className="text-2xl font-bold text-gray-900">{stats.executions_today}</span>
             </div>
             <p className="text-sm text-gray-600">Выполнено сегодня</p>
           </div>
@@ -144,7 +266,7 @@ const AgentBuilder = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-8 h-8 text-green-600" />
-              <span className="text-2xl font-bold text-gray-900">98%</span>
+              <span className="text-2xl font-bold text-gray-900">{stats.executions_success_rate}%</span>
             </div>
             <p className="text-sm text-gray-600">Успешность</p>
           </div>
@@ -152,9 +274,17 @@ const AgentBuilder = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-8 h-8 text-purple-600" />
-              <span className="text-2xl font-bold text-gray-900">24</span>
+              <span className="text-2xl font-bold text-gray-900">{stats.total_users}</span>
             </div>
             <p className="text-sm text-gray-600">Пользователей</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <Database className="w-8 h-8 text-cyan-600" />
+              <span className="text-2xl font-bold text-gray-900">{stats.total_agents}</span>
+            </div>
+            <p className="text-sm text-gray-600">Всего агентов</p>
           </div>
         </div>
 
@@ -162,12 +292,17 @@ const AgentBuilder = () => {
         {showBuilder && (
           <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Новый агент</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingAgent ? 'Редактировать агента' : 'Новый агент'}
+              </h2>
               <button
-                onClick={() => setShowBuilder(false)}
+                onClick={() => {
+                  setShowBuilder(false);
+                  setEditingAgent(null);
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
             </div>
 
@@ -219,46 +354,19 @@ const AgentBuilder = () => {
               />
             </div>
 
-            {/* Triggers */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Триггеры (когда запускать)</label>
-              <div className="grid grid-cols-5 gap-3">
-                {availableTriggers.map(trigger => (
-                  <button
-                    key={trigger.id}
-                    className="p-3 rounded-xl border-2 border-gray-200 hover:border-indigo-300 transition-all text-center"
-                  >
-                    <trigger.icon className="w-6 h-6 mx-auto mb-1 text-gray-600" />
-                    <div className="text-xs font-medium text-gray-700">{trigger.name}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Действия (что делать)</label>
-              <div className="grid grid-cols-6 gap-3">
-                {availableActions.map(action => (
-                  <button
-                    key={action.id}
-                    className="p-3 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-all text-center"
-                  >
-                    <action.icon className="w-6 h-6 mx-auto mb-1 text-gray-600" />
-                    <div className="text-xs font-medium text-gray-700">{action.name}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
+            {/* Action Buttons */}
             <div className="flex gap-3">
-              <button className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 font-semibold">
-                <Save className="w-5 h-5" />
-                Сохранить агента
-              </button>
-              <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-semibold">
+              <button
+                onClick={() => setShowBuilder(false)}
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+              >
                 Отмена
+              </button>
+              <button
+                onClick={editingAgent ? handleUpdateAgent : handleCreateAgent}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+              >
+                {editingAgent ? 'Сохранить изменения' : 'Создать агента'}
               </button>
             </div>
           </div>
@@ -266,69 +374,89 @@ const AgentBuilder = () => {
 
         {/* Agents List */}
         <div className="space-y-4">
-          {agents.map(agent => (
-            <div 
-              key={agent.id}
-              className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
-            >
-              <div className={`h-2 bg-gradient-to-r ${agent.color}`} />
-              
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${agent.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <agent.icon className="w-7 h-7 text-white" />
+          {agents.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center">
+              <Bot className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Нет агентов</h3>
+              <p className="text-gray-600 mb-6">Создайте первого агента для автоматизации</p>
+              <button
+                onClick={() => setShowBuilder(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Создать агента
+              </button>
+            </div>
+          ) : (
+            agents.map(agent => {
+              const IconComponent = getTypeIcon(agent.type);
+              const color = agent.type === 'scheduler' ? 'from-blue-500 to-cyan-500' :
+                            agent.type === 'integration' ? 'from-green-500 to-emerald-500' :
+                            agent.type === 'bot' ? 'from-purple-500 to-pink-500' :
+                            agent.type === 'workflow' ? 'from-yellow-500 to-orange-500' :
+                            'from-indigo-500 to-purple-500';
+
+              return (
+                <div key={agent.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center flex-shrink-0`}>
+                      <IconComponent className="w-7 h-7 text-white" />
                     </div>
 
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">{agent.name}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(agent.status)}`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">{agent.name}</h3>
+                          <p className="text-gray-600">{agent.description}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(agent.status)}`}>
                           {agent.status === 'active' ? 'Активен' : 'Неактивен'}
                         </span>
                       </div>
-                      <p className="text-gray-600 mb-4">{agent.description}</p>
 
-                      <div className="flex items-center gap-6">
+                      <div className="flex flex-wrap gap-6 mb-4 text-sm text-gray-600">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Триггеры</p>
-                          <div className="flex flex-wrap gap-2">
-                            {agent.triggers.map((trigger, i) => (
-                              <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                                {trigger}
-                              </span>
-                            ))}
-                          </div>
+                          <span className="font-semibold">Выполнений:</span> {agent.executions_total || 0}
                         </div>
-
-                        <ArrowRight className="w-5 h-5 text-gray-300" />
-
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Действия</p>
-                          <div className="flex flex-wrap gap-2">
-                            {agent.actions.map((action, i) => (
-                              <span key={i} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-medium">
-                                {action}
-                              </span>
-                            ))}
-                          </div>
+                          <span className="font-semibold">Успешно:</span> {agent.executions_success || 0}
                         </div>
+                        {agent.last_execution && (
+                          <div>
+                            <span className="font-semibold">Последнее:</span> {new Date(agent.last_execution).toLocaleString('ru-RU')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleExecuteAgent(agent.id)}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm"
+                        >
+                          <Play className="w-4 h-4" />
+                          Запустить
+                        </button>
+                        <button
+                          onClick={() => startEditing(agent)}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Редактировать
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAgent(agent.id)}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Удалить
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <Settings className="w-5 h-5 text-gray-400" />
-                    </button>
-                    <button className="p-2 hover:bg-green-50 rounded-lg transition-colors">
-                      <Play className="w-5 h-5 text-green-600" />
-                    </button>
-                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
     </div>
