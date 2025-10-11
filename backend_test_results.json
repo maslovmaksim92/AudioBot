@@ -3,7 +3,8 @@
     "Health Check": true,
     "AI Context": true,
     "AI Analyze": true,
-    "AI Chat": true
+    "AI Chat - Bitrix Address Match": true,
+    "AI Chat - General": true
   },
   "detailed_results": [
     {
@@ -12,10 +13,10 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760190645
+        "ts": 1760195169
       },
       "error": null,
-      "timestamp": "2025-10-11T13:50:45.586252"
+      "timestamp": "2025-10-11T15:06:09.068451"
     },
     {
       "endpoint": "/api/ai-assistant/context",
@@ -26,7 +27,7 @@
         "context": {}
       },
       "error": null,
-      "timestamp": "2025-10-11T13:50:46.923196"
+      "timestamp": "2025-10-11T15:06:10.262705"
     },
     {
       "endpoint": "/api/ai-assistant/analyze",
@@ -37,7 +38,7 @@
         "error": "No financial data"
       },
       "error": null,
-      "timestamp": "2025-10-11T13:50:48.087684"
+      "timestamp": "2025-10-11T15:06:11.444178"
     },
     {
       "endpoint": "/api/ai-assistant/chat",
@@ -48,9 +49,20 @@
         "error": "OpenAI API error: 401"
       },
       "error": null,
-      "timestamp": "2025-10-11T13:50:49.454944"
+      "timestamp": "2025-10-11T15:06:12.878075"
+    },
+    {
+      "endpoint": "/api/ai-assistant/chat (general)",
+      "method": "POST",
+      "status_code": 200,
+      "response": {
+        "success": false,
+        "error": "OpenAI API error: 401"
+      },
+      "error": null,
+      "timestamp": "2025-10-11T15:06:14.232942"
     }
   ],
-  "test_time": "2025-10-11T13:50:49.455236",
+  "test_time": "2025-10-11T15:06:14.233278",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
