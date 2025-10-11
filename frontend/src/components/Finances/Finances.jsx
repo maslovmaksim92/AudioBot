@@ -116,6 +116,13 @@ function Finances() {
             <Inventory />
           </TabsContent>
         </Tabs>
+
+        {/* Transaction Form Modal */}
+        <TransactionForm 
+          open={showAddForm} 
+          onOpenChange={setShowAddForm}
+          onSuccess={handleTransactionAdded}
+        />
       </div>
     </div>
   );
