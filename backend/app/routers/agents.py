@@ -292,3 +292,49 @@ async def execute_agent(
         await db.rollback()
         logger.error(f"❌ Error executing agent {agent_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute agent: {str(e)}")
+
+
+# ============= Database Initialization =============
+
+@router.post("/init-db")
+async def initialize_agents_table(db: AsyncSession = Depends(get_db)):
+    """
+    Инициализировать таблицу агентов
+    """
+    CREATE_TABLE_SQL = """
+    CREATE TABLE IF NOT EXISTS agents (
+        id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        type VARCHAR(50) NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',
+        triggers JSONB DEFAULT '[]'::jsonb,
+        actions JSONB DEFAULT '[]'::jsonb,
+        config JSONB DEFAULT '{}'::jsonb,
+        executions_total INTEGER DEFAULT 0,
+        executions_success INTEGER DEFAULT 0,
+        executions_failed INTEGER DEFAULT 0,
+        last_execution TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(36)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
+    CREATE INDEX IF NOT EXISTS idx_agents_type ON agents(type);
+    CREATE INDEX IF NOT EXISTS idx_agents_created_at ON agents(created_at);
+    """
+    
+    try:
+        # Используем raw SQL через connection
+        await db.execute(CREATE_TABLE_SQL)
+        await db.commit()
+        
+        logger.info("✅ Agents table created successfully")
+        
+        return {"success": True, "message": "Agents table created successfully"}
+    
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"❌ Error creating agents table: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create table: {str(e)}")
