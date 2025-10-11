@@ -188,6 +188,7 @@ const AgentBuilder = () => {
 
       await axios.post(`${BACKEND_URL}/api/agents/`, agentData);
       setShowBuilder(false);
+      setSelectedEmployees([]);
       setNewAgent({
         name: '',
         description: '',
