@@ -1329,7 +1329,8 @@ async def startup_event():
         # Инициализируем планировщик агентов
         try:
             from backend.app.services.agent_scheduler import init_agent_scheduler
-            agent_sched = init_agent_scheduler(task_scheduler)
+            # Передаём реальный APScheduler, а не обёртку
+            agent_sched = init_agent_scheduler(task_scheduler.scheduler)
             logger.info('✅ Agent scheduler initialized')
         except Exception as e:
             logger.warning(f'⚠️ Could not initialize agent scheduler: {e}')
@@ -1344,7 +1345,8 @@ async def startup_event():
             # Инициализируем планировщик агентов
             try:
                 from app.services.agent_scheduler import init_agent_scheduler
-                agent_sched = init_agent_scheduler(task_scheduler)
+                # Передаём реальный APScheduler, а не обёртку
+                agent_sched = init_agent_scheduler(task_scheduler.scheduler)
                 logger.info('✅ Agent scheduler initialized')
             except Exception as e:
                 logger.warning(f'⚠️ Could not initialize agent scheduler: {e}')
