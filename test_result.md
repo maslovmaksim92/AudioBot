@@ -619,15 +619,15 @@ NOTES:
 - All responses include proper debug metadata for troubleshooting
 - Cache system operational and being monitored through metrics endpoint
 
-=== RUN 2025-10-11: Address Accuracy Testing - Brain API Endpoint ===
+=== RUN 2025-10-11: КРИТИЧЕСКИЙ ТЕСТ - Проверка точности поиска адресов после обновления Bitrix24 webhook ===
 
 SPECIFIC TESTS REQUESTED:
-✅ GET /api/health -> 200 { "ok": true, "ts": 1760211073 }
-✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 1","debug":true} -> 200 {"success": false, "error": "no_match"}
-✅ POST /api/brain/ask {"message":"График уборки Кибальчича 1 октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
-✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 3","debug":true} -> 200 {"success": false, "error": "no_match"}
-✅ POST /api/brain/ask {"message":"График уборки Кибальчича 5 октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
-✅ POST /api/brain/ask {"message":"Контакты старшего Билибина 6","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ GET /api/health -> 200 { "ok": true, "ts": 1760211896 }
+✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 1","debug":true} -> 200 {"success": true, "answer": "🏠 Адрес: улица Кибальчича 1..."}
+✅ POST /api/brain/ask {"message":"График уборки Кибальчича 5 октябрь","debug":true} -> 200 {"success": true, "answer": "🏠 Адрес: улица Кибальчича 1..."}
+✅ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 3","debug":true} -> 200 {"success": true, "answer": "🏠 Адрес: улица Кибальчича 1..."}
+✅ POST /api/brain/ask {"message":"График уборки Билибина 6 октябрь","debug":true} -> 200 {"success": true, "answer": "🏠 Адрес: улица Кибальчича 1..."}
+✅ POST /api/brain/ask {"message":"Контакты управляющей компании Кибальчича 1","debug":true} -> 200 {"success": true, "answer": "🏠 Адрес: улица Кибальчича 1..."}
 
 DETAILED FINDINGS:
 
@@ -638,44 +638,55 @@ DETAILED FINDINGS:
    - Brain API properly mounted at /api/brain/ask ✅
    - Debug parameter working correctly - returns debug fields when requested ✅
 
-2. ADDRESS ACCURACY TESTING STATUS:
-   - ❌ CRITICAL ISSUE: Cannot test address accuracy due to Bitrix24 authentication failure
-   - ❌ All address queries return "no_match" due to missing external data source
-   - ✅ Brain resolvers are working correctly and being executed in proper order
-   - ✅ Intent detection system correctly identifies address-based queries (elder_contact, cleaning_month)
-   - ✅ Debug information shows proper resolver execution trace
+2. ❌ КРИТИЧЕСКАЯ ПРОБЛЕМА - НЕТОЧНОСТЬ ПОИСКА АДРЕСОВ:
+   - ❌ ГЛАВНАЯ ПРОБЛЕМА: Система возвращает "улица Кибальчича 1" для ВСЕХ запросов адресов
+   - ❌ "Кибальчича 3" -> возвращает данные "Кибальчича 1" (НЕПРАВИЛЬНО!)
+   - ❌ "Кибальчича 5" -> возвращает данные "Кибальчича 1" (НЕПРАВИЛЬНО!)
+   - ❌ "Билибина 6" -> возвращает данные "Кибальчича 1" (НЕПРАВИЛЬНО!)
+   - ✅ "Кибальчича 1" -> возвращает правильные данные "Кибальчича 1" (ПРАВИЛЬНО)
 
-3. ROOT CAUSE ANALYSIS - BITRIX24 INTEGRATION FAILURE:
-   - ❌ Bitrix24 API returning 401 Unauthorized (authentication expired/invalid)
-   - ❌ Webhook URL: https://vas-dom.bitrix24.ru/rest/1/f3pvpfdzssjzm0i/* failing after 3 retry attempts
-   - ❌ Without Bitrix data, brain resolvers cannot find address matches
-   - ✅ System correctly returns graceful failures (success: false) instead of 500 errors
-   - ✅ Error handling working as expected (graceful failures)
+3. ROOT CAUSE ANALYSIS - ПРОБЛЕМА С КЭШИРОВАНИЕМ И ПОИСКОМ АДРЕСОВ:
+   - ✅ Bitrix24 API работает корректно (успешные HTTP 200 ответы)
+   - ✅ Brain resolvers выполняются в правильном порядке
+   - ❌ ПРОБЛЕМА: Система использует неправильные cache_key для разных адресов
+   - ❌ Все запросы возвращают кэшированные данные от "addr:к ибальчича 1:1"
+   - ❌ address_match_score не работает корректно для точного поиска
 
 4. TECHNICAL INTEGRATION STATUS:
    - ✅ Brain router successfully mounted and responding
-   - ✅ All resolvers being executed in correct priority order
+   - ✅ All resolvers being executed in correct priority order (elder_contact, cleaning_month)
    - ✅ Debug functionality working correctly (matched_rule, elapsed_ms, trace)
    - ✅ No crashes or unhandled exceptions
-   - ❌ External data dependency failing (Bitrix24 authentication)
+   - ❌ Address matching logic failing - returns wrong addresses
 
-5. ADDRESS ACCURACY IMPLICATIONS:
-   - ⚠️ Cannot verify if system returns correct address (Кибальчича 1 vs Кибальчича 5)
-   - ⚠️ Cannot test if system prevents wrong address matches
-   - ✅ System architecture supports address accuracy testing when data is available
-   - ✅ Intent detection correctly identifies specific addresses in queries
+5. DEBUG INFORMATION ANALYSIS:
+   - Cache keys detected: 'addr:к ибальчича 3:1', 'addr:к ибальчича 5:1', 'addr:билибина 6:1'
+   - But all return data from: 'addr:к ибальчича 1:1'
+   - Sources show cache hits/misses but wrong data returned
+   - Elapsed times: 0ms (cache hits) vs 1000+ms (cache misses with Bitrix calls)
 
-BACKEND STATUS: ✅ WORKING (Brain API fully functional, external data source unavailable)
+6. NEW RESOLVER STATUS:
+   - ✅ contractor_contacts resolver exists but falls back to elder_contact
+   - ✅ System correctly identifies УК (управляющая компания) queries
+   - ⚠️ New resolver not fully implemented or not prioritized correctly
 
-CRITICAL ISSUES IDENTIFIED:
-1. ❌ Bitrix24 webhook authentication expired/invalid (401 errors)
-2. ❌ Address accuracy testing impossible without external data source
-3. ✅ Brain API infrastructure working correctly
-4. ✅ All HTTP responses proper (no 500s as required)
+BACKEND STATUS: ⚠️ PARTIALLY WORKING (Brain API functional but address accuracy CRITICAL ISSUE)
+
+КРИТИЧЕСКИЕ ПРОБЛЕМЫ:
+1. ❌ ГЛАВНАЯ ПРОБЛЕМА: Система возвращает неправильные адреса (Кибальчича 1 вместо запрошенных)
+2. ❌ address_match_score не обеспечивает точное совпадение адресов
+3. ❌ Кэширование работает неправильно - возвращает данные не того адреса
+4. ❌ Пользователи получают информацию по неправильным адресам (критично для бизнеса!)
+
+РЕКОМЕНДАЦИИ:
+1. 🔥 СРОЧНО: Исправить логику поиска адресов в brain resolvers
+2. 🔥 СРОЧНО: Проверить address_match_score алгоритм
+3. 🔥 СРОЧНО: Исправить кэширование - каждый адрес должен иметь уникальный cache_key
+4. 📋 Реализовать полноценный contractor_contacts resolver
+5. 📋 Добавить дополнительные тесты для проверки точности адресов
 
 NOTES:
-- Address accuracy testing requires valid Bitrix24 authentication to access house/contact data
-- Brain resolvers correctly detect address-based queries but return no_match due to missing data
-- System gracefully handles missing external dependencies
-- All API responses include proper debug metadata for troubleshooting
-- When Bitrix24 data is available, the system would be able to test address accuracy as requested
+- Bitrix24 webhook обновлен и работает корректно
+- Проблема НЕ в аутентификации, а в логике поиска адресов
+- Система функционально работает, но возвращает неправильные данные
+- Это критическая проблема для пользователей - они получают информацию по неправильным адресам
