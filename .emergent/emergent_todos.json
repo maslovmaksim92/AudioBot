@@ -1,30 +1,30 @@
 [
   {
-    "content": "Обновить backend/.env с правильными переменными из Render",
+    "content": "Удалить MongoDB и интегрировать PostgreSQL в server.py",
     "status": "completed"
   },
   {
-    "content": "Удалить MongoDB и интегрировать PostgreSQL в server.py",
-    "status": "in_progress"
-  },
-  {
     "content": "Создать модульную структуру backend/app (config, routers, services)",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Интегрировать полный server.py из GitHub с всеми функциями",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Обновить frontend App.js с полным роутингом",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Создать все frontend компоненты (Dashboard, Works, AI Chat и т.д.)",
-    "status": "pending"
+    "status": "completed"
   },
   {
-    "content": "Протестировать интеграции (Bitrix24, OpenAI, LiveKit)",
+    "content": "Установить новые зависимости (backend и frontend)",
+    "status": "in_progress"
+  },
+  {
+    "content": "Перезапустить сервисы с новым кодом",
     "status": "pending"
   },
   {
