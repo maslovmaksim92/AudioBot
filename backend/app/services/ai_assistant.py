@@ -282,6 +282,7 @@ class AIAssistant:
             prompt += f"""СОТРУДНИКИ:
 - Всего: {context['employees']['total']}
 - Активных: {context['employees']['active']}
+"""
 
         # Если в контексте найден дом по адресу, добавим краткую подсказку в промпт
         if context.get('matched_houses'):
@@ -301,8 +302,6 @@ class AIAssistant:
                 prompt += addr_line + "\n\n"
             except Exception:
                 pass
-
-"""
         
         if 'employees_list' in context and context['employees_list']:
             prompt += "Список сотрудников:\n"
