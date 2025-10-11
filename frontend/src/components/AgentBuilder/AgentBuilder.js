@@ -106,7 +106,48 @@ const AgentBuilder = () => {
     }
 
     try {
-      await axios.post(`${BACKEND_URL}/api/agents/`, newAgent);
+      // Формируем triggers и actions на основе типа и конфигурации
+      const agentData = {
+        ...newAgent,
+        triggers: [],
+        actions: []
+      };
+
+      // Для scheduler - добавляем cron trigger
+      if (newAgent.type === 'scheduler' && newAgent.config?.schedule_time) {
+        const time = newAgent.config.schedule_time; // "08:25"
+        const [hour, minute] = time.split(':');
+        
+        // Формируем cron для разных дней недели
+        let cronExpression = '';
+        if (newAgent.config.schedule_days === 'weekdays') {
+          cronExpression = `${minute} ${hour} * * 1-5`; // Пн-Пт
+        } else if (newAgent.config.schedule_days === 'daily') {
+          cronExpression = `${minute} ${hour} * * *`; // Каждый день
+        } else if (newAgent.config.schedule_days === 'weekend') {
+          cronExpression = `${minute} ${hour} * * 0,6`; // Сб-Вс
+        }
+        
+        agentData.triggers.push({
+          type: 'cron',
+          name: `Расписание: ${time} (${newAgent.config.schedule_days === 'weekdays' ? 'Пн-Пт' : newAgent.config.schedule_days === 'daily' ? 'Ежедневно' : 'Сб-Вс'})`,
+          config: { cron: cronExpression }
+        });
+      }
+
+      // Для TG уведомлений - добавляем telegram_send action
+      if (newAgent.config?.telegram_recipients || newAgent.config?.telegram_message) {
+        agentData.actions.push({
+          type: 'telegram_send',
+          name: 'Отправка в Telegram',
+          config: {
+            recipients: newAgent.config.telegram_recipients || '',
+            message: newAgent.config.telegram_message || ''
+          }
+        });
+      }
+
+      await axios.post(`${BACKEND_URL}/api/agents/`, agentData);
       setShowBuilder(false);
       setNewAgent({
         name: '',
@@ -114,13 +155,14 @@ const AgentBuilder = () => {
         type: 'scheduler',
         triggers: [],
         actions: [],
+        config: {},
         status: 'active'
       });
       loadAgents();
       loadStats();
     } catch (error) {
       console.error('Error creating agent:', error);
-      alert('Ошибка при создании агента');
+      alert('Ошибка при создании агента: ' + (error.response?.data?.detail || error.message));
     }
   };
 
