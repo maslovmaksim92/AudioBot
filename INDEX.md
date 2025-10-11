@@ -94,7 +94,7 @@
 - APScheduler: 3 задачи запланированы
 
 **URLs:**
-- Preview: https://audio-optimizer.preview.emergentagent.com
+- Preview: https://money-tracker-1172.preview.emergentagent.com
 - API Docs: http://localhost:8001/docs
 
 ---

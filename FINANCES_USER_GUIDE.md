@@ -4,7 +4,7 @@
 
 Модуль "Финансы" позволяет вести учёт всех денежных операций компании и автоматически генерировать финансовые отчёты.
 
-**URL:** https://audio-optimizer.preview.emergentagent.com/#/finances
+**URL:** https://money-tracker-1172.preview.emergentagent.com/#/finances
 
 ## 🚀 Как добавлять данные
 
