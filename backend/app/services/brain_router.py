@@ -1,5 +1,5 @@
 """
-BrainRouter: routes a user message to appropriate resolver.
+BrainRouter: routes a user message to appropriate resolver (Stage 5 additions wired)
 """
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from backend.app.services.brain_resolvers import (
     resolve_brigade_by_address,
     resolve_finance_basic,
     resolve_structural_totals,
+    resolve_finance_breakdown,
+    resolve_finance_mom,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,8 +44,16 @@ async def try_fast_answer(message: str, db: Any = None) -> Optional[Dict[str, An
             ans = await resolve_finance_basic(message, db, ent)
             if ans and ans.get("success"):
                 return ans
+        elif t == "finance_breakdown" and db is not None:
+            ans = await resolve_finance_breakdown(message, db, ent)
+            if ans and ans.get("success"):
+                return ans
+        elif t == "finance_mom" and db is not None:
+            ans = await resolve_finance_mom(message, db, ent)
+            if ans and ans.get("success"):
+                return ans
 
-    # Legacy fallback priority
+    # Legacy fallback
     ans = await resolve_elder_contact(message)
     if ans and ans.get("success"):
         return ans
@@ -58,6 +68,12 @@ async def try_fast_answer(message: str, db: Any = None) -> Optional[Dict[str, An
         if ans and ans.get("success"):
             return ans
         ans = await resolve_finance_basic(message, db)
+        if ans and ans.get("success"):
+            return ans
+        ans = await resolve_finance_breakdown(message, db)
+        if ans and ans.get("success"):
+            return ans
+        ans = await resolve_finance_mom(message, db)
         if ans and ans.get("success"):
             return ans
     return None
