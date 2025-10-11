@@ -37,6 +37,7 @@ class ChatRequest(BaseModel):
     """Запрос на отправку сообщения"""
     message: str
     user_id: str
+    debug: bool = False
 
 class ChatResponse(BaseModel):
     """Ответ от AI"""
