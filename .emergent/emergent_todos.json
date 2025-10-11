@@ -1,10 +1,34 @@
 [
   {
-    "content": "Create CLEANUP_REPORT.md - analysis report",
-    "status": "completed"
+    "content": "Обновить backend/.env с правильными переменными из Render",
+    "status": "in_progress"
   },
   {
-    "content": "Update README.md with links to all documentation",
-    "status": "completed"
+    "content": "Удалить MongoDB и интегрировать PostgreSQL в server.py",
+    "status": "pending"
+  },
+  {
+    "content": "Создать модульную структуру backend/app (config, routers, services)",
+    "status": "pending"
+  },
+  {
+    "content": "Интегрировать полный server.py из GitHub с всеми функциями",
+    "status": "pending"
+  },
+  {
+    "content": "Обновить frontend App.js с полным роутингом",
+    "status": "pending"
+  },
+  {
+    "content": "Создать все frontend компоненты (Dashboard, Works, AI Chat и т.д.)",
+    "status": "pending"
+  },
+  {
+    "content": "Протестировать интеграции (Bitrix24, OpenAI, LiveKit)",
+    "status": "pending"
+  },
+  {
+    "content": "Проверить работоспособность всех функций",
+    "status": "pending"
   }
 ]
