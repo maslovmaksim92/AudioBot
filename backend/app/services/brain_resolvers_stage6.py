@@ -48,8 +48,19 @@ async def resolve_finance_category_trends(text: str, db: Any, ent: Optional[Dict
     tl = (text or "").lower()
     if not any(k in tl for k in ["топ", "рост", "падени", "лидеры", "просели"]) and not (ent and ent.get("type") == "finance_cat_trends"):
         return None
-    trends = await compute_category_trends(db)
+    trends = await compute_category_trends(db, days=90)  # квартал = 90 дней
     ans = "Топ изменения категорий за квартал:\n"
-    for cat in trends[:5]:
-        ans += f"- {cat['category']}: {cat['change']:.1f}% ({cat['current']:.2f} vs {cat['previous']:.2f})\n"
+    
+    # Show top growth
+    if trends.get("top_growth"):
+        ans += "Рост:\n"
+        for cat, now_val, delta in trends["top_growth"][:3]:
+            ans += f"  + {cat}: {now_val:.2f} (Δ {delta:.2f})\n"
+    
+    # Show top decline
+    if trends.get("top_decline"):
+        ans += "Падение:\n"
+        for cat, now_val, delta in trends["top_decline"][:3]:
+            ans += f"  - {cat}: {now_val:.2f} (Δ {delta:.2f})\n"
+    
     return _success(ans, data=trends, rule="finance_cat_trends")
