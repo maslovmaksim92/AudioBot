@@ -88,6 +88,26 @@ def _extract_address_candidate(text: str) -> Optional[str]:
                 if len(cand) >= 3:
                     return cand
         return None
+        # Улучшение извлечения: если нашли номер дома, соберём адрес как <улица> <номер> без служебных слов
+        stop = {"контакт","контакты","старшего","старший","телефон","почта","email","номер","по","адресу","на"}
+        for i, t in enumerate(tokens):
+            if re.match(r"^\d+[а-яa-z]*$", t):
+                # ищем слева ближайшее слово, не являющееся стоп-словом
+                street = None
+                for j in range(i-1, max(-1, i-4), -1):
+                    if j >= 0 and tokens[j] not in stop and tokens[j].strip():
+                        street = tokens[j]
+                        break
+                if street:
+                    return f"{street} {t}".strip()
+                # если улицу не нашли — fallback прежний
+                left = tokens[max(0, i-2):i]
+                left = [w for w in left if w not in stop]
+                right = [tokens[i+1]] if i+1 < len(tokens) else []
+                cand = ' '.join(left + [t] + right)
+                if len(cand) >= 3:
+                    return cand
+
     except Exception:
         return None
 
