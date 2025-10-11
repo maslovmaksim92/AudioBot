@@ -48,6 +48,28 @@ class AgentExecutor:
                     if not result['success']:
                         success = False
                 
+                elif action_type == 'email_send':
+                    result = await self._execute_email_send(action_config)
+                    results.append({
+                        'action': action.get('name'),
+                        'type': action_type,
+                        'success': result['success'],
+                        'message': result.get('message')
+                    })
+                    if not result['success']:
+                        success = False
+                
+                elif action_type == 'ai_call':
+                    result = await self._execute_ai_call(action_config)
+                    results.append({
+                        'action': action.get('name'),
+                        'type': action_type,
+                        'success': result['success'],
+                        'message': result.get('message')
+                    })
+                    if not result['success']:
+                        success = False
+                
                 elif action_type == 'log_create':
                     result = await self._execute_log_create(agent, action_config)
                     results.append({
