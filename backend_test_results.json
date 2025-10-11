@@ -1,26 +1,15 @@
 {
   "summary": {
+    "🔥 КРИТИЧЕСКИЙ: Кибальчича 1": true,
+    "🔥 КРИТИЧЕСКИЙ: Кибальчича 3": false,
+    "🔥 КРИТИЧЕСКИЙ: Кибальчича 5": false,
+    "🔥 КРИТИЧЕСКИЙ: Билибина 6": false,
     "Health Check": true,
-    "Кибальчича 1 vs Кибальчича 5": true,
-    "График уборки Кибальчича 1": true,
-    "Кибальчича 3 контакты": false,
-    "Кибальчича 5 график": false,
-    "Билибина 6 контакты": true
+    "Brain Metrics": true
   },
   "detailed_results": [
     {
-      "endpoint": "/api/health",
-      "method": "GET",
-      "status_code": 200,
-      "response": {
-        "ok": true,
-        "ts": 1760211896
-      },
-      "error": null,
-      "timestamp": "2025-10-11T19:44:56.521542"
-    },
-    {
-      "endpoint": "/api/brain/ask (Кибальчича 1)",
+      "endpoint": "/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)",
       "method": "POST",
       "status_code": 200,
       "response": {
@@ -50,56 +39,21 @@
           "matched_rules": [
             "elder_contact"
           ],
-          "elapsed_ms": 7694,
+          "elapsed_ms": 7730,
           "trace": [
             {
               "rule": "elder_contact",
               "status": "hit",
-              "elapsed_ms": 7692
+              "elapsed_ms": 7729
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:45:04.255605"
+      "timestamp": "2025-10-11T19:51:16.946545"
     },
     {
-      "endpoint": "/api/brain/ask (График Кибальчича 1)",
-      "method": "POST",
-      "status_code": 200,
-      "response": {
-        "success": true,
-        "answer": "🏠 Адрес: улица Кибальчича 1\n📅 Октябрь:\n2025-10-06 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-20 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-13 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-27 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;",
-        "rule": "cleaning_month",
-        "sources": {
-          "addr": "кибальчича 1",
-          "month": "october",
-          "cleaning": {
-            "cache": "hit",
-            "area": "houses",
-            "cache_key": "addr:к ибальчича 1:1"
-          }
-        },
-        "debug": {
-          "matched_rule": "cleaning_month",
-          "matched_rules": [
-            "cleaning_month"
-          ],
-          "elapsed_ms": 0,
-          "trace": [
-            {
-              "rule": "cleaning_month",
-              "status": "hit",
-              "elapsed_ms": 0
-            }
-          ]
-        }
-      },
-      "error": null,
-      "timestamp": "2025-10-11T19:45:04.310263"
-    },
-    {
-      "endpoint": "/api/brain/ask (Кибальчича 3)",
+      "endpoint": "/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)",
       "method": "POST",
       "status_code": 200,
       "response": {
@@ -129,21 +83,21 @@
           "matched_rules": [
             "elder_contact"
           ],
-          "elapsed_ms": 1042,
+          "elapsed_ms": 956,
           "trace": [
             {
               "rule": "elder_contact",
               "status": "hit",
-              "elapsed_ms": 1042
+              "elapsed_ms": 956
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:45:05.395102"
+      "timestamp": "2025-10-11T19:51:17.961714"
     },
     {
-      "endpoint": "/api/brain/ask (Кибальчича 5)",
+      "endpoint": "/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)",
       "method": "POST",
       "status_code": 200,
       "response": {
@@ -175,53 +129,80 @@
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:45:05.435998"
+      "timestamp": "2025-10-11T19:51:18.007875"
     },
     {
-      "endpoint": "/api/brain/ask (Билибина 6)",
+      "endpoint": "/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)",
       "method": "POST",
       "status_code": 200,
       "response": {
         "success": true,
-        "answer": "🏠 Адрес: улица Кибальчича 1\nСтарший: Игорь Станиславович  Мохов\nТелефон(ы): +79109194040\nEmail: ooo_greu_16@mail.ru\nСсылка в Bitrix: https://vas-dom.bitrix24.ru/crm/deal/details/4756/",
-        "rule": "elder_contact",
+        "answer": "🏠 Адрес: улица Кибальчича 1\n📅 Октябрь:\n2025-10-06 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-20 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-13 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-27 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;",
+        "rule": "cleaning_month",
         "sources": {
           "addr": "билибина 6",
-          "elder": {
+          "month": "october",
+          "cleaning": {
             "cache": "miss",
-            "area": "elder",
-            "cache_key": "elder:билибина 6",
-            "houses": {
-              "cache": "miss",
-              "area": "houses",
-              "cache_key": "addr:билибина 6:1"
-            }
-          },
-          "houses": {
-            "cache": "hit",
             "area": "houses",
             "cache_key": "addr:билибина 6:1"
           }
         },
         "debug": {
-          "matched_rule": "elder_contact",
+          "matched_rule": "cleaning_month",
           "matched_rules": [
-            "elder_contact"
+            "cleaning_month"
           ],
-          "elapsed_ms": 1001,
+          "elapsed_ms": 0,
           "trace": [
             {
-              "rule": "elder_contact",
+              "rule": "cleaning_month",
               "status": "hit",
-              "elapsed_ms": 1001
+              "elapsed_ms": 0
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:45:06.495102"
+      "timestamp": "2025-10-11T19:51:18.046455"
+    },
+    {
+      "endpoint": "/api/health",
+      "method": "GET",
+      "status_code": 200,
+      "response": {
+        "ok": true,
+        "ts": 1760212278
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:51:18.088531"
+    },
+    {
+      "endpoint": "/api/brain/metrics",
+      "method": "GET",
+      "status_code": 200,
+      "response": {
+        "started_at": "2025-10-11T19:48:07.100348+00:00",
+        "resolver_counts": {
+          "elder_contact": 2,
+          "cleaning_month": 2
+        },
+        "resolver_times_ms": {
+          "elder_contact": 8686,
+          "cleaning_month": 0
+        },
+        "cache_hits": {
+          "houses": 4
+        },
+        "cache_misses": {
+          "elder": 2,
+          "houses": 4
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T19:51:18.126758"
     }
   ],
-  "test_time": "2025-10-11T19:45:06.495483",
+  "test_time": "2025-10-11T19:51:18.127087",
   "backend_url": "https://smarthouse-ai.preview.emergentagent.com"
 }
