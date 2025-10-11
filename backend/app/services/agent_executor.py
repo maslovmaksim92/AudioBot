@@ -32,6 +32,19 @@ class AgentExecutor:
         success = True
         
         try:
+            # Проверяем условия выполнения (if/then logic)
+            conditions = agent.get('config', {}).get('conditions', [])
+            if conditions and not await self._check_conditions(conditions, agent):
+                logger.info(f"⏭️ Agent conditions not met, skipping execution")
+                return {
+                    'success': True,
+                    'agent_id': agent['id'],
+                    'agent_name': agent['name'],
+                    'skipped': True,
+                    'reason': 'Conditions not met',
+                    'executed_at': datetime.now(timezone.utc).isoformat()
+                }
+            
             # Выполняем все actions
             for action in agent.get('actions', []):
                 action_type = action.get('type')
