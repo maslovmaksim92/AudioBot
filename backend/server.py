@@ -1262,6 +1262,8 @@ logger.info('API router mounted with all voice endpoints')
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
     from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs
+    from backend.app.routers import ai_assistant_api as ai_assistant_api_router
+
     logger.info('✅ Routers imported via backend.app.routers')
 except Exception as e1:
     logger.warning(f'⚠️ First import attempt failed (backend.app.routers): {e1}')
