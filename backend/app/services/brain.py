@@ -6,11 +6,33 @@ from __future__ import annotations
 from typing import Optional
 import re
 
-from backend.app.services.brain import normalize_address as _norm_base, parse_address_candidate as _parse_base
+
+def _normalize_address_base(text: Optional[str]) -> str:
+    """Base address normalization"""
+    if not text:
+        return ""
+    
+    # Basic cleanup
+    s = str(text).strip().lower()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def _parse_address_candidate_base(text: Optional[str]) -> Optional[str]:
+    """Base address parsing"""
+    if not text:
+        return None
+    
+    # Look for address patterns
+    s = str(text).strip()
+    if any(marker in s.lower() for marker in ["ул", "улица", "пр", "проспект", "д", "дом"]):
+        return s
+    
+    return None
 
 
 def normalize_address(text: Optional[str]) -> str:
-    s = _norm_base(text)
+    s = _normalize_address_base(text)
     if not s:
         return s
     # normalize corpus/building markers
@@ -24,7 +46,7 @@ def normalize_address(text: Optional[str]) -> str:
 
 
 def parse_address_candidate(text: Optional[str]) -> Optional[str]:
-    cand = _parse_base(text)
+    cand = _parse_address_candidate_base(text)
     if cand:
         return normalize_address(cand)
     return None
