@@ -91,7 +91,7 @@ const AgentBuilder = () => {
   };
 
   const loadStats = async () => {
-    try:
+    try {
       const response = await axios.get(`${BACKEND_URL}/api/agents/stats/summary`);
       setStats(response.data);
     } catch (error) {
