@@ -1,26 +1,26 @@
 [
   {
     "content": "Создать модели БД для финансовых транзакций",
-    "status": "in_progress"
-  },
-  {
-    "content": "Обновить API для работы с реальными данными из БД",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Добавить POST/PUT/DELETE endpoints для управления данными",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Создать UI формы для добавления транзакций",
+    "status": "in_progress"
+  },
+  {
+    "content": "Добавить кнопку импорта CSV в интерфейс",
     "status": "pending"
   },
   {
-    "content": "Добавить импорт из Excel/CSV",
+    "content": "Обновить финансовые отчёты чтобы читали из БД",
     "status": "pending"
   },
   {
-    "content": "Протестировать ввод реальных данных",
+    "content": "Создать инструкцию для пользователя",
     "status": "pending"
   }
 ]
