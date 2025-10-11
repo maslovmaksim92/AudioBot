@@ -1,5 +1,5 @@
 """
-API роутер для Telegram Bot - webhook и обработка сообщений
+API роутер для Telegram Bot - webhook и обработка сообщений с Brain integration
 """
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,9 +9,10 @@ import logging
 
 from backend.app.config.database import get_db
 from backend.app.services.telegram_service import telegram_service
+from backend.app.services.brain_router import try_fast_answer
 from backend.app.models.log import Log, LogLevel, LogCategory
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
