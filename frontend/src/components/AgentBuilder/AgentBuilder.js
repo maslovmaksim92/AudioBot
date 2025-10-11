@@ -79,9 +79,9 @@ const AgentBuilder = () => {
   }, []);
 
   const loadAgents = async () => {
-    try {
+    try:
       setLoading(true);
-      const response = await axios.get(`${BACKEND_URL}/api/agents`);
+      const response = await axios.get(`${BACKEND_URL}/api/agents/`);
       setAgents(response.data);
     } catch (error) {
       console.error('Error loading agents:', error);
@@ -91,7 +91,7 @@ const AgentBuilder = () => {
   };
 
   const loadStats = async () => {
-    try {
+    try:
       const response = await axios.get(`${BACKEND_URL}/api/agents/stats/summary`);
       setStats(response.data);
     } catch (error) {
