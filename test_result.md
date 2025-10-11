@@ -129,3 +129,56 @@ NOTES:
 - There's a discrepancy between frontend endpoint (/api/ai/chat) and backend test endpoint (/api/ai-assistant/chat)
 - Chat history is loading (30 total messages), indicating database integration is working
 - AI responses are contextually appropriate, suggesting the quick bypass logic is operational
+
+=== RUN 2025-10-11: AI Chat Quick Bypass Re-Test - Specific Heading Verification ===
+
+SPECIFIC TEST REQUESTED:
+✅ Navigate to /#/ai -> SUCCESS
+✅ Wait for chat UI load -> SUCCESS (title, input, send button all visible)
+✅ Type and send: "Когда уборка на Билибина 6 в октябре?" -> SUCCESS (message sent and user bubble appeared)
+✅ Wait up to 20s for response -> SUCCESS (assistant response received within timeframe)
+❌ Assert: assistant bubble contains heading "Октябрь — даты уборок:" -> FAILED (heading not found)
+✅ Ensure no JS console errors -> SUCCESS (no console errors detected)
+✅ Capture screenshot -> SUCCESS (initial and final screenshots captured)
+
+DETAILED FINDINGS:
+
+1. UI FUNCTIONALITY STATUS:
+   - ✅ Page navigation to /#/ai working correctly
+   - ✅ AI chat container, title "🤖 AI Помощник VasDom", input field, and send button all visible
+   - ✅ Russian text input handling working properly
+   - ✅ Message sending and user message bubble display working
+   - ✅ Loading indicator (typing dots) appearing and disappearing correctly
+   - ✅ Assistant response bubble appearing within expected timeframe
+   - ✅ Total messages on page: 32 (chat history loading properly)
+
+2. QUICK BYPASS BEHAVIOR STATUS:
+   - ❌ CRITICAL ISSUE: Expected heading "Октябрь — даты уборок:" NOT found in response
+   - ❌ Instead received OpenAI API error: "Error code: 401 - Incorrect API key provided"
+   - ❌ Quick bypass logic not functioning as expected for Bilybina 6 address query
+   - ✅ Error handling working (graceful error message display)
+   - ✅ Response is non-empty and contextually relevant (error message)
+
+3. TECHNICAL INTEGRATION STATUS:
+   - ✅ Frontend correctly using REACT_APP_BACKEND_URL environment variable
+   - ✅ API endpoint /api/ai/chat being called correctly
+   - ✅ No JavaScript console errors detected
+   - ✅ Proper network request handling
+   - ❌ Backend API returning OpenAI 401 error instead of quick bypass response
+
+4. ROOT CAUSE ANALYSIS:
+   - The system is not executing the quick bypass logic for "Билибина 6 в октябре" query
+   - Instead of returning formatted dates from Bitrix, system falls back to OpenAI
+   - OpenAI API key is invalid (401 error), preventing fallback response
+   - This suggests either:
+     * Bitrix integration failing (authentication issues)
+     * Quick bypass logic not properly implemented/triggered
+     * System defaulting to OpenAI instead of using quick bypass
+
+FRONTEND STATUS: ✅ WORKING (UI fully functional)
+QUICK BYPASS FEATURE STATUS: ❌ NOT WORKING (expected behavior not observed)
+
+CRITICAL ISSUES IDENTIFIED:
+1. Quick bypass logic not returning expected "Октябрь — даты уборок:" heading
+2. System falling back to OpenAI instead of using quick bypass for address queries
+3. OpenAI API key invalid (401 error) preventing any AI response
