@@ -8,7 +8,26 @@ from datetime import date, timedelta
 
 from backend.app.services.brain_math import compute_finance_yoy, compute_category_trends
 
-from .brain_resolvers import _success, _fail  # reuse helpers
+
+def _success(response: str, data: Optional[Dict[str, Any]] = None, rule: Optional[str] = None) -> Dict[str, Any]:
+    """Helper to create success response"""
+    result = {
+        "success": True,
+        "response": response
+    }
+    if data:
+        result["data"] = data
+    if rule:
+        result["rule"] = rule
+    return result
+
+
+def _fail(error: str) -> Dict[str, Any]:
+    """Helper to create failure response"""
+    return {
+        "success": False,
+        "error": error
+    }
 
 
 async def resolve_finance_yoy(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
