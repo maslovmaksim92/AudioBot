@@ -15,7 +15,8 @@ import {
   Truck,
   BookOpen,
   ClipboardList,
-  Sparkles
+  Sparkles,
+  DollarSign
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
