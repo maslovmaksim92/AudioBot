@@ -1,71 +1,48 @@
 """
-Brain resolvers (Stage 5 additions): finance breakdown/shares, MoM, and improved formatting already live.
+Add resolvers for YoY and category trends (Stage 6)
 """
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-import logging
 from datetime import date, timedelta
 
-from backend.app.services.brain_store import brain_store
-from backend.app.services.brain import (
-    parse_address_candidate,
-    detect_month_key,
-    format_cleaning_for_month,
-    format_elder_contact,
-    CleaningDates,
-)
-from backend.app.services.brain_math import (
-    compute_finance_basic,
-    compute_structural_totals,
-    compute_finance_breakdown,
-    compute_finance_change,
-)
+from backend.app.services.brain_math import compute_finance_yoy, compute_category_trends
 
-logger = logging.getLogger(__name__)
-
-# existing helpers _success/_fail remain
+from .brain_resolvers import _success, _fail  # reuse helpers
 
 
-async def resolve_finance_breakdown(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+async def resolve_finance_yoy(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
     tl = (text or "").lower()
-    if not any(k in tl for k in ["категор", "доля", "структура", "разбивка"]) and not (ent and ent.get("type") == "finance_breakdown"):
+    if not any(k in tl for k in ["yoy", "г/г", "год к году"]) and not (ent and ent.get("type") == "finance_yoy"):
         return None
-    # detect side: расходы или доходы
-    side = 'expense'
-    if 'доход' in tl:
-        side = 'income'
-    # detect window
-    range_days = ent and ent.get('range_days')
-    date_from = None
-    date_to = None
-    if range_days:
-        date_to = date.today().isoformat()
-        date_from = (date.today() - timedelta(days=int(range_days))).isoformat()
-    fb = await compute_finance_breakdown(db, date_from=date_from, date_to=date_to, side=side)
-    lines = [f"Сводка по категориям ({'расходы' if side=='expense' else 'доходы'}):"]
-    for cat, vals in fb.by_category.items():
-        share = fb.shares.get(cat, 0.0)
-        val = vals['expense'] if side == 'expense' else vals['income']
-        lines.append(f"- {cat}: {val:.2f} ({share:.1f}%)")
-    lines.append(f"Итого {('расход' if side=='expense' else 'доход')}: {(fb.expense if side=='expense' else fb.income):.2f}")
-    lines.append(f"Прибыль: {fb.profit:.2f}")
-    return {"success": True, "answer": "\n".join(lines), "data": {"breakdown": fb.__dict__}, "rule": "finance_breakdown"}
+    yoy = await compute_finance_yoy(db)
+    ans = (
+        f"Г/Г динамика за 365 дней:\n"
+        f"Доход: {yoy['income_now']:.2f} (было {yoy['income_prev']:.2f}, {yoy['yoy_income']:.1f}%)\n"
+        f"Расход: {yoy['expense_now']:.2f} (было {yoy['expense_prev']:.2f}, {yoy['yoy_expense']:.1f}%)\n"
+        f"Прибыль: {yoy['profit_now']:.2f} (было {yoy['profit_prev']:.2f}, {yoy['yoy_profit']:.1f}%)"
+    )
+    return _success(ans, data=yoy, rule="finance_yoy")
 
 
-async def resolve_finance_mom(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+async def resolve_finance_category_trends(text: str, db: Any, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
     tl = (text or "").lower()
-    if not any(k in tl for k in ["мом", "месяц к месяцу", "м/м", "рост", "динамика"]) and not (ent and ent.get("type") == "finance_mom"):
+    if not any(k in tl for k in ["топ", "рост", "падени", "лидеры", "просели"]) and not (ent and ent.get("type") == "finance_cat_trends"):
         return None
-    # window detection
     days = 30
     if 'квартал' in tl or '90' in tl:
         days = 90
-    ch = await compute_finance_change(db, days=days)
-    ans = (
-        f"Динамика за {days} дней (М/М):\n"
-        f"Доход: {ch['income_now']:.2f} (было {ch['income_prev']:.2f}, {ch['mom_income']:.1f}%)\n"
-        f"Расход: {ch['expense_now']:.2f} (было {ch['expense_prev']:.2f}, {ch['mom_expense']:.1f}%)\n"
-        f"Прибыль: {ch['profit_now']:.2f} (было {ch['profit_prev']:.2f}, {ch['mom_profit']:.1f}%)"
-    )
-    return {"success": True, "answer": ans, "data": ch, "rule": "finance_mom"}
+    side = 'expense'
+    if 'доход' in tl:
+        side = 'income'
+    trends = await compute_category_trends(db, days=days, side=side)
+    lines = [f"Топ категорий за {days} дней ({'расходы' if side=='expense' else 'доходы'}):"]
+    if trends['top_growth']:
+        lines.append("Рост:")
+        for cat, now_val, delta in trends['top_growth']:
+            lines.append(f"  + {cat}: {now_val:.2f} (Δ {delta:.2f})")
+    if trends['top_decline']:
+        lines.append("Падение:")
+        for cat, now_val, delta in trends['top_decline']:
+            lines.append(f"  - {cat}: {now_val:.2f} (Δ {delta:.2f})")
+    return _success("\n".join(lines), data=trends, rule="finance_cat_trends")
