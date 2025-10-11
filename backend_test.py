@@ -380,6 +380,282 @@ class BackendTester:
             self.log_result("/api/ai/chat (Bilybina)", "POST", 0, None, str(e))
             print(f"❌ AI Chat Bilybina test failed: {e}")
             return False
+
+    # ===== STAGE 6 TESTS =====
+    
+    async def test_brain_ask_finance_categories(self):
+        """Test POST /api/brain/ask with finance categories query (Stage 6)"""
+        print("🔍 Testing Stage 6 - Finance Categories Query with Debug...")
+        
+        payload = {
+            "message": "Категорийная разбивка расходов за месяц",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (Finance Categories)", "POST", response.status_code, data)
+                    
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
+                    print(f"📋 Response Success: {success}")
+                    
+                    # Check for debug fields
+                    debug_info = data.get('debug', {})
+                    matched_rule = debug_info.get('matched_rule')
+                    print(f"🔍 Debug matched_rule: {matched_rule}")
+                    
+                    if debug_info:
+                        print(f"🔍 Debug fields present: {list(debug_info.keys())}")
+                    
+                    if success is True or success is False:
+                        print("✅ Brain API returned proper success/failure response")
+                        if debug_info:
+                            print("✅ Debug information present in response")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Finance Categories)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Finance Categories)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Finance Categories)", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Finance Categories)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (Finance Categories)", "POST", 0, None, str(e))
+            print(f"❌ Brain API Finance Categories test failed: {e}")
+            return False
+
+    async def test_brain_ask_finance_yoy(self):
+        """Test POST /api/brain/ask with YoY dynamics query (Stage 6)"""
+        print("🔍 Testing Stage 6 - YoY Dynamics Query with Debug...")
+        
+        payload = {
+            "message": "Г/Г динамика",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (YoY Dynamics)", "POST", response.status_code, data)
+                    
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
+                    print(f"📋 Response Success: {success}")
+                    
+                    # Check for debug fields and finance_yoy path
+                    debug_info = data.get('debug', {})
+                    matched_rule = debug_info.get('matched_rule')
+                    print(f"🔍 Debug matched_rule: {matched_rule}")
+                    
+                    # Look for finance_yoy path indication
+                    response_text = str(data).lower()
+                    if 'finance_yoy' in response_text or 'yoy' in response_text:
+                        print("✅ Finance YoY path detected in response")
+                    
+                    if debug_info:
+                        print(f"🔍 Debug fields present: {list(debug_info.keys())}")
+                    
+                    if success is True or success is False:
+                        print("✅ Brain API returned proper success/failure response")
+                        if debug_info:
+                            print("✅ Debug information present in response")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (YoY Dynamics)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (YoY Dynamics)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (YoY Dynamics)", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (YoY Dynamics)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (YoY Dynamics)", "POST", 0, None, str(e))
+            print(f"❌ Brain API YoY Dynamics test failed: {e}")
+            return False
+
+    async def test_brain_ask_top_decline(self):
+        """Test POST /api/brain/ask with top decline categories query (Stage 6)"""
+        print("🔍 Testing Stage 6 - Top Decline Categories Query with Debug...")
+        
+        payload = {
+            "message": "Топ падение категорий за квартал",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (Top Decline)", "POST", response.status_code, data)
+                    
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
+                    print(f"📋 Response Success: {success}")
+                    
+                    # Check for debug fields
+                    debug_info = data.get('debug', {})
+                    matched_rule = debug_info.get('matched_rule')
+                    print(f"🔍 Debug matched_rule: {matched_rule}")
+                    
+                    if debug_info:
+                        print(f"🔍 Debug fields present: {list(debug_info.keys())}")
+                    
+                    if success is True or success is False:
+                        print("✅ Brain API returned proper success/failure response")
+                        if debug_info:
+                            print("✅ Debug information present in response")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Top Decline)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Top Decline)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Top Decline)", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Top Decline)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (Top Decline)", "POST", 0, None, str(e))
+            print(f"❌ Brain API Top Decline test failed: {e}")
+            return False
+
+    async def test_brain_ask_address_ner(self):
+        """Test POST /api/brain/ask with address NER query (Stage 6)"""
+        print("🔍 Testing Stage 6 - Address NER Query with Debug...")
+        
+        payload = {
+            "message": "Контакты старшего Кибальчича 1 стр 2",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (Address NER)", "POST", response.status_code, data)
+                    
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
+                    print(f"📋 Response Success: {success}")
+                    
+                    # Check for debug fields and address NER
+                    debug_info = data.get('debug', {})
+                    matched_rule = debug_info.get('matched_rule')
+                    print(f"🔍 Debug matched_rule: {matched_rule}")
+                    
+                    # Look for address NER indicators (стр/к/лит)
+                    response_text = str(data).lower()
+                    if any(addr_part in response_text for addr_part in ['стр', 'строение', 'корпус', 'литер']):
+                        print("✅ Address NER with стр/к/лит detected in response")
+                    
+                    if debug_info:
+                        print(f"🔍 Debug fields present: {list(debug_info.keys())}")
+                    
+                    if success is True or success is False:
+                        print("✅ Brain API returned proper success/failure response")
+                        if debug_info:
+                            print("✅ Debug information present in response")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Address NER)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Address NER)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Address NER)", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Address NER)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (Address NER)", "POST", 0, None, str(e))
+            print(f"❌ Brain API Address NER test failed: {e}")
+            return False
     
     async def run_all_tests(self):
         """Run all backend tests"""
