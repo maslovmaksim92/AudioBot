@@ -619,7 +619,7 @@ class Bitrix24Service:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         page: int = 1,
-        limit: int = 50,
+        limit: int = 3,
     ) -> Dict[str, Any]:
         cache_key = f"deals:{brigade}:{status}:{management_company}:{cleaning_date}:{date_from}:{date_to}"
         cached = self.deals_cache.get(cache_key)
