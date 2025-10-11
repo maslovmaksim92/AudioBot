@@ -136,6 +136,8 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
             ("finance_mom", lambda m: resolve_finance_mom(m, db)),
             ("finance_yoy", lambda m: resolve_finance_yoy(m, db)),
             ("finance_cat_trends", lambda m: resolve_finance_category_trends(m, db)),
+            ("tasks_by_address", lambda m: resolve_tasks_by_address(m, db)),
+            ("tasks_by_brigade", lambda m: resolve_tasks_by_brigade(m, db)),
         ]
         for rule, fn in order_with_db:
             res = await attempt(rule, fn, message)
