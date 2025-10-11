@@ -26,6 +26,28 @@ class AIAssistant:
         Args:
             user_query: Запрос пользователя
             
+        # Быстрый контекст адреса из Bitrix, если указан в запросе
+        try:
+            if user_query:
+                addr = user_query.lower()
+                # Простой поиск домов по адресу через Bitrix24 слой
+                # Используем существующий листинг с фильтром address для минимальной задержки
+                data = await bitrix24_service.list_houses(address=user_query, limit=20)
+                if data and isinstance(data.get('houses'), list):
+                    context['matched_houses'] = [
+                        {
+                            'id': h.get('id'),
+                            'title': h.get('title'),
+                            'address': h.get('address'),
+                            'brigade': h.get('brigade_name') or h.get('brigade'),
+                            'periodicity': h.get('periodicity'),
+                            'cleaning_dates': h.get('cleaning_dates'),
+                            'bitrix_url': h.get('bitrix_url')
+                        } for h in data['houses'] if h.get('address')
+                    ]
+        except Exception as e:
+            logger.warning(f"Bitrix quick address context failed: {e}")
+
         Returns:
             Контекст с данными о домах, сотрудниках, финансах
         """
