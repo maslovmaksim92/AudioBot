@@ -188,33 +188,77 @@ AI звонок
 
 При `debug: true` возвращает подробную диагностику: `matched_rule`, `elapsed_ms`, `trace`, `sources` (с информацией о cache hit/miss).
 
-**Request:**
+**Примеры запросов:**
+
+1. **Контакты старшего:**
 ```json
 {
-  "message": "Контакты старшего Кибальчича 1 стр 2",
+  "message": "Контакты старшего Кибальчича 3",
   "debug": true
 }
 ```
 
-**Response:**
+Response:
 ```json
 {
   "success": true,
-  "answer": "Старший: Иванов И.И.\nТелефон(ы): +7...\nEmail: elder@vasdom.ru\nСсылка в Bitrix: https://...",
+  "answer": "🏠 Адрес: Кибальчича 3\nСтарший: Иванов И.И.\nТелефон(ы): +7...\nEmail: elder@vasdom.ru\nСсылка в Bitrix: https://...",
   "rule": "elder_contact",
   "sources": {
-    "addr": "кибальчича 1 стр 2",
-    "cache": {
-      "elder": {"cache": "hit", "cache_key": "elder:..."},
-      "houses": {"cache": "miss", "cache_key": "addr:..."}
-    }
+    "addr": "кибальчича 3",
+    "elder": {"cache": "hit"},
+    "houses": {"cache": "miss"}
   },
   "debug": {
     "matched_rule": "elder_contact",
-    "matched_rules": ["elder_contact"],
     "elapsed_ms": 85,
     "trace": [{"rule":"elder_contact","status":"hit","elapsed_ms":85}]
   }
+}
+```
+
+2. **График уборок:**
+```json
+{
+  "message": "График уборок Билибина 6 октябрь",
+  "debug": true
+}
+```
+
+3. **Финансы:**
+```json
+{
+  "message": "Финансы компании",
+  "debug": true
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "answer": "💰 Финансы:\nДоходы: 150,000.00 ₽\nРасходы: 0.00 ₽\nПрибыль: 150,000.00 ₽\nТранзакций: 1",
+  "rule": "finance_basic",
+  "sources": {"finance": {"cache": "miss"}},
+  "data": {"income": 150000.0, "expense": 0.0, "transactions": 1}
+}
+```
+
+4. **Структурная статистика:**
+```json
+{
+  "message": "Сколько всего домов?",
+  "debug": true
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "answer": "📊 Общая статистика:\nДомов: 499\nКвартир: 30621\nЭтажей: 2918\nПодъездов: 1592",
+  "rule": "structural_totals",
+  "sources": {"db": "houses"}
 }
 ```
 
