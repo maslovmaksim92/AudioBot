@@ -21,7 +21,7 @@ class BrainAskRequest(BaseModel):
 
 
 @router.post("/ask")
-async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db_session)) -> Dict[str, Any]:
+async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
     if not req.message or not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
     ans = await try_fast_answer(req.message, db=db)
