@@ -349,28 +349,8 @@ async def send_message(
             ans = await try_fast_answer(request.message, db=db, return_debug=bool(request.debug))
             if ans and ans.get('success'):
                 reply = ans.get('answer') or ans.get('response') or ''
-                # Вклеим краткий debug-хинт в ответ для админов, если флаг включён
-                if request.debug and isinstance(ans, dict) and ans.get('debug'):
-                    dbg = ans['debug']
-                    hint = []
-                    if dbg.get('matched_rule'):
-                        hint.append(f"rule: {dbg['matched_rule']}")
-                    if 'elapsed_ms' in dbg:
-                        hint.append(f"{dbg['elapsed_ms']}ms")
-                    # базовый источник: cache hit/miss
-                    src = []
-                    src_meta = ans.get('sources') or {}
-                    root_cache = src_meta.get('cache') or {}
-                    if isinstance(root_cache, dict) and root_cache.get('cache'):
-                        src.append(root_cache['cache'])
-                    for k in ('houses','elder','cleaning','finance'):
-                        v = src_meta.get(k) or {}
-                        if isinstance(v, dict) and v.get('cache'):
-                            src.append(f"{k}:{v['cache']}")
-                    if src:
-                        hint.append(f"src: {', '.join(src)}")
-                    if hint:
-                        reply = reply + "\n\n" + " · ".join(hint)
+                
+                # Сохраняем сообщение
                 assistant_message = ChatHistory(
                     id=str(uuid.uuid4()),
                     user_id=request.user_id,
@@ -379,7 +359,61 @@ async def send_message(
                 )
                 db.add(assistant_message)
                 await db.commit()
-                return ChatResponse(message=reply, function_calls=[], created_at=datetime.utcnow().isoformat())
+                
+                # Возвращаем ответ с debug информацией (если запрошена)
+                response_data = {
+                    "message": reply,
+                    "function_calls": [],
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                
+                if request.debug and isinstance(ans, dict):
+                    response_data["debug"] = ans.get('debug')
+                    response_data["sources"] = ans.get('sources')
+                    response_data["rule"] = ans.get('rule')
+                
+                return response_data
+            
+            # Обработка no_match с подсказками
+            elif ans and not ans.get('success'):
+                error_type = ans.get('error', 'unknown')
+                hints_map = {
+                    'no_address': 'Пожалуйста, укажите адрес в запросе. Например: "Контакты старшего Кибальчича 3"',
+                    'no_month': 'Укажите месяц (октябрь, ноябрь или декабрь). Например: "График уборки Кибальчича 3 октябрь"',
+                    'elder_not_found': 'Контакты старшего не найдены для этого адреса. Проверьте правильность адреса.',
+                    'house_not_found': 'Дом по указанному адресу не найден в базе. Попробуйте уточнить адрес.',
+                    'cleaning_not_found': 'График уборок не найден для этого дома.',
+                    'no_tasks': 'Задачи не найдены. Попробуйте указать другие критерии поиска.',
+                    'no_transactions': 'Финансовые транзакции не найдены за указанный период.',
+                    'address_required': 'Для этого запроса необходимо указать адрес.',
+                    'brigade_not_specified': 'Укажите номер или название бригады.'
+                }
+                
+                error_message = hints_map.get(error_type, 'Не удалось обработать запрос.')
+                
+                if ans.get('hints'):
+                    error_message += '\n\nПодсказки:\n' + '\n'.join(f"• {h}" for h in ans['hints'])
+                
+                # Сохраняем сообщение об ошибке
+                assistant_message = ChatHistory(
+                    id=str(uuid.uuid4()),
+                    user_id=request.user_id,
+                    role="assistant",
+                    content=error_message,
+                )
+                db.add(assistant_message)
+                await db.commit()
+                
+                response_data = {
+                    "message": error_message,
+                    "function_calls": [],
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                
+                if request.debug:
+                    response_data["debug"] = ans.get('debug')
+                
+                return response_data
         except Exception as e:
             logger.warning(f"Brain router failed in ai_chat: {e}")
 
