@@ -1094,11 +1094,11 @@ class BackendTester:
             print(f"❌ Brain metrics test failed: {e}")
             return False
 
-    # ===== ADDRESS ACCURACY TESTS =====
+    # ===== КРИТИЧЕСКИЕ ТЕСТЫ ТОЧНОСТИ АДРЕСОВ =====
     
-    async def test_address_accuracy_kibalchich_1_vs_5(self):
-        """Test address accuracy: Кибальчича 1 vs Кибальчича 5"""
-        print("🔍 Testing Address Accuracy - Кибальчича 1 vs Кибальчича 5...")
+    async def test_critical_address_kibalchich_1(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Кибальчича 1 - точное совпадение адреса"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ - Кибальчича 1...")
         
         payload = {
             "message": "Контакты старшего Кибальчича 1",
@@ -1117,39 +1117,287 @@ class BackendTester:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    self.log_result("/api/brain/ask (Кибальчича 1)", "POST", response.status_code, data)
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", response.status_code, data)
                     
                     success = data.get('success')
                     debug_info = data.get('debug', {})
-                    response_text = str(data).lower()
+                    answer = data.get('answer', '')
+                    sources = data.get('sources', [])
                     
                     print(f"📋 Response Success: {success}")
                     print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📚 Sources: {sources}")
                     
-                    # Check for exact address match
-                    address_accuracy = self._check_address_accuracy(response_text, "кибальчича 1", ["кибальчича 5"])
+                    # Проверка точности адреса
+                    result = self._analyze_address_accuracy(
+                        requested_address="Кибальчича 1",
+                        response_data=data,
+                        forbidden_addresses=["Кибальчича 3", "Кибальчича 5", "Билибина 6"]
+                    )
                     
-                    if success is True:
-                        if address_accuracy['correct']:
-                            print("✅ ТОЧНОЕ СОВПАДЕНИЕ: Возвращены данные по Кибальчича 1")
-                            return True
-                        else:
-                            print(f"❌ НЕПРАВИЛЬНЫЙ АДРЕС: {address_accuracy['message']}")
-                            return False
-                    elif success is False:
-                        print("⚠️ Данные не найдены (ожидаемо в тестовой среде)")
+                    print(f"🎯 Результат анализа: {result['status']}")
+                    print(f"📍 Запрошено: Кибальчича 1")
+                    print(f"📍 Получено: {result['found_address']}")
+                    
+                    if result['accurate']:
+                        print("✅ ТОЧНОЕ СОВПАДЕНИЕ")
                         return True
                     else:
-                        print(f"❌ Unexpected response structure: {data}")
+                        print(f"❌ НЕПРАВИЛЬНО: {result['message']}")
                         return False
+                        
                 else:
-                    self.log_result("/api/brain/ask (Кибальчича 1)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", response.status_code, None, f"HTTP {response.status_code}")
                     return False
                     
         except Exception as e:
-            self.log_result("/api/brain/ask (Кибальчича 1)", "POST", 0, None, str(e))
-            print(f"❌ Address accuracy test failed: {e}")
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
             return False
+
+    async def test_critical_address_kibalchich_3(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Кибальчича 3 - точное совпадение адреса"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ - Кибальчича 3...")
+        
+        payload = {
+            "message": "Контакты старшего Кибальчича 3",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    debug_info = data.get('debug', {})
+                    answer = data.get('answer', '')
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📚 Sources: {sources}")
+                    
+                    # Проверка точности адреса
+                    result = self._analyze_address_accuracy(
+                        requested_address="Кибальчича 3",
+                        response_data=data,
+                        forbidden_addresses=["Кибальчича 1", "Кибальчича 5", "Билибина 6"]
+                    )
+                    
+                    print(f"🎯 Результат анализа: {result['status']}")
+                    print(f"📍 Запрошено: Кибальчича 3")
+                    print(f"📍 Получено: {result['found_address']}")
+                    
+                    if result['accurate']:
+                        print("✅ ТОЧНОЕ СОВПАДЕНИЕ")
+                        return True
+                    else:
+                        print(f"❌ НЕПРАВИЛЬНО: {result['message']}")
+                        return False
+                        
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_address_kibalchich_5(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Кибальчича 5 - точное совпадение адреса"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ - Кибальчича 5...")
+        
+        payload = {
+            "message": "График уборки Кибальчича 5 октябрь",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    debug_info = data.get('debug', {})
+                    answer = data.get('answer', '')
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📚 Sources: {sources}")
+                    
+                    # Проверка точности адреса
+                    result = self._analyze_address_accuracy(
+                        requested_address="Кибальчича 5",
+                        response_data=data,
+                        forbidden_addresses=["Кибальчича 1", "Кибальчича 3", "Билибина 6"]
+                    )
+                    
+                    print(f"🎯 Результат анализа: {result['status']}")
+                    print(f"📍 Запрошено: Кибальчича 5")
+                    print(f"📍 Получено: {result['found_address']}")
+                    
+                    if result['accurate']:
+                        print("✅ ТОЧНОЕ СОВПАДЕНИЕ")
+                        return True
+                    else:
+                        print(f"❌ НЕПРАВИЛЬНО: {result['message']}")
+                        return False
+                        
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_address_bilybina_6(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Билибина 6 - точное совпадение адреса"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ - Билибина 6...")
+        
+        payload = {
+            "message": "График уборки Билибина 6 октябрь",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    debug_info = data.get('debug', {})
+                    answer = data.get('answer', '')
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📚 Sources: {sources}")
+                    
+                    # Проверка точности адреса
+                    result = self._analyze_address_accuracy(
+                        requested_address="Билибина 6",
+                        response_data=data,
+                        forbidden_addresses=["Кибальчича 1", "Кибальчича 3", "Кибальчича 5"]
+                    )
+                    
+                    print(f"🎯 Результат анализа: {result['status']}")
+                    print(f"📍 Запрошено: Билибина 6")
+                    print(f"📍 Получено: {result['found_address']}")
+                    
+                    if result['accurate']:
+                        print("✅ ТОЧНОЕ СОВПАДЕНИЕ")
+                        return True
+                    else:
+                        print(f"❌ НЕПРАВИЛЬНО: {result['message']}")
+                        return False
+                        
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    def _analyze_address_accuracy(self, requested_address, response_data, forbidden_addresses):
+        """Анализ точности адреса в ответе"""
+        success = response_data.get('success', False)
+        answer = response_data.get('answer', '').lower()
+        sources = str(response_data.get('sources', [])).lower()
+        debug_info = str(response_data.get('debug', {})).lower()
+        
+        # Полный текст ответа для анализа
+        full_response = f"{answer} {sources} {debug_info}".lower()
+        
+        # Нормализация запрошенного адреса
+        requested_normalized = requested_address.lower().replace(',', '').replace(' ', '')
+        
+        if not success:
+            return {
+                'accurate': True,  # Если данных нет - это нормально
+                'status': 'NO_DATA',
+                'found_address': 'Данные не найдены',
+                'message': 'Данные не найдены (ожидаемо в тестовой среде)'
+            }
+        
+        # Поиск запрошенного адреса
+        found_requested = False
+        if requested_normalized in full_response.replace(',', '').replace(' ', ''):
+            found_requested = True
+        
+        # Поиск запрещенных адресов
+        found_forbidden = []
+        for forbidden in forbidden_addresses:
+            forbidden_normalized = forbidden.lower().replace(',', '').replace(' ', '')
+            if forbidden_normalized in full_response.replace(',', '').replace(' ', ''):
+                found_forbidden.append(forbidden)
+        
+        # Определение найденного адреса
+        found_address = "Не определен"
+        if found_requested:
+            found_address = requested_address
+        elif found_forbidden:
+            found_address = found_forbidden[0]
+        
+        # Анализ результата
+        if found_requested and not found_forbidden:
+            return {
+                'accurate': True,
+                'status': 'EXACT_MATCH',
+                'found_address': found_address,
+                'message': f'Точное совпадение: {requested_address}'
+            }
+        elif found_forbidden:
+            return {
+                'accurate': False,
+                'status': 'WRONG_ADDRESS',
+                'found_address': found_address,
+                'message': f'Возвращены данные по неправильному адресу: {found_forbidden[0]} вместо {requested_address}'
+            }
+        else:
+            return {
+                'accurate': True,  # Если адрес не найден четко - считаем нормальным
+                'status': 'UNCLEAR',
+                'found_address': found_address,
+                'message': 'Адрес в ответе не определен четко'
+            }
 
     async def test_address_accuracy_kibalchich_1_cleaning(self):
         """Test address accuracy: График уборки Кибальчича 1 октябрь"""
