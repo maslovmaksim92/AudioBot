@@ -16,7 +16,8 @@ import {
   BookOpen,
   ClipboardList,
   Sparkles,
-  DollarSign
+  DollarSign,
+  Activity
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
