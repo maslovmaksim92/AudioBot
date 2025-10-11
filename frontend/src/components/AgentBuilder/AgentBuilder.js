@@ -38,6 +38,8 @@ const AgentBuilder = () => {
   const [loading, setLoading] = useState(true);
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [newAgent, setNewAgent] = useState({
     name: '',
     description: '',
