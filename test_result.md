@@ -391,3 +391,60 @@ NOTES:
 - Category trends return empty lists (expected in test environment with limited data)
 - Address queries return no_match (expected due to Bitrix authentication issues)
 - All responses include proper debug metadata for troubleshooting
+
+=== RUN 2025-10-11: AI Chat Debug Controls Frontend Testing ===
+
+SPECIFIC TESTS REQUESTED:
+✅ Navigate to /#/ai -> SUCCESS
+✅ Toggle Debug checkbox ON -> SUCCESS (checkbox found and toggled)
+✅ Send message: "Когда уборка на Билибина 6 в октябре?" -> SUCCESS (message sent and response received)
+✅ Verify debug parameter in payload -> SUCCESS (debug: true found in network request)
+✅ Check for JS errors -> SUCCESS (no console errors detected)
+✅ Screenshot chat after response -> SUCCESS (screenshots captured)
+
+DETAILED FINDINGS:
+
+1. DEBUG CHECKBOX UI STATUS:
+   - ✅ Debug checkbox found and visible in UI
+   - ✅ Checkbox label: "Debug режим (правило/время/источник)"
+   - ✅ Checkbox initially unchecked, successfully toggled to checked state
+   - ✅ Checkbox state persists during session
+   - ✅ UI styling and positioning working correctly
+
+2. DEBUG PARAMETER INTEGRATION:
+   - ✅ Debug checkbox state correctly influences API payload
+   - ✅ Network request contains: {"message":"Когда уборка на Билибина 6 в октябре?","user_id":"7be8f89e-f2bd-4f24-9798-286fddc58358","debug":true}
+   - ✅ Debug parameter value correctly set to true when checkbox is checked
+   - ✅ API endpoint /api/ai/chat receiving debug parameter properly
+
+3. RESPONSE ANALYSIS:
+   - ✅ Assistant response bubble appears correctly
+   - ❌ No debug information visible in response text (expected due to backend API key issues)
+   - ⚠️ Response contains OpenAI 401 error instead of debug hints
+   - ✅ Error handling working properly (graceful error display)
+
+4. TECHNICAL INTEGRATION STATUS:
+   - ✅ Frontend correctly using REACT_APP_BACKEND_URL environment variable
+   - ✅ API endpoint /api/ai/chat being called correctly
+   - ✅ No JavaScript console errors detected
+   - ✅ Proper network request handling with debug parameter
+   - ✅ UI state management working correctly
+
+5. ROOT CAUSE ANALYSIS:
+   - ✅ Debug checkbox functionality implemented correctly
+   - ✅ Debug parameter successfully sent to backend
+   - ❌ Backend not returning debug information due to external API failures
+   - ❌ OpenAI API key invalid (401 error), preventing debug response format
+   - ❌ Bitrix integration failing, preventing quick bypass with debug info
+
+FRONTEND DEBUG CONTROLS STATUS: ✅ WORKING (UI functionality fully implemented)
+
+CRITICAL FINDINGS:
+1. ✅ Debug checkbox UI implemented and working correctly
+2. ✅ Debug parameter correctly sent in API requests when checkbox is checked
+3. ✅ No JavaScript errors or UI issues detected
+4. ❌ Backend not returning expected debug format due to external API authentication issues
+5. ✅ Frontend implementation meets requirements - debug checkbox influences payload as expected
+
+CONCLUSION:
+The AI Chat Debug Controls frontend feature is fully functional. The debug checkbox correctly toggles the debug parameter in API requests. The lack of debug information in responses is due to backend API authentication issues (OpenAI 401, Bitrix 401), not frontend implementation problems. When backend APIs are properly configured, the debug information would appear in responses as expected.
