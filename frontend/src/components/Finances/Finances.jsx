@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import CashFlow from './CashFlow';
 import ProfitLoss from './ProfitLoss';
 import BalanceSheet from './BalanceSheet';
 import ExpenseAnalysis from './ExpenseAnalysis';
 import Debts from './Debts';
 import Inventory from './Inventory';
-import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3 } from 'lucide-react';
+import TransactionForm from './TransactionForm';
+import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload } from 'lucide-react';
 
 function Finances() {
   const [activeTab, setActiveTab] = useState('cash-flow');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleTransactionAdded = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
