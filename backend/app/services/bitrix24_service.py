@@ -658,7 +658,7 @@ class Bitrix24Service:
                             # Быстрая проверка адреса до дорогих запросов
                             if address:
                                 raw_addr = (d.get('UF_CRM_1669561599956') or d.get('TITLE') or '')
-                                hay = _normalize_addr(raw_addr)
+                                hay = _normalize_addr_local(raw_addr)
                                 if not hay or norm_addr not in hay:
                                     continue
                             # Только при потенциальном совпадении грузим компанию и строим DTO
