@@ -415,6 +415,154 @@ class AgentExecutor:
                 'success': False,
                 'message': str(e)
             }
+    
+    async def _execute_ai_chat(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Выполнить AI запрос с контекстом из базы знаний
+        
+        Args:
+            config: Конфигурация с query, use_knowledge
+            
+        Returns:
+            Результат выполнения
+        """
+        try:
+            query = config.get('query', '')
+            use_knowledge = config.get('use_knowledge', True)
+            
+            if not query:
+                return {
+                    'success': False,
+                    'message': 'Query is empty'
+                }
+            
+            # Если нужно использовать базу знаний
+            context = ""
+            if use_knowledge:
+                knowledge_result = await self._execute_knowledge_search({'query': query, 'limit': 3})
+                if knowledge_result['success']:
+                    context = knowledge_result.get('context', '')
+            
+            # Отправляем запрос в OpenAI
+            import httpx
+            openai_key = os.environ.get('OPENAI_API_KEY')
+            
+            if not openai_key:
+                return {
+                    'success': False,
+                    'message': 'OpenAI API key not configured'
+                }
+            
+            messages = [
+                {'role': 'system', 'content': f'Ты помощник VasDom. Используй следующий контекст для ответа:\n\n{context}'},
+                {'role': 'user', 'content': query}
+            ]
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    'https://api.openai.com/v1/chat/completions',
+                    headers={'Authorization': f'Bearer {openai_key}'},
+                    json={
+                        'model': 'gpt-4',
+                        'messages': messages,
+                        'max_tokens': 500
+                    },
+                    timeout=30.0
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    ai_response = data['choices'][0]['message']['content']
+                    
+                    logger.info(f"🤖 AI response: {ai_response[:100]}...")
+                    
+                    return {
+                        'success': True,
+                        'message': 'AI response generated',
+                        'response': ai_response
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': f'OpenAI API error: {response.status_code}'
+                    }
+        
+        except Exception as e:
+            logger.error(f"❌ Error executing AI chat: {e}")
+            return {
+                'success': False,
+                'message': str(e)
+            }
+    
+    async def _execute_knowledge_search(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Поиск в базе знаний
+        
+        Args:
+            config: Конфигурация с query, limit
+            
+        Returns:
+            Результат поиска
+        """
+        try:
+            query = config.get('query', '')
+            limit = config.get('limit', 5)
+            
+            if not query:
+                return {
+                    'success': False,
+                    'message': 'Query is empty'
+                }
+            
+            # Поиск в базе знаний через векторное сходство
+            import asyncpg
+            db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+            conn = await asyncpg.connect(db_url)
+            
+            try:
+                # Простой текстовый поиск (можно улучшить с vector search)
+                rows = await conn.fetch("""
+                    SELECT content, metadata
+                    FROM knowledge_base
+                    WHERE content ILIKE $1
+                    ORDER BY created_at DESC
+                    LIMIT $2
+                """, f'%{query}%', limit)
+                
+                await conn.close()
+                
+                if rows:
+                    context = "\n\n".join([row['content'] for row in rows])
+                    logger.info(f"📚 Found {len(rows)} knowledge base entries")
+                    
+                    return {
+                        'success': True,
+                        'results_count': len(rows),
+                        'context': context
+                    }
+                else:
+                    return {
+                        'success': True,
+                        'results_count': 0,
+                        'context': ''
+                    }
+            
+            except Exception as e:
+                await conn.close()
+                # Таблица может не существовать
+                logger.warning(f"⚠️ Knowledge base search failed: {e}")
+                return {
+                    'success': True,
+                    'results_count': 0,
+                    'context': ''
+                }
+        
+        except Exception as e:
+            logger.error(f"❌ Error searching knowledge base: {e}")
+            return {
+                'success': False,
+                'message': str(e)
+            }
 
 
 # Глобальный экземпляр executor
