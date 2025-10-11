@@ -221,8 +221,12 @@ def detect_period_index(text: Optional[str]) -> Optional[int]:
 # -----------------------------
 
 def format_cleaning_for_month(cleaning: CleaningDates, month_key: str) -> Optional[str]:
-    """Return formatted text for a given month (october|november|december)."""
-    slots = []
+    """Return formatted text per date with its type, 1:1 as in house card.
+    Example lines:
+      2025-10-02 — Полная уборка
+      2025-10-15 — Подметание
+    """
+    slots: List[Optional[CleaningPeriod]] = []
     if month_key == "october":
         slots = [cleaning.october_1, cleaning.october_2]
     elif month_key == "november":
@@ -230,17 +234,18 @@ def format_cleaning_for_month(cleaning: CleaningDates, month_key: str) -> Option
     elif month_key == "december":
         slots = [cleaning.december_1, cleaning.december_2]
 
-    parts: List[str] = []
-    # Keep original slot ids to avoid confusion for now; can map to human labels later
-    for idx, slot in enumerate(slots, start=1):
+    lines: List[str] = []
+    for slot in slots:
         if isinstance(slot, CleaningPeriod) and slot.dates:
-            label = f"{month_key}_{idx}"
-            dates_txt = ", ".join(slot.dates)
             t = slot.type.strip()
-            parts.append(f"{label}: {dates_txt}{(' — ' + t) if t else ''}")
-    if not parts:
+            for d in slot.dates:
+                if t:
+                    lines.append(f"{d} — {t}")
+                else:
+                    lines.append(str(d))
+    if not lines:
         return None
-    return "\n".join(parts)
+    return "\n".join(lines)
 
 
 def format_elder_contact(name: str, phones: List[str], emails: List[str]) -> str:
