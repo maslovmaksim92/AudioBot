@@ -180,6 +180,7 @@ const AgentBuilder = () => {
         type: 'scheduler',
         triggers: [],
         actions: [],
+        config: {},
         status: 'active'
       });
       loadAgents();
@@ -224,6 +225,7 @@ const AgentBuilder = () => {
       type: agent.type,
       triggers: agent.triggers || [],
       actions: agent.actions || [],
+      config: agent.config || {},
       status: agent.status
     });
     setShowBuilder(true);
