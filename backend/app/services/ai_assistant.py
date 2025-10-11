@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 import httpx
 
 logger = logging.getLogger(__name__)
+from backend.app.services.bitrix24_service import bitrix24_service
+
 
 class AIAssistant:
     """AI ассистент с контекстом приложения"""
