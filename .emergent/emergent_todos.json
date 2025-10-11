@@ -1,6 +1,30 @@
 [
   {
-    "content": "Создать инструкцию для пользователя",
-    "status": "completed"
+    "content": "Проверить работоспособность backend и frontend",
+    "status": "in_progress"
+  },
+  {
+    "content": "Очистить временные файлы",
+    "status": "pending"
+  },
+  {
+    "content": "Проверить .gitignore",
+    "status": "pending"
+  },
+  {
+    "content": "Проверить .env файлы (не должны быть в Git)",
+    "status": "pending"
+  },
+  {
+    "content": "Проверить логи на ошибки",
+    "status": "pending"
+  },
+  {
+    "content": "Создать DEPLOYMENT_CHECKLIST.md",
+    "status": "pending"
+  },
+  {
+    "content": "Обновить README с новым функционалом",
+    "status": "pending"
   }
 ]
