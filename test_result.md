@@ -461,6 +461,45 @@ SPECIFIC TESTS REQUESTED:
 ✅ POST /api/brain/ask {"message":"Сколько всего домов?","debug":true} -> 200 {"success": true, "answer": "📊 Общая статистика:\nДомов: 499\nКвартир: 30621\nЭтажей: 2918\nПодъездов: 1592"}
 ✅ GET /api/brain/metrics -> 200 {"resolver_counts": {...}, "resolver_times_ms": {...}, "cache_hits": 0, "cache_misses": 7}
 
+=== RUN 2025-10-11: Intent Detection & NER Phase 2 Testing ===
+
+COMPREHENSIVE TESTS REQUESTED:
+Testing improved Intent Detection & NER (Phase 2) system through `/api/brain/ask` endpoint with debug=true
+
+**1. COMPLEX ADDRESSES:**
+❌ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 3 стр 2","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"График уборок на Билибина 6 к1 лит А октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"Какая бригада на доме Кибальчича 3?","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"объект Билибина 6к1 уборки","debug":true} -> 200 {"success": false, "error": "no_match"}
+
+**2. MONTH FORMATS:**
+❌ POST /api/brain/ask {"message":"График Кибальчича 3 в октябре","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"Уборки Билибина 6 на 10 месяц","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"График окт Кибальчича 3","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"Уборки 11.2025","debug":true} -> 200 {"success": false, "error": "no_match"}
+
+**3. SPECIFIC DATES:**
+❌ POST /api/brain/ask {"message":"Уборка Кибальчича 3 15 октября","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"График на 2025-10-15","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"Уборка сегодня","debug":true} -> 200 {"success": false, "error": "no_match"}
+❌ POST /api/brain/ask {"message":"График завтра","debug":true} -> 200 {"success": false, "error": "no_match"}
+
+**4. DATE RANGES:**
+✅ POST /api/brain/ask {"message":"Финансы с 1 по 15 октября","debug":true} -> 200 {"success": true, "rule": "finance_basic"}
+❌ POST /api/brain/ask {"message":"Расходы 01.10-15.10","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"Финансы за последний месяц","debug":true} -> 200 {"success": true, "rule": "finance_basic"}
+❌ POST /api/brain/ask {"message":"Статистика за квартал","debug":true} -> 200 {"success": false, "error": "no_match"}
+
+**5. INTENT PRIORITIES:**
+✅ POST /api/brain/ask {"message":"Топ категорий расходов","debug":true} -> 200 {"success": true, "rule": "finance_cat_trends"} ✅ CORRECT PRIORITY
+✅ POST /api/brain/ask {"message":"Разбивка финансов по категориям","debug":true} -> 200 {"success": true, "rule": "finance_breakdown"} ✅ CORRECT PRIORITY
+✅ POST /api/brain/ask {"message":"Финансы компании","debug":true} -> 200 {"success": true, "rule": "finance_basic"} ✅ CORRECT PRIORITY
+✅ POST /api/brain/ask {"message":"Динамика месяц к месяцу","debug":true} -> 200 {"success": true, "rule": "finance_mom"} ✅ CORRECT PRIORITY
+
+**6. MULTIPLE ENTITY EXTRACTION:**
+❌ POST /api/brain/ask {"message":"Контакты старшего Кибальчича 3 стр 2 на октябрь","debug":true} -> 200 {"success": false, "error": "no_match"}
+✅ POST /api/brain/ask {"message":"Финансы за месяц по категориям","debug":true} -> 200 {"success": true, "rule": "finance_breakdown"}
+
 DETAILED FINDINGS:
 
 1. BRAIN API ENDPOINT STATUS:
