@@ -406,6 +406,96 @@ async def execute_agent(agent_id: str):
 
 # ============= Database Initialization =============
 
+@router.post("/reload-scheduler")
+async def reload_agents_in_scheduler():
+    """
+    Перезагрузить всех агентов в планировщик
+    """
+    try:
+        import asyncpg
+        import os
+        from backend.app.services.agent_scheduler import agent_scheduler
+        from backend.app.services.agent_executor import agent_executor
+        
+        if not agent_scheduler:
+            raise HTTPException(status_code=500, detail="Agent scheduler not initialized")
+        
+        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+        conn = await asyncpg.connect(db_url)
+        
+        try:
+            # Получаем всех активных агентов
+            rows = await conn.fetch("SELECT * FROM agents WHERE status = 'active'")
+            
+            agents = []
+            for row in rows:
+                # Десериализуем JSON поля
+                triggers = row['triggers']
+                if isinstance(triggers, str):
+                    triggers = json.loads(triggers)
+                
+                actions = row['actions']
+                if isinstance(actions, str):
+                    actions = json.loads(actions)
+                
+                config = row['config']
+                if isinstance(config, str):
+                    config = json.loads(config)
+                
+                agents.append({
+                    'id': row['id'],
+                    'name': row['name'],
+                    'description': row['description'],
+                    'type': row['type'],
+                    'status': row['status'],
+                    'triggers': triggers or [],
+                    'actions': actions or [],
+                    'config': config or {}
+                })
+            
+            # Функция-обёртка для выполнения агента с обновлением статистики
+            async def execute_and_update(agent):
+                result = await agent_executor.execute_agent(agent)
+                
+                # Обновляем статистику в БД
+                now = datetime.now(timezone.utc)
+                if result['success']:
+                    await conn.execute("""
+                        UPDATE agents 
+                        SET executions_total = executions_total + 1,
+                            executions_success = executions_success + 1,
+                            last_execution = $1,
+                            updated_at = $1
+                        WHERE id = $2
+                    """, now, agent['id'])
+                else:
+                    await conn.execute("""
+                        UPDATE agents 
+                        SET executions_total = executions_total + 1,
+                            executions_failed = executions_failed + 1,
+                            last_execution = $1,
+                            updated_at = $1
+                        WHERE id = $2
+                    """, now, agent['id'])
+            
+            # Перезагружаем агентов
+            await agent_scheduler.reload_all_agents(agents, execute_and_update)
+            
+            registered = agent_scheduler.get_registered_agents()
+            
+            return {
+                "success": True,
+                "message": f"Loaded {len(registered)} agents into scheduler",
+                "registered_agents": registered
+            }
+        finally:
+            await conn.close()
+    
+    except Exception as e:
+        logger.error(f"❌ Error reloading scheduler: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reload scheduler: {str(e)}")
+
+
 @router.post("/init-db")
 async def initialize_agents_table(db: AsyncSession = Depends(get_db)):
     """
