@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, File, UploadFile
 from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
@@ -7,15 +6,7 @@ import asyncpg
 import csv
 import io
 from uuid import uuid4
-
-from app.config.database import get_db
-from app.models.financial_transaction import (
-    TransactionCreate, 
-    TransactionUpdate, 
-    TransactionResponse,
-    DEFAULT_INCOME_CATEGORIES,
-    DEFAULT_EXPENSE_CATEGORIES
-)
+import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["finance-transactions"])
