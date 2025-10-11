@@ -44,6 +44,9 @@ class ChatResponse(BaseModel):
     message: str
     function_calls: List[dict] = []
     created_at: str
+    debug: Optional[dict] = None
+    sources: Optional[dict] = None
+    rule: Optional[str] = None
 
 class ChatHistoryResponse(BaseModel):
     """История сообщений"""
