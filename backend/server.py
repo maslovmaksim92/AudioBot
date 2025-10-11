@@ -1268,6 +1268,8 @@ try:
 except Exception as e1:
     logger.warning(f'⚠️ First import attempt failed (backend.app.routers): {e1}')
     try:
+        from app.routers import brain as brain_router
+
         from app.routers import ai_assistant_api as ai_assistant_api_router
 
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
