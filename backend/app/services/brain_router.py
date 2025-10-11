@@ -76,7 +76,8 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
                 return ans
         elif t == "finance_cat_trends" and db is not None:
             ans = await _ret(await resolve_finance_category_trends(message, db, ent), "finance_cat_trends")
-            if ans: return ans
+            if ans:
+                return ans
 
     # Legacy fallback order
     for rule, fn in [
