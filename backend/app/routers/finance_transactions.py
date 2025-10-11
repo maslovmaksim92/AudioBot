@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import logging
 import asyncpg
 import csv
@@ -10,6 +11,46 @@ import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["finance-transactions"])
+
+# Pydantic модели (определены здесь, чтобы избежать конфликтов импорта)
+class TransactionBase(BaseModel):
+    date: datetime
+    amount: float
+    category: str
+    type: Literal["income", "expense"]
+    description: Optional[str] = None
+    payment_method: Optional[str] = None
+    counterparty: Optional[str] = None
+    project: Optional[str] = None
+    tags: Optional[list[str]] = []
+
+class TransactionCreate(TransactionBase):
+    pass
+
+class TransactionUpdate(BaseModel):
+    date: Optional[datetime] = None
+    amount: Optional[float] = None
+    category: Optional[str] = None
+    type: Optional[Literal["income", "expense"]] = None
+    description: Optional[str] = None
+    payment_method: Optional[str] = None
+    counterparty: Optional[str] = None
+    project: Optional[str] = None
+    tags: Optional[list[str]] = None
+
+class TransactionResponse(TransactionBase):
+    id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+DEFAULT_INCOME_CATEGORIES = [
+    "Оплата услуг", "Продажа товаров", "Аренда", "Инвестиции", "Прочие доходы"
+]
+
+DEFAULT_EXPENSE_CATEGORIES = [
+    "Зарплата", "Материалы", "Аренда", "Коммунальные услуги", "Транспорт",
+    "Реклама и маркетинг", "Налоги", "Страхование", "Оборудование", "Прочие расходы"
+]
 
 # Helper function для получения DB connection
 async def get_db_connection():
