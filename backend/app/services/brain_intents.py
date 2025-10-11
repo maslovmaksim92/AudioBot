@@ -267,77 +267,117 @@ def extract_date_range(text: str) -> Optional[Dict[str, Any]]:
 
 
 def detect_intent(message: str) -> Optional[Dict[str, Any]]:
-    """Определить намерение пользователя и извлечь сущности"""
+    """
+    Продвинутое определение намерения пользователя с извлечением сущностей
+    Использует приоритеты при множественных совпадениях
+    """
     if not message:
         return None
     
     tl = message.lower()
     result = {}
     
-    # Извлекаем сущности
+    # Извлекаем все возможные сущности
     address = extract_address(message)
     month = extract_month(message)
     date_range = extract_date_range(message)
+    specific_date = extract_specific_date(message)
     
-    # Определяем тип запроса
+    # Вычисляем scores для каждого типа запроса
+    intent_scores = {}
     
-    # 1. Контакты старшего
-    if any(k in tl for k in ["контакт", "телефон", "номер", "почта", "email"]) and any(k in tl for k in ["старш"]):
-        result['type'] = 'elder_contact'
-        if address:
-            result['address'] = address
-        return result
+    # 1. Контакты старшего (высокий приоритет при явном упоминании)
+    elder_keywords = ["контакт", "телефон", "номер", "почта", "email", "связ"]
+    elder_targets = ["старш"]
+    elder_score = 0
+    for kw in elder_keywords:
+        if kw in tl:
+            elder_score += 2
+    for tg in elder_targets:
+        if tg in tl:
+            elder_score += 3
+    if address:
+        elder_score += 1
+    if elder_score >= 3:
+        intent_scores['elder_contact'] = elder_score
     
-    # 2. График уборок
-    if any(k in tl for k in ["уборк", "график", "расписан", "когда", "дат"]):
-        result['type'] = 'cleaning_month'
-        if address:
-            result['address'] = address
-        if month:
-            result['month'] = month
-        return result
+    # 2. График уборок (высокий приоритет при месяце + адресе)
+    cleaning_keywords = ["уборк", "график", "расписан", "когда", "дат"]
+    cleaning_score = 0
+    for kw in cleaning_keywords:
+        if kw in tl:
+            cleaning_score += 2
+    if month:
+        cleaning_score += 3
+    if address:
+        cleaning_score += 2
+    if cleaning_score >= 2:
+        intent_scores['cleaning_month'] = cleaning_score
     
     # 3. Бригада по адресу
-    if any(k in tl for k in ["бригад", "какая бригада", "кто убирает"]):
-        result['type'] = 'brigade'
-        if address:
-            result['address'] = address
-        return result
+    brigade_keywords = ["бригад", "кто убирает", "какая команда"]
+    brigade_score = 0
+    for kw in brigade_keywords:
+        if kw in tl:
+            brigade_score += 3
+    if address:
+        brigade_score += 2
+    if brigade_score >= 3:
+        intent_scores['brigade'] = brigade_score
     
-    # 4. Структурные суммы (квартиры, этажи, подъезды)
-    if any(k in tl for k in ["квартир", "этаж", "подъезд", "сколько домов", "всего"]):
-        result['type'] = 'structural_totals'
-        if address:
-            result['address'] = address
-        return result
+    # 4. Структурные суммы (квартиры, этажи, подъезды, дома)
+    structural_keywords = ["квартир", "этаж", "подъезд", "сколько домов", "всего", "статистика"]
+    structural_score = 0
+    for kw in structural_keywords:
+        if kw in tl:
+            structural_score += 2
+    if structural_score >= 2:
+        intent_scores['structural_totals'] = structural_score
     
-    # 5. Финансы - базовые
-    if any(k in tl for k in ["финанс", "деньги", "баланс", "прибыль"]) and not any(k in tl for k in ["категори", "разбивк", "м/м", "г/г"]):
-        result['type'] = 'finance_basic'
-        if date_range:
-            result['date_range'] = date_range
-        return result
+    # 5. Финансы - год к году (наивысший приоритет среди финансов)
+    if any(k in tl for k in ["yoy", "г/г", "год к году", "годовая динамика"]):
+        intent_scores['finance_yoy'] = 10
     
-    # 6. Финансы - разбивка по категориям
-    if any(k in tl for k in ["категори", "разбивк", "по категор"]):
-        result['type'] = 'finance_breakdown'
-        if date_range:
-            result['date_range'] = date_range
-        return result
+    # 6. Финансы - месяц к месяцу
+    if any(k in tl for k in ["м/м", "месяц к месяц", "месячная динамика"]) and not any(k in tl for k in ["г/г", "год"]):
+        intent_scores['finance_mom'] = 9
     
-    # 7. Финансы - месяц к месяцу
-    if any(k in tl for k in ["м/м", "месяц к месяц", "динамик"]) and not any(k in tl for k in ["г/г", "год"]):
-        result['type'] = 'finance_mom'
-        return result
+    # 7. Финансы - тренды категорий
+    trend_keywords = ["топ", "рост", "падени", "лидеры", "просели", "тренд"]
+    if any(k in tl for k in trend_keywords):
+        intent_scores['finance_cat_trends'] = 8
     
-    # 8. Финансы - год к году
-    if any(k in tl for k in ["yoy", "г/г", "год к году"]):
-        result['type'] = 'finance_yoy'
-        return result
+    # 8. Финансы - разбивка по категориям
+    breakdown_keywords = ["категори", "разбивк", "по категор", "структура расходов"]
+    if any(k in tl for k in breakdown_keywords):
+        intent_scores['finance_breakdown'] = 7
     
-    # 9. Финансы - тренды категорий
-    if any(k in tl for k in ["топ", "рост", "падени", "лидеры", "просели", "тренд"]):
-        result['type'] = 'finance_cat_trends'
-        return result
+    # 9. Финансы - базовые (самый низкий приоритет среди финансов)
+    finance_basic_keywords = ["финанс", "деньги", "баланс", "прибыль", "доход", "расход"]
+    finance_basic_score = 0
+    for kw in finance_basic_keywords:
+        if kw in tl:
+            finance_basic_score += 1
+    # Исключаем, если есть более специфичные финансовые запросы
+    if finance_basic_score >= 1 and not any(k in ['finance_yoy', 'finance_mom', 'finance_cat_trends', 'finance_breakdown'] for k in intent_scores.keys()):
+        intent_scores['finance_basic'] = 5
     
-    return None
+    # Выбираем intent с наивысшим score
+    if not intent_scores:
+        return None
+    
+    best_intent = max(intent_scores.items(), key=lambda x: x[1])
+    result['type'] = best_intent[0]
+    result['confidence'] = best_intent[1]
+    
+    # Добавляем извлечённые сущности
+    if address:
+        result['address'] = address
+    if month:
+        result['month'] = month
+    if date_range:
+        result['date_range'] = date_range
+    if specific_date:
+        result['specific_date'] = specific_date
+    
+    return result
