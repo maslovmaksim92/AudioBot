@@ -163,6 +163,49 @@ AI звонок
 }
 ```
 
+## Brain (Единый мозг)
+
+### `POST /api/brain/ask`
+
+Универсальная точка быстрых ответов по данным приложения: адреса, уборки, контакты старшего, бригады, финансы, структурные суммы.
+При `debug: true` возвращает `debug.matched_rule`, `debug.matched_rules`, `debug.elapsed_ms`, `debug.trace` и `sources` (в т.ч. cache hit/miss).
+
+**Request:**
+```json
+{
+  "message": "Контакты старшего Кибальчича 1 стр 2",
+  "debug": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "answer": "Старший: Иванов И.И.\nТелефон(ы): +7...\nEmail: elder@vasdom.ru\nСсылка в Bitrix: https://...",
+  "rule": "elder_contact",
+  "sources": {
+    "addr": "кибальчича 1 стр 2",
+    "cache": {
+      "elder": {"cache": "hit", "cache_key": "elder:..."},
+      "houses": {"cache": "miss", "cache_key": "addr:..."}
+    }
+  },
+  "debug": {
+    "matched_rule": "elder_contact",
+    "matched_rules": ["elder_contact"],
+    "elapsed_ms": 85,
+    "trace": [{"rule":"elder_contact","status":"hit","elapsed_ms":85}]
+  }
+}
+```
+
+### `GET /api/brain/metrics`
+
+Метрики “мозга”: `resolver_counts`, `resolver_times_ms`, `cache_hits`, `cache_misses`.
+
+---
+
 ## Knowledge Base
 
 ### `POST /api/knowledge/upload`
