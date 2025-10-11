@@ -659,14 +659,16 @@ class BackendTester:
     
     async def run_all_tests(self):
         """Run all backend tests"""
-        print("🚀 Starting Backend API Tests")
+        print("🚀 Starting Backend API Tests - Stage 6 Features")
         print(f"🌐 Backend URL: {self.base_url}")
         print("=" * 60)
         
         tests = [
             ("Health Check", self.test_health_endpoint),
-            ("AI Chat - Kibalchich Contact (Single Brain Priority)", self.test_ai_chat_kibalchich),
-            ("AI Chat - Bilybina Cleaning (Single Brain Priority)", self.test_ai_chat_bilybina),
+            ("Stage 6 - Finance Categories (Debug)", self.test_brain_ask_finance_categories),
+            ("Stage 6 - YoY Dynamics (Debug)", self.test_brain_ask_finance_yoy),
+            ("Stage 6 - Top Decline Categories (Debug)", self.test_brain_ask_top_decline),
+            ("Stage 6 - Address NER (Debug)", self.test_brain_ask_address_ner),
         ]
         
         results = {}
