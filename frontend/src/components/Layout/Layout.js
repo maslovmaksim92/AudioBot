@@ -36,6 +36,7 @@ const Layout = ({ children }) => {
     { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
     { name: 'Задачи', href: '/tasks', icon: ClipboardList, color: 'text-blue-600' },
     { name: 'AI Задачи', href: '/ai-tasks', icon: Calendar, color: 'text-violet-600' },
+    { name: 'Финансы', href: '/finances', icon: DollarSign, color: 'text-green-600' },
     { name: 'Логистика', href: '/logistics', icon: Truck, color: 'text-teal-600' },
     { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },
   ];
