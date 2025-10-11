@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.config.database import get_db_session
+from backend.app.config.database import get_db
 from backend.app.services.brain_router import try_fast_answer
 
 router = APIRouter(prefix="/brain", tags=["brain"])
