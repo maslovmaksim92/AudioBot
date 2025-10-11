@@ -231,7 +231,6 @@ def format_cleaning_for_month(cleaning: CleaningDates, month_key: str) -> Option
         slots = [cleaning.december_1, cleaning.december_2]
 
     parts: List[str] = []
-    labels = ["october_1", "october_2", "november_1", "november_2", "december_1", "december_2"]
     # Keep original slot ids to avoid confusion for now; can map to human labels later
     for idx, slot in enumerate(slots, start=1):
         if isinstance(slot, CleaningPeriod) and slot.dates:
