@@ -370,7 +370,7 @@ class Bitrix24Service:
                         # Bitrix может хранить список значений прямо в deal
                         if isinstance(deal.get(t_code), dict):
                             type_text = deal[t_code].get('value') or ''
-                    except:
+                    except Exception:
                         pass
                     
                     if not type_text:
