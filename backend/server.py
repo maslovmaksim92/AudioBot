@@ -1273,7 +1273,7 @@ except Exception as e1:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
         import traceback
         logger.error(f'Traceback: {traceback.format_exc()}')
-        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = agents = None
+        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = agents = telegram_webhook = agent_dashboard = None
 
 if health:
     try:
