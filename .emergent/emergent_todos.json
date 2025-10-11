@@ -1,14 +1,6 @@
 [
   {
-    "content": "Создать UI формы для добавления транзакций",
-    "status": "completed"
-  },
-  {
-    "content": "Добавить кнопку импорта CSV в интерфейс",
-    "status": "completed"
-  },
-  {
     "content": "Создать инструкцию для пользователя",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]
