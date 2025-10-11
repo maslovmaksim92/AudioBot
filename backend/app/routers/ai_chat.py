@@ -89,7 +89,7 @@ def _extract_address_candidate(text: str) -> Optional[str]:
                     return cand
         return None
     except Exception:
-        return {'success': False}
+        return None
 
 # Обработчики функций для AI
 
