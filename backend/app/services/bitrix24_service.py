@@ -704,7 +704,7 @@ class Bitrix24Service:
                 return False
             # Address match with normalization
             if norm_addr:
-                hay = _normalize_addr(item.get('address') or item.get('title') or '')
+                hay = _normalize_addr_local(item.get('address') or item.get('title') or '')
                 if norm_addr not in hay:
                     return False
             def has_date(d: str) -> bool:
