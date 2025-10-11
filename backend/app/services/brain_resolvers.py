@@ -156,10 +156,9 @@ async def resolve_cleaning_month(text: str, ent: Optional[Dict[str, Any]] = None
         # Получаем название дома
         houses_result = await _brain_store.get_houses_by_address(address, limit=1, return_debug=True)
         if isinstance(houses_result, tuple):
-            houses, houses_meta = houses_result
+            houses, _ = houses_result
         else:
             houses = houses_result
-            houses_meta = {}
         
         house_title = houses[0].title if houses else address
         
