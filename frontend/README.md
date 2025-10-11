@@ -72,6 +72,7 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 - `/ai-tasks` - AI Задачи
 - `/logistics` - Логистика
 - `/logs` - Логи
+- `/finances` - Финансы
 
 ## UI компоненты
 
