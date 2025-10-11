@@ -25,19 +25,19 @@ async def compute_finance_yoy(db: AsyncSession, days: int = 365) -> Dict[str, fl
             SELECT SUM(CASE WHEN type='income' THEN amount ELSE 0 END) AS inc,
                    SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) AS exp
             FROM financial_transactions
-            WHERE date >= (CURRENT_DATE - INTERVAL :days || ' day')
+            WHERE date >= (CURRENT_DATE - INTERVAL '%s days')
         ),
         previous AS (
             SELECT SUM(CASE WHEN type='income' THEN amount ELSE 0 END) AS inc,
                    SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) AS exp
             FROM financial_transactions
-            WHERE date < (CURRENT_DATE - INTERVAL :days || ' day')
-              AND date >= (CURRENT_DATE - INTERVAL (2 * :days) || ' day')
+            WHERE date < (CURRENT_DATE - INTERVAL '%s days')
+              AND date >= (CURRENT_DATE - INTERVAL '%s days')
         )
         SELECT r.inc, r.exp, p.inc, p.exp FROM recent r CROSS JOIN previous p
-        """
+        """ % (days, days, 2 * days)
     )
-    res = await db.execute(q, {"days": days})
+    res = await db.execute(q)
     row = res.first()
     inc_now = float(row[0] or 0.0) if row else 0.0
     exp_now = float(row[1] or 0.0) if row else 0.0
