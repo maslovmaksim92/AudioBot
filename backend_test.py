@@ -2042,10 +2042,77 @@ class BackendTester:
         
         return results
 
+    async def run_address_accuracy_tests(self):
+        """Run address accuracy tests specifically"""
+        print("🚀 Starting Address Accuracy Tests")
+        print(f"🌐 Backend URL: {self.base_url}")
+        print("=" * 60)
+        
+        tests = [
+            ("Health Check", self.test_health_endpoint),
+            ("Кибальчича 1 vs Кибальчича 5", self.test_address_accuracy_kibalchich_1_vs_5),
+            ("График уборки Кибальчича 1", self.test_address_accuracy_kibalchich_1_cleaning),
+            ("Кибальчича 3 контакты", self.test_address_accuracy_kibalchich_3),
+            ("Кибальчича 5 график", self.test_address_accuracy_kibalchich_5),
+            ("Билибина 6 контакты", self.test_address_accuracy_bilybina_6),
+        ]
+        
+        results = {}
+        detailed_results = []
+        
+        for test_name, test_func in tests:
+            print(f"\n📋 Running {test_name} Test...")
+            try:
+                success = await test_func()
+                results[test_name] = success
+                
+                # Store detailed result for address accuracy
+                if test_name != "Health Check":
+                    detailed_results.append({
+                        'test': test_name,
+                        'success': success,
+                        'timestamp': datetime.now().isoformat()
+                    })
+                    
+            except Exception as e:
+                print(f"❌ {test_name} test failed with exception: {e}")
+                results[test_name] = False
+                detailed_results.append({
+                    'test': test_name,
+                    'success': False,
+                    'error': str(e),
+                    'timestamp': datetime.now().isoformat()
+                })
+        
+        print("\n" + "=" * 60)
+        print("📊 ADDRESS ACCURACY TEST SUMMARY")
+        print("=" * 60)
+        
+        passed = 0
+        total = len(results)
+        
+        for test_name, success in results.items():
+            status = "✅ PASS" if success else "❌ FAIL"
+            print(f"{status} {test_name}")
+            if success:
+                passed += 1
+        
+        print(f"\n🎯 Results: {passed}/{total} tests passed")
+        
+        # Store results for later use
+        self.address_accuracy_results = detailed_results
+        
+        if passed == total:
+            print("\n🎉 All address accuracy tests passed!")
+        else:
+            print("\n⚠️ Some tests failed - check detailed results above")
+        
+        return results
+
 async def main():
     """Main test runner"""
     tester = BackendTester()
-    results = await tester.run_all_tests()
+    results = await tester.run_address_accuracy_tests()
     
     # Save detailed results
     with open('/app/backend_test_results.json', 'w', encoding='utf-8') as f:
