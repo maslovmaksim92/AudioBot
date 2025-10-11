@@ -450,3 +450,168 @@ async def resolve_finance_mom(text: str, db: AsyncSession, ent: Optional[Dict[st
     
     except Exception as e:
         return _fail(f"error: {str(e)}")
+
+
+async def resolve_contractor_contacts(text: str, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve contractor/management company contact queries"""
+    if not text:
+        return None
+    
+    tl = text.lower()
+    if not any(k in tl for k in ["подрядчик", "управляющ", "компани", "ук"]):
+        return None
+    
+    try:
+        # Извлекаем адрес (если есть - контакты УК для конкретного дома)
+        address = (ent or {}).get('address') or extract_address(text)
+        
+        if address:
+            # Получаем дом и его УК
+            result = await _brain_store.get_houses_by_address(address, limit=1, return_debug=True)
+            if isinstance(result, tuple):
+                houses, meta = result
+            else:
+                houses = result
+                meta = {}
+            
+            if not houses:
+                return _fail("house_not_found")
+            
+            house = houses[0]
+            company = house.company
+            
+            if not company or not company.title:
+                return _fail("company_not_found")
+            
+            lines = [
+                f"🏠 Адрес: {house.title}",
+                f"🏢 Управляющая компания: {company.title}"
+            ]
+            
+            if company.phones:
+                lines.append(f"📞 Телефон(ы): {', '.join(company.phones)}")
+            if company.emails:
+                lines.append(f"📧 Email: {', '.join(company.emails)}")
+            
+            answer = "\n".join(lines)
+            sources = {"addr": address, "houses": meta}
+            
+            return _success(answer, rule="contractor_contacts", sources=sources)
+        else:
+            # Список всех УК (из БД)
+            return _fail("address_required")
+    
+    except Exception as e:
+        return _fail(f"error: {str(e)}")
+
+
+async def resolve_tasks_by_address(text: str, db: AsyncSession, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve tasks/complaints queries by address"""
+    if not text:
+        return None
+    
+    tl = text.lower()
+    if not any(k in tl for k in ["задач", "жалоб", "заявк", "проблем"]):
+        return None
+    
+    try:
+        # Извлекаем адрес
+        address = (ent or {}).get('address') or extract_address(text)
+        
+        if not address:
+            return _fail("address_required")
+        
+        # Получаем задачи из БД
+        q = sql_text(
+            """
+            SELECT 
+                title,
+                description,
+                status,
+                priority,
+                created_at
+            FROM tasks
+            WHERE LOWER(address) LIKE :address_pattern
+            ORDER BY created_at DESC
+            LIMIT 10
+            """
+        )
+        res = await db.execute(q, {"address_pattern": f"%{address.lower()}%"})
+        rows = res.fetchall()
+        
+        if not rows:
+            return _fail("no_tasks")
+        
+        lines = [f"📋 Задачи по адресу {address}:"]
+        for idx, row in enumerate(rows, 1):
+            title = row[0] or 'Без названия'
+            status = row[2] or 'Не указан'
+            priority = row[3] or 'Обычная'
+            
+            status_emoji = "✅" if status.lower() == "completed" else "⏳"
+            lines.append(f"{status_emoji} {idx}. {title} ({status}, {priority})")
+        
+        answer = "\n".join(lines)
+        sources = {"db": "tasks", "addr": address}
+        
+        return _success(answer, rule="tasks_by_address", sources=sources)
+    
+    except Exception as e:
+        return _fail(f"error: {str(e)}")
+
+
+async def resolve_tasks_by_brigade(text: str, db: AsyncSession, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Resolve tasks queries by brigade"""
+    if not text:
+        return None
+    
+    tl = text.lower()
+    if not any(k in tl for k in ["задач", "жалоб", "заявк"]) or "бригад" not in tl:
+        return None
+    
+    try:
+        # Извлекаем номер или название бригады
+        brigade_match = re.search(r'бригад[аыие]*\s+[№#]?\s*(\d+|[а-яё]+)', tl)
+        brigade = brigade_match.group(1) if brigade_match else None
+        
+        if not brigade:
+            return _fail("brigade_not_specified")
+        
+        # Получаем задачи из БД
+        q = sql_text(
+            """
+            SELECT 
+                title,
+                description,
+                status,
+                priority,
+                created_at
+            FROM tasks
+            WHERE LOWER(assigned_to) LIKE :brigade_pattern
+               OR LOWER(description) LIKE :brigade_pattern
+            ORDER BY created_at DESC
+            LIMIT 10
+            """
+        )
+        res = await db.execute(q, {"brigade_pattern": f"%{brigade.lower()}%"})
+        rows = res.fetchall()
+        
+        if not rows:
+            return _fail("no_tasks")
+        
+        lines = [f"📋 Задачи бригады {brigade}:"]
+        for idx, row in enumerate(rows, 1):
+            title = row[0] or 'Без названия'
+            status = row[2] or 'Не указан'
+            priority = row[3] or 'Обычная'
+            
+            status_emoji = "✅" if status.lower() == "completed" else "⏳"
+            lines.append(f"{status_emoji} {idx}. {title} ({status}, {priority})")
+        
+        answer = "\n".join(lines)
+        sources = {"db": "tasks", "brigade": brigade}
+        
+        return _success(answer, rule="tasks_by_brigade", sources=sources)
+    
+    except Exception as e:
+        return _fail(f"error: {str(e)}")
