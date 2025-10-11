@@ -136,22 +136,132 @@ def extract_month(text: str) -> Optional[str]:
     return None
 
 
-def extract_date_range(text: str) -> Optional[Dict[str, str]]:
-    """Извлечь диапазон дат из текста"""
+def extract_specific_date(text: str) -> Optional[str]:
+    """
+    Извлечь конкретную дату из текста
+    Возвращает дату в формате YYYY-MM-DD или None
+    """
     if not text:
         return None
     
-    # Паттерны: "за месяц", "за квартал", "за неделю"
     text_lower = text.lower()
     
-    if 'за месяц' in text_lower or 'месяц' in text_lower:
-        return {'period': 'month', 'days': 30}
-    elif 'за квартал' in text_lower or 'квартал' in text_lower:
-        return {'period': 'quarter', 'days': 90}
-    elif 'за неделю' in text_lower or 'неделю' in text_lower:
-        return {'period': 'week', 'days': 7}
-    elif 'за год' in text_lower or 'год' in text_lower or 'г/г' in text_lower:
-        return {'period': 'year', 'days': 365}
+    # Паттерн 1: ISO формат 2025-10-15
+    match = re.search(r'(\d{4})-(\d{2})-(\d{2})', text)
+    if match:
+        return f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+    
+    # Паттерн 2: DD.MM.YYYY или DD.MM
+    match = re.search(r'(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?', text)
+    if match:
+        day = match.group(1).zfill(2)
+        month = match.group(2).zfill(2)
+        year = match.group(3) if match.group(3) else str(datetime.now().year)
+        return f"{year}-{month}-{day}"
+    
+    # Паттерн 3: "15 октября", "5 ноября"
+    day_month_pattern = r'(\d{1,2})\s+(октября|ноября|декабря|окт|ноя|дек)'
+    match = re.search(day_month_pattern, text_lower)
+    if match:
+        day = match.group(1).zfill(2)
+        month_str = match.group(2)
+        
+        month_map = {
+            'октября': '10', 'окт': '10',
+            'ноября': '11', 'ноя': '11',
+            'декабря': '12', 'дек': '12'
+        }
+        month = month_map.get(month_str, '01')
+        year = str(datetime.now().year)
+        return f"{year}-{month}-{day}"
+    
+    # Паттерн 4: Относительные даты
+    today = datetime.now().date()
+    if 'сегодня' in text_lower or 'сейчас' in text_lower:
+        return today.isoformat()
+    elif 'завтра' in text_lower:
+        return (today + timedelta(days=1)).isoformat()
+    elif 'вчера' in text_lower:
+        return (today - timedelta(days=1)).isoformat()
+    
+    return None
+
+
+def extract_date_range(text: str) -> Optional[Dict[str, Any]]:
+    """
+    Продвинутое извлечение диапазона дат из текста
+    Возвращает: {period: str, days: int, date_from: str, date_to: str}
+    """
+    if not text:
+        return None
+    
+    text_lower = text.lower()
+    today = datetime.now().date()
+    
+    # Паттерн 1: Явные диапазоны "с 1 по 15 октября", "01.10-15.10"
+    # "с DD по DD месяца"
+    range_pattern1 = r'с\s+(\d{1,2})\s+по\s+(\d{1,2})\s+(октября|ноября|декабря)'
+    match = re.search(range_pattern1, text_lower)
+    if match:
+        day_from = match.group(1).zfill(2)
+        day_to = match.group(2).zfill(2)
+        month_str = match.group(3)
+        
+        month_map = {'октября': '10', 'ноября': '11', 'декабря': '12'}
+        month = month_map.get(month_str, '10')
+        year = str(datetime.now().year)
+        
+        return {
+            'period': 'custom',
+            'date_from': f"{year}-{month}-{day_from}",
+            'date_to': f"{year}-{month}-{day_to}",
+            'days': int(day_to) - int(day_from) + 1
+        }
+    
+    # Паттерн 2: "DD.MM-DD.MM" или "DD.MM.YYYY-DD.MM.YYYY"
+    range_pattern2 = r'(\d{1,2}\.\d{1,2}(?:\.\d{4})?)\s*-\s*(\d{1,2}\.\d{1,2}(?:\.\d{4})?)'
+    match = re.search(range_pattern2, text)
+    if match:
+        from_str = match.group(1)
+        to_str = match.group(2)
+        
+        date_from = extract_specific_date(from_str)
+        date_to = extract_specific_date(to_str)
+        
+        if date_from and date_to:
+            df = datetime.fromisoformat(date_from)
+            dt = datetime.fromisoformat(date_to)
+            days = (dt - df).days + 1
+            return {
+                'period': 'custom',
+                'date_from': date_from,
+                'date_to': date_to,
+                'days': days
+            }
+    
+    # Паттерн 3: Предопределённые периоды
+    if 'за месяц' in text_lower or 'последний месяц' in text_lower or 'этот месяц' in text_lower:
+        date_from = (today - timedelta(days=30)).isoformat()
+        return {'period': 'month', 'days': 30, 'date_from': date_from, 'date_to': today.isoformat()}
+    
+    elif 'за квартал' in text_lower or 'последний квартал' in text_lower or 'квартал' in text_lower:
+        date_from = (today - timedelta(days=90)).isoformat()
+        return {'period': 'quarter', 'days': 90, 'date_from': date_from, 'date_to': today.isoformat()}
+    
+    elif 'за неделю' in text_lower or 'последняя неделя' in text_lower or 'эта неделя' in text_lower:
+        date_from = (today - timedelta(days=7)).isoformat()
+        return {'period': 'week', 'days': 7, 'date_from': date_from, 'date_to': today.isoformat()}
+    
+    elif 'за год' in text_lower or 'последний год' in text_lower or 'г/г' in text_lower or 'год к году' in text_lower:
+        date_from = (today - timedelta(days=365)).isoformat()
+        return {'period': 'year', 'days': 365, 'date_from': date_from, 'date_to': today.isoformat()}
+    
+    elif 'сегодня' in text_lower:
+        return {'period': 'today', 'days': 1, 'date_from': today.isoformat(), 'date_to': today.isoformat()}
+    
+    elif 'вчера' in text_lower:
+        yesterday = (today - timedelta(days=1)).isoformat()
+        return {'period': 'yesterday', 'days': 1, 'date_from': yesterday, 'date_to': yesterday}
     
     return None
 
