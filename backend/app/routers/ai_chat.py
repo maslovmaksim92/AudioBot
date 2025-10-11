@@ -342,6 +342,24 @@ async def send_message(
 ):
     """Отправить сообщение AI агенту"""
     try:
+        # Try unified Single Brain fast answers first
+        try:
+            from backend.app.services.brain_router import try_fast_answer
+            ans = await try_fast_answer(request.message, db=db)
+            if ans and ans.get('success'):
+                reply = ans.get('answer') or ''
+                assistant_message = ChatHistory(
+                    id=str(uuid.uuid4()),
+                    user_id=request.user_id,
+                    role="assistant",
+                    content=reply,
+                )
+                db.add(assistant_message)
+                await db.commit()
+                return ChatResponse(message=reply, function_calls=[], created_at=datetime.utcnow().isoformat())
+        except Exception as e:
+            logger.warning(f"Brain router failed in ai_chat: {e}")
+
         # Получаем историю последних 10 сообщений для контекста
         result = await db.execute(
             select(ChatHistory)
