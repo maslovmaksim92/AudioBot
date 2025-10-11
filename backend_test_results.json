@@ -1,10 +1,8 @@
 {
   "summary": {
     "Health Check": true,
-    "AI Context": true,
-    "AI Analyze": true,
-    "AI Chat - Bitrix Address Match": true,
-    "AI Chat - General": true
+    "Single Brain API - Kibalchich Contact": false,
+    "Single Brain API - Bilybina Cleaning": false
   },
   "detailed_results": [
     {
@@ -13,56 +11,32 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760195169
+        "ts": 1760199834
       },
       "error": null,
-      "timestamp": "2025-10-11T15:06:09.068451"
+      "timestamp": "2025-10-11T16:23:54.325213"
     },
     {
-      "endpoint": "/api/ai-assistant/context",
-      "method": "GET",
-      "status_code": 200,
-      "response": {
-        "success": true,
-        "context": {}
-      },
-      "error": null,
-      "timestamp": "2025-10-11T15:06:10.262705"
-    },
-    {
-      "endpoint": "/api/ai-assistant/analyze",
+      "endpoint": "/api/brain/ask (Kibalchich)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 404,
       "response": {
-        "success": false,
-        "error": "No financial data"
+        "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T15:06:11.444178"
+      "timestamp": "2025-10-11T16:23:54.364247"
     },
     {
-      "endpoint": "/api/ai-assistant/chat",
+      "endpoint": "/api/brain/ask (Bilybina)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 404,
       "response": {
-        "success": false,
-        "error": "OpenAI API error: 401"
+        "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T15:06:12.878075"
-    },
-    {
-      "endpoint": "/api/ai-assistant/chat (general)",
-      "method": "POST",
-      "status_code": 200,
-      "response": {
-        "success": false,
-        "error": "OpenAI API error: 401"
-      },
-      "error": null,
-      "timestamp": "2025-10-11T15:06:14.232942"
+      "timestamp": "2025-10-11T16:23:54.403960"
     }
   ],
-  "test_time": "2025-10-11T15:06:14.233278",
+  "test_time": "2025-10-11T16:23:54.404298",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
