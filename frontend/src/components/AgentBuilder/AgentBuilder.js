@@ -445,17 +445,68 @@ const AgentBuilder = () => {
             {(newAgent.type === 'scheduler' || newAgent.type === 'bot') && (
               <div className="mb-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Telegram уведомления</label>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Chat ID или номера телефонов сотрудников (через запятую)</label>
-                  <textarea
-                    value={newAgent.config?.telegram_recipients || ''}
-                    onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), telegram_recipients: e.target.value}})}
-                    placeholder="Например: @vasdom_chat, +79991234567, +79991234568"
-                    rows="2"
+                
+                {/* Chat ID групп/чатов */}
+                <div className="mb-3">
+                  <label className="block text-xs text-gray-600 mb-1">Chat ID групп/чатов (через запятую)</label>
+                  <input
+                    type="text"
+                    value={newAgent.config?.telegram_chat_ids || ''}
+                    onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), telegram_chat_ids: e.target.value}})}
+                    placeholder="Например: @vasdom_chat, @company_team, -1001234567890"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Можно указать @username или числовой Chat ID группы</p>
+                </div>
+
+                {/* Выбор сотрудников */}
+                <div className="mb-3">
+                  <label className="block text-xs text-gray-600 mb-2">Выбрать сотрудников</label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-white">
+                    {employees.length === 0 ? (
+                      <p className="text-xs text-gray-400 p-2">Сотрудники не найдены</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {employees.slice(0, 10).map(emp => (
+                          <label key={emp.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedEmployees.includes(emp.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedEmployees([...selectedEmployees, emp.id]);
+                                } else {
+                                  setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
+                                }
+                              }}
+                              className="rounded text-indigo-600"
+                            />
+                            <span className="text-xs text-gray-700">{emp.full_name || emp.email}</span>
+                            {emp.phone && <span className="text-xs text-gray-400">({emp.phone})</span>}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {selectedEmployees.length > 0 && (
+                    <p className="text-xs text-indigo-600 mt-1">Выбрано: {selectedEmployees.length}</p>
+                  )}
+                </div>
+
+                {/* Или ручной ввод номеров */}
+                <div className="mb-3">
+                  <label className="block text-xs text-gray-600 mb-1">Или введите номера вручную (через запятую)</label>
+                  <input
+                    type="text"
+                    value={newAgent.config?.telegram_phone_numbers || ''}
+                    onChange={(e) => setNewAgent({...newAgent, config: {...(newAgent.config || {}), telegram_phone_numbers: e.target.value}})}
+                    placeholder="Например: +79991234567, +79991234568"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-                <div className="mt-3">
+
+                {/* Текст сообщения */}
+                <div>
                   <label className="block text-xs text-gray-600 mb-1">Текст сообщения</label>
                   <textarea
                     value={newAgent.config?.telegram_message || ''}
