@@ -425,12 +425,32 @@ async def init_database():
     """
     Инициализировать таблицу финансовых транзакций
     """
+    CREATE_TABLE_SQL = """
+    CREATE TABLE IF NOT EXISTS financial_transactions (
+        id VARCHAR(36) PRIMARY KEY,
+        date TIMESTAMP WITH TIME ZONE NOT NULL,
+        amount DECIMAL(15, 2) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        type VARCHAR(10) NOT NULL CHECK (type IN ('income', 'expense')),
+        description TEXT,
+        payment_method VARCHAR(50),
+        counterparty VARCHAR(200),
+        project VARCHAR(100),
+        tags TEXT[],
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_date ON financial_transactions(date);
+    CREATE INDEX IF NOT EXISTS idx_transactions_type ON financial_transactions(type);
+    CREATE INDEX IF NOT EXISTS idx_transactions_category ON financial_transactions(category);
+    """
+    
     try:
         conn = await get_db_connection()
         try:
-            from app.models.financial_transaction import CREATE_TABLE_SQL
             await conn.execute(CREATE_TABLE_SQL)
-            return {"success": True, "message": "Database initialized"}
+            return {"success": True, "message": "Database table created successfully"}
         finally:
             await conn.close()
     except Exception as e:
