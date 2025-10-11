@@ -106,7 +106,7 @@ const AgentBuilder = () => {
     }
 
     try {
-      await axios.post(`${BACKEND_URL}/api/agents`, newAgent);
+      await axios.post(`${BACKEND_URL}/api/agents/`, newAgent);
       setShowBuilder(false);
       setNewAgent({
         name: '',
