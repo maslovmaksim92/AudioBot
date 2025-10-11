@@ -1,52 +1,101 @@
 """
-Intent detection and entity extraction for Brain
+Advanced Intent detection and entity extraction for Brain (Phase 2)
+Includes sophisticated NER for addresses, months, dates, and date ranges
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
+from datetime import datetime, timedelta
 import re
 
 
+# Словарь известных улиц (можно расширить из Bitrix24)
+KNOWN_STREETS = {
+    'кибальчича', 'кибальчич', 'билибина', 'билибин',
+    'ленина', 'пушкина', 'гоголя', 'чехова', 'маяковского',
+    'советская', 'московская', 'невский', 'тверская'
+}
+
+# Стоп-слова для фильтрации
+ADDRESS_STOP_WORDS = {
+    "контакт", "контакты", "старшего", "старший", "телефон", "почта", "email",
+    "номер", "уборка", "уборки", "график", "когда", "где", "покажи", "нужно",
+    "расписание", "даты", "дата", "в", "на", "за"
+}
+
+
+def normalize_address_parts(text: str) -> str:
+    """Нормализовать части адреса (к1 -> к 1, стр2 -> стр 2)"""
+    # к1, к2 -> к 1, к 2
+    text = re.sub(r'\bк(\d+)', r'к \1', text)
+    # стр1, стр2 -> стр 1, стр 2
+    text = re.sub(r'\bстр(\d+)', r'стр \1', text)
+    # корп1 -> корп 1
+    text = re.sub(r'\bкорп\.?(\d+)', r'к \1', text)
+    # литА, литА -> лит А
+    text = re.sub(r'\bлит\.?([а-яa-z])', r'лит \1', text)
+    # строение -> стр
+    text = re.sub(r'\bстроени[ея]\b', 'стр', text)
+    # корпус -> к
+    text = re.sub(r'\bкорпус\b', 'к', text)
+    return text.strip()
+
+
 def extract_address(text: str) -> Optional[str]:
-    """Извлечь адрес из текста"""
+    """
+    Продвинутое извлечение адреса из текста
+    Поддерживает: "Кибальчича 3 стр 2", "Билибина 6 к1 лит А", "на Ленина 5"
+    """
     if not text:
         return None
     
     text_lower = text.lower()
     
-    # Стоп-слова для фильтрации
-    stop_words = {
-        "контакт", "контакты", "старшего", "старший", "телефон", "почта", "email",
-        "номер", "уборка", "уборки", "график", "когда", "где", "покажи", "нужно"
-    }
+    # Нормализуем части адреса
+    text_normalized = normalize_address_parts(text_lower)
     
-    # Паттерн 1: "на <адрес>"
-    match = re.search(r'на\s+([а-яё]+\s+\d+[а-яёa-z\s]*?)(?:\s+в\s+|\s+за\s+|\?|!|\.|\s+октяб|\s+нояб|\s+декаб|$)', text_lower)
+    # Паттерн 1: "на <улица> <номер> [доп.части]"
+    pattern1 = r'на\s+([а-яё]+(?:ого|ской|ского|ова|ева|ина|ича)?)\s+(\d+(?:\s+(?:стр|к|лит)\s*[а-яёa-z0-9]+)*)'
+    match = re.search(pattern1, text_normalized)
     if match:
-        addr = match.group(1).strip()
-        # Очистка от стоп-слов
-        tokens = addr.split()
-        filtered = [t for t in tokens if t not in stop_words]
-        if len(filtered) >= 2:  # хотя бы улица + номер
-            return ' '.join(filtered)
+        street = match.group(1).strip()
+        house_parts = match.group(2).strip()
+        if street not in ADDRESS_STOP_WORDS:
+            return f"{street} {house_parts}"
     
-    # Паттерн 2: "по адресу <адрес>"
-    match = re.search(r'по\s+адресу\s+([а-яё]+\s+\d+[а-яёa-z\s]*?)(?:\s+в\s+|\s+за\s+|\?|!|\.|\s+октяб|\s+нояб|\s+декаб|$)', text_lower)
+    # Паттерн 2: "по адресу <улица> <номер> [доп.части]"
+    pattern2 = r'по\s+адресу\s+([а-яё]+(?:ого|ской|ского|ова|ева|ина|ича)?)\s+(\d+(?:\s+(?:стр|к|лит)\s*[а-яёa-z0-9]+)*)'
+    match = re.search(pattern2, text_normalized)
     if match:
-        addr = match.group(1).strip()
-        tokens = addr.split()
-        filtered = [t for t in tokens if t not in stop_words]
-        if len(filtered) >= 2:
-            return ' '.join(filtered)
+        street = match.group(1).strip()
+        house_parts = match.group(2).strip()
+        if street not in ADDRESS_STOP_WORDS:
+            return f"{street} {house_parts}"
     
-    # Паттерн 3: Поиск улица + номер дома (без предлогов)
-    # Формат: "<улица> <число>[буквы] [стр|к|корп|лит <число/буква>]"
-    match = re.search(r'([а-яё]+(?:ча|ча|на|на|ова|ева|ина|ской|ского|кого|ной|ого)?)\s+(\d+[а-яёa-z]*(?:\s+(?:стр|к|корп|корпус|строение|лит|литера)\.?\s*[а-яёa-z0-9]+)?)', text_lower)
+    # Паттерн 3: Прямое указание "<улица> <номер> [доп.части]" с проверкой известных улиц
+    pattern3 = r'\b([а-яё]+(?:ого|ской|ского|ова|ева|ина|ича)?)\s+(\d+(?:\s+(?:стр|к|лит)\s*[а-яёa-z0-9]+)*)\b'
+    matches = re.finditer(pattern3, text_normalized)
+    for match in matches:
+        street = match.group(1).strip()
+        house_parts = match.group(2).strip()
+        
+        # Проверяем, является ли это известной улицей или подходит под паттерн
+        street_base = street.rstrip('аоеиуыюя').lower()
+        if (street in KNOWN_STREETS or 
+            street_base in KNOWN_STREETS or
+            any(known in street for known in KNOWN_STREETS)):
+            if street not in ADDRESS_STOP_WORDS:
+                return f"{street} {house_parts}"
+    
+    # Паттерн 4: Извлечение с контекстными маркерами
+    # "дом на Кибальчича", "объект Билибина 6"
+    pattern4 = r'(?:дом|объект|адрес|здание)\s+(?:на\s+)?([а-яё]+(?:ого|ской|ского|ова|ева|ина|ича)?)\s+(\d+(?:\s+(?:стр|к|лит)\s*[а-яёa-z0-9]+)*)'
+    match = re.search(pattern4, text_normalized)
     if match:
-        street = match.group(1)
-        house_num = match.group(2)
-        if street not in stop_words:
-            return f"{street} {house_num}".strip()
+        street = match.group(1).strip()
+        house_parts = match.group(2).strip()
+        if street not in ADDRESS_STOP_WORDS:
+            return f"{street} {house_parts}"
     
     return None
 
