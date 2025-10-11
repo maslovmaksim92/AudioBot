@@ -570,6 +570,50 @@ class AgentExecutor:
                 'success': False,
                 'message': str(e)
             }
+    
+    async def _save_execution_log(self, result: Dict[str, Any]):
+        """
+        Сохранить лог выполнения в БД
+        
+        Args:
+            result: Результат выполнения агента
+        """
+        try:
+            import asyncpg
+            import json
+            from uuid import uuid4
+            
+            db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+            conn = await asyncpg.connect(db_url)
+            
+            try:
+                log_id = str(uuid4())
+                
+                await conn.execute("""
+                    INSERT INTO agent_execution_logs 
+                    (id, agent_id, agent_name, executed_at, success, skipped, skip_reason, 
+                     actions_executed, results, error)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                """, 
+                    log_id,
+                    result['agent_id'],
+                    result['agent_name'],
+                    datetime.fromisoformat(result['executed_at'].replace('Z', '+00:00')),
+                    result.get('success', False),
+                    result.get('skipped', False),
+                    result.get('reason'),
+                    result.get('actions_executed', 0),
+                    json.dumps(result.get('results', [])),
+                    result.get('error')
+                )
+                
+                logger.info(f"📝 Execution log saved: {log_id}")
+            
+            finally:
+                await conn.close()
+        
+        except Exception as e:
+            logger.error(f"❌ Error saving execution log: {e}")
 
 
 # Глобальный экземпляр executor
