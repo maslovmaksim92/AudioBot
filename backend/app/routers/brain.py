@@ -46,3 +46,9 @@ async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) ->
         rule = dbg.get("matched_rule") or ans.get("rule") or "unknown"
         brain_metrics.record_resolver(rule, dbg.get("elapsed_ms", 0))
     return ans
+
+
+@router.get("/metrics")
+async def get_brain_metrics() -> Dict[str, Any]:
+    """Получить метрики работы Brain"""
+    return brain_metrics.snapshot()
