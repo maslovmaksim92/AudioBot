@@ -1,11 +1,11 @@
 [
   {
     "content": "Создать backend API для финансов (/api/finances/)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Создать frontend компонент Finances.jsx с 6 разделами",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Добавить маршрут /finances в App.js",
