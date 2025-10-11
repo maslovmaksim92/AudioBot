@@ -1,9 +1,10 @@
 """
 Brain resolvers (Stage 3): fast, rule-based answers without LLM
 - Elder contact by address
-- Cleaning dates by month/address
+- Cleaning dates by month/address (1:1 dates with type)
 - Brigade by address (basic)
 - Finance aggregate (basic stub via BrainStore)
+- Structural math (floors/entrances/apartments totals)
 """
 from __future__ import annotations
 
@@ -14,11 +15,11 @@ from backend.app.services.brain_store import brain_store
 from backend.app.services.brain import (
     parse_address_candidate,
     detect_month_key,
-    detect_period_index,
     format_cleaning_for_month,
     format_elder_contact,
     CleaningDates,
 )
+from backend.app.services.brain_math import compute_finance_basic, compute_structural_totals
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,6 @@ def _fail(reason: str, rule: str = "") -> Dict[str, Any]:
 
 
 async def resolve_elder_contact(text: str) -> Optional[Dict[str, Any]]:
-    # detect intent
     tl = (text or "").lower()
     want_contacts = any(k in tl for k in ["контакт", "телефон", "почта", "email"]) and ("старш" in tl)
     if not want_contacts:
@@ -45,7 +45,6 @@ async def resolve_elder_contact(text: str) -> Optional[Dict[str, Any]]:
     if not elder:
         return _fail("Контакты старшего не найдены", rule="elder_contact")
 
-    # also provide bitrix link from matched house
     houses = await brain_store.get_houses_by_address(addr, limit=1)
     bitrix_url = houses[0].bitrix_url if houses else None
     answer = format_elder_contact(elder.name, elder.phones, elder.emails)
@@ -56,7 +55,6 @@ async def resolve_elder_contact(text: str) -> Optional[Dict[str, Any]]:
 
 async def resolve_cleaning_month(text: str) -> Optional[Dict[str, Any]]:
     tl = (text or "").lower()
-    # simple heuristic: requires word root "уборк"
     if "уборк" not in tl:
         return None
     addr = parse_address_candidate(text)
@@ -69,13 +67,12 @@ async def resolve_cleaning_month(text: str) -> Optional[Dict[str, Any]]:
     formatted = format_cleaning_for_month(cd, month_key)
     if not formatted:
         return _fail("Нет дат по указанному месяцу", rule="cleaning_month")
-    # Provide context line
     houses = await brain_store.get_houses_by_address(addr, limit=1)
     h = houses[0] if houses else None
     intro = f"🏠 Адрес: {h.title if h else addr}"
     if h and h.periodicity:
         intro += f"\nПериодичность: {h.periodicity}"
-    answer = f"{intro}\n{month_key.capitalize()} — даты уборок:\n{formatted}"
+    answer = f"{intro}\n{formatted}"
     if h and h.bitrix_url:
         answer += f"\nСсылка в Bitrix: {h.bitrix_url}"
     return _success(answer, data={"month": month_key}, sources={"addr": addr}, rule="cleaning_month")
@@ -105,9 +102,15 @@ async def resolve_finance_basic(text: str, db: Any) -> Optional[Dict[str, Any]]:
     tl = (text or "").lower()
     if not any(k in tl for k in ["финанс", "расход", "доход", "прибыль", "пнл", "p&amp;l", "cashflow", "деньги"]):
         return None
-    agg = await brain_store.get_finance_aggregate(db)
-    income = agg.get("income", 0.0)
-    expense = agg.get("expense", 0.0)
-    profit = income - expense
-    answer = f"Финансы (последний период):\nДоход: {income:.2f}\nРасход: {expense:.2f}\nПрибыль: {profit:.2f}"
-    return _success(answer, data=agg, sources={}, rule="finance_basic")
+    agg = await compute_finance_basic(db)
+    answer = f"Финансы (период по умолчанию):\nДоход: {agg.income:.2f}\nРасход: {agg.expense:.2f}\nПрибыль: {agg.profit:.2f}"
+    return _success(answer, data={"aggregate": agg.__dict__}, sources={}, rule="finance_basic")
+
+
+async def resolve_structural_totals(text: str, db: Any) -> Optional[Dict[str, Any]]:
+    tl = (text or "").lower()
+    if not any(k in tl for k in ["этаж", "подъезд", "квартир", "апартамент"]):
+        return None
+    totals = await compute_structural_totals(db)
+    answer = f"Суммарно по домам:\nЭтажей: {totals['floors']}\nПодъездов: {totals['entrances']}\nКвартир: {totals['apartments']}"
+    return _success(answer, data=totals, sources={}, rule="structural_totals")
