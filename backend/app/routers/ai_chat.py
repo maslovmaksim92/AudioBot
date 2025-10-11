@@ -350,11 +350,54 @@ async def send_message(
             .limit(10)
         )
 
-        # Быстрая ветка: если это вопрос про адрес — попробуем Bitrix напрямую
+        # Ветка: запрос контактов старшего по адресу
+        try:
+            want_contacts = False
+            text_l = (request.message or '').lower()
+            if ('контакт' in text_l or 'телефон' in text_l or 'почта' in text_l or 'email' in text_l) and ('старш' in text_l):
+                want_contacts = True
+            addr = _extract_address_candidate(request.message)
+            if want_contacts and addr:
+                data = await bitrix_service.list_houses(address=addr, limit=3)
+                houses = (data or {}).get('houses') or []
+                if houses:
+                    h = houses[0]
+                    deal_id = h.get('id')
+                    details = await bitrix_service.get_deal_details(deal_id)
+                    contact = (details or {}).get('elder_contact') or {}
+                    phones = contact.get('phones') or []
+                    emails = contact.get('emails') or []
+                    name = contact.get('name') or 'Старший не указан'
+                    fallback_company = (details or {}).get('company') or {}
+                    if not phones and fallback_company.get('phones'):
+                        phones = fallback_company.get('phones')
+                    if not emails and fallback_company.get('emails'):
+                        emails = fallback_company.get('emails')
+                    if phones or emails or name != 'Старший не указан':
+                        lines = [f"🏠 Адрес: {h.get('title') or h.get('address')}", f"Старший: {name}"]
+                        if phones:
+                            lines.append(f"Телефон(ы): {', '.join(phones)}")
+                        if emails:
+                            lines.append(f"Email: {', '.join(emails)}")
+                        lines.append(f"Ссылка в Bitrix: {h.get('bitrix_url') or '-'}")
+                        reply = "\n".join(lines)
+                        assistant_message = ChatHistory(
+                            id=str(uuid.uuid4()),
+                            user_id=request.user_id,
+                            role="assistant",
+                            content=reply,
+                        )
+                        db.add(assistant_message)
+                        await db.commit()
+                        return ChatResponse(message=reply, function_calls=[], created_at=datetime.utcnow().isoformat())
+        except Exception as e:
+            logger.warning(f"Fast elder contact branch failed: {e}")
+
+        # Быстрая ветка: если это вопрос про адрес — попробуем Bitrix напрямую (октябрьские даты)
         try:
             addr = _extract_address_candidate(request.message)
             if addr:
-                data = await bitrix_service.list_houses(address=addr, limit=20)
+                data = await bitrix_service.list_houses(address=addr, limit=3)
                 houses = (data or {}).get('houses') or []
                 if houses:
                     h = houses[0]
