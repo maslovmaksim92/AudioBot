@@ -419,6 +419,8 @@ async def send_message(
                 return response_data
         except Exception as e:
             logger.warning(f"Brain router failed in ai_chat: {e}")
+            # Rollback on error
+            await db.rollback()
 
         # Получаем историю последних 10 сообщений для контекста
         result = await db.execute(
