@@ -266,7 +266,7 @@ class BackendTester:
         
         payload = {
             "message": "Контакты старшего Кибальчича 1",
-            "user_id": "test"
+            "user_id": "550e8400-e29b-41d4-a716-446655440000"  # Valid UUID format
         }
         
         try:
