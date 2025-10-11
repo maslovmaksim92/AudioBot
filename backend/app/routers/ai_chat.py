@@ -60,6 +60,37 @@ class AITaskResponse(BaseModel):
     completed_at: Optional[str]
     created_at: str
 
+# Утилиты адреса
+import re
+
+def _extract_address_candidate(text: str) -> Optional[str]:
+    try:
+        s = (text or '').lower()
+        s = s.replace('\n', ' ').strip()
+        # шаблоны: "на <адрес> в ", "на <адрес>?", "по адресу <адрес>"
+        m = re.search(r"на\s+(.+?)(?:\s+в\s|\?|!|\.|$)", s)
+        if not m:
+            m = re.search(r"по\s+адресу\s+(.+?)(?:\s+в\s|\?|!|\.|$)", s)
+        if m:
+            cand = m.group(1).strip(' ,.!?')
+            # Ограничим до 6 слов чтобы не захватить весь вопрос
+            parts = [p for p in cand.split() if p]
+            if len(parts) > 6:
+                parts = parts[:6]
+            return ' '.join(parts)
+        # fallback: если содержит цифру (номер дома), возьмём окно из 3 слов вокруг
+        tokens = [t for t in re.split(r"[^\wа-яё]+", s) if t]
+        for i, t in enumerate(tokens):
+            if re.match(r"^\d+[а-яa-z]*$", t):
+                left = tokens[max(0, i-2):i]
+                right = tokens[i+1:i+2]
+                cand = ' '.join(left + [t] + right)
+                if len(cand) >= 3:
+                    return cand
+        return None
+    except Exception:
+        return None
+
 # Обработчики функций для AI
 
 async def handle_get_houses_for_date(date: str, brigade_number: Optional[str] = None, user_id: str = None, db: AsyncSession = None) -> dict:
