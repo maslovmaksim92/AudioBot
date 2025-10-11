@@ -71,3 +71,10 @@ DETAILED FINDINGS:
    - ❌ Database schema issues (missing columns)
 
 BACKEND STATUS: ✅ WORKING (with expected external dependency failures)
+
+
+=== PLAN 2025-10-11: Frontend E2E Tests (AI Chat quick bypass) ===
+- Navigate to /#/ai
+- Send message: "Когда уборка на Билибина 6 в октябре?"
+- Expect: a response bubble renders (content may vary due to external keys); verify non-empty text and no UI errors
+- Capture screenshots
