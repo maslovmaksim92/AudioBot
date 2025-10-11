@@ -299,6 +299,64 @@ async def handle_text(
         # Обычное сообщение - используем Brain для умного ответа
         await handle_brain_message(text, chat_id, user_name, user_username, db)
 
+async def handle_brain_message(
+    text: str,
+    chat_id: int,
+    user_name: str,
+    user_username: str,
+    db: AsyncSession
+):
+    """Обработка сообщений через Brain (единый мозг)"""
+    
+    logger.info(f"🧠 Brain processing message: {text[:50]}...")
+    
+    try:
+        # Пытаемся получить быстрый ответ через Brain
+        ans = await try_fast_answer(text, db=db, return_debug=False)
+        
+        if ans and ans.get('success'):
+            # Brain успешно ответил!
+            reply = ans.get('answer') or ans.get('response') or 'Понял ваш запрос!'
+            rule = ans.get('rule', 'unknown')
+            
+            logger.info(f"✅ Brain answered with rule: {rule}")
+            
+            await telegram_service.send_message(
+                chat_id=str(chat_id),
+                text=reply
+            )
+        else:
+            # Brain не смог ответить - даём дефолтное сообщение
+            error_type = ans.get('error') if ans else 'unknown'
+            logger.warning(f"⚠️ Brain couldn't answer. Error: {error_type}")
+            
+            hints_map = {
+                'no_address': 'Пожалуйста, укажите адрес. Например: "График уборки Кибальчича 5 октябрь"',
+                'no_month': 'Укажите месяц (октябрь, ноябрь или декабрь).',
+                'house_not_found': 'Дом по указанному адресу не найден. Проверьте правильность адреса.',
+            }
+            
+            default_msg = hints_map.get(error_type, 
+                f"Я пока не знаю как ответить на этот вопрос. Попробуйте:\n"
+                f"• График уборки Кибальчича 5 октябрь\n"
+                f"• Контакты старшего Билибина 6\n"
+                f"• Финансы компании\n"
+                f"• Сколько всего домов?"
+            )
+            
+            await telegram_service.send_message(
+                chat_id=str(chat_id),
+                text=default_msg
+            )
+    
+    except Exception as e:
+        logger.error(f"❌ Error in Brain processing: {e}")
+        await telegram_service.send_message(
+            chat_id=str(chat_id),
+            text="Произошла ошибка при обработке вашего запроса. Попробуйте ещё раз."
+        )
+
+
 async def handle_command(
     command: str,
     chat_id: int,
