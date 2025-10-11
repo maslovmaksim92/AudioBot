@@ -1,6 +1,6 @@
 # VasDom AudioBot - API Reference
 
-**Base URL:** `http://localhost:8001` (dev) или `https://your-backend.onrender.com` (prod)
+**Base URL:** Backend доступен через переменную окружения (см. frontend/.env: `REACT_APP_BACKEND_URL`). Для Kubernetes/Ingress все backend маршруты начинаются с `/api` и проксируются на 0.0.0.0:8001. Не хардкодьте URL/порты в коде.
 
 **Все endpoints начинаются с `/api`**
 
