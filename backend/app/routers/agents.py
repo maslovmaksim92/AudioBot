@@ -51,15 +51,28 @@ async def create_agent(
             
             logger.info(f"✅ Agent created: {agent_data.name} (ID: {agent_id})")
             
+            # Десериализуем JSON поля если они строки
+            triggers = row['triggers']
+            if isinstance(triggers, str):
+                triggers = json.loads(triggers)
+            
+            actions = row['actions']
+            if isinstance(actions, str):
+                actions = json.loads(actions)
+            
+            config = row['config']
+            if isinstance(config, str):
+                config = json.loads(config)
+            
             return AgentResponse(
                 id=row['id'],
                 name=row['name'],
                 description=row['description'],
                 type=row['type'],
                 status=row['status'],
-                triggers=row['triggers'] or [],
-                actions=row['actions'] or [],
-                config=row['config'] or {},
+                triggers=triggers or [],
+                actions=actions or [],
+                config=config or {},
                 executions_total=row['executions_total'] or 0,
                 executions_success=row['executions_success'] or 0,
                 executions_failed=row['executions_failed'] or 0,
