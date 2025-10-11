@@ -1,0 +1,305 @@
+/* Function Studio - Визуальный конструктор автоматизаций */
+
+.function-studio-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5f7fa;
+}
+
+.function-studio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: white;
+  border-bottom: 2px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.studio-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1a202c;
+  margin: 0;
+}
+
+.workflow-name-input {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: 300px;
+  transition: all 0.3s ease;
+}
+
+.workflow-name-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.header-right {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-save {
+  background: #10b981;
+  color: white;
+}
+
+.btn-save:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-run {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-run:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: white;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+}
+
+.function-studio-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Панель инструментов */
+.tools-panel {
+  width: 250px;
+  background: white;
+  border-right: 2px solid #e2e8f0;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.tools-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+}
+
+.tool-section {
+  margin-bottom: 2rem;
+}
+
+.tool-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tool-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: grab;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tool-btn:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+/* Canvas */
+.flow-canvas {
+  flex: 1;
+  background: #f8fafc;
+}
+
+/* Панель настроек */
+.config-panel {
+  width: 300px;
+  background: white;
+  border-left: 2px solid #e2e8f0;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.config-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+}
+
+.config-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-field label {
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.config-select,
+.config-textarea {
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.config-select:focus,
+.config-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.config-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #94a3b8;
+}
+
+/* React Flow стилизация */
+.react-flow__node {
+  border-radius: 10px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.react-flow__node:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+.react-flow__edge {
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected {
+  stroke-width: 3;
+}
+
+/* Scrollbar */
+.tools-panel::-webkit-scrollbar,
+.config-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tools-panel::-webkit-scrollbar-track,
+.config-panel::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.tools-panel::-webkit-scrollbar-thumb,
+.config-panel::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.tools-panel::-webkit-scrollbar-thumb:hover,
+.config-panel::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .tools-panel {
+    width: 200px;
+  }
+  
+  .config-panel {
+    width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .function-studio-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header-left,
+  .header-right {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .workflow-name-input {
+    width: 100%;
+  }
+  
+  .tools-panel,
+  .config-panel {
+    position: absolute;
+    height: 50%;
+    width: 100%;
+    z-index: 10;
+  }
+  
+  .tools-panel {
+    top: 0;
+  }
+  
+  .config-panel {
+    bottom: 0;
+  }
+}
