@@ -27,7 +27,16 @@ async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) ->
         raise HTTPException(status_code=400, detail="message is required")
     ans = await try_fast_answer(req.message, db=db, return_debug=bool(req.debug))
     if ans is None:
+        # Extended diagnostics for no_match
+        hints = []
+        tl = req.message.lower()
+        if 'уборк' in tl and 'окт' not in tl and 'ноя' not in tl and 'дек' not in tl:
+            hints.append('уточните месяц (например, октябрь)')
+        if 'уборк' in tl and 'на ' not in tl and 'по адресу' not in tl:
+            hints.append('уточните адрес (например, "на Билибина 6")')
         out = {"success": False, "error": "no_match"}
+        if hints:
+            out["hints"] = hints
         if req.debug:
             out["debug"] = {"matched_rule": None, "matched_rules": []}
         return out
