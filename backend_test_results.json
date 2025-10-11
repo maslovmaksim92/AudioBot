@@ -1,8 +1,10 @@
 {
   "summary": {
     "Health Check": true,
-    "AI Chat - Kibalchich Contact (Single Brain Priority)": true,
-    "AI Chat - Bilybina Cleaning (Single Brain Priority)": true
+    "Stage 6 - Finance Categories (Debug)": false,
+    "Stage 6 - YoY Dynamics (Debug)": false,
+    "Stage 6 - Top Decline Categories (Debug)": false,
+    "Stage 6 - Address NER (Debug)": false
   },
   "detailed_results": [
     {
@@ -11,36 +13,52 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760200332
+        "ts": 1760202973
       },
       "error": null,
-      "timestamp": "2025-10-11T16:32:12.934262"
+      "timestamp": "2025-10-11T17:16:13.570843"
     },
     {
-      "endpoint": "/api/ai/chat (Kibalchich)",
+      "endpoint": "/api/brain/ask (Finance Categories)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 404,
       "response": {
-        "message": "Извините, произошла ошибка при обработке вашего запроса: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**********************************************************iL-1. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
-        "function_calls": [],
-        "created_at": "2025-10-11T16:32:18.271228"
+        "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:32:18.274648"
+      "timestamp": "2025-10-11T17:16:13.617029"
     },
     {
-      "endpoint": "/api/ai/chat (Bilybina)",
+      "endpoint": "/api/brain/ask (YoY Dynamics)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 404,
       "response": {
-        "message": "Извините, произошла ошибка при обработке вашего запроса: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**********************************************************iL-1. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}",
-        "function_calls": [],
-        "created_at": "2025-10-11T16:32:20.621041"
+        "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:32:20.624789"
+      "timestamp": "2025-10-11T17:16:13.653054"
+    },
+    {
+      "endpoint": "/api/brain/ask (Top Decline)",
+      "method": "POST",
+      "status_code": 404,
+      "response": {
+        "detail": "Not Found"
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:16:13.689322"
+    },
+    {
+      "endpoint": "/api/brain/ask (Address NER)",
+      "method": "POST",
+      "status_code": 404,
+      "response": {
+        "detail": "Not Found"
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:16:13.736266"
     }
   ],
-  "test_time": "2025-10-11T16:32:20.625140",
+  "test_time": "2025-10-11T17:16:13.736604",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
