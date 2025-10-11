@@ -54,6 +54,7 @@ function App() {
           <Route path="/training" element={<Training />} />
           <Route path="/logistics" element={<Logistics />} />
           <Route path="/logs" element={<Logs />} />
+          <Route path="/finances" element={<Finances />} />
           <Route path="/agents" element={<AgentBuilder />} />
         </Routes>
       </Layout>
