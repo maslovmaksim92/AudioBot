@@ -128,7 +128,7 @@ const AgentBuilder = () => {
     if (!editingAgent) return;
 
     try {
-      await axios.put(`${BACKEND_URL}/api/agents/${editingAgent.id}`, newAgent);
+      await axios.put(`${BACKEND_URL}/api/agents/${editingAgent.id}/`, newAgent);
       setShowBuilder(false);
       setEditingAgent(null);
       setNewAgent({
@@ -152,7 +152,7 @@ const AgentBuilder = () => {
     }
 
     try {
-      await axios.delete(`${BACKEND_URL}/api/agents/${agentId}`);
+      await axios.delete(`${BACKEND_URL}/api/agents/${agentId}/`);
       loadAgents();
       loadStats();
     } catch (error) {
@@ -163,7 +163,7 @@ const AgentBuilder = () => {
 
   const handleExecuteAgent = async (agentId) => {
     try {
-      await axios.post(`${BACKEND_URL}/api/agents/${agentId}/execute`);
+      await axios.post(`${BACKEND_URL}/api/agents/${agentId}/execute/`);
       alert('Агент успешно выполнен');
       loadAgents();
       loadStats();
