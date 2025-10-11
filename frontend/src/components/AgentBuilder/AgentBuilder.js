@@ -149,15 +149,41 @@ const AgentBuilder = () => {
       }
 
       // Для TG уведомлений - добавляем telegram_send action
-      if (newAgent.config?.telegram_recipients || newAgent.config?.telegram_message) {
-        agentData.actions.push({
-          type: 'telegram_send',
-          name: 'Отправка в Telegram',
-          config: {
-            recipients: newAgent.config.telegram_recipients || '',
-            message: newAgent.config.telegram_message || ''
-          }
-        });
+      if (newAgent.config?.telegram_message) {
+        // Собираем всех получателей
+        let allRecipients = [];
+        
+        // Добавляем Chat ID групп
+        if (newAgent.config.telegram_chat_ids) {
+          const chatIds = newAgent.config.telegram_chat_ids.split(',').map(s => s.trim()).filter(Boolean);
+          allRecipients.push(...chatIds);
+        }
+        
+        // Добавляем телефоны выбранных сотрудников
+        if (selectedEmployees.length > 0) {
+          const selectedPhones = employees
+            .filter(emp => selectedEmployees.includes(emp.id))
+            .map(emp => emp.phone)
+            .filter(Boolean);
+          allRecipients.push(...selectedPhones);
+        }
+        
+        // Добавляем вручную введённые номера
+        if (newAgent.config.telegram_phone_numbers) {
+          const phones = newAgent.config.telegram_phone_numbers.split(',').map(s => s.trim()).filter(Boolean);
+          allRecipients.push(...phones);
+        }
+        
+        if (allRecipients.length > 0) {
+          agentData.actions.push({
+            type: 'telegram_send',
+            name: 'Отправка в Telegram',
+            config: {
+              recipients: allRecipients.join(', '),
+              message: newAgent.config.telegram_message
+            }
+          });
+        }
       }
 
       await axios.post(`${BACKEND_URL}/api/agents/`, agentData);
