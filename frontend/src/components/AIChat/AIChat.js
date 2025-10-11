@@ -143,9 +143,174 @@ const AIChat = () => {
             <div className={`message-avatar ${m.role}`}>
               {m.role === 'user' ? '👤' : '🤖'}
             </div>
-            <div>
+            <div style={{flex: 1}}>
               <div className={`message-bubble ${m.role}`}>
-                {m.text}
+                {/* Основной текст с поддержкой переносов строк */}
+                <div style={{whiteSpace: 'pre-wrap'}}>{m.text}</div>
+                
+                {/* Бейджи источников данных (только для assistant с debug данными) */}
+                {m.role === 'assistant' && (m.sources || m.rule || m.debug) && (
+                  <div style={{marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center'}}>
+                    {/* Правило/резолвер */}
+                    {m.rule && (
+                      <span style={{
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        background: '#e3f2fd',
+                        color: '#1976d2',
+                        fontWeight: 500
+                      }}>
+                        📋 {m.rule}
+                      </span>
+                    )}
+                    
+                    {/* Источник данных */}
+                    {m.sources && Object.keys(m.sources).length > 0 && (
+                      <>
+                        {m.sources.elder?.cache === 'hit' || m.sources.houses?.cache === 'hit' || m.sources.finance?.cache === 'hit' ? (
+                          <span style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: '#f3e5f5',
+                            color: '#7b1fa2',
+                            fontWeight: 500
+                          }}>
+                            ⚡ Кэш
+                          </span>
+                        ) : null}
+                        
+                        {m.sources.elder?.cache === 'miss' || m.sources.houses?.cache === 'miss' ? (
+                          <span style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: '#fff3e0',
+                            color: '#f57c00',
+                            fontWeight: 500
+                          }}>
+                            🔗 Bitrix24
+                          </span>
+                        ) : null}
+                        
+                        {m.sources.db ? (
+                          <span style={{
+                            fontSize: '11px',
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: '#e8f5e9',
+                            color: '#388e3c',
+                            fontWeight: 500
+                          }}>
+                            💾 База данных
+                          </span>
+                        ) : null}
+                      </>
+                    )}
+                    
+                    {/* Время выполнения */}
+                    {m.debug?.elapsed_ms !== undefined && (
+                      <span style={{
+                        fontSize: '11px',
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        background: '#fce4ec',
+                        color: '#c2185b',
+                        fontWeight: 500
+                      }}>
+                        ⏱️ {m.debug.elapsed_ms}ms
+                      </span>
+                    )}
+                    
+                    {/* Иконка раскрытия debug */}
+                    {m.debug && (
+                      <button
+                        onClick={() => setExpandedDebug(prev => ({...prev, [i]: !prev[i]}))}
+                        style={{
+                          fontSize: '14px',
+                          padding: '2px 6px',
+                          borderRadius: 12,
+                          background: 'transparent',
+                          border: '1px solid #bdbdbd',
+                          color: '#616161',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        title="Показать/скрыть debug информацию"
+                      >
+                        ℹ️
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Развёрнутая debug информация */}
+                {m.role === 'assistant' && expandedDebug[i] && m.debug && (
+                  <div style={{
+                    marginTop: 12,
+                    padding: 12,
+                    background: '#f5f5f5',
+                    borderRadius: 8,
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    color: '#424242'
+                  }}>
+                    <div style={{fontWeight: 'bold', marginBottom: 8, color: '#1976d2'}}>
+                      🔍 Debug информация:
+                    </div>
+                    
+                    {/* Matched rule */}
+                    {m.debug.matched_rule && (
+                      <div style={{marginBottom: 4}}>
+                        <strong>Правило:</strong> {m.debug.matched_rule}
+                      </div>
+                    )}
+                    
+                    {/* Elapsed time */}
+                    {m.debug.elapsed_ms !== undefined && (
+                      <div style={{marginBottom: 4}}>
+                        <strong>Время:</strong> {m.debug.elapsed_ms}ms
+                      </div>
+                    )}
+                    
+                    {/* Sources */}
+                    {m.sources && Object.keys(m.sources).length > 0 && (
+                      <div style={{marginBottom: 4}}>
+                        <strong>Источники:</strong>
+                        <pre style={{
+                          marginTop: 4,
+                          padding: 8,
+                          background: '#fff',
+                          borderRadius: 4,
+                          overflow: 'auto',
+                          maxHeight: 200
+                        }}>
+                          {JSON.stringify(m.sources, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {/* Trace */}
+                    {m.debug.trace && m.debug.trace.length > 0 && (
+                      <div>
+                        <strong>Трейс:</strong>
+                        <div style={{marginTop: 4}}>
+                          {m.debug.trace.map((t, idx) => (
+                            <div key={idx} style={{
+                              padding: '4px 8px',
+                              marginBottom: 2,
+                              background: t.status === 'hit' ? '#e8f5e9' : '#ffebee',
+                              borderRadius: 4
+                            }}>
+                              {t.rule} → {t.status} ({t.elapsed_ms}ms)
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="message-time">{m.timestamp}</div>
             </div>
