@@ -283,6 +283,25 @@ class AIAssistant:
 - Всего: {context['employees']['total']}
 - Активных: {context['employees']['active']}
 
+        # Если в контексте найден дом по адресу, добавим краткую подсказку в промпт
+        if context.get('matched_houses'):
+            try:
+                h = context['matched_houses'][0]
+                addr_line = f"Найден дом: {h.get('title') or ''} — {h.get('address') or ''}. Периодичность: {h.get('periodicity') or 'не указана'}."
+                cd = h.get('cleaning_dates') or {}
+                def _short_month(k: str):
+                    v = cd.get(k) or {}
+                    ds = v.get('dates') or []
+                    if not ds:
+                        return None
+                    return f"{k}: {', '.join(ds[:4])}{'…' if len(ds) > 4 else ''} ({v.get('type') or ''})"
+                octo = _short_month('october_1') or _short_month('october_2')
+                if octo:
+                    addr_line += f" Октябрь: {octo}."
+                prompt += addr_line + "\n\n"
+            except Exception:
+                pass
+
 """
         
         if 'employees_list' in context and context['employees_list']:
