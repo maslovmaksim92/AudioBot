@@ -1,8 +1,8 @@
 {
   "summary": {
     "Health Check": true,
-    "Single Brain API - Kibalchich Contact": true,
-    "Single Brain API - Bilybina Cleaning": true
+    "AI Chat - Kibalchich Contact (Single Brain Priority)": false,
+    "AI Chat - Bilybina Cleaning (Single Brain Priority)": false
   },
   "detailed_results": [
     {
@@ -11,34 +11,32 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760199907
+        "ts": 1760200180
       },
       "error": null,
-      "timestamp": "2025-10-11T16:25:07.300894"
+      "timestamp": "2025-10-11T16:29:40.619890"
     },
     {
-      "endpoint": "/api/brain/ask (Kibalchich)",
+      "endpoint": "/api/ai/chat (Kibalchich)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 500,
       "response": {
-        "success": false,
-        "error": "no_match"
+        "detail": "Ошибка при обработке сообщения: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table \"chat_history\" violates foreign key constraint \"chat_history_user_id_fkey\"\nDETAIL:  Key (user_id)=(test) is not present in table \"users\".\n[SQL: INSERT INTO chat_history (id, user_id, role, content, telegram_message_id, message_metadata, synced_to_telegram, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::BOOLEAN, $8::TIMESTAMP WITHOUT TIME ZONE)]\n[parameters: ('c0df1226-b6c1-4427-b9f7-e8d916a1bdac', 'test', 'user', 'Контакты старшего Кибальчича 1', None, None, False, datetime.datetime(2025, 10, 11, 16, 29, 44, 672156))]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:25:10.516442"
+      "timestamp": "2025-10-11T16:29:45.102540"
     },
     {
-      "endpoint": "/api/brain/ask (Bilybina)",
+      "endpoint": "/api/ai/chat (Bilybina)",
       "method": "POST",
-      "status_code": 200,
+      "status_code": 500,
       "response": {
-        "success": false,
-        "error": "no_match"
+        "detail": "Ошибка при обработке сообщения: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table \"chat_history\" violates foreign key constraint \"chat_history_user_id_fkey\"\nDETAIL:  Key (user_id)=(test) is not present in table \"users\".\n[SQL: INSERT INTO chat_history (id, user_id, role, content, telegram_message_id, message_metadata, synced_to_telegram, created_at) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::BOOLEAN, $8::TIMESTAMP WITHOUT TIME ZONE)]\n[parameters: ('07ce2324-e944-41f8-88d8-c37bc68fbf1c', 'test', 'user', 'Когда уборка на Билибина 6 в октябре?', None, None, False, datetime.datetime(2025, 10, 11, 16, 29, 45, 985217))]\n(Background on this error at: https://sqlalche.me/e/20/gkpj)"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:25:10.557742"
+      "timestamp": "2025-10-11T16:29:46.412863"
     }
   ],
-  "test_time": "2025-10-11T16:25:10.558080",
+  "test_time": "2025-10-11T16:29:46.413180",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
