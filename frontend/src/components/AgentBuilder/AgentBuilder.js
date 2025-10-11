@@ -79,7 +79,7 @@ const AgentBuilder = () => {
   }, []);
 
   const loadAgents = async () => {
-    try:
+    try {
       setLoading(true);
       const response = await axios.get(`${BACKEND_URL}/api/agents/`);
       setAgents(response.data);
