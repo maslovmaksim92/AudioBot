@@ -347,7 +347,7 @@ async def resolve_finance_breakdown(text: str, db: AsyncSession, ent: Optional[D
     
     try:
         # Получаем разбивку по категориям
-        q = text(
+        q = sql_text(
             """
             SELECT 
                 category,
