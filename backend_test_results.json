@@ -11,10 +11,10 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760199834
+        "ts": 1760199855
       },
       "error": null,
-      "timestamp": "2025-10-11T16:23:54.325213"
+      "timestamp": "2025-10-11T16:24:15.884132"
     },
     {
       "endpoint": "/api/brain/ask (Kibalchich)",
@@ -24,7 +24,7 @@
         "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:23:54.364247"
+      "timestamp": "2025-10-11T16:24:15.919720"
     },
     {
       "endpoint": "/api/brain/ask (Bilybina)",
@@ -34,9 +34,9 @@
         "detail": "Not Found"
       },
       "error": null,
-      "timestamp": "2025-10-11T16:23:54.403960"
+      "timestamp": "2025-10-11T16:24:15.957605"
     }
   ],
-  "test_time": "2025-10-11T16:23:54.404298",
+  "test_time": "2025-10-11T16:24:15.957914",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
