@@ -233,24 +233,6 @@ class AIAssistant:
         except Exception as e:
             logger.error(f"❌ AI assistant error: {e}")
             return {
-        # Если в контексте найден точный дом по адресу — добавим инструкцию для извлечения дат
-        if context.get('matched_houses'):
-            # Найти максимально релевантный дом (первый из списка)
-            h = context['matched_houses'][0]
-            addr_line = f"Найден дом: {h.get('title') or ''} — {h.get('address') or ''}. Периодичность: {h.get('periodicity') or 'не указана'}."
-            # Сжать даты для подсказки (если есть октябрь)
-            cd = h.get('cleaning_dates') or {}
-            def _short_month(k):
-                v = cd.get(k) or {}
-                ds = v.get('dates') or []
-                if not ds:
-                    return None
-                return f"{k}: {', '.join(ds[:4])}{'…' if len(ds) > 4 else ''} ({v.get('type') or ''})"
-            octo = _short_month('october_1') or _short_month('october_2')
-            if octo:
-                addr_line += f" Октябрь: {octo}."
-            prompt += addr_line + "\n\n"
-
                 'success': False,
                 'error': str(e)
             }
