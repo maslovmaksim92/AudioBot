@@ -399,7 +399,7 @@ async def resolve_finance_mom(text: str, db: AsyncSession, ent: Optional[Dict[st
     
     try:
         # Получаем данные за последние 2 месяца
-        q = text(
+        q = sql_text(
             """
             WITH 
             recent AS (
