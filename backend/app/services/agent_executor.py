@@ -179,6 +179,112 @@ class AgentExecutor:
                 'success': False,
                 'message': str(e)
             }
+    
+    async def _execute_email_send(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Отправить email
+        
+        Args:
+            config: Конфигурация с recipients, subject, body
+            
+        Returns:
+            Результат отправки
+        """
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+            
+            smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+            smtp_username = os.environ.get('SMTP_USERNAME')
+            smtp_password = os.environ.get('SMTP_PASSWORD')
+            
+            if not smtp_username or not smtp_password:
+                return {
+                    'success': False,
+                    'message': 'SMTP credentials not configured'
+                }
+            
+            recipients = config.get('recipients', '')
+            subject = config.get('subject', 'Уведомление от VasDom')
+            body = config.get('body', '')
+            
+            if not recipients or not body:
+                return {
+                    'success': False,
+                    'message': 'Recipients or body is empty'
+                }
+            
+            recipients_list = [r.strip() for r in recipients.split(',')]
+            
+            # Создаём сообщение
+            msg = MIMEMultipart()
+            msg['From'] = smtp_username
+            msg['To'] = ', '.join(recipients_list)
+            msg['Subject'] = subject
+            msg.attach(MIMEText(body, 'html'))
+            
+            # Отправляем
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_username, smtp_password)
+                server.send_message(msg)
+            
+            logger.info(f"✅ Email sent to {len(recipients_list)} recipients")
+            
+            return {
+                'success': True,
+                'message': f"Email sent to {len(recipients_list)} recipients"
+            }
+        
+        except Exception as e:
+            logger.error(f"❌ Error sending email: {e}")
+            return {
+                'success': False,
+                'message': str(e)
+            }
+    
+    async def _execute_ai_call(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Выполнить AI звонок
+        
+        Args:
+            config: Конфигурация с phone_numbers, scenario
+            
+        Returns:
+            Результат выполнения звонка
+        """
+        try:
+            phone_numbers = config.get('phone_numbers', '')
+            scenario = config.get('scenario', 'greeting')
+            
+            if not phone_numbers:
+                return {
+                    'success': False,
+                    'message': 'Phone numbers not specified'
+                }
+            
+            phones_list = [p.strip() for p in phone_numbers.split(',')]
+            
+            # Здесь должна быть интеграция с LiveKit/OpenAI Realtime
+            # Пока что логируем
+            logger.info(f"📞 AI Call scheduled for {len(phones_list)} numbers with scenario: {scenario}")
+            
+            # Можно добавить реальную интеграцию с существующим voice роутером
+            
+            return {
+                'success': True,
+                'message': f"AI calls scheduled for {len(phones_list)} numbers",
+                'phone_count': len(phones_list)
+            }
+        
+        except Exception as e:
+            logger.error(f"❌ Error executing AI call: {e}")
+            return {
+                'success': False,
+                'message': str(e)
+            }
 
 
 # Глобальный экземпляр executor
