@@ -310,10 +310,8 @@ class BackendTester:
         
         tests = [
             ("Health Check", self.test_health_endpoint),
-            ("AI Context", self.test_ai_context_endpoint),
-            ("AI Analyze", self.test_ai_analyze_endpoint),
-            ("AI Chat - Bitrix Address Match", self.test_ai_chat_endpoint),
-            ("AI Chat - General", self.test_ai_chat_general),
+            ("Single Brain API - Kibalchich Contact", self.test_brain_ask_kibalchich),
+            ("Single Brain API - Bilybina Cleaning", self.test_brain_ask_bilybina),
         ]
         
         results = {}
