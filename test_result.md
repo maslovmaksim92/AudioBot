@@ -182,3 +182,57 @@ CRITICAL ISSUES IDENTIFIED:
 1. Quick bypass logic not returning expected "Октябрь — даты уборок:" heading
 2. System falling back to OpenAI instead of using quick bypass for address queries
 3. OpenAI API key invalid (401 error) preventing any AI response
+
+=== RUN 2025-10-11: Quick UI Validation Test - Two Specific Queries ===
+
+SPECIFIC TESTS REQUESTED:
+✅ Navigate to /#/ai -> SUCCESS
+✅ UI Loading -> SUCCESS (title, input, send button all visible)
+✅ Query 1: "Когда уборка на билибина 6 в октябре?" -> MESSAGE SENT & RESPONSE RECEIVED
+❌ Query 1 Expected: "Октябрь — даты уборок:" heading -> NOT FOUND (OpenAI 401 error instead)
+✅ Query 2: "Контакты старшего Кибальчича 1" -> MESSAGE SENT & RESPONSE RECEIVED  
+❌ Query 2 Expected: Contact info (phone/email/name) -> NOT FOUND (OpenAI 401 error instead)
+✅ Screenshots captured -> SUCCESS (initial and final screenshots)
+
+DETAILED FINDINGS:
+
+1. UI FUNCTIONALITY STATUS:
+   - ✅ Page navigation to /#/ai working correctly
+   - ✅ AI chat container, title "🤖 AI Помощник VasDom", input field, and send button all visible
+   - ✅ Russian text input handling working properly
+   - ✅ Message sending and user message bubble display working
+   - ✅ Loading indicator (typing dots) appearing and disappearing correctly
+   - ✅ Assistant response bubbles appearing within expected timeframe
+   - ✅ Total messages on page: 39 (chat history loading properly)
+   - ✅ No JavaScript console errors detected
+
+2. QUERY RESPONSE BEHAVIOR:
+   - ❌ BOTH QUERIES FAILED: Both queries returned identical OpenAI API 401 errors
+   - ❌ Query 1 Response: "Извините, произошла ошибка при обработке вашего запроса: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-**********************************************************iL-1..."
+   - ❌ Query 2 Response: Same OpenAI 401 error message
+   - ✅ Error handling working (graceful error message display)
+   - ✅ Both responses are non-empty (graceful error messages)
+
+3. QUICK BYPASS LOGIC STATUS:
+   - ❌ CRITICAL ISSUE: Quick bypass logic NOT functioning for either query
+   - ❌ Expected "Октябрь — даты уборок:" heading NOT found for Bilybina 6 query
+   - ❌ Expected contact information NOT found for Kibalchich 1 query
+   - ❌ System falling back to OpenAI instead of using quick bypass for both address queries
+   - ❌ OpenAI API key invalid (401 error), preventing any AI response
+
+4. ROOT CAUSE ANALYSIS:
+   - The system is not executing the quick bypass logic for either address query
+   - Both queries trigger the same OpenAI fallback behavior
+   - This suggests either:
+     * Bitrix integration completely failing (authentication issues)
+     * Quick bypass logic not properly implemented/triggered for these specific addresses
+     * System defaulting to OpenAI for all queries instead of checking quick bypass conditions
+
+FRONTEND STATUS: ✅ WORKING (UI fully functional)
+QUICK BYPASS FEATURE STATUS: ❌ NOT WORKING (expected behavior not observed for either query)
+
+CRITICAL ISSUES IDENTIFIED:
+1. Quick bypass logic not returning expected "Октябрь — даты уборок:" heading for Bilybina 6 query
+2. Quick bypass logic not returning expected contact information for Kibalchich 1 query  
+3. System falling back to OpenAI instead of using quick bypass for both address queries
+4. OpenAI API key invalid (401 error) preventing any AI response
