@@ -1,10 +1,26 @@
 [
   {
-    "content": "Проверить frontend по предпросмотру URL",
-    "status": "completed"
+    "content": "Создать backend API для финансов (/api/finances/)",
+    "status": "in_progress"
   },
   {
-    "content": "Протестировать основные функции (Dashboard, Works, AI Chat)",
-    "status": "completed"
+    "content": "Создать frontend компонент Finances.jsx с 6 разделами",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить маршрут /finances в App.js",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить 'Финансы' в Sidebar навигацию",
+    "status": "pending"
+  },
+  {
+    "content": "Создать подкомпоненты (CashFlow, ProfitLoss, Balance, и т.д.)",
+    "status": "pending"
+  },
+  {
+    "content": "Протестировать финансовый модуль",
+    "status": "pending"
   }
 ]
