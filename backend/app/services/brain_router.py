@@ -48,7 +48,8 @@ async def try_fast_answer(message: str, db: Any = None, return_debug: bool = Fal
                 return ans
         elif t == "cleaning_month":
             ans = await _ret(await resolve_cleaning_month(message, ent), "cleaning_month")
-            if ans: return ans
+            if ans:
+                return ans
         elif t == "brigade":
             ans = await _ret(await resolve_brigade_by_address(message, ent), "brigade")
             if ans: return ans
