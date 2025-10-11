@@ -3,8 +3,8 @@
     "Health Check": true,
     "Кибальчича 1 vs Кибальчича 5": true,
     "График уборки Кибальчича 1": true,
-    "Кибальчича 3 контакты": true,
-    "Кибальчича 5 график": true,
+    "Кибальчича 3 контакты": false,
+    "Кибальчича 5 график": false,
     "Билибина 6 контакты": true
   },
   "detailed_results": [
@@ -14,352 +14,214 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760211073
+        "ts": 1760211896
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:13.943812"
+      "timestamp": "2025-10-11T19:44:56.521542"
     },
     {
       "endpoint": "/api/brain/ask (Кибальчича 1)",
       "method": "POST",
       "status_code": 200,
       "response": {
-        "success": false,
-        "error": "no_match",
+        "success": true,
+        "answer": "🏠 Адрес: улица Кибальчича 1\nСтарший: Игорь Станиславович  Мохов\nТелефон(ы): +79109194040\nEmail: ooo_greu_16@mail.ru\nСсылка в Bitrix: https://vas-dom.bitrix24.ru/crm/deal/details/4756/",
+        "rule": "elder_contact",
+        "sources": {
+          "addr": "кибальчича 1",
+          "elder": {
+            "cache": "miss",
+            "area": "elder",
+            "cache_key": "elder:к ибальчича 1",
+            "houses": {
+              "cache": "miss",
+              "area": "houses",
+              "cache_key": "addr:к ибальчича 1:1"
+            }
+          },
+          "houses": {
+            "cache": "hit",
+            "area": "houses",
+            "cache_key": "addr:к ибальчича 1:1"
+          }
+        },
         "debug": {
-          "matched_rule": null,
-          "matched_rules": [],
-          "elapsed_ms": 3168,
+          "matched_rule": "elder_contact",
+          "matched_rules": [
+            "elder_contact"
+          ],
+          "elapsed_ms": 7694,
           "trace": [
             {
               "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 3166
-            },
-            {
-              "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "brigade",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "structural_totals",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_basic",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_breakdown",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_mom",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_yoy",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_cat_trends",
-              "status": "miss",
-              "elapsed_ms": 0
+              "status": "hit",
+              "elapsed_ms": 7692
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:17.156776"
+      "timestamp": "2025-10-11T19:45:04.255605"
     },
     {
       "endpoint": "/api/brain/ask (График Кибальчича 1)",
       "method": "POST",
       "status_code": 200,
       "response": {
-        "success": false,
-        "error": "no_match",
+        "success": true,
+        "answer": "🏠 Адрес: улица Кибальчича 1\n📅 Октябрь:\n2025-10-06 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-20 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-13 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-27 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;",
+        "rule": "cleaning_month",
+        "sources": {
+          "addr": "кибальчича 1",
+          "month": "october",
+          "cleaning": {
+            "cache": "hit",
+            "area": "houses",
+            "cache_key": "addr:к ибальчича 1:1"
+          }
+        },
         "debug": {
-          "matched_rule": null,
-          "matched_rules": [],
+          "matched_rule": "cleaning_month",
+          "matched_rules": [
+            "cleaning_month"
+          ],
           "elapsed_ms": 0,
           "trace": [
             {
               "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "brigade",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "structural_totals",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_basic",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_breakdown",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_mom",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_yoy",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_cat_trends",
-              "status": "miss",
+              "status": "hit",
               "elapsed_ms": 0
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:17.203309"
+      "timestamp": "2025-10-11T19:45:04.310263"
     },
     {
       "endpoint": "/api/brain/ask (Кибальчича 3)",
       "method": "POST",
       "status_code": 200,
       "response": {
-        "success": false,
-        "error": "no_match",
+        "success": true,
+        "answer": "🏠 Адрес: улица Кибальчича 1\nСтарший: Игорь Станиславович  Мохов\nТелефон(ы): +79109194040\nEmail: ooo_greu_16@mail.ru\nСсылка в Bitrix: https://vas-dom.bitrix24.ru/crm/deal/details/4756/",
+        "rule": "elder_contact",
+        "sources": {
+          "addr": "кибальчича 3",
+          "elder": {
+            "cache": "miss",
+            "area": "elder",
+            "cache_key": "elder:к ибальчича 3",
+            "houses": {
+              "cache": "miss",
+              "area": "houses",
+              "cache_key": "addr:к ибальчича 3:1"
+            }
+          },
+          "houses": {
+            "cache": "hit",
+            "area": "houses",
+            "cache_key": "addr:к ибальчича 3:1"
+          }
+        },
         "debug": {
-          "matched_rule": null,
-          "matched_rules": [],
-          "elapsed_ms": 0,
+          "matched_rule": "elder_contact",
+          "matched_rules": [
+            "elder_contact"
+          ],
+          "elapsed_ms": 1042,
           "trace": [
             {
               "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "brigade",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "structural_totals",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_basic",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_breakdown",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_mom",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_yoy",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_cat_trends",
-              "status": "miss",
-              "elapsed_ms": 0
+              "status": "hit",
+              "elapsed_ms": 1042
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:17.246279"
+      "timestamp": "2025-10-11T19:45:05.395102"
     },
     {
       "endpoint": "/api/brain/ask (Кибальчича 5)",
       "method": "POST",
       "status_code": 200,
       "response": {
-        "success": false,
-        "error": "no_match",
+        "success": true,
+        "answer": "🏠 Адрес: улица Кибальчича 1\n📅 Октябрь:\n2025-10-06 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-20 — Подметание лестничных площадок и маршей всех этажей, влажная уборка 1 этажа и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-13 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;\n2025-10-27 — Влажная уборка лестничных площадок всех этажей и лифта (при наличии); Профилактическая дезинфекция МОП;",
+        "rule": "cleaning_month",
+        "sources": {
+          "addr": "кибальчича 5",
+          "month": "october",
+          "cleaning": {
+            "cache": "miss",
+            "area": "houses",
+            "cache_key": "addr:к ибальчича 5:1"
+          }
+        },
         "debug": {
-          "matched_rule": null,
-          "matched_rules": [],
+          "matched_rule": "cleaning_month",
+          "matched_rules": [
+            "cleaning_month"
+          ],
           "elapsed_ms": 0,
           "trace": [
             {
               "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "brigade",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "structural_totals",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_basic",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_breakdown",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_mom",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_yoy",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_cat_trends",
-              "status": "miss",
+              "status": "hit",
               "elapsed_ms": 0
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:17.302552"
+      "timestamp": "2025-10-11T19:45:05.435998"
     },
     {
       "endpoint": "/api/brain/ask (Билибина 6)",
       "method": "POST",
       "status_code": 200,
       "response": {
-        "success": false,
-        "error": "no_match",
+        "success": true,
+        "answer": "🏠 Адрес: улица Кибальчича 1\nСтарший: Игорь Станиславович  Мохов\nТелефон(ы): +79109194040\nEmail: ooo_greu_16@mail.ru\nСсылка в Bitrix: https://vas-dom.bitrix24.ru/crm/deal/details/4756/",
+        "rule": "elder_contact",
+        "sources": {
+          "addr": "билибина 6",
+          "elder": {
+            "cache": "miss",
+            "area": "elder",
+            "cache_key": "elder:билибина 6",
+            "houses": {
+              "cache": "miss",
+              "area": "houses",
+              "cache_key": "addr:билибина 6:1"
+            }
+          },
+          "houses": {
+            "cache": "hit",
+            "area": "houses",
+            "cache_key": "addr:билибина 6:1"
+          }
+        },
         "debug": {
-          "matched_rule": null,
-          "matched_rules": [],
-          "elapsed_ms": 0,
+          "matched_rule": "elder_contact",
+          "matched_rules": [
+            "elder_contact"
+          ],
+          "elapsed_ms": 1001,
           "trace": [
             {
               "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "elder_contact",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "cleaning_month",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "brigade",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "structural_totals",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_basic",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_breakdown",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_mom",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_yoy",
-              "status": "miss",
-              "elapsed_ms": 0
-            },
-            {
-              "rule": "finance_cat_trends",
-              "status": "miss",
-              "elapsed_ms": 0
+              "status": "hit",
+              "elapsed_ms": 1001
             }
           ]
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T19:31:17.347105"
+      "timestamp": "2025-10-11T19:45:06.495102"
     }
   ],
-  "test_time": "2025-10-11T19:31:17.347432",
+  "test_time": "2025-10-11T19:45:06.495483",
   "backend_url": "https://smarthouse-ai.preview.emergentagent.com"
 }
