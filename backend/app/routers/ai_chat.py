@@ -240,7 +240,7 @@ async def handle_create_ai_task(
         if scheduled_at:
             try:
                 scheduled_datetime = datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 scheduled_datetime = None
         
         # Создаем задачу
