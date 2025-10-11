@@ -362,6 +362,29 @@ def detect_intent(message: str) -> Optional[Dict[str, Any]]:
     if finance_basic_score >= 1 and not any(k in ['finance_yoy', 'finance_mom', 'finance_cat_trends', 'finance_breakdown'] for k in intent_scores.keys()):
         intent_scores['finance_basic'] = 5
     
+    # 10. Контакты подрядчиков/УК
+    contractor_keywords = ["подрядчик", "управляющ", "компани", "ук", "контакты ук"]
+    contractor_score = 0
+    for kw in contractor_keywords:
+        if kw in tl:
+            contractor_score += 2
+    if contractor_score >= 2:
+        intent_scores['contractor_contacts'] = 6
+    
+    # 11. Задачи/жалобы по адресу
+    if any(k in tl for k in ["задач", "жалоб", "заявк", "проблем"]):
+        tasks_score = 4
+        if address:
+            tasks_score += 2
+        if any(k in tl for k in ["по адресу", "на доме", "объект"]):
+            tasks_score += 1
+        if tasks_score >= 4:
+            intent_scores['tasks_by_address'] = tasks_score
+    
+    # 12. Задачи по бригаде
+    if any(k in tl for k in ["задач", "жалоб", "заявк"]) and any(k in tl for k in ["бригад", "у бригады"]):
+        intent_scores['tasks_by_brigade'] = 7
+    
     # Выбираем intent с наивысшим score
     if not intent_scores:
         return None
