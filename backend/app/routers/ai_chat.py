@@ -346,9 +346,31 @@ async def send_message(
         # Try unified Single Brain fast answers first
         try:
             from backend.app.services.brain_router import try_fast_answer
-            ans = await try_fast_answer(request.message, db=db)
+            ans = await try_fast_answer(request.message, db=db, return_debug=bool(request.debug))
             if ans and ans.get('success'):
-                reply = ans.get('answer') or ''
+                reply = ans.get('answer') or ans.get('response') or ''
+                # Вклеим краткий debug-хинт в ответ для админов, если флаг включён
+                if request.debug and isinstance(ans, dict) and ans.get('debug'):
+                    dbg = ans['debug']
+                    hint = []
+                    if dbg.get('matched_rule'):
+                        hint.append(f"rule: {dbg['matched_rule']}")
+                    if 'elapsed_ms' in dbg:
+                        hint.append(f"{dbg['elapsed_ms']}ms")
+                    # базовый источник: cache hit/miss
+                    src = []
+                    src_meta = ans.get('sources') or {}
+                    root_cache = src_meta.get('cache') or {}
+                    if isinstance(root_cache, dict) and root_cache.get('cache'):
+                        src.append(root_cache['cache'])
+                    for k in ('houses','elder','cleaning','finance'):
+                        v = src_meta.get(k) or {}
+                        if isinstance(v, dict) and v.get('cache'):
+                            src.append(f"{k}:{v['cache']}")
+                    if src:
+                        hint.append(f"src: {', '.join(src)}")
+                    if hint:
+                        reply = reply + "\n\n" + " · ".join(hint)
                 assistant_message = ChatHistory(
                     id=str(uuid.uuid4()),
                     user_id=request.user_id,
