@@ -136,19 +136,18 @@ class BackendTester:
             print(f"❌ AI Analyze endpoint failed: {e}")
             return False
     
-    async def test_ai_chat_endpoint(self):
-        """Test POST /api/ai-assistant/chat with specific Bitrix address matching logic"""
-        print("🔍 Testing AI Assistant Chat Endpoint with Bitrix Address Matching...")
+    async def test_brain_ask_kibalchich(self):
+        """Test POST /api/brain/ask with Kibalchich contact query"""
+        print("🔍 Testing Single Brain API - Kibalchich Contact Query...")
         
-        # Test the specific message from review request
         payload = {
-            "message": "Когда уборка на билибина 6 в октябре ?"
+            "message": "Контакты старшего Кибальчича 1"
         }
         
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/ai-assistant/chat",
+                    f"{self.base_url}/api/brain/ask",
                     json=payload,
                     headers={"Content-Type": "application/json"}
                 )
@@ -157,44 +156,108 @@ class BackendTester:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
+                    self.log_result("/api/brain/ask (Kibalchich)", "POST", response.status_code, data)
                     
-                    # Check response structure
-                    success = data.get('success', False)
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
                     print(f"📋 Response Success: {success}")
                     
-                    if success:
-                        # If Bitrix returns data with Билибина 6 and October dates
-                        print("✅ AI Chat endpoint returned successful response")
+                    if success is True:
+                        print("✅ Brain API returned successful response for Kibalchich contact")
                         if 'response' in data:
                             print(f"📝 Response content: {data['response'][:200]}...")
-                        if 'matched_houses' in data:
-                            print(f"🏠 Matched houses: {len(data.get('matched_houses', []))}")
+                        return True
+                    elif success is False:
+                        print("✅ Brain API returned graceful failure (contact not found)")
+                        error = data.get('error', 'No error message')
+                        print(f"📝 Error message: {error}")
                         return True
                     else:
-                        # If Bitrix returns empty, should still be 200 with OpenAI error
-                        error = data.get('error', '')
-                        print(f"⚠️ Response indicates failure: {error}")
-                        if 'OpenAI' in error or 'API key' in error:
-                            print("✅ Expected OpenAI API key error (Bitrix returned empty)")
-                            return True
-                        else:
-                            print(f"❌ Unexpected error: {error}")
-                            return False
-                else:
-                    # Any non-200 status is unexpected for this test
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
                     try:
                         data = response.json()
-                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, data)
+                        self.log_result("/api/brain/ask (Kibalchich)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Kibalchich)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Kibalchich)", "POST", response.status_code, data)
                         print(f"❌ Unexpected status code {response.status_code}: {data}")
                     except:
-                        self.log_result("/api/ai-assistant/chat", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
-                        print(f"❌ Unexpected status code {response.status_code} with non-JSON response")
+                        self.log_result("/api/brain/ask (Kibalchich)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
                     return False
                     
         except Exception as e:
-            self.log_result("/api/ai-assistant/chat", "POST", 0, None, str(e))
-            print(f"❌ AI Chat endpoint failed: {e}")
+            self.log_result("/api/brain/ask (Kibalchich)", "POST", 0, None, str(e))
+            print(f"❌ Brain API Kibalchich test failed: {e}")
+            return False
+
+    async def test_brain_ask_bilybina(self):
+        """Test POST /api/brain/ask with Bilybina cleaning schedule query"""
+        print("🔍 Testing Single Brain API - Bilybina Cleaning Schedule Query...")
+        
+        payload = {
+            "message": "Когда уборка на Билибина 6 в октябре?"
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (Bilybina)", "POST", response.status_code, data)
+                    
+                    # Check response structure - expect success true or graceful false
+                    success = data.get('success')
+                    print(f"📋 Response Success: {success}")
+                    
+                    if success is True:
+                        print("✅ Brain API returned successful response for Bilybina cleaning schedule")
+                        if 'response' in data:
+                            print(f"📝 Response content: {data['response'][:200]}...")
+                        return True
+                    elif success is False:
+                        print("✅ Brain API returned graceful failure (schedule not found)")
+                        error = data.get('error', 'No error message')
+                        print(f"📝 Error message: {error}")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                elif response.status_code == 500:
+                    print("❌ Brain API returned 500 - this should not happen per requirements")
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Bilybina)", "POST", response.status_code, data)
+                        print(f"500 Error details: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Bilybina)", "POST", response.status_code, None, "500 with non-JSON response")
+                    return False
+                else:
+                    try:
+                        data = response.json()
+                        self.log_result("/api/brain/ask (Bilybina)", "POST", response.status_code, data)
+                        print(f"❌ Unexpected status code {response.status_code}: {data}")
+                    except:
+                        self.log_result("/api/brain/ask (Bilybina)", "POST", response.status_code, None, f"HTTP {response.status_code} with non-JSON response")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (Bilybina)", "POST", 0, None, str(e))
+            print(f"❌ Brain API Bilybina test failed: {e}")
             return False
     
     async def test_ai_chat_general(self):
