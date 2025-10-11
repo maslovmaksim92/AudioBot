@@ -280,6 +280,80 @@ class AgentExecutor:
                 'message': str(e)
             }
     
+    async def _check_conditions(self, conditions: List[Dict[str, Any]], agent: Dict[str, Any]) -> bool:
+        """
+        Проверить условия выполнения агента
+        
+        Args:
+            conditions: Список условий [{'type': 'time_range', 'config': {...}}, ...]
+            agent: Данные агента
+            
+        Returns:
+            True если все условия выполнены
+        """
+        try:
+            for condition in conditions:
+                condition_type = condition.get('type')
+                condition_config = condition.get('config', {})
+                
+                if condition_type == 'time_range':
+                    # Проверка временного диапазона
+                    start_time = condition_config.get('start', '00:00')
+                    end_time = condition_config.get('end', '23:59')
+                    
+                    now = datetime.now(timezone.utc)
+                    current_time = now.strftime('%H:%M')
+                    
+                    if not (start_time <= current_time <= end_time):
+                        logger.info(f"⏰ Time condition not met: {current_time} not in {start_time}-{end_time}")
+                        return False
+                
+                elif condition_type == 'day_of_week':
+                    # Проверка дня недели
+                    allowed_days = condition_config.get('days', [])  # [1,2,3,4,5] для Пн-Пт
+                    
+                    now = datetime.now(timezone.utc)
+                    current_day = now.weekday() + 1  # 1=Monday, 7=Sunday
+                    
+                    if allowed_days and current_day not in allowed_days:
+                        logger.info(f"📅 Day condition not met: {current_day} not in {allowed_days}")
+                        return False
+                
+                elif condition_type == 'weather':
+                    # Проверка погоды (можно интегрировать с API погоды)
+                    # Пока заглушка
+                    pass
+                
+                elif condition_type == 'database_check':
+                    # Проверка данных в БД
+                    query = condition_config.get('query')
+                    expected_count = condition_config.get('count', 0)
+                    
+                    if query:
+                        import asyncpg
+                        db_url = os.environ.get('DATABASE_URL', '').replace('postgresql+asyncpg://', 'postgresql://')
+                        conn = await asyncpg.connect(db_url)
+                        
+                        try:
+                            count = await conn.fetchval(query)
+                            await conn.close()
+                            
+                            if count < expected_count:
+                                logger.info(f"🗄️ Database condition not met: {count} < {expected_count}")
+                                return False
+                        except:
+                            await conn.close()
+                            return False
+                
+                else:
+                    logger.warning(f"⚠️ Unknown condition type: {condition_type}")
+            
+            return True
+        
+        except Exception as e:
+            logger.error(f"❌ Error checking conditions: {e}")
+            return False
+    
     async def _execute_ai_call(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Выполнить AI звонок
