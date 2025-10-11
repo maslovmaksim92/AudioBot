@@ -2656,9 +2656,14 @@ class BackendTester:
         return results
 
 async def main():
-    """Main test runner"""
+    """Main test runner - КРИТИЧЕСКИЕ ТЕСТЫ ТОЧНОСТИ АДРЕСОВ"""
     tester = BackendTester()
-    results = await tester.run_address_accuracy_tests()
+    
+    # Запуск критических тестов точности адресов
+    print("🔥 ЗАПУСК КРИТИЧЕСКИХ ТЕСТОВ ТОЧНОСТИ АДРЕСОВ")
+    print("=" * 80)
+    
+    results = await tester.run_all_tests()
     
     # Save detailed results
     with open('/app/backend_test_results.json', 'w', encoding='utf-8') as f:
