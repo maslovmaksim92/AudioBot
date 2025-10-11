@@ -70,7 +70,7 @@ async def compute_category_trends(db: AsyncSession, days: int = 30, side: str = 
                    SUM(CASE WHEN type='income' THEN amount ELSE 0 END) AS inc,
                    SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) AS exp
             FROM financial_transactions
-            WHERE date >= (CURRENT_DATE - INTERVAL :days || ' day')
+            WHERE date >= (CURRENT_DATE - INTERVAL '%s days')
             GROUP BY category
         ),
         previous AS (
@@ -78,8 +78,8 @@ async def compute_category_trends(db: AsyncSession, days: int = 30, side: str = 
                    SUM(CASE WHEN type='income' THEN amount ELSE 0 END) AS inc,
                    SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) AS exp
             FROM financial_transactions
-            WHERE date < (CURRENT_DATE - INTERVAL :days || ' day')
-              AND date >= (CURRENT_DATE - INTERVAL (2 * :days) || ' day')
+            WHERE date < (CURRENT_DATE - INTERVAL '%s days')
+              AND date >= (CURRENT_DATE - INTERVAL '%s days')
             GROUP BY category
         )
         SELECT 
@@ -90,9 +90,9 @@ async def compute_category_trends(db: AsyncSession, days: int = 30, side: str = 
             COALESCE(p.exp, 0) AS exp_prev
         FROM recent r
         FULL OUTER JOIN previous p ON r.category = p.category
-        """
+        """ % (days, days, 2 * days)
     )
-    res = await db.execute(q, {"days": days})
+    res = await db.execute(q)
     rows = res.fetchall() or []
     items: List[Tuple[str, float, float]] = []
     for r in rows:
