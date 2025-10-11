@@ -24,13 +24,25 @@ function Finances() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-gray-900">
-            Финансовый анализ
-          </h1>
-          <p className="text-lg text-gray-600">
-            Минимизируйте ручную работу с отчетами и получайте данные о финансовом состоянии компании в один клик
-          </p>
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold text-gray-900">
+              Финансовый анализ
+            </h1>
+            <p className="text-lg text-gray-600">
+              Минимизируйте ручную работу с отчетами и получайте данные о финансовом состоянии компании в один клик
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить транзакцию
+            </Button>
+            <Button variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Импорт CSV
+            </Button>
+          </div>
         </div>
 
         {/* Main Tabs */}
