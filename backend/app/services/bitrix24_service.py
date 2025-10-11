@@ -674,9 +674,9 @@ class Bitrix24Service:
                             # Быстрая проверка адреса до дорогих запросов
                             if address:
                                 raw_addr = (d.get('UF_CRM_1669561599956') or d.get('TITLE') or '')
-                                # Используем умное сравнение адресов
+                                # Используем умное сравнение адресов - требуем точное совпадение (100 баллов)
                                 match_score = address_match_score(address, raw_addr)
-                                if match_score == 0:
+                                if match_score < 100:
                                     continue
                             # Только при потенциальном совпадении грузим компанию и строим DTO
                             company_title = await self._company_title(client, d.get('COMPANY_ID'))
