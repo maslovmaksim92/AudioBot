@@ -3,7 +3,7 @@
     "Health Check": true,
     "Stage 6 - Finance Categories (Debug)": true,
     "Stage 6 - YoY Dynamics (Debug)": true,
-    "Stage 6 - Top Decline Categories (Debug)": false,
+    "Stage 6 - Top Decline Categories (Debug)": true,
     "Stage 6 - Address NER (Debug)": true
   },
   "detailed_results": [
@@ -13,10 +13,10 @@
       "status_code": 200,
       "response": {
         "ok": true,
-        "ts": 1760203235
+        "ts": 1760203296
       },
       "error": null,
-      "timestamp": "2025-10-11T17:20:35.220256"
+      "timestamp": "2025-10-11T17:21:36.891726"
     },
     {
       "endpoint": "/api/brain/ask (Finance Categories)",
@@ -30,7 +30,7 @@
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T17:20:35.260826"
+      "timestamp": "2025-10-11T17:21:36.930367"
     },
     {
       "endpoint": "/api/brain/ask (YoY Dynamics)",
@@ -53,19 +53,31 @@
         "rule": "finance_yoy",
         "debug": {
           "matched_rule": "finance_yoy",
-          "elapsed_ms": 844
+          "elapsed_ms": 843
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T17:20:36.287033"
+      "timestamp": "2025-10-11T17:21:37.954676"
     },
     {
       "endpoint": "/api/brain/ask (Top Decline)",
       "method": "POST",
-      "status_code": 500,
-      "response": null,
-      "error": "500 with non-JSON response",
-      "timestamp": "2025-10-11T17:20:37.322453"
+      "status_code": 200,
+      "response": {
+        "success": true,
+        "response": "Топ изменения категорий за квартал:\n",
+        "data": {
+          "top_growth": [],
+          "top_decline": []
+        },
+        "rule": "finance_cat_trends",
+        "debug": {
+          "matched_rule": "finance_cat_trends",
+          "elapsed_ms": 702
+        }
+      },
+      "error": null,
+      "timestamp": "2025-10-11T17:21:38.839204"
     },
     {
       "endpoint": "/api/brain/ask (Address NER)",
@@ -79,9 +91,9 @@
         }
       },
       "error": null,
-      "timestamp": "2025-10-11T17:20:37.369482"
+      "timestamp": "2025-10-11T17:21:38.885486"
     }
   ],
-  "test_time": "2025-10-11T17:20:37.369850",
+  "test_time": "2025-10-11T17:21:38.885853",
   "backend_url": "https://smart-agent-system.preview.emergentagent.com"
 }
