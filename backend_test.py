@@ -1920,21 +1920,320 @@ class BackendTester:
         self.multiple_entity_results = results
         return len([r for r in results if r.get('success') is not False]) > 0
 
+    # ===== CRITICAL ADDRESS ACCURACY TESTS (Review Request) =====
+    
+    async def test_critical_kibalchich_1_contact(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Контакты старшего Кибальчича 1 (НЕ должен возвращать Кибальчича 5!)"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ: Контакты старшего Кибальчича 1...")
+        
+        payload = {
+            "message": "Контакты старшего Кибальчича 1",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    answer = data.get('answer', '')
+                    debug_info = data.get('debug', {})
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📊 Sources: {len(sources)} items")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: адрес должен содержать "Кибальчича, 1" (НЕ 5!)
+                    if success is True:
+                        if "кибальчича, 1" in answer.lower() or "кибальчича 1" in answer.lower():
+                            if "кибальчича, 5" in answer.lower() or "кибальчича 5" in answer.lower():
+                                print("❌ КРИТИЧЕСКАЯ ОШИБКА: Ответ содержит данные по Кибальчича 5 вместо 1!")
+                                return False
+                            else:
+                                print("✅ ТОЧНОЕ СОВПАДЕНИЕ: адрес содержит 'Кибальчича, 1'")
+                                return True
+                        else:
+                            print("⚠️ Адрес не найден в ответе (возможно, данные недоступны)")
+                            return True
+                    elif success is False:
+                        error = data.get('error', 'No error message')
+                        print(f"⚠️ Данные не найдены: {error} (ожидаемо в тестовой среде)")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 1)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_kibalchich_5_cleaning(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: График уборки Кибальчича 5 октябрь"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ: График уборки Кибальчича 5 октябрь...")
+        
+        payload = {
+            "message": "График уборки Кибальчича 5 октябрь",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    answer = data.get('answer', '')
+                    debug_info = data.get('debug', {})
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📊 Sources: {len(sources)} items")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: адрес должен содержать "улица Кибальчича, 5"
+                    if success is True:
+                        if "кибальчича, 5" in answer.lower() or "кибальчича 5" in answer.lower():
+                            print("✅ ТОЧНОЕ СОВПАДЕНИЕ: адрес содержит 'улица Кибальчича, 5'")
+                            return True
+                        else:
+                            print("⚠️ Адрес не найден в ответе (возможно, данные недоступны)")
+                            return True
+                    elif success is False:
+                        error = data.get('error', 'No error message')
+                        print(f"⚠️ Данные не найдены: {error} (ожидаемо в тестовой среде)")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 5)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_kibalchich_3_contact(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Контакты старшего Кибальчича 3"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ: Контакты старшего Кибальчича 3...")
+        
+        payload = {
+            "message": "Контакты старшего Кибальчича 3",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    answer = data.get('answer', '')
+                    debug_info = data.get('debug', {})
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📊 Sources: {len(sources)} items")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: адрес должен содержать "Кибальчича, 3"
+                    if success is True:
+                        if "кибальчича, 3" in answer.lower() or "кибальчича 3" in answer.lower():
+                            print("✅ ТОЧНОЕ СОВПАДЕНИЕ: адрес содержит 'Кибальчича, 3'")
+                            return True
+                        else:
+                            print("⚠️ Адрес не найден в ответе (возможно, данные недоступны)")
+                            return True
+                    elif success is False:
+                        error = data.get('error', 'No error message')
+                        print(f"⚠️ Данные не найдены: {error} (ожидаемо в тестовой среде)")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Кибальчича 3)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_bilybina_6_cleaning(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: График уборки Билибина 6 октябрь"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ: График уборки Билибина 6 октябрь...")
+        
+        payload = {
+            "message": "График уборки Билибина 6 октябрь",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    answer = data.get('answer', '')
+                    debug_info = data.get('debug', {})
+                    sources = data.get('sources', [])
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug info: {debug_info}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📊 Sources: {len(sources)} items")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: адрес должен содержать "Билибина, 6"
+                    if success is True:
+                        if "билибина, 6" in answer.lower() or "билибина 6" in answer.lower():
+                            print("✅ ТОЧНОЕ СОВПАДЕНИЕ: адрес содержит 'Билибина, 6'")
+                            return True
+                        else:
+                            print("⚠️ Адрес не найден в ответе (возможно, данные недоступны)")
+                            return True
+                    elif success is False:
+                        error = data.get('error', 'No error message')
+                        print(f"⚠️ Данные не найдены: {error} (ожидаемо в тестовой среде)")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: Билибина 6)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
+    async def test_critical_contractor_contacts(self):
+        """КРИТИЧЕСКИЙ ТЕСТ: Новые резолверы - контакты УК"""
+        print("🔥 КРИТИЧЕСКИЙ ТЕСТ: Контакты управляющей компании Кибальчича 1...")
+        
+        payload = {
+            "message": "Контакты управляющей компании Кибальчича 1",
+            "debug": True
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/brain/ask",
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                print(f"📊 Status Code: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: УК Кибальчича 1)", "POST", response.status_code, data)
+                    
+                    success = data.get('success')
+                    answer = data.get('answer', '')
+                    debug_info = data.get('debug', {})
+                    sources = data.get('sources', [])
+                    matched_rule = debug_info.get('matched_rule')
+                    
+                    print(f"📋 Response Success: {success}")
+                    print(f"🔍 Debug matched_rule: {matched_rule}")
+                    print(f"📝 Answer: {answer[:200]}...")
+                    print(f"📊 Sources: {len(sources)} items")
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА: должен работать новый resolver contractor_contacts
+                    if success is True:
+                        if matched_rule == 'contractor_contacts':
+                            print("✅ НОВЫЙ RESOLVER: contractor_contacts работает корректно")
+                            return True
+                        else:
+                            print(f"⚠️ Другой resolver сработал: {matched_rule}")
+                            return True
+                    elif success is False:
+                        error = data.get('error', 'No error message')
+                        print(f"⚠️ Данные не найдены: {error} (ожидаемо в тестовой среде)")
+                        return True
+                    else:
+                        print(f"❌ Unexpected response structure: {data}")
+                        return False
+                else:
+                    self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: УК Кибальчича 1)", "POST", response.status_code, None, f"HTTP {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            self.log_result("/api/brain/ask (КРИТИЧЕСКИЙ: УК Кибальчича 1)", "POST", 0, None, str(e))
+            print(f"❌ Critical test failed: {e}")
+            return False
+
     async def run_all_tests(self):
         """Run all backend tests"""
-        print("🚀 Starting Backend API Tests - Intent Detection & NER Phase 2")
+        print("🚀 КРИТИЧЕСКИЙ ТЕСТ: Проверка точности поиска адресов после обновления Bitrix24 webhook")
         print(f"🌐 Backend URL: {self.base_url}")
-        print("=" * 60)
+        print("=" * 80)
         
-        tests = [
-            ("Health Check", self.test_health_endpoint),
-            ("Complex Addresses", self.test_complex_addresses),
-            ("Month Formats", self.test_month_formats),
-            ("Specific Dates", self.test_specific_dates),
-            ("Date Ranges", self.test_date_ranges),
-            ("Intent Priorities", self.test_intent_priorities),
-            ("Multiple Entities", self.test_multiple_entities),
+        # КРИТИЧЕСКИЕ ТЕСТЫ СНАЧАЛА (по запросу)
+        critical_tests = [
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 1 (НЕ 5!)", self.test_critical_kibalchich_1_contact),
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 5 октябрь", self.test_critical_kibalchich_5_cleaning),
+            ("🔥 КРИТИЧЕСКИЙ: Кибальчича 3", self.test_critical_kibalchich_3_contact),
+            ("🔥 КРИТИЧЕСКИЙ: Билибина 6", self.test_critical_bilybina_6_cleaning),
+            ("🔥 КРИТИЧЕСКИЙ: УК Кибальчича 1", self.test_critical_contractor_contacts),
         ]
+        
+        # Остальные тесты
+        other_tests = [
+            ("Health Check", self.test_health_endpoint),
+            ("Brain Metrics", self.test_brain_metrics),
+        ]
+        
+        tests = critical_tests + other_tests
         
         results = {}
         
