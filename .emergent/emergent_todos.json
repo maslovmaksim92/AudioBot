@@ -1,6 +1,26 @@
 [
   {
-    "content": "Протестировать финансовый модуль",
-    "status": "completed"
+    "content": "Создать модели БД для финансовых транзакций",
+    "status": "in_progress"
+  },
+  {
+    "content": "Обновить API для работы с реальными данными из БД",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить POST/PUT/DELETE endpoints для управления данными",
+    "status": "pending"
+  },
+  {
+    "content": "Создать UI формы для добавления транзакций",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить импорт из Excel/CSV",
+    "status": "pending"
+  },
+  {
+    "content": "Протестировать ввод реальных данных",
+    "status": "pending"
   }
 ]
