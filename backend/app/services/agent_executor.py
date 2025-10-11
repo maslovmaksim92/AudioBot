@@ -83,6 +83,27 @@ class AgentExecutor:
                     if not result['success']:
                         success = False
                 
+                elif action_type == 'ai_chat':
+                    result = await self._execute_ai_chat(action_config)
+                    results.append({
+                        'action': action.get('name'),
+                        'type': action_type,
+                        'success': result['success'],
+                        'message': result.get('message'),
+                        'response': result.get('response')
+                    })
+                    if not result['success']:
+                        success = False
+                
+                elif action_type == 'knowledge_search':
+                    result = await self._execute_knowledge_search(action_config)
+                    results.append({
+                        'action': action.get('name'),
+                        'type': action_type,
+                        'success': result['success'],
+                        'results_count': result.get('results_count')
+                    })
+                
                 elif action_type == 'log_create':
                     result = await self._execute_log_create(agent, action_config)
                     results.append({
