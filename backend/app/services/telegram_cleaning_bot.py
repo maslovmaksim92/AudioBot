@@ -180,26 +180,31 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # Определяем бригаду пользователя
         # TODO: В продакшене получать из БД по telegram_user_id
         session.brigade_id = "brigade_1"  # Бригада 1
+        brigade_name = "1 бригада"  # Название бригады для фильтрации
         
-        # Получаем дома на 13.10.2025 из Bitrix24 через API
+        # Получаем дома бригады 1 на 13.10.2025 из Bitrix24 через API
         from datetime import datetime
         target_date = "2025-10-13"
         
         try:
             from app.services.bitrix24_service import bitrix24_service
             
-            # Загружаем дома на 13.10.2025
+            # Загружаем ВСЕ дома на 13.10.2025
             data = await bitrix24_service.list_houses(
                 cleaning_date=target_date,
-                limit=20
+                limit=50  # Увеличиваем лимит, чтобы получить все дома
             )
             
             houses_raw = data.get('houses', [])
             logger.info(f"[telegram_cleaning_bot] Loaded {len(houses_raw)} houses for {target_date}")
             
-            if houses_raw:
+            # Фильтруем по бригаде 1
+            brigade_houses = [h for h in houses_raw if h.get('brigade_name') == brigade_name]
+            logger.info(f"[telegram_cleaning_bot] Filtered to {len(brigade_houses)} houses for {brigade_name}")
+            
+            if brigade_houses:
                 houses = []
-                for h in houses_raw:
+                for h in brigade_houses:
                     # Берем ID из Bitrix (может быть строкой типа "13180")
                     house_id = str(h.get('id', ''))
                     address = h.get('address') or h.get('title', 'Адрес не указан')
@@ -211,15 +216,13 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
                         "floors": h.get('floors', 5)
                     })
                 
-                logger.info(f"[telegram_cleaning_bot] Prepared {len(houses)} houses for bot")
+                logger.info(f"[telegram_cleaning_bot] ✅ Prepared {len(houses)} houses for brigade 1 on {target_date}")
             else:
-                # Если нет домов на 13.10, показываем любые дома для демо
-                logger.warning(f"[telegram_cleaning_bot] No houses found for {target_date}, loading random houses")
-                data = await bitrix24_service.list_houses(limit=10)
-                houses_raw = data.get('houses', [])
+                # Если нет домов для бригады 1 на 13.10, показываем все дома этой даты
+                logger.warning(f"[telegram_cleaning_bot] No houses for {brigade_name} on {target_date}, showing all houses")
                 
                 houses = []
-                for h in houses_raw[:5]:
+                for h in houses_raw[:10]:
                     houses.append({
                         "id": str(h.get('id', '')),
                         "address": h.get('address') or h.get('title', 'Адрес не указан'),
@@ -229,11 +232,10 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         
         except Exception as e:
             logger.error(f"[telegram_cleaning_bot] Failed to load houses from Bitrix24: {e}")
-            # Fallback к моковым данным
+            # Fallback к реальным данным бригады 1
             houses = [
-                {"id": "13180", "address": "улица Баррикад, 10, Калуга, Калужская область, Россия, 248030", "entrances": 1, "floors": 5},
-                {"id": "13162", "address": "улица Чичерина, 20, Калуга, Калужская область, Россия, 248001", "entrances": 3, "floors": 9},
-                {"id": "13100", "address": "улица Чичерина, 14, калуга 248010", "entrances": 2, "floors": 5}
+                {"id": "13084", "address": "Малоярославецкая улица, 6, Калуга, Калужская область, Россия", "entrances": 1, "floors": 5},
+                {"id": "8674", "address": "улица Кибальчича 3, 248012, Калуга, Калужская область, Россия", "entrances": 2, "floors": 5}
             ]
         
         if not houses:
