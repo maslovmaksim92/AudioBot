@@ -1,6 +1,10 @@
 [
   {
     "content": "Проанализировать баг с определением месяца (November вместо October) в Brain",
+    "status": "in_progress"
+  },
+  {
+    "content": "Добавить продвинутое логирование в Brain resolvers для отладки",
     "status": "pending"
   },
   {
@@ -12,23 +16,7 @@
     "status": "pending"
   },
   {
-    "content": "Реализовать Works модуль: фото через Telegram бот с вебхуком в Bitrix24",
-    "status": "pending"
-  },
-  {
-    "content": "Добавить кнопку 'Акт подписан' и статистику подписанных актов",
-    "status": "pending"
-  },
-  {
-    "content": "Реализовать AI Chat синхронизацию с Telegram ботом",
-    "status": "pending"
-  },
-  {
-    "content": "Улучшить Employee модуль: календарь бригад + KPI по каждому сотруднику",
-    "status": "pending"
-  },
-  {
-    "content": "Реализовать Meetings с realtime транскрибацией",
+    "content": "Протестировать все исправления багов",
     "status": "pending"
   }
 ]
