@@ -29,14 +29,30 @@ async def telegram_webhook(request: Request):
             chat_id = message.get('chat', {}).get('id')
             text = message.get('text', '')
             from_user = message.get('from', {})
+            user_id = from_user.get('id')
             
             logger.info(f"💬 Message from {from_user.get('username', 'unknown')}: {text}")
             
+            # Обработка фото (для бригад)
+            if 'photo' in message:
+                await handle_telegram_photo(chat_id, user_id, message['photo'], from_user)
             # Обработка команд
-            if text.startswith('/'):
-                await handle_telegram_command(chat_id, text, from_user)
+            elif text.startswith('/'):
+                await handle_telegram_command(chat_id, user_id, text, from_user)
             else:
                 await handle_telegram_message(chat_id, text, from_user)
+        
+        # Обработка callback query (inline buttons)
+        elif 'callback_query' in data:
+            callback = data['callback_query']
+            chat_id = callback.get('message', {}).get('chat', {}).get('id')
+            user_id = callback.get('from', {}).get('id')
+            callback_data = callback.get('data', '')
+            callback_query_id = callback.get('id')
+            
+            logger.info(f"🔘 Callback from user {user_id}: {callback_data}")
+            
+            await handle_telegram_callback(chat_id, user_id, callback_data, callback_query_id)
         
         return {"ok": True}
     
