@@ -181,17 +181,47 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # TODO: В продакшене получать из БД по telegram_user_id
         session.brigade_id = "brigade_1"  # Бригада 1
         
-        # Получаем дома на завтра (13.10.2025)
-        # TODO: В продакшене получать из БД/Bitrix24 по графику бригады
+        # Получаем дома на сегодня для бригады
+        # Пока brigade_number в БД не заполнен, используем реальные адреса для демо
         from datetime import datetime, timedelta
-        tomorrow = datetime.now().date() + timedelta(days=1)  # 13.10.2025
+        today = datetime.now().date()
         
-        # Моковые данные для Бригады 1 на 13.10.2025
-        houses = [
-            {"id": "house_1", "address": "ул. Ленина, д. 10, подъезд 1"},
-            {"id": "house_2", "address": "ул. Пушкина, д. 25, подъезды 1-3"},
-            {"id": "house_3", "address": "пр. Мира, д. 5, подъезды 1-4"}
-        ]
+        # Получаем реальные дома из БД для демонстрации
+        try:
+            from app.config.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                from sqlalchemy import select, text
+                from app.models.house import House
+                
+                # Получаем 5 случайных домов из БД для демо-теста
+                result = await db.execute(
+                    text("""
+                        SELECT id, address, entrances_count, floors_count 
+                        FROM houses 
+                        ORDER BY RANDOM() 
+                        LIMIT 5
+                    """)
+                )
+                houses_from_db = result.fetchall()
+                
+                houses = []
+                for h in houses_from_db:
+                    houses.append({
+                        "id": h[0],
+                        "address": h[1],
+                        "entrances": h[2] or 1,
+                        "floors": h[3] or 5
+                    })
+                
+                logger.info(f"[telegram_cleaning_bot] Loaded {len(houses)} houses from DB")
+        except Exception as e:
+            logger.error(f"[telegram_cleaning_bot] Failed to load houses from DB: {e}")
+            # Fallback к моковым данным
+            houses = [
+                {"id": "house_demo_1", "address": "улица Ленина 42, 248016 Калуга Калужская область, Россия", "entrances": 1, "floors": 5},
+                {"id": "house_demo_2", "address": "Площадь Победы 1, 248023 Калуга Калужская область, Россия", "entrances": 3, "floors": 9},
+                {"id": "house_demo_3", "address": "Хрустальная улица 60, 248028 Калуга Калужская область, Россия", "entrances": 4, "floors": 5}
+            ]
         
         if not houses:
             await send_message(
