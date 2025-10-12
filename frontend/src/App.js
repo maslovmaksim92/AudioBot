@@ -46,17 +46,13 @@ function App() {
           <Route path="/employees" element={<Employees />} />
           <Route path="/sales" element={<SalesFunnel />} />
           <Route path="/ai" element={<AIChat />} />
-          <Route path="/ai-tasks" element={<AITasks />} />
           <Route path="/meetings" element={<Meetings />} />
-          <Route path="/live" element={<LiveConversation />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/constructor" element={<FunctionStudio />} />
           <Route path="/training" element={<Training />} />
-          <Route path="/logistics" element={<Logistics />} />
           <Route path="/logs" element={<Logs />} />
           <Route path="/finances" element={<Finances />} />
-          <Route path="/agents" element={<AgentBuilder />} />
-          <Route path="/agents/dashboard" element={<AgentDashboard />} />
+          <Route path="/agents" element={<Agents />} />
         </Routes>
       </Layout>
 
