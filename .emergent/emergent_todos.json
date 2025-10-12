@@ -1,34 +1,30 @@
 [
   {
-    "content": "Реализовать AI Chat синхронизацию: WebSocket + таблица chat_messages",
+    "content": "Перенести компоненты во вкладки: Агенты (Мониторинг + AI Задачи)",
+    "status": "in_progress"
+  },
+  {
+    "content": "Перенести Логистика во вкладки Дома",
     "status": "pending"
   },
   {
-    "content": "Добавить ответы на рекламации с фото в AI Chat",
+    "content": "Перенести Живой разговор во вкладки AI Чат",
     "status": "pending"
   },
   {
-    "content": "Добавить функцию Telegram бота в Агенты для настройки",
+    "content": "Создать таблицу chat_messages в PostgreSQL",
     "status": "pending"
   },
   {
-    "content": "Перенести вкладки: Мониторинг/AI задачи/Агенты → Агенты",
+    "content": "Реализовать WebSocket сервер для AI Chat",
     "status": "pending"
   },
   {
-    "content": "Перенести Логистика → Дома",
+    "content": "Добавить ответы на рекламации с фото",
     "status": "pending"
   },
   {
-    "content": "Перенести Живой разговор → AI Чат",
-    "status": "pending"
-  },
-  {
-    "content": "Подготовить к push в GitHub main",
-    "status": "pending"
-  },
-  {
-    "content": "Подготовить к деплою и тестированию",
+    "content": "Production интеграция: БД для бота + отправка в группу",
     "status": "pending"
   }
 ]
