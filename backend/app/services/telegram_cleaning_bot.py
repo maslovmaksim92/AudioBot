@@ -294,7 +294,9 @@ async def handle_house_selection(
         # Получаем информацию о доме из Bitrix24
         house = None
         try:
-            from app.services.bitrix24_service import bitrix24_service
+            import sys
+            sys.path.insert(0, '/app/backend')
+            from backend.app.services.bitrix24_service import bitrix24_service
             
             # Получаем детали дома из Bitrix24
             house_details = await bitrix24_service.get_deal_details(house_id)
