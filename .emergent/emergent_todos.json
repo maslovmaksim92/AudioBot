@@ -1,14 +1,10 @@
 [
   {
-    "content": "Проверить frontend структуру и зависимости",
+    "content": "Проверить UI приложения",
     "status": "completed"
   },
   {
-    "content": "Проверить UI приложения",
-    "status": "in_progress"
-  },
-  {
     "content": "Создать финальный отчёт о проделанной работе",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]
