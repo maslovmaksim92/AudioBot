@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://ai-brain-hub-2.preview.emergentagent.com
+**Preview URL**: https://prop-management-3.preview.emergentagent.com
 
 ---
 

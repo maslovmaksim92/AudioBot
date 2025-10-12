@@ -270,6 +270,6 @@ period.dates.forEach(date => {
 
 ---
 
-**Preview URL:** https://ai-brain-hub-2.preview.emergentagent.com
+**Preview URL:** https://prop-management-3.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:42 UTC

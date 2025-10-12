@@ -192,7 +192,7 @@
 - ⚠️ Настроить webhook:
   ```bash
   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-    -d "url=https://ai-brain-hub-2.preview.emergentagent.com/api/telegram-webhook/"
+    -d "url=https://prop-management-3.preview.emergentagent.com/api/telegram-webhook/"
   ```
 
 ### Статус
