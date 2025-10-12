@@ -61,17 +61,24 @@ async def telegram_webhook(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def handle_telegram_command(chat_id: int, command: str, user: Dict[str, Any]):
+async def handle_telegram_command(chat_id: int, user_id: int, command: str, user: Dict[str, Any]):
     """
     Обработка команд от пользователей
     
-    Поддерживаемые команды:
-    - /start - Приветствие
+    Поддерживаемые команды для бригад:
+    - /start - Список домов на сегодня
+    - /done - Завершить уборку и отправить фото
+    
+    Общие команды:
     - /help - Список команд
     - /agents - Список активных агентов
     - /status - Статус системы
     """
     import httpx
+    from backend.app.services.telegram_cleaning_bot import (
+        handle_start_command,
+        handle_done_command
+    )
     
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     if not bot_token:
@@ -79,9 +86,17 @@ async def handle_telegram_command(chat_id: int, command: str, user: Dict[str, An
     
     response_text = ""
     
+    # Команды для бригад
     if command == '/start':
-        response_text = f"👋 Привет, {user.get('first_name', 'пользователь')}!\n\nЯ бот VasDom для управления задачами и уведомлениями.\n\nИспользуй /help чтобы узнать доступные команды."
+        # Вызываем обработчик для бригад (с моковыми данными)
+        await handle_start_command(chat_id, user_id, db_session=None)
+        return
     
+    elif command == '/done':
+        await handle_done_command(chat_id, user_id, db_session=None)
+        return
+    
+    # Общие команды
     elif command == '/help':
         response_text = """📋 Доступные команды:
 
