@@ -454,21 +454,42 @@ const Works = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => { setSelectedHouse(house); setShowScheduleModal(true); }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
-              >Посмотреть график</button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setSelectedHouse(house); setShowScheduleModal(true); }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
+                >График</button>
 
+                <button
+                  onClick={() => fetchHouseDetails(house.id)}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-1"
+                >
+                  <MapPin className="w-4 h-4"/> Детали
+                </button>
+              </div>
+              
               <button
-                onClick={() => fetchHouseDetails(house.id)}
-                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-1"
+                onClick={() => {
+                  setSelectedHouseForAct(house);
+                  setShowActSignModal(true);
+                }}
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-all"
+                data-testid="sign-act-btn"
               >
-                <MapPin className="w-4 h-4"/> Детали
+                <FileCheck className="w-4 h-4" />
+                Акт подписан
               </button>
 
               {house.bitrix_url && (
-                <a href={house.bitrix_url} target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-lg text-sm text-center">Открыть в Bitrix24</a>
+                <a 
+                  href={house.bitrix_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="w-full bg-gray-800 hover:bg-black text-white px-3 py-2 rounded-lg text-sm text-center"
+                >
+                  Bitrix24
+                </a>
               )}
             </div>
           </div>
