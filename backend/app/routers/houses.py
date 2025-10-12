@@ -268,3 +268,222 @@ async def get_houses_stats(db: AsyncSession = Depends(get_db)):
                 stats["last_sync"] = house.synced_at
     
     return stats
+
+
+
+# ==================== АКТЫ ====================
+
+from pydantic import BaseModel
+
+class ActSignRequest(BaseModel):
+    """Запрос на подписание акта"""
+    house_id: str
+    house_address: str
+    act_month: str  # YYYY-MM
+    signed_date: str  # YYYY-MM-DD
+    signed_by: Optional[str] = None
+    brigade_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ActResponse(BaseModel):
+    """Ответ с информацией об акте"""
+    id: str
+    house_id: str
+    house_address: str
+    act_month: str
+    act_signed_date: str
+    signed_by: Optional[str]
+    cleaning_count: int
+    created_at: datetime
+
+
+class ActsStatsResponse(BaseModel):
+    """Статистика по актам за месяц"""
+    month: str  # YYYY-MM
+    total_houses: int
+    signed_acts: int
+    unsigned_acts: int
+    signed_percentage: float
+    acts_by_date: dict  # {date: count}
+
+
+@router.post("/acts/sign")
+async def sign_act(request: ActSignRequest):
+    """
+    Пометить акт как подписанный
+    
+    Ключевой показатель для компании
+    """
+    try:
+        from app.config.database import get_db_pool
+        
+        db_pool = await get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+        
+        # Получаем количество уборок за месяц для этого дома
+        async with db_pool.acquire() as conn:
+            cleaning_count = await conn.fetchval(
+                """
+                SELECT COUNT(*) FROM cleaning_photos 
+                WHERE house_id = $1 
+                AND TO_CHAR(cleaning_date, 'YYYY-MM') = $2
+                """,
+                request.house_id,
+                request.act_month
+            )
+            
+            # Вставляем или обновляем акт
+            result = await conn.fetchrow(
+                """
+                INSERT INTO house_acts (
+                    house_id, house_address, act_month, act_signed_date,
+                    signed_by, brigade_id, cleaning_count, notes
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (house_id, act_month) 
+                DO UPDATE SET
+                    act_signed_date = EXCLUDED.act_signed_date,
+                    signed_by = EXCLUDED.signed_by,
+                    cleaning_count = EXCLUDED.cleaning_count,
+                    notes = EXCLUDED.notes,
+                    updated_at = NOW()
+                RETURNING id, created_at
+                """,
+                request.house_id,
+                request.house_address,
+                request.act_month,
+                request.signed_date,
+                request.signed_by,
+                request.brigade_id,
+                cleaning_count or 0,
+                request.notes
+            )
+        
+        logger.info(f"[houses/acts] ✅ Act signed: {request.house_id} for {request.act_month}")
+        
+        return {
+            "success": True,
+            "message": "Акт помечен как подписанный",
+            "act_id": str(result['id']),
+            "cleaning_count": cleaning_count or 0
+        }
+        
+    except Exception as e:
+        logger.error(f"[houses/acts] Error signing act: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/acts/stats")
+async def get_acts_stats(month: str):
+    """
+    Статистика по подписанным актам за месяц
+    
+    Args:
+        month: Месяц в формате YYYY-MM (например, "2025-10")
+    
+    Returns:
+        Статистика: всего домов, подписано, не подписано, процент
+    """
+    try:
+        from app.config.database import get_db_pool
+        
+        db_pool = await get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+        
+        async with db_pool.acquire() as conn:
+            # Подписанные акты
+            signed_acts = await conn.fetch(
+                """
+                SELECT 
+                    house_id, 
+                    house_address, 
+                    act_signed_date,
+                    cleaning_count,
+                    signed_by
+                FROM house_acts 
+                WHERE act_month = $1
+                ORDER BY act_signed_date DESC
+                """,
+                month
+            )
+            
+            # Всего домов (из cleaning_photos за этот месяц)
+            total_houses = await conn.fetchval(
+                """
+                SELECT COUNT(DISTINCT house_id) 
+                FROM cleaning_photos 
+                WHERE TO_CHAR(cleaning_date, 'YYYY-MM') = $1
+                """,
+                month
+            ) or 0
+            
+            # Подписанные по датам
+            acts_by_date = {}
+            for act in signed_acts:
+                date_str = act['act_signed_date'].strftime('%Y-%m-%d')
+                acts_by_date[date_str] = acts_by_date.get(date_str, 0) + 1
+        
+        signed_count = len(signed_acts)
+        unsigned_count = total_houses - signed_count
+        signed_percentage = (signed_count / total_houses * 100) if total_houses > 0 else 0
+        
+        return {
+            "month": month,
+            "total_houses": total_houses,
+            "signed_acts": signed_count,
+            "unsigned_acts": unsigned_count,
+            "signed_percentage": round(signed_percentage, 1),
+            "acts_by_date": acts_by_date,
+            "acts": [
+                {
+                    "house_id": act['house_id'],
+                    "house_address": act['house_address'],
+                    "signed_date": act['act_signed_date'].strftime('%Y-%m-%d'),
+                    "cleaning_count": act['cleaning_count'],
+                    "signed_by": act['signed_by']
+                }
+                for act in signed_acts
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"[houses/acts] Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/acts/{house_id}/{month}")
+async def delete_act(house_id: str, month: str):
+    """
+    Удалить подпись акта (отменить подписание)
+    
+    Args:
+        house_id: ID дома
+        month: Месяц в формате YYYY-MM
+    """
+    try:
+        from app.config.database import get_db_pool
+        
+        db_pool = await get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+        
+        async with db_pool.acquire() as conn:
+            result = await conn.execute(
+                "DELETE FROM house_acts WHERE house_id = $1 AND act_month = $2",
+                house_id,
+                month
+            )
+        
+        logger.info(f"[houses/acts] ✅ Act deleted: {house_id} for {month}")
+        
+        return {
+            "success": True,
+            "message": "Подпись акта отменена"
+        }
+        
+    except Exception as e:
+        logger.error(f"[houses/acts] Error deleting act: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
