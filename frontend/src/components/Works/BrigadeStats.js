@@ -16,12 +16,16 @@ const BrigadeStats = () => {
                   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
   useEffect(() => {
+    console.log('[BrigadeStats] Month changed, reloading stats...');
     loadBrigadeStats();
   }, [currentMonth]);
 
   const loadBrigadeStats = async () => {
-    setLoading(true);
-    console.log('[BrigadeStats] Loading stats for month:', currentMonth.toISOString());
+    try {
+      setLoading(true);
+      setBrigadeData([]);
+      setDailyStats({});
+      console.log('[BrigadeStats] Loading stats for month:', currentMonth.toISOString());
     
     try {
       // Загружаем распределение домов по бригадам
