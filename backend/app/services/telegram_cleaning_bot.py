@@ -11,7 +11,6 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 import httpx
-from backend.app.services.photo_caption_service import format_cleaning_completion_message
 
 logger = logging.getLogger(__name__)
 
