@@ -130,10 +130,15 @@ class Bitrix24Service:
             
             # Извлекаем месяц из первой даты периода
             first_date = dates[0] if dates else None
-            if first_date and isinstance(first_date, dict):
-                date_str = first_date.get('date', '')
+            if first_date:
+                # Даты могут быть строками или dict
+                if isinstance(first_date, dict):
+                    date_str = first_date.get('date', '')
+                else:
+                    date_str = str(first_date)
+                
                 if date_str and '-' in date_str:
-                    # Формат: 2025-10-13T00:00:00 -> берем год-месяц
+                    # Формат: 2025-10-13 или 2025-10-13T00:00:00 -> берем год-месяц
                     year_month = '-'.join(date_str.split('T')[0].split('-')[:2])  # "2025-10"
                     
                     if year_month not in month_periods:
