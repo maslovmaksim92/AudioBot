@@ -1,6 +1,34 @@
 [
   {
-    "content": "Создать финальный отчёт о проделанной работе",
-    "status": "completed"
+    "content": "Проанализировать баг с определением месяца (November вместо October) в Brain",
+    "status": "pending"
+  },
+  {
+    "content": "Исправить логику расчета периодичности в карточке дома (типы уборок)",
+    "status": "pending"
+  },
+  {
+    "content": "Исправить баг пересчета статистики в КПИ бригад при выборе даты",
+    "status": "pending"
+  },
+  {
+    "content": "Реализовать Works модуль: фото через Telegram бот с вебхуком в Bitrix24",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить кнопку 'Акт подписан' и статистику подписанных актов",
+    "status": "pending"
+  },
+  {
+    "content": "Реализовать AI Chat синхронизацию с Telegram ботом",
+    "status": "pending"
+  },
+  {
+    "content": "Улучшить Employee модуль: календарь бригад + KPI по каждому сотруднику",
+    "status": "pending"
+  },
+  {
+    "content": "Реализовать Meetings с realtime транскрибацией",
+    "status": "pending"
   }
 ]
