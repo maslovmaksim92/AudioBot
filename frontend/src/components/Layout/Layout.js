@@ -19,6 +19,7 @@ import {
   DollarSign,
   Activity
 } from 'lucide-react';
+import logo from '../../assets/logo.png';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
