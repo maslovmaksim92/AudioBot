@@ -272,16 +272,30 @@ async def handle_house_selection(
     try:
         session = get_or_create_session(user_id)
         
-        # TODO: Получить информацию о доме из БД
-        # house = await get_house_by_id(house_id, db_session)
-        
-        # Временные моковые данные
-        houses_mock = {
-            "house_1": {"id": "house_1", "address": "ул. Ленина, д. 10, подъезд 1", "entrances": 1, "floors": 5},
-            "house_2": {"id": "house_2", "address": "ул. Пушкина, д. 25, подъезды 1-3", "entrances": 3, "floors": 9},
-            "house_3": {"id": "house_3", "address": "пр. Мира, д. 5, подъезды 1-4", "entrances": 4, "floors": 5}
-        }
-        house = houses_mock.get(house_id)
+        # Получаем информацию о доме из БД
+        house = None
+        try:
+            from app.config.database import AsyncSessionLocal
+            from app.models.house import House as HouseModel
+            from sqlalchemy import select
+            
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(HouseModel).where(HouseModel.id == house_id)
+                )
+                house_obj = result.scalar_one_or_none()
+                
+                if house_obj:
+                    house = {
+                        "id": house_obj.id,
+                        "address": house_obj.address,
+                        "entrances": house_obj.entrances_count or 1,
+                        "floors": house_obj.floors_count or 5
+                    }
+                    logger.info(f"[telegram_cleaning_bot] Loaded house from DB: {house_id}")
+        except Exception as e:
+            logger.error(f"[telegram_cleaning_bot] Failed to load house from DB: {e}")
+            house = None
         
         if not house:
             await send_message(chat_id, "❌ Дом не найден")
