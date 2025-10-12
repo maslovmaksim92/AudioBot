@@ -192,7 +192,7 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
             # Загружаем ВСЕ дома на 13.10.2025
             data = await bitrix24_service.list_houses(
                 cleaning_date=target_date,
-                limit=200  # Увеличиваем лимит, чтобы получить все дома
+                limit=50  # Лимит домов для отображения
             )
             
             houses_raw = data.get('houses', [])
