@@ -34,6 +34,10 @@ const BrigadeStats = () => {
       
       console.log('[BrigadeStats] Loaded', data.houses?.length || 0, 'houses');
       
+      // Определяем текущий месяц и год для фильтрации
+      const selectedYear = currentMonth.getFullYear();
+      const selectedMonth = currentMonth.getMonth();
+      
       // Подсчет статистики по бригадам
       const stats = {};
       const dailyWork = {};
@@ -63,6 +67,11 @@ const BrigadeStats = () => {
           Object.values(house.cleaning_dates).forEach(period => {
             if (period.dates) {
               period.dates.forEach(date => {
+                // Фильтрация по выбранному месяцу
+                const dateObj = new Date(date);
+                if (dateObj.getFullYear() !== selectedYear || dateObj.getMonth() !== selectedMonth) {
+                  return; // Пропускаем даты не из выбранного месяца
+                }
                 const type = (period.type || '').toLowerCase();
                 const isFullCleaning = type.includes('всех этаж');
                 const isSweeping = type.includes('подмет');
