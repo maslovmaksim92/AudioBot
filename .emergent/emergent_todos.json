@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Клонировать актуальные файлы с GitHub репозитория maslovmaksim92/AudioBot",
+    "status": "in_progress"
+  },
+  {
+    "content": "Проанализировать структуру backend: найти дубликаты (server.py vs app_main.py, services, routers)",
+    "status": "pending"
+  },
+  {
+    "content": "Проанализировать структуру frontend: найти дубликаты компонентов",
+    "status": "pending"
+  },
+  {
+    "content": "Выбрать лучший рабочий код из дубликатов на основе функциональности",
+    "status": "pending"
+  },
+  {
+    "content": "Удалить дублирующие и ненужные файлы (ai_training.py, fix_imports.py, voice.py в корне backend)",
+    "status": "pending"
+  },
+  {
+    "content": "Очистить structure согласно плану VasDom (установить корректные пути импортов)",
+    "status": "pending"
+  },
+  {
+    "content": "Протестировать backend API (проверить все endpoints работают)",
+    "status": "pending"
+  },
+  {
+    "content": "Протестировать frontend (убедиться приложение загружается и работает)",
+    "status": "pending"
+  },
+  {
+    "content": "Финальная проверка: приложение работает идеально",
+    "status": "pending"
+  }
+]
