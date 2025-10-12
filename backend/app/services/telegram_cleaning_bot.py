@@ -330,6 +330,9 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         
         await send_message(chat_id, "⏳ Обрабатываю фото и генерирую подпись...")
         
+        # Импорт внутри функции чтобы избежать циклической зависимости
+        from app.services.photo_caption_service import format_cleaning_completion_message
+        
         # Генерируем AI подпись с номером бригады
         brigade_number = session.brigade_id.replace("brigade_", "") if session.brigade_id else "1"
         
