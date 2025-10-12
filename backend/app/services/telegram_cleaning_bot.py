@@ -352,30 +352,83 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         
         logger.info(f"[telegram_cleaning_bot] Generated caption for {session.selected_house_address}")
         
-        # ТЕСТОВЫЙ РЕЖИМ: отправляем фото обратным сообщением (не в группу)
-        if len(session.photos) == 1:
-            # Одно фото
-            await send_photo(chat_id, session.photos[0], caption)
-        else:
-            # Группа фото
-            await send_media_group(chat_id, session.photos, caption)
+        # ПРОДАКШЕН РЕЖИМ: Отправляем в Telegram группу
+        target_chat_id = os.getenv('TELEGRAM_TARGET_CHAT_ID')
         
-        # TODO: Сохранить в БД
-        # await save_cleaning_completion(
+        if target_chat_id:
+            # Отправляем в группу
+            logger.info(f"[telegram_cleaning_bot] Sending to group: {target_chat_id}")
+            if len(session.photos) == 1:
+                await send_photo(target_chat_id, session.photos[0], caption)
+            else:
+                await send_media_group(target_chat_id, session.photos, caption)
+            
+            sent_to_group = True
+        else:
+            # Fallback: отправляем обратно пользователю (тестовый режим)
+            logger.warning("[telegram_cleaning_bot] TELEGRAM_TARGET_CHAT_ID not set, sending to user")
+            if len(session.photos) == 1:
+                await send_photo(chat_id, session.photos[0], caption)
+            else:
+                await send_media_group(chat_id, session.photos, caption)
+            
+            sent_to_group = False
+        
+        # Сохраняем в БД
+        try:
+            from datetime import datetime
+            from app.config.database import get_db_pool
+            
+            db_pool = await get_db_pool()
+            if db_pool:
+                async with db_pool.acquire() as conn:
+                    await conn.execute(
+                        """
+                        INSERT INTO cleaning_photos (
+                            house_id, house_address, brigade_id, telegram_user_id,
+                            cleaning_date, photo_file_ids, photo_count, ai_caption,
+                            status, sent_to_group_at
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                        ON CONFLICT (house_id, cleaning_date, brigade_id) 
+                        DO UPDATE SET
+                            photo_file_ids = EXCLUDED.photo_file_ids,
+                            photo_count = EXCLUDED.photo_count,
+                            ai_caption = EXCLUDED.ai_caption,
+                            status = EXCLUDED.status,
+                            sent_to_group_at = EXCLUDED.sent_to_group_at,
+                            updated_at = NOW()
+                        """,
+                        session.selected_house_id,
+                        session.selected_house_address,
+                        session.brigade_id,
+                        user_id,
+                        datetime.now().date(),
+                        session.photos,
+                        len(session.photos),
+                        caption,
+                        'sent_to_group' if sent_to_group else 'uploaded',
+                        datetime.now() if sent_to_group else None
+                    )
+                    logger.info(f"[telegram_cleaning_bot] ✅ Saved to DB: {session.selected_house_id}")
+        except Exception as db_error:
+            logger.error(f"[telegram_cleaning_bot] ❌ Failed to save to DB: {db_error}")
+        
+        # TODO: Отправить вебхук в Bitrix24
+        # await send_bitrix24_webhook(
         #     house_id=session.selected_house_id,
-        #     photos=session.photos,
-        #     caption=caption,
-        #     db_session=db_session
+        #     cleaning_date=datetime.now().date(),
+        #     photo_count=len(session.photos)
         # )
         
         # Уведомляем об успехе
-        await send_message(
-            chat_id,
-            f"✅ <b>Уборка завершена!</b>\n"
-            f"🏠 {session.selected_house_address}\n"
-            f"📸 Отправлено фото: {len(session.photos)}\n\n"
-            f"Спасибо за работу! 💙"
-        )
+        success_msg = "✅ <b>Уборка завершена!</b>\n"
+        success_msg += f"🏠 {session.selected_house_address}\n"
+        success_msg += f"📸 Отправлено фото: {len(session.photos)}\n"
+        if sent_to_group:
+            success_msg += "📨 Отправлено в группу\n"
+        success_msg += "\nСпасибо за работу! 💙"
+        
+        await send_message(chat_id, success_msg)
         
         # Очищаем сессию
         session.clear()
