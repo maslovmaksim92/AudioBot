@@ -15,6 +15,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { CleaningLineChart, TaskProgressBar } from './DashboardCharts';
+import logo from '../../assets/logo.png';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || import.meta?.env?.REACT_APP_BACKEND_URL;
 
