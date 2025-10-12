@@ -1,22 +1,6 @@
 [
   {
-    "content": "Создать photo_caption_service.py для генерации AI подписей",
-    "status": "completed"
-  },
-  {
-    "content": "Реализовать Telegram бот для бригад: /start → список домов",
-    "status": "completed"
-  },
-  {
-    "content": "Добавить обработчик загрузки фото и /done команду",
-    "status": "completed"
-  },
-  {
-    "content": "Тестовая версия: отправка фото обратным сообщением",
-    "status": "completed"
-  },
-  {
     "content": "Создать итоговый отчёт по реализации",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]
