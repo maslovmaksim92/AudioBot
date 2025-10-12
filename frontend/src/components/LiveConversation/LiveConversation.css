@@ -1,0 +1,4 @@
+/* minimal styles to satisfy import and keep layout sane */
+.live-session {
+  display: block;
+}

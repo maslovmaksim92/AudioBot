@@ -1,0 +1,40 @@
+.sales-funnel-container { padding: 2rem; background: #f8f9fa; min-height: 100vh; }
+.sales-header { display: flex; justify-content: space-between; margin-bottom: 2rem; }
+.sales-header h1 { font-size: 2rem; margin: 0; }
+.subtitle { color: #64748b; margin-top: 0.5rem; }
+.view-switcher { display: flex; gap: 1rem; margin-bottom: 2rem; }
+.switch-btn { padding: 0.75rem 1.5rem; border: 2px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; }
+.switch-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+.funnel-board { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; }
+.funnel-column { min-width: 280px; background: white; border-radius: 12px; }
+.column-header { padding: 1rem; color: white; border-radius: 12px 12px 0 0; font-weight: bold; }
+.column-total { padding: 0.5rem 1rem; background: #f1f5f9; text-align: center; font-weight: 600; }
+.column-deals { padding: 1rem; }
+.deal-card { background: #f8fafc; padding: 1rem; margin-bottom: 0.75rem; border-radius: 8px; }
+.deal-card h4 { margin: 0 0 0.5rem 0; }
+.deal-company { color: #64748b; font-size: 0.9rem; margin: 0.25rem 0; }
+.deal-value { font-weight: bold; color: #10b981; margin: 0.5rem 0; }
+.marketing-dashboard { display: grid; gap: 2rem; }
+.ai-insights { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; color: white; }
+.insight-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.badge-new { background: rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; }
+.recommendation { display: flex; gap: 1rem; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.rec-icon { font-size: 1.5rem; }
+.campaigns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; }
+.campaign-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.campaign-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; }
+.status-badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; }
+.status-badge.active { background: #d1fae5; color: #065f46; }
+.status-badge.paused { background: #fef3c7; color: #92400e; }
+.campaign-stats { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.stat-row { display: flex; justify-content: space-between; }
+.stat-label { color: #64748b; }
+.stat-value { font-weight: 600; }
+.progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: #10b981; }
+.campaign-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.btn-small { padding: 0.5rem 1rem; border: none; background: #f1f5f9; border-radius: 6px; cursor: pointer; }
+.btn-small:hover { background: #e2e8f0; }
+.marketing-planner { background: white; padding: 2rem; border-radius: 12px; text-align: center; }
+.btn-generate { padding: 1rem 2rem; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 1rem; }
+.btn-generate:hover { background: #059669; }

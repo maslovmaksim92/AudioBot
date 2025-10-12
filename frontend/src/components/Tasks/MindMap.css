@@ -1,0 +1,12 @@
+/* Minimal styles for MindMap */
+.mindmap-wrapper { height: calc(100vh - 140px); min-height: 460px; }
+.mindmap-toolbar { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #e5e7eb; }
+.mindmap-node { padding: 6px 10px; border-radius: 10px; background: #fff; border: 1px solid #e5e7eb; box-shadow: 0 2px 6px rgba(0,0,0,0.06); font-size: 12px; min-width: 160px; }
+.mindmap-node .title { font-weight: 600; }
+.mindmap-node .subtitle { font-size: 11px; color: #6b7280; }
+.mindmap-node.color-blue { border-color: #bfdbfe; background: #eff6ff; }
+.mindmap-node.color-green { border-color: #bbf7d0; background: #f0fdf4; }
+.mindmap-node.color-yellow { border-color: #fde68a; background: #fffbeb; }
+.mindmap-node.color-red { border-color: #fecaca; background: #fef2f2; }
+.mindmap-node.color-purple { border-color: #e9d5ff; background: #faf5ff; }
+.mindmap-node .toolbar button { font-size: 11px; }
