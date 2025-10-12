@@ -15,14 +15,20 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', os.getenv('EMERGENT_LLM_KEY'))
 client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
-async def generate_caption(address: str, photo_count: int = 1, cleaning_type: str = None) -> str:
+async def generate_caption(
+    address: str, 
+    photo_count: int = 1, 
+    cleaning_type: str = None,
+    photo_urls: list = None
+) -> str:
     """
-    Генерирует вдохновляющую AI подпись к фото уборки
+    Генерирует вдохновляющую AI подпись к фото уборки используя GPT-4o Vision
     
     Args:
         address: Адрес дома
         photo_count: Количество фото
         cleaning_type: Тип уборки (влажная, подметание, и т.д.)
+        photo_urls: Список URL фотографий для анализа (опционально)
     
     Returns:
         Строка с AI-сгенерированной подписью
@@ -45,7 +51,7 @@ async def generate_caption(address: str, photo_count: int = 1, cleaning_type: st
         cleaning_info = f"Тип уборки: {cleaning_type}" if cleaning_type else "Стандартная уборка"
         photo_info = f"Фотоотчёт: {photo_count} фото" if photo_count > 1 else "Фотоотчёт"
         
-        prompt = f"""
+        prompt_text = f"""
 Вы — бот компании ВасДом по уборке подъездов. Напишите короткий вдохновляющий текст к фотоотчёту об уборке.
 
 Адрес: {address}
@@ -54,32 +60,49 @@ async def generate_caption(address: str, photo_count: int = 1, cleaning_type: st
 Дата: {russian_date}
 
 Требования:
+- Если видишь фото, опиши что там: чистый подъезд, ровный пол, порядок
 - Упомяните чистоту, порядок и заботу о доме
 - Добавьте благодарность бригаде
-- Намекните на социальную ответственность и комфорт жильцов
-- Используйте 2-3 подходящих эмодзи
+- Используйте 2-3 подходящих эмодзи (✨, 🏠, 🧹, 💙, 👷)
 - Максимум 3-4 предложения
 - Тон: дружелюбный и профессиональный
 """
 
-        logger.info(f"[photo_caption] Generating caption for address: {address}")
+        logger.info(f"[photo_caption] Generating caption with GPT-4o for address: {address}, photos: {len(photo_urls) if photo_urls else 0}")
+        
+        # Если есть фото - используем GPT-4o Vision
+        messages = [
+            {"role": "system", "content": "Ты вдохновляющий помощник клининговой компании ВасДом. Пишешь короткие профессиональные тексты к фото уборок."}
+        ]
+        
+        # Добавляем фото если есть (максимум 3 для экономии токенов)
+        if photo_urls and len(photo_urls) > 0:
+            user_content = [{"type": "text", "text": prompt_text}]
+            for url in photo_urls[:3]:  # Берём максимум 3 фото
+                user_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": url, "detail": "low"}  # low для экономии
+                })
+            messages.append({"role": "user", "content": user_content})
+            model = "gpt-4o"  # GPT-4o с vision
+        else:
+            # Без фото - просто текст
+            messages.append({"role": "user", "content": prompt_text})
+            model = "gpt-4o-mini"  # Дешевле для текста
         
         response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Ты вдохновляющий помощник клининговой компании ВасДом. Пишешь короткие профессиональные тексты к фото уборок."},
-                {"role": "user", "content": prompt}
-            ],
+            model=model,
+            messages=messages,
             temperature=0.8,
-            max_tokens=200
+            max_tokens=250
         )
         
         text = response.choices[0].message.content.strip()
-        logger.info(f"[photo_caption] AI caption generated successfully: {text[:50]}...")
+        logger.info(f"[photo_caption] AI caption generated successfully with {model}: {text[:50]}...")
         return text
         
     except Exception as e:
-        logger.warning(f"[photo_caption] Error generating AI caption: {e}, using fallback")
+        logger.error(f"[photo_caption] Error generating AI caption: {e}", exc_info=True)
         return _generate_fallback_caption(address, photo_count, cleaning_type)
 
 
