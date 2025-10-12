@@ -161,13 +161,15 @@ class Bitrix24Service:
         
         # Только Тип 1 (влажная уборка всех этажей)
         if type1_count > 0 and type2_count == 0 and type3_count == 0:
-            result = f"{type1_count} раза" if type1_count > 1 else f"{type1_count} раз"
+            result = f"{type1_count} раза" if type1_count in [2, 3, 4] else f"{type1_count} раз"
             logger.info(f"[_compute_periodicity] Result: '{result}' (only Type 1)")
             return result
         
         # Тип 1 + Тип 2 (влажная + подметание)
         if type1_count > 0 and type2_count > 0 and type3_count == 0:
-            result = f"{type1_count} раза + {type2_count} подметания"
+            t1_word = "раза" if type1_count in [2, 3, 4] else "раз"
+            t2_word = "подметания" if type2_count in [2, 3, 4] else "подметание"
+            result = f"{type1_count} {t1_word} + {type2_count} {t2_word}"
             logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 2)")
             return result
         
