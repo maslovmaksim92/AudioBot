@@ -1,10 +1,6 @@
 [
   {
-    "content": "Проверить UI приложения",
-    "status": "completed"
-  },
-  {
     "content": "Создать финальный отчёт о проделанной работе",
-    "status": "in_progress"
+    "status": "completed"
   }
 ]
