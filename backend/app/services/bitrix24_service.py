@@ -92,20 +92,33 @@ class Bitrix24Service:
         # 3) Fallback: brigade unknown
         return (None, None)
 
-    def _compute_periodicity(self, cleaning_dates: Dict[str, Any]) -> Optional[str]:
-        """Расчет периодичности по всем датам уборок.
-        Подсчитывает отдельно полные уборки, уборки первых этажей и подметания.
-        Правила:
-        - Полное мытьё + подметание → "2 раза + 2 подметания"
-        - Полное мытьё + первые этажи → "2 раза + первые этажи"
-        - Только полная уборка → "4 раза" или "2 раза"
+    def _compute_periodicity(self, cleaning_dates: Dict[str, Any]) -> str:
         """
-        if not cleaning_dates:
-            return None
+        Расчет периодичности по всем датам уборок согласно спецификации.
         
-        full_cleanings_count = 0  # Количество дат полной уборки
-        first_floor_count = 0     # Количество дат уборки первого этажа
-        sweep_count = 0           # Количество дат подметания
+        3 типа уборок:
+        - Тип 1: Влажная уборка лестничных площадок всех этажей
+        - Тип 2: Подметание лестничных площадок и маршей всех этажей
+        - Тип 3: Влажная уборка 1 этажа
+        
+        Правила расчёта:
+        - 2 даты Тип 1 → "2 раза"
+        - 4 даты Тип 1 → "4 раза"
+        - 2 даты Тип 1 + 2 даты Тип 2 → "2 раза + 2 подметания"
+        - 2 даты Тип 1 + 2 даты Тип 3 → "2 раза + 1 этаж"
+        - Другое сочетание → "индивидуальная"
+        - Нет дат → "не указана"
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not cleaning_dates:
+            logger.info("[_compute_periodicity] No cleaning dates provided")
+            return "не указана"
+        
+        type1_count = 0  # Влажная уборка всех этажей
+        type2_count = 0  # Подметание
+        type3_count = 0  # Влажная уборка 1 этажа
         
         # Анализируем все периоды
         for period_name, period_data in cleaning_dates.items():
@@ -120,55 +133,59 @@ class Bitrix24Service:
             
             num_dates = len(dates)
             
-            # Определяем тип уборки по ТОЧНЫМ ключевым словам
-            # Сначала проверяем подметание (оно может быть вместе с 1 этажом)
-            if 'подмет' in type_text:
-                sweep_count += num_dates
-                # Если есть "подметание + влажная 1 этажа" - тоже считаем как подметание
-                # не добавляем к first_floor_count
-            # Проверяем полную уборку (всех этажей)
-            elif 'всех этаж' in type_text or 'лестничных площадок всех' in type_text:
-                full_cleanings_count += num_dates
-            # Проверяем только первый этаж (без подметания)
-            elif ('1 этаж' in type_text or '1-го этажа' in type_text or 'первого этажа' in type_text) and 'подмет' not in type_text:
-                first_floor_count += num_dates
+            logger.debug(f"[_compute_periodicity] Period: {period_name}, Type: '{type_text}', Dates: {num_dates}")
+            
+            # Определяем тип уборки по ключевым словам
+            # Тип 1: Влажная + всех этажей
+            if 'влажная' in type_text and ('всех этаж' in type_text or 'лестничных площадок всех' in type_text):
+                type1_count += num_dates
+                logger.debug(f"[_compute_periodicity] Type 1 detected: +{num_dates} dates")
+            # Тип 2: Подметание
+            elif 'подмет' in type_text:
+                type2_count += num_dates
+                logger.debug(f"[_compute_periodicity] Type 2 detected: +{num_dates} dates")
+            # Тип 3: Влажная + 1 этаж (БЕЗ подметания)
+            elif 'влажная' in type_text and ('1 этаж' in type_text or '1-го этажа' in type_text or 'первого этажа' in type_text):
+                type3_count += num_dates
+                logger.debug(f"[_compute_periodicity] Type 3 detected: +{num_dates} dates")
         
-        total = full_cleanings_count + first_floor_count + sweep_count
+        logger.info(f"[_compute_periodicity] Counts - Type1: {type1_count}, Type2: {type2_count}, Type3: {type3_count}")
+        
+        total = type1_count + type2_count + type3_count
         
         if total == 0:
-            return None
+            logger.info("[_compute_periodicity] No valid dates found")
+            return "не указана"
         
-        # Правило 1: Полное мытьё + подметание (например: 2 раза всех этажей + 2 раза подметание)
-        if full_cleanings_count > 0 and sweep_count > 0 and first_floor_count == 0:
-            return f'{full_cleanings_count} раза + {sweep_count} подметания'
+        # Применяем правила согласно требованиям
         
-        # Правило 2: Полное мытьё + первые этажи (например: 2 раза всех этажей + 2 раза первые этажи)
-        if full_cleanings_count > 0 and first_floor_count > 0 and sweep_count == 0:
-            return f'{full_cleanings_count} раза + первые этажи'
+        # Только Тип 1 (влажная уборка всех этажей)
+        if type1_count > 0 and type2_count == 0 and type3_count == 0:
+            result = f"{type1_count} раза" if type1_count > 1 else f"{type1_count} раз"
+            logger.info(f"[_compute_periodicity] Result: '{result}' (only Type 1)")
+            return result
         
-        # Правило 3: Полное мытьё + подметание + первые этажи (все три типа)
-        if full_cleanings_count > 0 and first_floor_count > 0 and sweep_count > 0:
-            return f'{full_cleanings_count} раза + первые этажи + {sweep_count} подметания'
+        # Тип 1 + Тип 2 (влажная + подметание)
+        if type1_count > 0 and type2_count > 0 and type3_count == 0:
+            result = f"{type1_count} раза + {type2_count} подметания"
+            logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 2)")
+            return result
         
-        # Правило 4: Только полная уборка
-        if full_cleanings_count > 0 and first_floor_count == 0 and sweep_count == 0:
-            if full_cleanings_count == 4:
-                return '4 раза'
-            elif full_cleanings_count == 2:
-                return '2 раза'
-            else:
-                return f'{full_cleanings_count} раза'
+        # Тип 1 + Тип 3 (влажная всех этажей + влажная 1 этаж)
+        if type1_count > 0 and type3_count > 0 and type2_count == 0:
+            result = f"{type1_count} раза + 1 этаж"
+            logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 3)")
+            return result
         
-        # Правило 5: Только подметание
-        if sweep_count > 0 and full_cleanings_count == 0 and first_floor_count == 0:
-            return f'{sweep_count} подметания'
+        # Все три типа или другие нестандартные сочетания
+        if type1_count > 0 or type2_count > 0 or type3_count > 0:
+            result = "индивидуальная"
+            logger.info(f"[_compute_periodicity] Result: '{result}' (mixed/custom)")
+            return result
         
-        # Правило 6: Только первые этажи
-        if first_floor_count > 0 and full_cleanings_count == 0 and sweep_count == 0:
-            return f'Первые этажи {first_floor_count} раза'
-        
-        # Иначе - индивидуальная
-        return 'индивидуальная'
+        # Не должны сюда дойти, но на всякий случай
+        logger.warning("[_compute_periodicity] Unexpected case, returning 'не указана'")
+        return "не указана"
 
 
     async def _make_request(self, client: httpx.AsyncClient, method: str, payload: Dict[str, Any]) -> Dict[str, Any]:
