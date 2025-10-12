@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Works from './components/Works/Works';
 import CleaningCalendar from './components/Calendar/CleaningCalendar';
 import WorksConstructor from './components/Works/WorksConstructor';
-import AIChat from './components/AIChat/AIChat';
+import AIChatWrapper from './components/AIChat/AIChatWrapper';
 import Meetings from './components/Meetings/Meetings';
 import LiveConversation from './components/LiveConversation/LiveConversation';
 import Tasks from './components/Tasks/Tasks';
