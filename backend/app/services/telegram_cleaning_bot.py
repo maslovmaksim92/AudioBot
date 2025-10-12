@@ -285,29 +285,26 @@ async def handle_house_selection(
     try:
         session = get_or_create_session(user_id)
         
-        # Получаем информацию о доме из БД
+        # Получаем информацию о доме из Bitrix24
         house = None
         try:
-            from app.config.database import AsyncSessionLocal
-            from app.models.house import House as HouseModel
-            from sqlalchemy import select
+            from app.services.bitrix24_service import bitrix24_service
             
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(
-                    select(HouseModel).where(HouseModel.id == house_id)
-                )
-                house_obj = result.scalar_one_or_none()
-                
-                if house_obj:
-                    house = {
-                        "id": house_obj.id,
-                        "address": house_obj.address,
-                        "entrances": house_obj.entrances_count or 1,
-                        "floors": house_obj.floors_count or 5
-                    }
-                    logger.info(f"[telegram_cleaning_bot] Loaded house from DB: {house_id}")
+            # Получаем детали дома из Bitrix24
+            house_details = await bitrix24_service.get_deal_details(house_id)
+            
+            if house_details:
+                house = {
+                    "id": str(house_details.get('id', house_id)),
+                    "address": house_details.get('address') or house_details.get('title', 'Адрес не указан'),
+                    "entrances": house_details.get('entrances', 1),
+                    "floors": house_details.get('floors', 5)
+                }
+                logger.info(f"[telegram_cleaning_bot] Loaded house from Bitrix24: {house_id}")
+            else:
+                logger.warning(f"[telegram_cleaning_bot] House {house_id} not found in Bitrix24")
         except Exception as e:
-            logger.error(f"[telegram_cleaning_bot] Failed to load house from DB: {e}")
+            logger.error(f"[telegram_cleaning_bot] Failed to load house from Bitrix24: {e}")
             house = None
         
         if not house:
