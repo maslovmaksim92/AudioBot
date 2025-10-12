@@ -627,11 +627,8 @@ const Works = () => {
           setShowActSignModal(false);
           setSelectedHouseForAct(null);
         }}
-        onSave={() => {
-          setShowActSignModal(false);
-          setSelectedHouseForAct(null);
-          showNotification('Акт успешно подписан!', 'success');
-          fetchHouses(); // Refresh the list
+        onSuccess={(data) => {
+          showNotification(`✅ Акт подписан! Уборок в месяце: ${data.cleaning_count}`, 'success');
         }}
       />
       </>
