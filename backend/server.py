@@ -339,7 +339,7 @@ def _normalize_phone(num: str) -> str:
         return '+' + s
     return s
 
-async def _get_livekit_client() -> lk_api.LiveKitAPI:
+async def _get_livekit_client() -> Any:
     if not LIVEKIT_AVAILABLE:
         raise HTTPException(status_code=500, detail='LiveKit SDK not available')
     global _livekit_client
