@@ -1,11 +1,11 @@
 [
   {
     "content": "Исправить загрузку домов в дашборд",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Изучить репозиторий PostingFotoTG для AI подписей",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Реализовать Telegram бот для бригад: выбор дома → загрузка фото",
