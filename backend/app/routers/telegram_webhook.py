@@ -243,3 +243,44 @@ async def get_webhook_info():
     except Exception as e:
         logger.error(f"❌ Error getting webhook info: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+async def handle_telegram_callback(chat_id: int, user_id: int, callback_data: str, callback_query_id: str):
+    """
+    Обработка callback query (inline buttons)
+    """
+    from backend.app.services.telegram_cleaning_bot import handle_house_selection
+    
+    logger.info(f"[telegram_webhook] Callback: {callback_data} from user {user_id}")
+    
+    try:
+        # Обработка выбора дома
+        if callback_data.startswith('house_'):
+            house_id = callback_data.replace('house_', '')
+            await handle_house_selection(chat_id, user_id, house_id, callback_query_id, db_session=None)
+        else:
+            logger.warning(f"Unknown callback_data: {callback_data}")
+    
+    except Exception as e:
+        logger.error(f"[telegram_webhook] Error in handle_telegram_callback: {e}")
+
+
+async def handle_telegram_photo(chat_id: int, user_id: int, photos: list, user: Dict[str, Any]):
+    """
+    Обработка фото от бригад
+    """
+    from backend.app.services.telegram_cleaning_bot import handle_photo
+    
+    try:
+        # Берём фото максимального размера
+        largest_photo = max(photos, key=lambda p: p.get('file_size', 0))
+        file_id = largest_photo.get('file_id')
+        
+        logger.info(f"[telegram_webhook] Photo received from user {user_id}, file_id: {file_id}")
+        
+        await handle_photo(chat_id, user_id, file_id)
+    
+    except Exception as e:
+        logger.error(f"[telegram_webhook] Error in handle_telegram_photo: {e}")
+
