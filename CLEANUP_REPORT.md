@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://botgenius-1.preview.emergentagent.com**
+Приложение доступно: **https://ai-brain-hub-2.preview.emergentagent.com**
 
 ---
 

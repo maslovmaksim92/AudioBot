@@ -359,6 +359,6 @@ INFO - [telegram_cleaning_bot] Media group sent to 12345: 3 photos
 
 ---
 
-**Preview URL:** https://botgenius-1.preview.emergentagent.com
+**Preview URL:** https://ai-brain-hub-2.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:56 UTC

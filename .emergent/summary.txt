@@ -1,0 +1,68 @@
+<analysis>
+The AI engineer successfully cleaned up the codebase by removing duplicate files and aligning the project with the user's vision for VasDom. Key issues addressed included fixing backend database configuration from MongoDB to PostgreSQL, resolving LiveKit API import errors, and installing missing frontend dependencies. The AI then tackled critical functional bugs: the incorrect month detection in the Brain, and the periodicity calculation logic. Frontend issues like KPI recalculation upon date selection were also fixed, including adding a missing month selector. Subsequently, the AI initiated the Telegram bot integration for cleaning brigades, including AI photo captioning. Currently, the AI is reorganizing the frontend navigation into logical tabs as per user requests, updating  to integrate new wrapper components for  and  and is currently working on .
+</analysis>
+
+<product_requirements>
+The project aims to transform AudioBot into VasDom, migrating its backend from MongoDB to PostgreSQL. The core is an AI Assistant with a Single Brain architecture, supporting voice commands, data analysis, predictive analytics, and Telegram-based authorization. Key modules include Finances, Agent Builder (Telegram notifications, APScheduler, knowledge base), and Render Logs. The Brain must provide fast, accurate, data-driven answers by directly querying Bitrix24 and PostgreSQL, bypassing LLMs for factual data, and featuring advanced address normalization, intent-based routing, caching, performance metrics, and a debug mode. The system should self-learn from accumulated messages/calls, generate reports, and adapt responses. Specific dashboard modules requested are Works (house/cleaning management, photo upload via Telegram, act signed button, KPI, periodicity logic), Tasks (manual/Bitrix/AI tasks, calendar), Employees (staff, roles, KPI by employee/brigade, calendar for brigade composition), Business Processes (visual funnels), AI Chat (sync with Telegram, complaint handling with photos), Meetings (transcription, summary, task creation), Training, Accounting, and AI-Tasks (scheduler).
+</product_requirements>
+
+<key_technical_concepts>
+- **FastAPI**: Python backend framework.
+- **React**: Frontend framework.
+- **PostgreSQL**: Primary database (migrated from MongoDB).
+- **APScheduler**: Task scheduling for backend.
+- **Bitrix24**: External CRM integration.
+- **Telegram Bot API**: For brigade communication and photo uploads.
+- **LiveKit API**: For voice/SIP outbound calling (initially problematic).
+- **Shadcn/UI**: Frontend component library.
+- **UUIDs**: Universal identifiers for database models.
+</key_technical_concepts>
+
+<code_architecture>
+The application has a standard monorepo structure:  (FastAPI) and  (React).
+
+
+
+- ****: The main FastAPI application entry point.
+    - **Changes**: Fixed LiveKit API import errors by conditionally importing  and initializing  only if the import is successful. Added PostgreSQL environment variables (, , , , , ) to  file. Installed missing  dependency.
+- ****: Contains database configuration.
+    - **Summary**: Switched from MongoDB to PostgreSQL setup.
+- ****: Handles intent detection and month extraction.
+    - **Changes**: Improved  logic to include a fallback to the current month if not explicitly specified and added enhanced logging.
+- ****: Resolves specific user queries.
+    - **Changes**: Enhanced  with a fallback to the current month and detailed logging.
+- ****: Handles Bitrix24 integration.
+    - **Changes**: Updated  function to correctly calculate cleaning periodicities based on specific cleaning types.
+- ** (NEW)**: Responsible for generating AI captions for photos.
+- ** (NEW)**: Specialized service for handling cleaning brigade interactions via Telegram.
+- ****: Telegram webhook handler.
+    - **Changes**: Added new handlers for brigade-specific commands (), callback queries, and photo uploads, enabling the initial Telegram bot functionality.
+- ****: Displays KPI statistics for brigades.
+    - **Changes**: Fixed the bug where KPI stats wouldn't recalculate on date changes. Integrated a month selector UI component () and modified  to filter data by the selected month.
+- ****: Main dashboard component.
+    - **Changes**: Improved error handling for API calls to prevent dashboard loading issues.
+- ****: Defines the main application layout and navigation.
+    - **Changes**: Reorganized menu items, removing duplicates and preparing for tab-based navigation within sections.
+- ****: Main React application file defining routes.
+    - **Changes**: Updated routes to use new wrapper components for  and  to support tabbed navigation. Currently being updated to use .
+- ** (NEW)**: Component to host Monitoring and AI Tasks tabs.
+- ****: Manages the Works section.
+    - **Changes**: Added a Logistics tab, moving existing Works content into tabs.
+- ** (NEW)**: Component to host AI Chat and Live Conversation tabs.
+</code_architecture>
+
+<pending_tasks>
+- Transfer Live conversation into AI Chat tabs.
+- Create  table in PostgreSQL.
+- Implement WebSocket server for AI Chat.
+- Add photo-based complaint responses.
+- Production integration: Database for bot + sending to a group.
+</pending_tasks>
+
+<current_work>
+Immediately before this summary request, the AI engineer was engaged in reorganizing the frontend navigation into a tab-based structure. Specifically, the engineer had completed creating a new  component to house the AI Chat functionality with new tabs. The current task is to update  to correctly import and use this newly created  component, replacing the old  route, thereby integrating Live Conversation as a tab within the AI Chat section. The previous work involved creating tabbed components for  and  (including Logistics).
+</current_work>
+
+<optional_next_step>
+Complete the update of  to use  and remove the old  route.
+</optional_next_step>
