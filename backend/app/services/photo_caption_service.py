@@ -123,9 +123,9 @@ async def generate_caption(
     return full_caption
 
 
-def _generate_fallback_caption(address: str, photo_count: int, cleaning_type: str = None) -> str:
+def _generate_fallback_caption(address: str, brigade_number: str = None) -> str:
     """
-    Fallback подпись если AI не сработал
+    Fallback подпись если AI не сработал (в стиле PostingFotoTG)
     """
     months_ru = {
         1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
@@ -135,14 +135,16 @@ def _generate_fallback_caption(address: str, photo_count: int, cleaning_type: st
     now = datetime.now()
     russian_date = f"{now.day} {months_ru[now.month]} {now.year}"
     
-    type_text = f"\n🧹 {cleaning_type}" if cleaning_type else ""
-    photos_text = f" ({photo_count} фото)" if photo_count > 1 else ""
+    brigade_text = f"\n👷 Бригада: #{brigade_number}" if brigade_number else ""
     
     return (
-        f"✨ Уборка завершена успешно!{photos_text}\n"
+        f"🧹 Уборка завершена\n"
         f"🏠 Адрес: {address}\n"
-        f"📅 Дата: {russian_date}{type_text}\n\n"
-        f"Спасибо нашей бригаде за чистоту и заботу о вашем доме! 💙"
+        f"📅 Дата: {russian_date}{brigade_text}\n\n"
+        f"🌟 Великолепная работа! Благодарим нашу команду за труд и внимание к деталям. "
+        f"Чистота в подъезде — это забота о каждом жильце и уважение к себе. "
+        f"Давайте вместе делать мир чище и светлее! 💪🌿\n"
+        f"#Чистота #Благодарность #СоциальнаяОтветственность"
     )
 
 
