@@ -315,10 +315,7 @@ async def health():
     return {'ok': True, 'ts': int(datetime.now(timezone.utc).timestamp())}
 
 # ====== Outbound Voice via LiveKit SIP Gateway ======
-if LIVEKIT_AVAILABLE:
-    _livekit_client: Optional[lk_api.LiveKitAPI] = None
-else:
-    _livekit_client = None
+_livekit_client: Optional[Any] = None
 _call_store: Dict[str, Dict[str, Any]] = {}
 
 
