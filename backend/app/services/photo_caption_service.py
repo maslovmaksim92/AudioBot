@@ -15,95 +15,112 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', os.getenv('EMERGENT_LLM_KEY'))
 client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
+async def generate_motivational_text(address: str) -> str:
+    """
+    Генерирует ТОЛЬКО мотивирующий текст от GPT-4o (БЕЗ анализа фото)
+    
+    Args:
+        address: Адрес дома
+    
+    Returns:
+        Мотивирующий текст (3-5 предложений)
+    """
+    if not client:
+        logger.warning("[photo_caption] OpenAI client not available, using fallback")
+        return "🌟 Великолепная работа! Благодарим нашу команду за труд и внимание к деталям. Чистота в подъезде — это забота о каждом жильце. Давайте вместе делать мир чище и светлее! 💪🌿"
+    
+    try:
+        prompt = f"""
+Напиши короткий вдохновляющий текст для поста об уборке подъезда по адресу: {address}
+
+Требования:
+- Поблагодари бригаду уборщиков за работу
+- Упомяни важность чистоты и заботы о доме
+- Добавь мотивацию и социальную ответственность
+- Используй 3-4 эмодзи (🌟, 🧹, 💪, 🌿, ✨, 🏠, 💫)
+- 3-5 предложений максимум
+- Тон: вдохновляющий, благодарный, мотивирующий
+
+Примеры стиля:
+"Великолепная работа! Светлый подъезд теперь сияет чистотой благодаря вашим усилиям. Спасибо за заботу о нашем общем пространстве!"
+"Сегодня мы сделали мир немного чище! Благодарим уборщиков за труд и внимание. Давайте вместе делать наш город лучше!"
+"""
+
+        logger.info(f"[photo_caption] Generating motivational text with GPT-4o-mini")
+        
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",  # Быстрая и дешёвая модель для текста
+            messages=[
+                {"role": "system", "content": "Ты вдохновляющий копирайтер клининговой компании ВасДом. Пишешь короткие мотивирующие тексты про уборку подъездов."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.9,  # Больше креативности
+            max_tokens=200
+        )
+        
+        text = response.choices[0].message.content.strip()
+        logger.info(f"[photo_caption] Motivational text generated: {text[:60]}...")
+        return text
+        
+    except Exception as e:
+        logger.error(f"[photo_caption] Error generating motivational text: {e}", exc_info=True)
+        return "🌟 Великолепная работа! Благодарим нашу команду за труд и внимание к деталям. Чистота в подъезде — это забота о каждом жильце. Давайте вместе делать мир чище и светлее! 💪🌿"
+
+
 async def generate_caption(
     address: str, 
     photo_count: int = 1, 
     cleaning_type: str = None,
-    photo_urls: list = None
+    brigade_number: str = None
 ) -> str:
     """
-    Генерирует вдохновляющую AI подпись к фото уборки используя GPT-4o Vision
+    Генерирует полную подпись к фото уборки в формате PostingFotoTG
+    БЕЗ анализа фото, только красивый текст
     
     Args:
         address: Адрес дома
         photo_count: Количество фото
         cleaning_type: Тип уборки (влажная, подметание, и т.д.)
-        photo_urls: Список URL фотографий для анализа (опционально)
+        brigade_number: Номер бригады
     
     Returns:
-        Строка с AI-сгенерированной подписью
+        Полная отформатированная подпись
     """
-    if not client:
-        logger.warning("[photo_caption] OpenAI client not available, using fallback")
-        return _generate_fallback_caption(address, photo_count, cleaning_type)
+    # Форматируем текущую дату по-русски
+    months_ru = {
+        1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
+        5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
+        9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря'
+    }
+    now = datetime.now()
+    russian_date = f"{now.day} {months_ru[now.month]} {now.year}"
     
-    try:
-        # Форматируем текущую дату по-русски
-        months_ru = {
-            1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
-            5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
-            9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря'
-        }
-        now = datetime.now()
-        russian_date = f"{now.day} {months_ru[now.month]} {now.year}"
-        
-        # Готовим промпт для GPT
-        cleaning_info = f"Тип уборки: {cleaning_type}" if cleaning_type else "Стандартная уборка"
-        photo_info = f"Фотоотчёт: {photo_count} фото" if photo_count > 1 else "Фотоотчёт"
-        
-        prompt_text = f"""
-Вы — бот компании ВасДом по уборке подъездов. Напишите короткий вдохновляющий текст к фотоотчёту об уборке.
-
-Адрес: {address}
-{cleaning_info}
-{photo_info}
-Дата: {russian_date}
-
-Требования:
-- Если видишь фото, опиши что там: чистый подъезд, ровный пол, порядок
-- Упомяните чистоту, порядок и заботу о доме
-- Добавьте благодарность бригаде
-- Используйте 2-3 подходящих эмодзи (✨, 🏠, 🧹, 💙, 👷)
-- Максимум 3-4 предложения
-- Тон: дружелюбный и профессиональный
-"""
-
-        logger.info(f"[photo_caption] Generating caption with GPT-4o for address: {address}, photos: {len(photo_urls) if photo_urls else 0}")
-        
-        # Если есть фото - используем GPT-4o Vision
-        messages = [
-            {"role": "system", "content": "Ты вдохновляющий помощник клининговой компании ВасДом. Пишешь короткие профессиональные тексты к фото уборок."}
-        ]
-        
-        # Добавляем фото если есть (максимум 3 для экономии токенов)
-        if photo_urls and len(photo_urls) > 0:
-            user_content = [{"type": "text", "text": prompt_text}]
-            for url in photo_urls[:3]:  # Берём максимум 3 фото
-                user_content.append({
-                    "type": "image_url",
-                    "image_url": {"url": url, "detail": "low"}  # low для экономии
-                })
-            messages.append({"role": "user", "content": user_content})
-            model = "gpt-4o"  # GPT-4o с vision
-        else:
-            # Без фото - просто текст
-            messages.append({"role": "user", "content": prompt_text})
-            model = "gpt-4o-mini"  # Дешевле для текста
-        
-        response = await client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.8,
-            max_tokens=250
-        )
-        
-        text = response.choices[0].message.content.strip()
-        logger.info(f"[photo_caption] AI caption generated successfully with {model}: {text[:50]}...")
-        return text
-        
-    except Exception as e:
-        logger.error(f"[photo_caption] Error generating AI caption: {e}", exc_info=True)
-        return _generate_fallback_caption(address, photo_count, cleaning_type)
+    # Генерируем мотивирующий текст через GPT
+    motivational_text = await generate_motivational_text(address)
+    
+    # Формируем хештеги из адреса
+    city = "Калуга"  # TODO: извлекать из адреса
+    address_clean = address.replace(" ", "_").replace(",", "")
+    hashtags = f"#Чистота #Благодарность #СоциальнаяОтветственность #{city}"
+    
+    # Собираем полную подпись
+    caption_parts = [
+        "🧹 Уборка завершена",
+        f"🏠 Адрес: {address}",
+        f"📅 Дата: {russian_date}"
+    ]
+    
+    if brigade_number:
+        caption_parts.append(f"👷 Бригада: #{brigade_number}")
+    
+    caption_parts.append("")  # Пустая строка
+    caption_parts.append(motivational_text)
+    caption_parts.append(hashtags)
+    
+    full_caption = "\n".join(caption_parts)
+    
+    logger.info(f"[photo_caption] Full caption generated for {address}")
+    return full_caption
 
 
 def _generate_fallback_caption(address: str, photo_count: int, cleaning_type: str = None) -> str:
