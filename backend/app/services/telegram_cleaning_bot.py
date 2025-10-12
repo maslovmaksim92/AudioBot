@@ -187,7 +187,10 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         target_date = "2025-10-13"
         
         try:
-            from app.services.bitrix24_service import bitrix24_service
+            # Импортируем сервис напрямую, без db_session
+            import sys
+            sys.path.insert(0, '/app/backend')
+            from backend.app.services.bitrix24_service import bitrix24_service
             
             # Загружаем ВСЕ дома на 13.10.2025 (API limit 200, показываем 50)
             data = await bitrix24_service.list_houses(
