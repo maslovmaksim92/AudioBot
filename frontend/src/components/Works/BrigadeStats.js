@@ -25,9 +25,9 @@ const BrigadeStats = () => {
       setLoading(true);
       setBrigadeData([]);
       setDailyStats({});
+      setBrigadeDistribution([]);
       console.log('[BrigadeStats] Loading stats for month:', currentMonth.toISOString());
-    
-    try {
+      
       // Загружаем распределение домов по бригадам
       const distributionResponse = await fetch(`${BACKEND_URL}/api/dashboard/houses-by-brigade`);
       const distributionData = await distributionResponse.json();
