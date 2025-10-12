@@ -116,21 +116,55 @@ class Bitrix24Service:
             logger.info("[_compute_periodicity] No cleaning dates provided")
             return "не указана"
         
+        # Считаем только по ТЕКУЩЕМУ или ПОСЛЕДНЕМУ месяцу в данных
+        # Ищем месяц с данными (берем первый найденный месяц)
+        month_periods = {}
+        
+        for period_name, period_data in cleaning_dates.items():
+            if not isinstance(period_data, dict):
+                continue
+            
+            dates = period_data.get('dates') or []
+            if not dates:
+                continue
+            
+            # Извлекаем месяц из первой даты периода
+            first_date = dates[0] if dates else None
+            if first_date and isinstance(first_date, dict):
+                date_str = first_date.get('date', '')
+                if date_str and '-' in date_str:
+                    # Формат: 2025-10-13T00:00:00 -> берем год-месяц
+                    year_month = '-'.join(date_str.split('T')[0].split('-')[:2])  # "2025-10"
+                    
+                    if year_month not in month_periods:
+                        month_periods[year_month] = []
+                    
+                    month_periods[year_month].append({
+                        'period_name': period_name,
+                        'dates': dates,
+                        'type': period_data.get('type', '')
+                    })
+        
+        # Если нет данных по месяцам, возвращаем "не указана"
+        if not month_periods:
+            logger.info("[_compute_periodicity] No valid month periods found")
+            return "не указана"
+        
+        # Берем первый доступный месяц (обычно текущий или ближайший)
+        month = sorted(month_periods.keys())[-1]  # Последний месяц
+        periods = month_periods[month]
+        
+        logger.info(f"[_compute_periodicity] Analyzing month: {month} with {len(periods)} periods")
+        
         type1_count = 0  # Влажная уборка всех этажей
         type2_count = 0  # Подметание
         type3_count = 0  # Влажная уборка 1 этажа
         
-        # Анализируем все периоды
-        for period_name, period_data in cleaning_dates.items():
-            if not isinstance(period_data, dict):
-                continue
-                
-            dates = period_data.get('dates') or []
-            type_text = (period_data.get('type') or '').lower()
-            
-            if not dates:
-                continue
-            
+        # Анализируем периоды ТОЛЬКО выбранного месяца
+        for period in periods:
+            period_name = period['period_name']
+            dates = period['dates']
+            type_text = period['type'].lower()
             num_dates = len(dates)
             
             logger.debug(f"[_compute_periodicity] Period: {period_name}, Type: '{type_text}', Dates: {num_dates}")
