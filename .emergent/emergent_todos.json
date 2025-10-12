@@ -1,22 +1,22 @@
 [
   {
-    "content": "Исправить загрузку домов в дашборд",
+    "content": "Изучить репозиторий PostingFotoTG для AI подписей",
     "status": "completed"
   },
   {
-    "content": "Изучить репозиторий PostingFotoTG для AI подписей",
+    "content": "Создать photo_caption_service.py для генерации AI подписей",
     "status": "in_progress"
   },
   {
-    "content": "Реализовать Telegram бот для бригад: выбор дома → загрузка фото",
+    "content": "Реализовать Telegram бот для бригад: /start → список домов",
     "status": "pending"
   },
   {
-    "content": "Тестовая версия: отправка фото обратным сообщением (не в группу)",
+    "content": "Добавить обработчик загрузки фото и /done команду",
     "status": "pending"
   },
   {
-    "content": "Интеграция AI подписи из PostingFotoTG",
+    "content": "Тестовая версия: отправка фото обратным сообщением",
     "status": "pending"
   },
   {
