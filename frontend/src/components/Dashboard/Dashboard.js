@@ -200,14 +200,14 @@ const Dashboard = () => {
           </div>
             
             {/* Real-time status */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                <span className="font-semibold">Система активна</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-light text-gray-700">Система активна</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-xl">
-                <Zap className="w-4 h-4" />
-                <span className="font-semibold">AI готов</span>
+              <div className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg">
+                <Zap className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-light text-gray-700">AI готов</span>
               </div>
             </div>
           </div>
@@ -218,29 +218,24 @@ const Dashboard = () => {
           {mainStats.map((stat, index) => (
             <div 
               key={index} 
-              className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+              className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors"
             >
-              <div className={`h-2 bg-gradient-to-r ${stat.gradient}`} />
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-14 h-14 rounded-xl bg-${stat.color}-100 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <stat.icon className={`w-7 h-7 text-${stat.color}-600`} />
-                  </div>
-                  <div className={`text-xs font-semibold px-3 py-1 rounded-full bg-${stat.color}-50 text-${stat.color}-700`}>
-                    {stat.change}
-                  </div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center">
+                  <stat.icon className="w-6 h-6 text-gray-700" />
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
               </div>
+              <p className="text-sm text-gray-500 mb-1 font-light">{stat.label}</p>
+              <p className="text-3xl font-light text-gray-900 mb-2">{stat.value}</p>
+              <p className="text-xs text-gray-400 font-light">{stat.change}</p>
             </div>
           ))}
         </div>
 
         {/* Analytics Chart - Cleaning Stats */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-green-600" />
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-light text-gray-900 mb-6 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-gray-600" />
             Уборки по месяцам
           </h2>
           <CleaningLineChart data={stats?.cleaningData || {}} />
@@ -249,32 +244,32 @@ const Dashboard = () => {
         {/* Performance & Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Performance */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <BarChart3 className="w-7 h-7 text-blue-600" />
+              <h2 className="text-lg font-light text-gray-900 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-gray-600" />
                 Производительность
               </h2>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <button className="text-sm text-gray-500 hover:text-gray-700 font-light transition-colors">
                 Подробнее →
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               {performanceStats.map((stat, index) => (
                 <div key={index}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <stat.icon className={`w-5 h-5 text-${stat.color}-600`} />
-                      <span className="font-medium text-gray-700">{stat.label}</span>
+                      <stat.icon className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm font-light text-gray-700">{stat.label}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-600">
+                    <span className="text-xs font-light text-gray-500">
                       {stat.completed}/{stat.total} ({stat.percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-gray-100 rounded-full h-2">
                     <div 
-                      className={`bg-${stat.color}-500 h-3 rounded-full transition-all duration-500`}
+                      className="bg-gray-800 h-2 rounded-full transition-all duration-500"
                       style={{ width: `${stat.percentage}%` }}
                     />
                   </div>
