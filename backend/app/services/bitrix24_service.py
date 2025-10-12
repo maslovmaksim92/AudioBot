@@ -173,7 +173,7 @@ class Bitrix24Service:
         
         # Тип 1 + Тип 3 (влажная всех этажей + влажная 1 этаж)
         if type1_count > 0 and type3_count > 0 and type2_count == 0:
-            result = f"{type1_count} раза + 1 этаж"
+            result = f"{type1_count} раза + {type3_count} этаж{'и' if type3_count > 1 else ''}"
             logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 3)")
             return result
         
