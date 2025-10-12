@@ -1,0 +1,4 @@
+emergentintegrations==0.1.0
+livekit-plugins-openai==1.2.11
+openai==1.99.9
+python-dotenv==1.1.1
