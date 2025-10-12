@@ -1,38 +1,22 @@
 [
   {
-    "content": "Проанализировать структуру backend: найти дубликаты (server.py vs app_main.py, services, routers)",
-    "status": "completed"
-  },
-  {
-    "content": "Проанализировать структуру frontend: найти дубликаты компонентов",
-    "status": "completed"
-  },
-  {
-    "content": "Выбрать лучший рабочий код из дубликатов на основе функциональности",
-    "status": "completed"
-  },
-  {
-    "content": "Удалить дублирующие и ненужные файлы (ai_training.py, fix_imports.py, voice.py в корне backend)",
-    "status": "completed"
-  },
-  {
     "content": "Проверить backend импорты и зависимости",
-    "status": "in_progress"
-  },
-  {
-    "content": "Проверить frontend структуру и зависимости",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Запустить backend и проверить API endpoints",
-    "status": "pending"
+    "status": "completed"
+  },
+  {
+    "content": "Проверить frontend структуру и зависимости",
+    "status": "in_progress"
   },
   {
     "content": "Запустить frontend и проверить UI",
     "status": "pending"
   },
   {
-    "content": "Финальная проверка: приложение работает идеально",
+    "content": "Создать финальный отчёт о проделанной работе",
     "status": "pending"
   }
 ]
