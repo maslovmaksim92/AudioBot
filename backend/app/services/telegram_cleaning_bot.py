@@ -204,7 +204,8 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
             
             if brigade_houses:
                 houses = []
-                for h in brigade_houses:
+                # Ограничиваем отображение до 50 домов
+                for h in brigade_houses[:50]:
                     # Берем ID из Bitrix (может быть строкой типа "13180")
                     house_id = str(h.get('id', ''))
                     address = h.get('address') or h.get('title', 'Адрес не указан')
@@ -216,7 +217,7 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
                         "floors": h.get('floors', 5)
                     })
                 
-                logger.info(f"[telegram_cleaning_bot] ✅ Prepared {len(houses)} houses for brigade 1 on {target_date}")
+                logger.info(f"[telegram_cleaning_bot] ✅ Found {len(brigade_houses)} houses for brigade 1, showing {len(houses)} on {target_date}")
             else:
                 # Если нет домов для бригады 1 на 13.10, показываем все дома этой даты
                 logger.warning(f"[telegram_cleaning_bot] No houses for {brigade_name} on {target_date}, showing all houses")
