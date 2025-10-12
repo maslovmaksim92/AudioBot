@@ -406,27 +406,36 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         
         logger.info(f"[telegram_cleaning_bot] Generated caption for {session.selected_house_address}")
         
-        # ПРОДАКШЕН РЕЖИМ: Отправляем в Telegram группу
-        target_chat_id = os.getenv('TELEGRAM_TARGET_CHAT_ID')
+        # ПРОДАКШЕН РЕЖИМ: Отправляем в Telegram группы
+        target_chat_id = os.getenv('TELEGRAM_TARGET_CHAT_ID')  # Публичная группа
+        report_chat_id = os.getenv('TELEGRAM_REPORT_CHAT_ID')  # Отчетная группа
         
+        sent_to_group = False
+        
+        # Отправляем в публичную группу
         if target_chat_id:
-            # Отправляем в группу
-            logger.info(f"[telegram_cleaning_bot] Sending to group: {target_chat_id}")
+            logger.info(f"[telegram_cleaning_bot] Sending to public group: {target_chat_id}")
             if len(session.photos) == 1:
                 await send_photo(target_chat_id, session.photos[0], caption)
             else:
                 await send_media_group(target_chat_id, session.photos, caption)
-            
             sent_to_group = True
-        else:
-            # Fallback: отправляем обратно пользователю (тестовый режим)
-            logger.warning("[telegram_cleaning_bot] TELEGRAM_TARGET_CHAT_ID not set, sending to user")
+        
+        # Отправляем в отчетную группу (если отличается от публичной)
+        if report_chat_id and report_chat_id != target_chat_id:
+            logger.info(f"[telegram_cleaning_bot] Sending to report group: {report_chat_id}")
+            if len(session.photos) == 1:
+                await send_photo(report_chat_id, session.photos[0], caption)
+            else:
+                await send_media_group(report_chat_id, session.photos, caption)
+        
+        # Fallback: отправляем обратно пользователю
+        if not sent_to_group:
+            logger.warning("[telegram_cleaning_bot] No group chats configured, sending to user")
             if len(session.photos) == 1:
                 await send_photo(chat_id, session.photos[0], caption)
             else:
                 await send_media_group(chat_id, session.photos, caption)
-            
-            sent_to_group = False
         
         # Сохраняем в БД
         try:
