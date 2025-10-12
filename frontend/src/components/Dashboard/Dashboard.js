@@ -32,8 +32,21 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/dashboard/stats`);
+      console.log('[Dashboard] Loading data from:', `${BACKEND_URL}/api/dashboard/stats`);
+      const response = await fetch(`${BACKEND_URL}/api/dashboard/stats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('[Dashboard] Stats loaded:', data);
       
       // Загружаем данные для графиков
       const cleaningResponse = await fetch(`${BACKEND_URL}/api/dashboard/cleaning-stats-monthly`).catch(() => ({ json: () => ({}) }));
