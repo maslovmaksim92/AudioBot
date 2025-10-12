@@ -1,15 +1,15 @@
 [
   {
     "content": "Перенести компоненты во вкладки: Агенты (Мониторинг + AI Задачи)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Перенести Логистика во вкладки Дома",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Перенести Живой разговор во вкладки AI Чат",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Создать таблицу chat_messages в PostgreSQL",
@@ -25,6 +25,10 @@
   },
   {
     "content": "Production интеграция: БД для бота + отправка в группу",
+    "status": "pending"
+  },
+  {
+    "content": "Перезапустить frontend и протестировать вкладки",
     "status": "pending"
   }
 ]
