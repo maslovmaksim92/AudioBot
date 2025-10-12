@@ -60,26 +60,26 @@ const Layout = ({ children }) => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:relative lg:flex lg:flex-shrink-0
       `}>
-        <div className="flex h-full flex-col bg-white border-r border-gray-200 shadow-xl">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <img src={process.env.PUBLIC_URL + '/logo.png'} alt="VasDom" className="w-10 h-10 rounded-xl object-contain bg-white border" />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Ваш Дом</h1>
-                <p className="text-sm text-gray-500">AudioBot</p>
-              </div>
+        <div className="flex h-full flex-col bg-white border-r border-gray-200">
+          {/* Header with Logo */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div className="flex flex-col items-center w-full">
+              <img 
+                src={logo} 
+                alt="VasDom Logo" 
+                className="w-32 h-auto mb-2"
+              />
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-50 absolute top-4 right-4"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-4 py-6 space-y-1">
             {navigation.map((item) => {
               const isActive = isActiveRoute(item.href);
               return (
@@ -88,17 +88,17 @@ const Layout = ({ children }) => {
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
                   className={`
-                    flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
+                    flex items-center px-4 py-3 text-sm font-light rounded-lg transition-colors
                     ${isActive 
-                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-gray-900 text-white' 
+                      : 'text-gray-700 hover:bg-gray-50'
                     }
                   `}
                 >
-                  <item.icon className={`mr-3 w-5 h-5 ${isActive ? 'text-blue-600' : item.color}`} />
+                  <item.icon className={`mr-3 w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                   {item.name}
                   {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                    <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full" />
                   )}
                 </Link>
               );
