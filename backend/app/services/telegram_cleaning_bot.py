@@ -189,10 +189,10 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         try:
             from app.services.bitrix24_service import bitrix24_service
             
-            # Загружаем ВСЕ дома на 13.10.2025
+            # Загружаем ВСЕ дома на 13.10.2025 (API limit 200, показываем 50)
             data = await bitrix24_service.list_houses(
                 cleaning_date=target_date,
-                limit=50  # Лимит домов для отображения
+                limit=200  # API лимит для получения всех домов
             )
             
             houses_raw = data.get('houses', [])
