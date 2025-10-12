@@ -1,19 +1,11 @@
 [
   {
-    "content": "Проверить backend импорты и зависимости",
-    "status": "completed"
-  },
-  {
-    "content": "Запустить backend и проверить API endpoints",
-    "status": "completed"
-  },
-  {
     "content": "Проверить frontend структуру и зависимости",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
-    "content": "Запустить frontend и проверить UI",
-    "status": "pending"
+    "content": "Проверить UI приложения",
+    "status": "in_progress"
   },
   {
     "content": "Создать финальный отчёт о проделанной работе",
