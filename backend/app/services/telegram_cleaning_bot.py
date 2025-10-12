@@ -177,10 +177,16 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # today = date.today()
         # houses = await get_houses_for_brigade_by_date(brigade.id, today, db_session)
         
-        # Тестовый режим: используем моковые данные
-        # TODO: В продакшене получать из БД по brigade_id
-        session.brigade_id = "brigade_1"  # Тестовая бригада
+        # Определяем бригаду пользователя
+        # TODO: В продакшене получать из БД по telegram_user_id
+        session.brigade_id = "brigade_1"  # Бригада 1
         
+        # Получаем дома на завтра (13.10.2025)
+        # TODO: В продакшене получать из БД/Bitrix24 по графику бригады
+        from datetime import datetime, timedelta
+        tomorrow = datetime.now().date() + timedelta(days=1)  # 13.10.2025
+        
+        # Моковые данные для Бригады 1 на 13.10.2025
         houses = [
             {"id": "house_1", "address": "ул. Ленина, д. 10, подъезд 1"},
             {"id": "house_2", "address": "ул. Пушкина, д. 25, подъезды 1-3"},
