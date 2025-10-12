@@ -10,9 +10,12 @@ from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
-# Используем Emergent LLM key или OpenAI key
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', os.getenv('EMERGENT_LLM_KEY'))
-client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+# Используем Emergent LLM key для GPT-5
+EMERGENT_LLM_KEY = os.getenv('EMERGENT_LLM_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+# Приоритет: EMERGENT_LLM_KEY для GPT-5
+api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+client = AsyncOpenAI(api_key=api_key) if api_key else None
 
 
 async def generate_motivational_text(address: str) -> str:
