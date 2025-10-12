@@ -1,26 +1,22 @@
 [
   {
-    "content": "Изучить репозиторий PostingFotoTG для AI подписей",
+    "content": "Создать photo_caption_service.py для генерации AI подписей",
     "status": "completed"
   },
   {
-    "content": "Создать photo_caption_service.py для генерации AI подписей",
-    "status": "in_progress"
-  },
-  {
     "content": "Реализовать Telegram бот для бригад: /start → список домов",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Добавить обработчик загрузки фото и /done команду",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Тестовая версия: отправка фото обратным сообщением",
-    "status": "pending"
+    "status": "completed"
   },
   {
-    "content": "Добавить кнопку 'Акт подписан' + статистика",
-    "status": "pending"
+    "content": "Создать итоговый отчёт по реализации",
+    "status": "in_progress"
   }
 ]
