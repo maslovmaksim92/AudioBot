@@ -150,35 +150,30 @@ def _generate_fallback_caption(address: str, brigade_number: str = None) -> str:
 
 async def format_cleaning_completion_message(
     address: str,
-    photo_count: int,
+    photo_count: int = 1,
     cleaning_type: str = None,
-    brigade_name: str = None,
+    brigade_number: str = None,
     use_ai: bool = True
 ) -> str:
     """
-    Форматирует полное сообщение о завершении уборки
+    Форматирует полное сообщение о завершении уборки в стиле PostingFotoTG
     
     Args:
         address: Адрес дома
         photo_count: Количество фото
         cleaning_type: Тип уборки
-        brigade_name: Название бригады
-        use_ai: Использовать ли AI для генерации текста
+        brigade_number: Номер бригады (например "1")
+        use_ai: Использовать ли GPT-4o для генерации мотивирующего текста
     
     Returns:
         Полностью отформатированное сообщение
     """
-    # Генерируем AI текст или используем fallback
     if use_ai:
-        ai_text = await generate_caption(address, photo_count, cleaning_type)
+        caption = await generate_caption(address, photo_count, cleaning_type, brigade_number)
     else:
-        ai_text = _generate_fallback_caption(address, photo_count, cleaning_type)
+        caption = _generate_fallback_caption(address, brigade_number)
     
-    # Добавляем информацию о бригаде если есть
-    if brigade_name:
-        ai_text += f"\n\n👷 Бригада: {brigade_name}"
-    
-    return ai_text
+    return caption
 
 
 # Для тестирования
