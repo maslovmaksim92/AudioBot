@@ -273,6 +273,13 @@ const Works = () => {
         </div>
       )}
 
+      {/* Вкладка "Акты" */}
+      {activeTab === 'acts' && (
+        <div className="-m-6 p-6">
+          <ActsStats />
+        </div>
+      )}
+
       {/* Вкладка "Список домов" */}
       {activeTab === 'list' && (
         <>
