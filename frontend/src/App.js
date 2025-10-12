@@ -45,7 +45,7 @@ function App() {
           <Route path="/calendar" element={<CleaningCalendar />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/sales" element={<SalesFunnel />} />
-          <Route path="/ai" element={<AIChat />} />
+          <Route path="/ai" element={<AIChatWrapper />} />
           <Route path="/meetings" element={<Meetings />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/constructor" element={<FunctionStudio />} />
