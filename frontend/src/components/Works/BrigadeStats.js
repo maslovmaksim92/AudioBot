@@ -136,11 +136,66 @@ const BrigadeStats = () => {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Users className="w-10 h-10 text-blue-600" />
-          KPI Бригад
-        </h1>
-        <p className="text-gray-600">Статистика работы бригад за {months[month]} {year}</p>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <Users className="w-10 h-10 text-blue-600" />
+              KPI Бригад
+            </h1>
+            <p className="text-gray-600">Статистика работы бригад за {months[month]} {year}</p>
+          </div>
+          
+          {/* Селектор месяца */}
+          <div className="flex items-center gap-3 bg-white rounded-lg shadow-md p-2 border border-gray-200">
+            <button
+              onClick={() => {
+                const newDate = new Date(currentMonth);
+                newDate.setMonth(newDate.getMonth() - 1);
+                setCurrentMonth(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              title="Предыдущий месяц"
+              data-testid="prev-month-btn"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <div className="px-4 py-1 text-center min-w-[140px]">
+              <div className="text-sm font-semibold text-gray-900">
+                {months[month]}
+              </div>
+              <div className="text-xs text-gray-600">
+                {year}
+              </div>
+            </div>
+            
+            <button
+              onClick={() => {
+                const newDate = new Date(currentMonth);
+                newDate.setMonth(newDate.getMonth() + 1);
+                setCurrentMonth(newDate);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              title="Следующий месяц"
+              data-testid="next-month-btn"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={() => setCurrentMonth(new Date())}
+              className="ml-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              title="Текущий месяц"
+              data-testid="current-month-btn"
+            >
+              Сегодня
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
