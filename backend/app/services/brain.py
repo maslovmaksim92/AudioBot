@@ -82,6 +82,72 @@ class CleaningDates:
             if self.december_2:
                 result.append(('Вторая половина декабря', self.december_2))
         return result
+    
+    def calculate_periodicity(self, month: str = 'october') -> str:
+        """
+        Расчёт периодичности уборок на основе 3 типов:
+        
+        Тип 1: Влажная уборка всех этажей (ключевые слова: "всех этажей", "Влажная")
+        Тип 2: Подметание (ключевое слово: "Подметание")
+        Тип 3: Влажная уборка 1 этажа (ключевые слова: "1 этажа", "Влажная")
+        
+        Логика:
+        - Только Тип 1: "N раза" или "N раз"
+        - Тип 1 + Тип 2: "N раза + M подметания"
+        - Тип 1 + Тип 3: "N раза + 1 этаж"
+        - Другое: "индивидуальная"
+        - Нет данных: "не указана"
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        periods = self.get_for_month(month)
+        if not periods:
+            logger.info(f"[calculate_periodicity] No periods found for month: {month}")
+            return "не указана"
+        
+        # Счётчики по типам уборок
+        type1_count = 0  # Влажная уборка всех этажей
+        type2_count = 0  # Подметание
+        type3_count = 0  # Влажная уборка 1 этажа
+        
+        for period_name, period_data in periods:
+            if not isinstance(period_data, dict):
+                continue
+            
+            cleaning_type = period_data.get('type', '').lower()
+            dates = period_data.get('dates', [])
+            dates_count = len(dates) if dates else 0
+            
+            logger.debug(f"[calculate_periodicity] Period: {period_name}, Type: '{cleaning_type}', Dates count: {dates_count}")
+            
+            # Определяем тип уборки
+            if 'всех этажей' in cleaning_type and 'влажная' in cleaning_type:
+                type1_count += dates_count
+                logger.debug(f"[calculate_periodicity] Detected Type 1 (full wet cleaning), count: {dates_count}")
+            elif 'подметание' in cleaning_type:
+                type2_count += dates_count
+                logger.debug(f"[calculate_periodicity] Detected Type 2 (sweeping), count: {dates_count}")
+            elif '1 этажа' in cleaning_type and 'влажная' in cleaning_type:
+                type3_count += dates_count
+                logger.debug(f"[calculate_periodicity] Detected Type 3 (1st floor wet cleaning), count: {dates_count}")
+        
+        logger.info(f"[calculate_periodicity] Totals - Type1: {type1_count}, Type2: {type2_count}, Type3: {type3_count}")
+        
+        # Логика определения периодичности
+        if type1_count > 0 and type2_count == 0 and type3_count == 0:
+            result = f"{type1_count} раза" if type1_count > 1 else f"{type1_count} раз"
+        elif type1_count > 0 and type2_count > 0 and type3_count == 0:
+            result = f"{type1_count} раза + {type2_count} подметания"
+        elif type1_count > 0 and type3_count > 0 and type2_count == 0:
+            result = f"{type1_count} раза + 1 этаж"
+        elif type1_count > 0 or type2_count > 0 or type3_count > 0:
+            result = "индивидуальная"
+        else:
+            result = "не указана"
+        
+        logger.info(f"[calculate_periodicity] Result: '{result}'")
+        return result
 
 
 @dataclass
