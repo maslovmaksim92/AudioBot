@@ -1329,6 +1329,19 @@ async def startup_event():
     try:
         await init_db()
         logger.info("✅ Database initialized successfully")
+        
+        # Запуск миграций
+        try:
+            from backend.app.migrations.run_migrations import run_migrations
+            from backend.app.config.database import get_db_pool
+            
+            db_pool = await get_db_pool()
+            if db_pool:
+                await run_migrations(db_pool)
+                logger.info("✅ Database migrations completed")
+        except Exception as migration_error:
+            logger.warning(f"⚠️ Migrations skipped: {migration_error}")
+            
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
         logger.warning("⚠️ Please check DATABASE_URL environment variable on Render")
