@@ -1,15 +1,15 @@
 [
   {
     "content": "Проанализировать баг с определением месяца (November вместо October) в Brain",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Добавить продвинутое логирование в Brain resolvers для отладки",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Исправить логику расчета периодичности в карточке дома (типы уборок)",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Исправить баг пересчета статистики в КПИ бригад при выборе даты",
