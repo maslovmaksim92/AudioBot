@@ -331,12 +331,14 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         
         await send_message(chat_id, "⏳ Обрабатываю фото и генерирую подпись...")
         
-        # Генерируем AI подпись
+        # Генерируем AI подпись с номером бригады
+        brigade_number = session.brigade_id.replace("brigade_", "") if session.brigade_id else "1"
+        
         caption = await format_cleaning_completion_message(
             address=session.selected_house_address,
             photo_count=len(session.photos),
             cleaning_type="Влажная уборка",  # TODO: получить из БД
-            brigade_name=None,  # TODO: получить из сессии
+            brigade_number=brigade_number,  # Тестовый режим: "1"
             use_ai=True
         )
         
