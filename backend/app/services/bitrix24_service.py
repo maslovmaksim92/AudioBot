@@ -168,16 +168,16 @@ class Bitrix24Service:
         # Тип 1 + Тип 2 (влажная + подметание)
         if type1_count > 0 and type2_count > 0 and type3_count == 0:
             t1_word = "раза" if type1_count in [2, 3, 4] else "раз"
-            t2_word = "подметания" if type2_count in [2, 3, 4] else "подметание"
-            result = f"{type1_count} {t1_word} + {type2_count} {t2_word}"
+            # БЕЗ количества для подметания!
+            result = f"{type1_count} {t1_word} + подметания"
             logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 2)")
             return result
         
         # Тип 1 + Тип 3 (влажная всех этажей + влажная 1 этаж)
         if type1_count > 0 and type3_count > 0 and type2_count == 0:
             t1_word = "раза" if type1_count in [2, 3, 4] else "раз"
-            t3_word = "этажи" if type3_count in [2, 3, 4] else ("этаж" if type3_count == 1 else "этажей")
-            result = f"{type1_count} {t1_word} + {t3_count} {t3_word}"
+            # ВСЕГДА "1 этажи" независимо от количества!
+            result = f"{type1_count} {t1_word} + 1 этажи"
             logger.info(f"[_compute_periodicity] Result: '{result}' (Type 1 + Type 3)")
             return result
         
