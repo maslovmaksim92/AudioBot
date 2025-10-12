@@ -1,6 +1,26 @@
 [
   {
-    "content": "Протестировать все исправления багов",
-    "status": "completed"
+    "content": "Исправить загрузку домов в дашборд",
+    "status": "in_progress"
+  },
+  {
+    "content": "Изучить репозиторий PostingFotoTG для AI подписей",
+    "status": "pending"
+  },
+  {
+    "content": "Реализовать Telegram бот для бригад: выбор дома → загрузка фото",
+    "status": "pending"
+  },
+  {
+    "content": "Тестовая версия: отправка фото обратным сообщением (не в группу)",
+    "status": "pending"
+  },
+  {
+    "content": "Интеграция AI подписи из PostingFotoTG",
+    "status": "pending"
+  },
+  {
+    "content": "Добавить кнопку 'Акт подписан' + статистика",
+    "status": "pending"
   }
 ]
