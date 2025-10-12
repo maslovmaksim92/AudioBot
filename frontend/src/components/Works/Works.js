@@ -23,7 +23,7 @@ const monthMeta = {
 };
 
 const Works = () => {
-  const [activeTab, setActiveTab] = useState('list'); // 'list' или 'calendar'
+  const [activeTab, setActiveTab] = useState('list'); // 'list', 'calendar', 'kpi', 'logistics', 'acts'
   const [houses, setHouses] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 50, pages: 0 });
   const [filters, setFilters] = useState({ brigades: [], statuses: [] });
@@ -35,6 +35,8 @@ const Works = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showActSignModal, setShowActSignModal] = useState(false);
+  const [selectedHouseForAct, setSelectedHouseForAct] = useState(null);
   const detailsLoadingRef = useRef(false);
 
   useEffect(() => { fetchInitial(); }, []);
