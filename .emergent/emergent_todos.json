@@ -1,11 +1,11 @@
 [
   {
     "content": "Клонировать актуальные файлы с GitHub репозитория maslovmaksim92/AudioBot",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Проанализировать структуру backend: найти дубликаты (server.py vs app_main.py, services, routers)",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Проанализировать структуру frontend: найти дубликаты компонентов",
