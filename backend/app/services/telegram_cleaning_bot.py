@@ -242,9 +242,9 @@ async def handle_house_selection(
         
         # Временные моковые данные
         houses_mock = {
-            "1": {"id": "1", "address": "ул. Ленина, д. 10", "entrances": 3, "floors": 5},
-            "2": {"id": "2", "address": "ул. Пушкина, д. 25", "entrances": 4, "floors": 9},
-            "3": {"id": "3", "address": "пр. Мира, д. 5", "entrances": 2, "floors": 5}
+            "house_1": {"id": "house_1", "address": "ул. Ленина, д. 10, подъезд 1", "entrances": 1, "floors": 5},
+            "house_2": {"id": "house_2", "address": "ул. Пушкина, д. 25, подъезды 1-3", "entrances": 3, "floors": 9},
+            "house_3": {"id": "house_3", "address": "пр. Мира, д. 5, подъезды 1-4", "entrances": 4, "floors": 5}
         }
         house = houses_mock.get(house_id)
         
