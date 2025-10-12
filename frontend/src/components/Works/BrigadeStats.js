@@ -21,6 +21,8 @@ const BrigadeStats = () => {
 
   const loadBrigadeStats = async () => {
     setLoading(true);
+    console.log('[BrigadeStats] Loading stats for month:', currentMonth.toISOString());
+    
     try {
       // Загружаем распределение домов по бригадам
       const distributionResponse = await fetch(`${BACKEND_URL}/api/dashboard/houses-by-brigade`);
@@ -29,6 +31,8 @@ const BrigadeStats = () => {
       
       const response = await fetch(`${BACKEND_URL}/api/cleaning/houses?limit=1000`);
       const data = await response.json();
+      
+      console.log('[BrigadeStats] Loaded', data.houses?.length || 0, 'houses');
       
       // Подсчет статистики по бригадам
       const stats = {};
