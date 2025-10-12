@@ -122,6 +122,9 @@ async def resolve_elder_contact(text: str, ent: Optional[Dict[str, Any]] = None)
 
 async def resolve_cleaning_month(text: str, ent: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
     """Resolve cleaning schedule queries"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if not text:
         return None
     
@@ -129,14 +132,21 @@ async def resolve_cleaning_month(text: str, ent: Optional[Dict[str, Any]] = None
     if not any(k in tl for k in ["уборк", "когда", "дат", "график", "расписан"]):
         return None
     
+    logger.info(f"[resolve_cleaning_month] Processing query: '{text}'")
+    
     # Извлекаем адрес и месяц
     address = (ent or {}).get('address') or extract_address(text)
-    month = (ent or {}).get('month') or extract_month(text)
+    # Используем fallback на текущий месяц если месяц не указан явно
+    month = (ent or {}).get('month') or extract_month(text, use_current_as_fallback=True)
+    
+    logger.info(f"[resolve_cleaning_month] Extracted - address: '{address}', month: '{month}'")
     
     if not address:
+        logger.warning(f"[resolve_cleaning_month] No address found in text: '{text}'")
         return _fail("no_address")
     
     if not month:
+        logger.warning(f"[resolve_cleaning_month] No month found in text: '{text}'")
         return _fail("no_month")
     
     try:
