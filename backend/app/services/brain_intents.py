@@ -100,13 +100,24 @@ def extract_address(text: str) -> Optional[str]:
     return None
 
 
-def extract_month(text: str) -> Optional[str]:
+def extract_month(text: str, use_current_as_fallback: bool = False) -> Optional[str]:
     """
     Продвинутое извлечение месяца из текста
     Поддерживает все падежи, сокращения, числовые форматы
     Возвращает: october/november/december
+    
+    Args:
+        text: Текст для анализа
+        use_current_as_fallback: Если True и месяц не найден, вернуть текущий месяц
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if not text:
+        if use_current_as_fallback:
+            current_month = _get_current_month()
+            logger.info(f"[extract_month] No text provided, using current month: {current_month}")
+            return current_month
         return None
     
     text_lower = text.lower()
@@ -115,15 +126,15 @@ def extract_month(text: str) -> Optional[str]:
     month_patterns = {
         'october': [
             'октябр', 'окт', 'октября', 'октябре', 'октябрь', 'октябрём',
-            r'\b10\b', r'\b10\.', r'10/2025', r'2025-10'
+            r'\b10\b', r'\b10\.', r'10/2025', r'2025-10', r'10-2025'
         ],
         'november': [
             'ноябр', 'ноя', 'ноября', 'ноябре', 'ноябрь', 'ноябрём',
-            r'\b11\b', r'\b11\.', r'11/2025', r'2025-11'
+            r'\b11\b', r'\b11\.', r'11/2025', r'2025-11', r'11-2025'
         ],
         'december': [
             'декабр', 'дек', 'декабря', 'декабре', 'декабрь', 'декабрём',
-            r'\b12\b', r'\b12\.', r'12/2025', r'2025-12'
+            r'\b12\b', r'\b12\.', r'12/2025', r'2025-12', r'12-2025'
         ]
     }
     
@@ -131,9 +142,39 @@ def extract_month(text: str) -> Optional[str]:
     for month_key, patterns in month_patterns.items():
         for pattern in patterns:
             if re.search(pattern, text_lower):
+                logger.info(f"[extract_month] Found month '{month_key}' in text: '{text}' via pattern: '{pattern}'")
                 return month_key
     
+    # Если месяц не найден и включен fallback
+    if use_current_as_fallback:
+        current_month = _get_current_month()
+        logger.info(f"[extract_month] Month not found in text: '{text}', using current month: {current_month}")
+        return current_month
+    
+    logger.warning(f"[extract_month] Month not found in text: '{text}'")
     return None
+
+
+def _get_current_month() -> str:
+    """
+    Получить текущий месяц в формате october/november/december
+    """
+    month_num = datetime.now().month
+    month_map = {
+        10: 'october',
+        11: 'november',
+        12: 'december',
+        1: 'january',
+        2: 'february',
+        3: 'march',
+        4: 'april',
+        5: 'may',
+        6: 'june',
+        7: 'july',
+        8: 'august',
+        9: 'september'
+    }
+    return month_map.get(month_num, 'october')
 
 
 def extract_specific_date(text: str) -> Optional[str]:
