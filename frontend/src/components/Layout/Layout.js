@@ -26,20 +26,15 @@ const Layout = ({ children }) => {
 
   const navigation = [
     { name: 'Обзор', href: '/dashboard', icon: Home, color: 'text-blue-600' },
-    { name: '🤖 Агенты', href: '/agents', icon: Bot, color: 'text-indigo-600' },
     { name: 'Дома', href: '/works', icon: Building2, color: 'text-green-600' },
-    { name: 'Воронка продаж', href: '/sales', icon: TrendingUp, color: 'text-emerald-600' },
     { name: 'Сотрудники', href: '/employees', icon: Users, color: 'text-orange-600' },
     { name: 'AI Чат', href: '/ai', icon: Bot, color: 'text-purple-600' },
-    { name: 'Живой разговор', href: '/live', icon: Bot, color: 'text-rose-600' },
-    { name: 'Агенты', href: '/agents', icon: Settings, color: 'text-yellow-600' },
-    { name: 'Мониторинг', href: '/agents/dashboard', icon: Activity, color: 'text-cyan-600' },
-    { name: 'Планёрка', href: '/meetings', icon: ClipboardList, color: 'text-indigo-600' },
-    { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
+    { name: '🤖 Агенты', href: '/agents', icon: Settings, color: 'text-indigo-600' },
+    { name: 'Воронка продаж', href: '/sales', icon: TrendingUp, color: 'text-emerald-600' },
     { name: 'Задачи', href: '/tasks', icon: ClipboardList, color: 'text-blue-600' },
-    { name: 'AI Задачи', href: '/ai-tasks', icon: Calendar, color: 'text-violet-600' },
+    { name: 'Планёрка', href: '/meetings', icon: ClipboardList, color: 'text-indigo-600' },
     { name: 'Финансы', href: '/finances', icon: DollarSign, color: 'text-green-600' },
-    { name: 'Логистика', href: '/logistics', icon: Truck, color: 'text-teal-600' },
+    { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
     { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },
   ];
 
