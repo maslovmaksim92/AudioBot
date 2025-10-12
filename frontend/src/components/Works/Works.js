@@ -618,6 +618,22 @@ const Works = () => {
           setTimeout(() => setNotification(null), 3000);
         }}
       />
+
+      {/* Act Sign Modal */}
+      <ActSignModal
+        house={selectedHouseForAct}
+        isOpen={showActSignModal}
+        onClose={() => {
+          setShowActSignModal(false);
+          setSelectedHouseForAct(null);
+        }}
+        onSave={() => {
+          setShowActSignModal(false);
+          setSelectedHouseForAct(null);
+          showNotification('Акт успешно подписан!', 'success');
+          fetchHouses(); // Refresh the list
+        }}
+      />
       </>
       )}
     </div>
