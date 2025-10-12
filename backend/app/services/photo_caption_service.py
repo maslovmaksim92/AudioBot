@@ -46,10 +46,10 @@ async def generate_motivational_text(address: str) -> str:
 "Сегодня мы сделали мир немного чище! Благодарим уборщиков за труд и внимание. Давайте вместе делать наш город лучше!"
 """
 
-        logger.info(f"[photo_caption] Generating motivational text with GPT-4o-mini")
+        logger.info(f"[photo_caption] Generating motivational text with GPT-5")
         
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",  # Быстрая и дешёвая модель для текста
+            model="gpt-5",  # Новейшая модель GPT-5
             messages=[
                 {"role": "system", "content": "Ты вдохновляющий копирайтер клининговой компании ВасДом. Пишешь короткие мотивирующие тексты про уборку подъездов."},
                 {"role": "user", "content": prompt}
