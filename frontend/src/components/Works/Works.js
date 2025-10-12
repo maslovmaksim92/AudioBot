@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Building2, Users, Calendar, MapPin, RefreshCw, CalendarDays, List, TrendingUp, Truck } from 'lucide-react';
+import { Building2, Users, Calendar, MapPin, RefreshCw, CalendarDays, List, TrendingUp, Truck, FileCheck } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns';
@@ -8,6 +8,8 @@ import EditHouseModal from './EditHouseModal';
 import CleaningCalendar from '../Calendar/CleaningCalendar';
 import BrigadeStats from './BrigadeStats';
 import Logistics from '../Logistics/Logistics';
+import ActsStats from './ActsStats';
+import ActSignModal from './ActSignModal';
 
 const monthMeta = {
   september_1: { title: 'Сентябрь · 1', color: 'purple' },
