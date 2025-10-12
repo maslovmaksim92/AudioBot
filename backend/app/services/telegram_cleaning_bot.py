@@ -181,46 +181,59 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # TODO: В продакшене получать из БД по telegram_user_id
         session.brigade_id = "brigade_1"  # Бригада 1
         
-        # Получаем дома на сегодня для бригады
-        # Пока brigade_number в БД не заполнен, используем реальные адреса для демо
-        from datetime import datetime, timedelta
-        today = datetime.now().date()
+        # Получаем дома на 13.10.2025 из Bitrix24 через API
+        from datetime import datetime
+        target_date = "2025-10-13"
         
-        # Получаем реальные дома из БД для демонстрации
         try:
-            from app.config.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as db:
-                from sqlalchemy import select, text
-                from app.models.house import House
-                
-                # Получаем 5 случайных домов из БД для демо-теста
-                result = await db.execute(
-                    text("""
-                        SELECT id, address, entrances_count, floors_count 
-                        FROM houses 
-                        ORDER BY RANDOM() 
-                        LIMIT 5
-                    """)
-                )
-                houses_from_db = result.fetchall()
-                
+            from app.services.bitrix24_service import bitrix24_service
+            
+            # Загружаем дома на 13.10.2025
+            data = await bitrix24_service.list_houses(
+                cleaning_date=target_date,
+                limit=20
+            )
+            
+            houses_raw = data.get('houses', [])
+            logger.info(f"[telegram_cleaning_bot] Loaded {len(houses_raw)} houses for {target_date}")
+            
+            if houses_raw:
                 houses = []
-                for h in houses_from_db:
+                for h in houses_raw:
+                    # Берем ID из Bitrix (может быть строкой типа "13180")
+                    house_id = str(h.get('id', ''))
+                    address = h.get('address') or h.get('title', 'Адрес не указан')
+                    
                     houses.append({
-                        "id": h[0],
-                        "address": h[1],
-                        "entrances": h[2] or 1,
-                        "floors": h[3] or 5
+                        "id": house_id,
+                        "address": address,
+                        "entrances": h.get('entrances', 1),
+                        "floors": h.get('floors', 5)
                     })
                 
-                logger.info(f"[telegram_cleaning_bot] Loaded {len(houses)} houses from DB")
+                logger.info(f"[telegram_cleaning_bot] Prepared {len(houses)} houses for bot")
+            else:
+                # Если нет домов на 13.10, показываем любые дома для демо
+                logger.warning(f"[telegram_cleaning_bot] No houses found for {target_date}, loading random houses")
+                data = await bitrix24_service.list_houses(limit=10)
+                houses_raw = data.get('houses', [])
+                
+                houses = []
+                for h in houses_raw[:5]:
+                    houses.append({
+                        "id": str(h.get('id', '')),
+                        "address": h.get('address') or h.get('title', 'Адрес не указан'),
+                        "entrances": h.get('entrances', 1),
+                        "floors": h.get('floors', 5)
+                    })
+        
         except Exception as e:
-            logger.error(f"[telegram_cleaning_bot] Failed to load houses from DB: {e}")
+            logger.error(f"[telegram_cleaning_bot] Failed to load houses from Bitrix24: {e}")
             # Fallback к моковым данным
             houses = [
-                {"id": "house_demo_1", "address": "улица Ленина 42, 248016 Калуга Калужская область, Россия", "entrances": 1, "floors": 5},
-                {"id": "house_demo_2", "address": "Площадь Победы 1, 248023 Калуга Калужская область, Россия", "entrances": 3, "floors": 9},
-                {"id": "house_demo_3", "address": "Хрустальная улица 60, 248028 Калуга Калужская область, Россия", "entrances": 4, "floors": 5}
+                {"id": "13180", "address": "улица Баррикад, 10, Калуга, Калужская область, Россия, 248030", "entrances": 1, "floors": 5},
+                {"id": "13162", "address": "улица Чичерина, 20, Калуга, Калужская область, Россия, 248001", "entrances": 3, "floors": 9},
+                {"id": "13100", "address": "улица Чичерина, 14, калуга 248010", "entrances": 2, "floors": 5}
             ]
         
         if not houses:
