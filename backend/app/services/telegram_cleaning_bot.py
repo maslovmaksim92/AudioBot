@@ -178,11 +178,14 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # today = date.today()
         # houses = await get_houses_for_brigade_by_date(brigade.id, today, db_session)
         
-        # Временно используем моковые данные для тестирования
+        # Тестовый режим: используем моковые данные
+        # TODO: В продакшене получать из БД по brigade_id
+        session.brigade_id = "brigade_1"  # Тестовая бригада
+        
         houses = [
-            {"id": "1", "address": "ул. Ленина, д. 10"},
-            {"id": "2", "address": "ул. Пушкина, д. 25"},
-            {"id": "3", "address": "пр. Мира, д. 5"}
+            {"id": "house_1", "address": "ул. Ленина, д. 10, подъезд 1"},
+            {"id": "house_2", "address": "ул. Пушкина, д. 25, подъезды 1-3"},
+            {"id": "house_3", "address": "пр. Мира, д. 5, подъезды 1-4"}
         ]
         
         if not houses:
