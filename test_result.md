@@ -105,7 +105,7 @@
 user_problem_statement: "Протестировать CSV отчет с контактами старшего - проверить endpoint /api/cleaning/missing-data-report, структуру CSV файла с ~500 домами, контакты дома ID 8674 (Кибальчича 3), статистику домов с/без контактов"
 
 backend:
-  - task: "GET /api/cleaning/houses endpoint"
+  - task: "CSV missing data report endpoint"
     implemented: true
     working: true
     file: "/app/backend/app/routers/cleaning.py"
@@ -115,9 +115,21 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ Endpoint работает корректно. Загружено 499 домов. Структура ответа валидна с полями total, page, limit, houses."
+          comment: "✅ Endpoint /api/cleaning/missing-data-report работает корректно. Генерирует CSV файл с правильной структурой (12 колонок). Обрабатывает ~500 домов из Bitrix24. Время генерации >5 минут из-за загрузки контактов старших для каждого дома."
 
-  - task: "Cleaning dates data structure validation"
+  - task: "CSV file structure validation"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Структура CSV корректна. Содержит все требуемые колонки: ID, Адрес, УК, Бригада, Подъезды, Этажи, Квартиры, Периодичность, Старший (ФИО), Старший (телефон), Старший (email), Недостающие поля. Использует разделитель ';' и кодировку UTF-8 с BOM."
+
+  - task: "House 8674 contact verification"
     implemented: true
     working: true
     file: "/app/backend/app/services/bitrix24_service.py"
@@ -127,33 +139,9 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ Структура cleaning_dates корректна. Найдены поля october_1 и october_2 с датами и типами уборок. Данные содержат dates (массив дат) и type (тип уборки)."
+          comment: "✅ Дом ID 8674 (Кибальчича 3) найден в системе. Контакт старшего корректен: 'новая старшая Светлана', телефон '+79657005267'. Данные загружаются из Bitrix24 через /cleaning/house/{id}/details endpoint."
 
-  - task: "Brigade #1 KPI calculation for October 2025"
-    implemented: true
-    working: true
-    file: "/app/backend/app/services/bitrix24_service.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ KPI расчет для бригады №1 за октябрь 2025 работает корректно. Найдено 70 домов бригады №1. Итоговые показатели: 232 уборки, 734 подъезда, 4728 этажей, 0 подметаний за 20 дней работы."
-
-  - task: "Mathematical verification of cleaning calculations"
-    implemented: true
-    working: true
-    file: "/app/backend_test.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ Математические расчеты проверены и корректны. Для влажной уборки всех этажей: подъезды × этажи. Для уборки 1 этажа: считается как обычная уборка. Подметания не обнаружены в данных октября 2025."
-
-  - task: "Additional cleaning endpoints"
+  - task: "Elder contacts statistics"
     implemented: true
     working: true
     file: "/app/backend/app/routers/cleaning.py"
@@ -163,7 +151,19 @@ backend:
     status_history:
         - working: true
           agent: "testing"
-          comment: "✅ Дополнительные endpoints работают: /cleaning/filters (200), /cleaning/brigades (200), /cleaning/cleaning-types (200)."
+          comment: "✅ Статистика контактов работает корректно. В тестовой выборке (100 домов): 45 домов с контактами, 55 домов без контактов. Система корректно определяет наличие/отсутствие контактов старших."
+
+  - task: "CSV report performance"
+    implemented: true
+    working: false
+    file: "/app/backend/app/routers/cleaning.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "⚠️ Производительность отчета требует оптимизации. Генерация полного отчета (~500 домов) занимает >5 минут из-за последовательных запросов к Bitrix24 для каждого дома. Рекомендуется кэширование или пакетная обработка."
 
 metadata:
   created_by: "testing_agent"
