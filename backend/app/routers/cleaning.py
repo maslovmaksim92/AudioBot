@@ -349,12 +349,13 @@ async def resend_photos_to_telegram(data: dict):
 async def get_missing_data_report():
     """
     Генерирует CSV отчет по домам с недостающими данными
-    Проверяет: address, management_company, entrances, floors, apartments, cleaning_schedule
+    Проверяет: address, management_company, entrances, floors, apartments, cleaning_schedule, elder_contact
     """
     try:
         from fastapi.responses import StreamingResponse
         import io
         import csv
+        import asyncio
         
         logger.info("[cleaning] Generating missing data report...")
         
@@ -363,9 +364,13 @@ async def get_missing_data_report():
         all_houses = data.get('houses', [])
         
         logger.info(f"[cleaning] Loaded {len(all_houses)} houses for report")
+        logger.info("[cleaning] Loading elder contacts for each house (this may take a while)...")
         
         # Проверяем каждый дом на недостающие данные
         missing_data_houses = []
+        
+        # Счетчик для логирования прогресса
+        processed_count = 0
         
         for house in all_houses:
             missing_fields = []
