@@ -155,11 +155,17 @@ const BrigadeStats = () => {
         }
       });
       
-      setBrigadeData(Object.values(stats));
+      const brigadeArray = Object.values(stats);
+      console.log('[BrigadeStats] Calculated stats for', brigadeArray.length, 'brigades');
+      console.log('[BrigadeStats] Daily work entries:', Object.keys(dailyWork).length);
+      
+      setBrigadeData(brigadeArray);
       setDailyStats(dailyWork);
     } catch (error) {
-      console.error('Error loading brigade stats:', error);
+      console.error('[BrigadeStats] Error loading brigade stats:', error);
+      console.error(error.stack);
     } finally {
+      console.log('[BrigadeStats] Loading complete, setting loading=false');
       setLoading(false);
     }
   };
