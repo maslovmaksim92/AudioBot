@@ -359,9 +359,27 @@ async def get_missing_data_report():
         
         logger.info("[cleaning] Generating missing data report...")
         
-        # Загружаем все дома из Bitrix24
-        data = await bitrix24_service.list_houses(limit=1000)
-        all_houses = data.get('houses', [])
+        # Загружаем ВСЕ дома из Bitrix24 (с учетом пагинации)
+        all_houses = []
+        page = 1
+        page_limit = 50  # Bitrix24 лимит на страницу
+        
+        while True:
+            logger.info(f"[cleaning] Loading page {page}...")
+            data = await bitrix24_service.list_houses(page=page, limit=page_limit)
+            houses = data.get('houses', [])
+            
+            if not houses:
+                break
+            
+            all_houses.extend(houses)
+            
+            # Проверяем, есть ли еще страницы
+            total_pages = data.get('pages', 1)
+            if page >= total_pages:
+                break
+            
+            page += 1
         
         logger.info(f"[cleaning] Loaded {len(all_houses)} houses for report")
         logger.info("[cleaning] Loading elder contacts for each house (this may take 2-3 minutes)...")
