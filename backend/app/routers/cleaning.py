@@ -373,6 +373,12 @@ async def get_missing_data_report():
         processed_count = 0
         
         for house in all_houses:
+            processed_count += 1
+            
+            # Логируем прогресс каждые 50 домов
+            if processed_count % 50 == 0:
+                logger.info(f"[cleaning] Progress: {processed_count}/{len(all_houses)} houses processed")
+            
             missing_fields = []
             
             # Проверка адреса
@@ -409,22 +415,30 @@ async def get_missing_data_report():
             if not has_october and not has_november:
                 missing_fields.append('График уборки')
             
-            # Проверка контактов старшего
-            elder_contact = house.get('elder_contact', {})
-            elder_name = ''
-            elder_phone = ''
-            elder_email = ''
+            # ЗАГРУЖАЕМ ДЕТАЛИ ДОМА для получения контактов старшего
+            elder_name = 'Не указан'
+            elder_phone = 'Не указан'
+            elder_email = 'Не указан'
             
-            if isinstance(elder_contact, dict):
-                elder_name = elder_contact.get('name', '')
-                phones = elder_contact.get('phones', [])
-                emails = elder_contact.get('emails', [])
-                elder_phone = phones[0] if phones else ''
-                elder_email = emails[0] if emails else ''
-            
-            if not elder_name:
+            try:
+                house_details = await bitrix24_service.get_deal_details(house.get('id'))
+                if house_details:
+                    elder_contact = house_details.get('elder_contact', {})
+                    if elder_contact and isinstance(elder_contact, dict):
+                        elder_name = elder_contact.get('name', 'Не указан')
+                        phones = elder_contact.get('phones', [])
+                        emails = elder_contact.get('emails', [])
+                        elder_phone = phones[0] if phones else 'Не указан'
+                        elder_email = emails[0] if emails else 'Не указан'
+                    
+                    # Проверка наличия контактов
+                    if elder_name == 'Не указан' or not elder_name:
+                        missing_fields.append('Старший (ФИО)')
+                    if elder_phone == 'Не указан' or not elder_phone:
+                        missing_fields.append('Старший (телефон)')
+            except Exception as e:
+                logger.warning(f"[cleaning] Failed to load details for house {house.get('id')}: {e}")
                 missing_fields.append('Старший (ФИО)')
-            if not elder_phone:
                 missing_fields.append('Старший (телефон)')
             
             # Добавляем в отчет (всегда, не только если есть недостающие поля)
@@ -438,11 +452,13 @@ async def get_missing_data_report():
                 'floors': house.get('floors', 0),
                 'apartments': house.get('apartments', 0),
                 'periodicity': house.get('periodicity', 'Не указана'),
-                'elder_name': elder_name or 'Не указан',
-                'elder_phone': elder_phone or 'Не указан',
-                'elder_email': elder_email or 'Не указан',
+                'elder_name': elder_name,
+                'elder_phone': elder_phone,
+                'elder_email': elder_email,
                 'missing_fields': ', '.join(missing_fields) if missing_fields else 'Нет'
             })
+        
+        logger.info(f"[cleaning] Finished processing all {len(all_houses)} houses")
         
         logger.info(f"[cleaning] Found {len(missing_data_houses)} houses with missing data")
         
