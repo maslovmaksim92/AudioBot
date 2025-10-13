@@ -173,9 +173,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "GET /api/cleaning/houses endpoint"
-    - "Brigade #1 KPI calculation for October 2025"
-  stuck_tasks: []
+    - "CSV missing data report endpoint"
+    - "House 8674 contact verification"
+  stuck_tasks:
+    - "CSV report performance"
   test_all: false
   test_priority: "high_first"
 
