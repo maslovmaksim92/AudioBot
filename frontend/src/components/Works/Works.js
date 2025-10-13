@@ -341,29 +341,53 @@ const Works = () => {
 
       {/* Блок общих рекомендаций */}
       <div className="mb-4 p-4 rounded-lg border bg-amber-50">
-        <div className="text-sm font-semibold text-amber-800 mb-2">Рекомендации</div>
+        <div className="text-sm font-semibold text-amber-800 mb-2">📋 Рекомендации по заполнению данных</div>
         <ul className="text-xs text-amber-900 space-y-1 list-disc pl-5">
-          {/* Здесь можно агрегировать с сервера, пока формируем на фронте поверх данных */}
+          {/* Квартиры */}
           {houses.filter(h=>!h?.apartments || h.apartments === 0).length>0 && (
             <li>Не указано количество квартир у адресов: {houses.filter(h=>!h?.apartments || h.apartments === 0).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.apartments || h.apartments === 0).length>5?' и др.':''}</li>
           )}
+          {/* Подъезды */}
           {houses.filter(h=>!h?.entrances || h.entrances === 0).length>0 && (
             <li>Не указано количество подъездов у адресов: {houses.filter(h=>!h?.entrances || h.entrances === 0).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.entrances || h.entrances === 0).length>5?' и др.':''}</li>
           )}
+          {/* Этажи */}
           {houses.filter(h=>!h?.floors || h.floors === 0).length>0 && (
             <li>Не указано количество этажей у адресов: {houses.filter(h=>!h?.floors || h.floors === 0).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.floors || h.floors === 0).length>5?' и др.':''}</li>
           )}
-          {houses.filter(h=>!h?.management_company).length>0 && (
-            <li>Не указана управляющая компания у адресов: {houses.filter(h=>!h?.management_company).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.management_company).length>5?' и др.':''}</li>
+          {/* Управляющая компания */}
+          {houses.filter(h=>!h?.management_company || h.management_company === '').length>0 && (
+            <li>Не указана управляющая компания у адресов: {houses.filter(h=>!h?.management_company || h.management_company === '').slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.management_company || h.management_company === '').length>5?' и др.':''}</li>
           )}
-          {houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена').length>0 && (
-            <li>Не назначена бригада у адресов: {houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена').slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена').length>5?' и др.':''}</li>
+          {/* Бригада */}
+          {houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена' || h.brigade_name === '').length>0 && (
+            <li>Не назначена бригада у адресов: {houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена' || h.brigade_name === '').slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена' || h.brigade_name === '').length>5?' и др.':''}</li>
           )}
+          {/* График уборки октябрь */}
           {houses.filter(h=>!(h?.cleaning_dates?.october_1?.dates?.length||h?.cleaning_dates?.october_2?.dates?.length)).length>0 && (
             <li>Не заполнен график уборки (октябрь) у адресов: {houses.filter(h=>!(h?.cleaning_dates?.october_1?.dates?.length||h?.cleaning_dates?.october_2?.dates?.length)).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!(h?.cleaning_dates?.october_1?.dates?.length||h?.cleaning_dates?.october_2?.dates?.length)).length>5?' и др.':''}</li>
           )}
-          {houses.filter(h=>!h?.periodicity).length>0 && (
-            <li>Не указана периодичность уборки у адресов: {houses.filter(h=>!h?.periodicity).slice(0,5).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.periodicity).length>5?' и др.':''}</li>
+          {/* График уборки ноябрь */}
+          {houses.filter(h=>!(h?.cleaning_dates?.november_1?.dates?.length||h?.cleaning_dates?.november_2?.dates?.length)).length>0 && (
+            <li>Не заполнен график уборки (ноябрь) у адресов: {houses.filter(h=>!(h?.cleaning_dates?.november_1?.dates?.length||h?.cleaning_dates?.november_2?.dates?.length)).slice(0,3).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!(h?.cleaning_dates?.november_1?.dates?.length||h?.cleaning_dates?.november_2?.dates?.length)).length>3?' и др.':''}</li>
+          )}
+          {/* Периодичность */}
+          {houses.filter(h=>!h?.periodicity || h.periodicity === 'не указана').length>0 && (
+            <li>Не указана периодичность уборки у адресов: {houses.filter(h=>!h?.periodicity || h.periodicity === 'не указана').slice(0,3).map(h=>h.address || h.title).join(', ')}{houses.filter(h=>!h?.periodicity || h.periodicity === 'не указана').length>3?' и др.':''}</li>
+          )}
+          {/* Адрес пустой или некорректный */}
+          {houses.filter(h=>!h?.address || h.address.length < 10).length>0 && (
+            <li>Некорректный или пустой адрес: {houses.filter(h=>!h?.address || h.address.length < 10).slice(0,3).map(h=>h.title || h.id).join(', ')}{houses.filter(h=>!h?.address || h.address.length < 10).length>3?' и др.':''}</li>
+          )}
+          {/* Если все заполнено */}
+          {houses.length > 0 && 
+            houses.filter(h=>!h?.apartments || h.apartments === 0).length === 0 &&
+            houses.filter(h=>!h?.entrances || h.entrances === 0).length === 0 &&
+            houses.filter(h=>!h?.floors || h.floors === 0).length === 0 &&
+            houses.filter(h=>!h?.management_company).length === 0 &&
+            houses.filter(h=>!h?.brigade_name || h.brigade_name === 'Бригада не назначена').length === 0 &&
+            houses.filter(h=>!(h?.cleaning_dates?.october_1?.dates?.length||h?.cleaning_dates?.october_2?.dates?.length)).length === 0 && (
+            <li className="text-green-700 font-semibold">✅ Все данные на текущей странице заполнены корректно!</li>
           )}
         </ul>
       </div>
