@@ -85,8 +85,11 @@ async def send_photo(
     chat_id: int,
     photo_file_id: str,
     caption: str = None
-) -> bool:
-    """Отправить фото"""
+) -> Optional[Dict[str, Any]]:
+    """
+    Отправить фото
+    Возвращает dict с message_id и chat_id в случае успеха
+    """
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             payload = {
@@ -100,27 +103,36 @@ async def send_photo(
             response = await client.post(f"{API_URL}/sendPhoto", json=payload)
             
             if response.status_code == 200:
-                logger.info(f"[telegram_cleaning_bot] Photo sent to {chat_id}")
-                return True
+                result = response.json()
+                message_id = result.get('result', {}).get('message_id')
+                logger.info(f"[telegram_cleaning_bot] Photo sent to {chat_id}, message_id: {message_id}")
+                return {
+                    "success": True,
+                    "message_id": message_id,
+                    "chat_id": chat_id
+                }
             else:
                 logger.error(f"[telegram_cleaning_bot] Failed to send photo: {response.text}")
-                return False
+                return None
     
     except Exception as e:
         logger.error(f"[telegram_cleaning_bot] Error sending photo: {e}")
-        return False
+        return None
 
 
 async def send_media_group(
     chat_id: int,
     photos: List[str],
     caption: str = None
-) -> bool:
-    """Отправить группу фото с подписью"""
+) -> Optional[Dict[str, Any]]:
+    """
+    Отправить группу фото с подписью
+    Возвращает dict с message_id первого фото и chat_id в случае успеха
+    """
     try:
         if not photos:
             logger.warning("[telegram_cleaning_bot] No photos to send")
-            return False
+            return None
         
         # Формируем media array
         media = []
@@ -145,15 +157,23 @@ async def send_media_group(
             response = await client.post(f"{API_URL}/sendMediaGroup", json=payload)
             
             if response.status_code == 200:
-                logger.info(f"[telegram_cleaning_bot] Media group sent to {chat_id}: {len(photos)} photos")
-                return True
+                result = response.json()
+                # Берем message_id первого фото из группы
+                messages = result.get('result', [])
+                message_id = messages[0].get('message_id') if messages else None
+                logger.info(f"[telegram_cleaning_bot] Media group sent to {chat_id}: {len(photos)} photos, message_id: {message_id}")
+                return {
+                    "success": True,
+                    "message_id": message_id,
+                    "chat_id": chat_id
+                }
             else:
                 logger.error(f"[telegram_cleaning_bot] Failed to send media group: {response.text}")
-                return False
+                return None
     
     except Exception as e:
         logger.error(f"[telegram_cleaning_bot] Error sending media group: {e}")
-        return False
+        return None
 
 
 async def handle_start_command(chat_id: int, user_id: int, db_session):
