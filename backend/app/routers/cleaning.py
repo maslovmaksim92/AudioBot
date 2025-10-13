@@ -401,8 +401,8 @@ async def get_missing_data_report(with_contacts: bool = False):
         for house in all_houses:
             processed_count += 1
             
-            # Логируем прогресс каждые 50 домов
-            if processed_count % 50 == 0:
+            # Логируем прогресс каждые 50 домов (только если загружаем контакты)
+            if with_contacts and processed_count % 50 == 0:
                 logger.info(f"[cleaning] Progress: {processed_count}/{len(all_houses)} houses processed")
             
             missing_fields = []
@@ -441,29 +441,34 @@ async def get_missing_data_report(with_contacts: bool = False):
             if not has_october and not has_november:
                 missing_fields.append('График уборки')
             
-            # ЗАГРУЖАЕМ ДЕТАЛИ ДОМА для получения контактов старшего
+            # ЗАГРУЖАЕМ ДЕТАЛИ ДОМА для получения контактов старшего (ТОЛЬКО если with_contacts=True)
             elder_name = 'Не указан'
             elder_phone = 'Не указан'
             elder_email = 'Не указан'
             
-            try:
-                house_details = await bitrix24_service.get_deal_details(house.get('id'))
-                if house_details:
-                    elder_contact = house_details.get('elder_contact', {})
-                    if elder_contact and isinstance(elder_contact, dict):
-                        elder_name = elder_contact.get('name', 'Не указан')
-                        phones = elder_contact.get('phones', [])
-                        emails = elder_contact.get('emails', [])
-                        elder_phone = phones[0] if phones else 'Не указан'
-                        elder_email = emails[0] if emails else 'Не указан'
-                    
-                    # Проверка наличия контактов
-                    if elder_name == 'Не указан' or not elder_name:
-                        missing_fields.append('Старший (ФИО)')
-                    if elder_phone == 'Не указан' or not elder_phone:
-                        missing_fields.append('Старший (телефон)')
-            except Exception as e:
-                logger.warning(f"[cleaning] Failed to load details for house {house.get('id')}: {e}")
+            if with_contacts:
+                try:
+                    house_details = await bitrix24_service.get_deal_details(house.get('id'))
+                    if house_details:
+                        elder_contact = house_details.get('elder_contact', {})
+                        if elder_contact and isinstance(elder_contact, dict):
+                            elder_name = elder_contact.get('name', 'Не указан')
+                            phones = elder_contact.get('phones', [])
+                            emails = elder_contact.get('emails', [])
+                            elder_phone = phones[0] if phones else 'Не указан'
+                            elder_email = emails[0] if emails else 'Не указан'
+                        
+                        # Проверка наличия контактов
+                        if elder_name == 'Не указан' or not elder_name:
+                            missing_fields.append('Старший (ФИО)')
+                        if elder_phone == 'Не указан' or not elder_phone:
+                            missing_fields.append('Старший (телефон)')
+                except Exception as e:
+                    logger.warning(f"[cleaning] Failed to load details for house {house.get('id')}: {e}")
+                    missing_fields.append('Старший (ФИО)')
+                    missing_fields.append('Старший (телефон)')
+            else:
+                # Без контактов просто отмечаем как недостающие
                 missing_fields.append('Старший (ФИО)')
                 missing_fields.append('Старший (телефон)')
             
