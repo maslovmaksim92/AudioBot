@@ -19,7 +19,8 @@ async def run_migrations(db_pool):
     # Список миграций в порядке выполнения
     migrations = [
         "create_cleaning_photos_table.sql",
-        "create_house_acts_table.sql"
+        "create_house_acts_table.sql",
+        "add_telegram_links_to_cleaning_photos.sql"
     ]
     
     for migration_file in migrations:
