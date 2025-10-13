@@ -522,6 +522,17 @@ const Works = () => {
                 Акт подписан
               </button>
 
+              <button
+                onClick={() => {
+                  setSelectedHouseForPhotos(house);
+                  setShowPhotoHistoryModal(true);
+                }}
+                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-all"
+              >
+                <Image className="w-4 h-4" />
+                Фото в TG
+              </button>
+
               {house.bitrix_url && (
                 <a 
                   href={house.bitrix_url} 
