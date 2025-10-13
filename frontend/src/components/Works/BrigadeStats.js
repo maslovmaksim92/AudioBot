@@ -260,6 +260,17 @@ const BrigadeStats = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Загрузка статистики...</p>
         </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <div className="text-red-600 text-xl mb-4">❌ Ошибка</div>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={loadBrigadeStats}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Повторить попытку
+          </button>
+        </div>
       ) : (
         <>
           {/* Распределение домов по бригадам */}
