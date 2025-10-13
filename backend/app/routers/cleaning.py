@@ -346,10 +346,16 @@ async def resend_photos_to_telegram(data: dict):
         return {"success": False, "error": str(e)}
 
 @router.get("/missing-data-report")
-async def get_missing_data_report():
+async def get_missing_data_report(with_contacts: bool = False):
     """
     Генерирует CSV отчет по домам с недостающими данными
     Проверяет: address, management_company, entrances, floors, apartments, cleaning_schedule, elder_contact
+    
+    Параметры:
+    - with_contacts: bool = False - загружать контакты старшего (медленно, ~10 минут)
+    
+    По умолчанию генерирует быстрый отчет без контактов (1-2 секунды)
+    Для полного отчета: ?with_contacts=true
     """
     try:
         from fastapi.responses import StreamingResponse
@@ -357,7 +363,7 @@ async def get_missing_data_report():
         import csv
         import asyncio
         
-        logger.info("[cleaning] Generating missing data report...")
+        logger.info(f"[cleaning] Generating missing data report (with_contacts={with_contacts})...")
         
         # Загружаем ВСЕ дома из Bitrix24 (с учетом пагинации)
         all_houses = []
@@ -382,7 +388,9 @@ async def get_missing_data_report():
             page += 1
         
         logger.info(f"[cleaning] Loaded {len(all_houses)} houses for report")
-        logger.info("[cleaning] Loading elder contacts for each house (this may take 2-3 minutes)...")
+        
+        if with_contacts:
+            logger.info("[cleaning] Loading elder contacts for each house (this may take 10+ minutes)...")
         
         # Проверяем каждый дом на недостающие данные
         missing_data_houses = []
