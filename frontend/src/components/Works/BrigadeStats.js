@@ -24,6 +24,7 @@ const BrigadeStats = () => {
   const loadBrigadeStats = async () => {
     try {
       setLoading(true);
+      setError(null);
       setBrigadeData([]);
       setDailyStats({});
       setBrigadeDistribution([]);
