@@ -42,11 +42,20 @@ const BrigadeStats = () => {
       const selectedYear = currentMonth.getFullYear();
       const selectedMonth = currentMonth.getMonth();
       
+      console.log('[BrigadeStats] Filtering for:', selectedYear, selectedMonth + 1);
+      
       // Подсчет статистики по бригадам
       const stats = {};
       const dailyWork = {};
       
-      (data.houses || []).forEach(house => {
+      (data.houses || []).forEach((house, idx) => {
+        if (idx < 3) {
+          console.log('[BrigadeStats] Sample house:', {
+            brigade: house.brigade_name,
+            address: house.address?.substring(0, 30),
+            cleaning_dates: house.cleaning_dates
+          });
+        }
         const brigade = house.brigade_number || house.brigade_name || 'Не назначена';
         
         if (!stats[brigade]) {
