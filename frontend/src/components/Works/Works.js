@@ -179,18 +179,51 @@ const Works = () => {
           Работы (Дома)
         </h1>
         <div className="flex gap-2">
-          <button 
-            onClick={() => {
-              const url = `${BACKEND_URL}/api/cleaning/missing-data-report`;
-              window.open(url, '_blank');
-            }}
-            className="btn-secondary flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Скачать отчет CSV
-          </button>
+          <div className="relative group">
+            <button 
+              onClick={() => {
+                const url = `${BACKEND_URL}/api/cleaning/missing-data-report`;
+                window.open(url, '_blank');
+              }}
+              className="btn-secondary flex items-center"
+              title="Быстрый отчет без контактов старшего (1-2 сек)"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Скачать отчет CSV
+            </button>
+            
+            {/* Dropdown для выбора типа отчета */}
+            <div className="absolute right-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    const url = `${BACKEND_URL}/api/cleaning/missing-data-report`;
+                    window.open(url, '_blank');
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                >
+                  <div className="font-medium">⚡ Быстрый отчет</div>
+                  <div className="text-xs text-gray-500">Без контактов старшего (1-2 сек)</div>
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('⏱️ Полный отчет с контактами займет 10-15 минут.\nПродолжить?')) {
+                      const url = `${BACKEND_URL}/api/cleaning/missing-data-report?with_contacts=true`;
+                      window.open(url, '_blank');
+                      alert('📥 Отчет начал генерироваться.\nОжидайте загрузку файла (10-15 минут).');
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm mt-1"
+                >
+                  <div className="font-medium">📋 Полный отчет</div>
+                  <div className="text-xs text-gray-500">С контактами старшего (10-15 мин)</div>
+                </button>
+              </div>
+            </div>
+          </div>
+          
           <button onClick={fetchHouses} className="btn-primary flex items-center">
             <RefreshCw className="w-4 h-4 mr-2"/>
             Обновить
