@@ -197,3 +197,118 @@ async def update_house(house_id: str, data: dict):
     except Exception as e:
         logger.error(f"Error updating house {house_id}: {e}")
         return {"success": False, "error": str(e)}
+
+@router.get("/missing-data-report")
+async def get_missing_data_report():
+    """
+    Генерирует CSV отчет по домам с недостающими данными
+    Проверяет: address, management_company, entrances, floors, apartments, cleaning_schedule
+    """
+    try:
+        from fastapi.responses import StreamingResponse
+        import io
+        import csv
+        
+        logger.info("[cleaning] Generating missing data report...")
+        
+        # Загружаем все дома из Bitrix24
+        data = await bitrix24_service.list_houses(limit=1000)
+        all_houses = data.get('houses', [])
+        
+        logger.info(f"[cleaning] Loaded {len(all_houses)} houses for report")
+        
+        # Проверяем каждый дом на недостающие данные
+        missing_data_houses = []
+        
+        for house in all_houses:
+            missing_fields = []
+            
+            # Проверка адреса
+            if not house.get('address') or len(house.get('address', '')) < 10:
+                missing_fields.append('Адрес')
+            
+            # Проверка УК
+            if not house.get('management_company') or house.get('management_company') == '':
+                missing_fields.append('УК')
+            
+            # Проверка старшего/ответственного
+            if not house.get('brigade_name') or house.get('brigade_name') in ['Бригада не назначена', '']:
+                missing_fields.append('Бригада')
+            
+            # Проверка подъездов
+            if not house.get('entrances') or house.get('entrances') == 0:
+                missing_fields.append('Подъезды')
+            
+            # Проверка этажей
+            if not house.get('floors') or house.get('floors') == 0:
+                missing_fields.append('Этажи')
+            
+            # Проверка квартир
+            if not house.get('apartments') or house.get('apartments') == 0:
+                missing_fields.append('Квартиры')
+            
+            # Проверка графика уборки (октябрь и ноябрь)
+            cleaning_dates = house.get('cleaning_dates', {})
+            has_october = (cleaning_dates.get('october_1', {}).get('dates') or 
+                          cleaning_dates.get('october_2', {}).get('dates'))
+            has_november = (cleaning_dates.get('november_1', {}).get('dates') or 
+                           cleaning_dates.get('november_2', {}).get('dates'))
+            
+            if not has_october and not has_november:
+                missing_fields.append('График уборки')
+            
+            # Если есть недостающие данные, добавляем в отчет
+            if missing_fields:
+                missing_data_houses.append({
+                    'id': house.get('id', ''),
+                    'address': house.get('address') or house.get('title', 'Не указан'),
+                    'management_company': house.get('management_company', 'Не указана'),
+                    'brigade_name': house.get('brigade_name', 'Не назначена'),
+                    'entrances': house.get('entrances', 0),
+                    'floors': house.get('floors', 0),
+                    'apartments': house.get('apartments', 0),
+                    'periodicity': house.get('periodicity', 'Не указана'),
+                    'missing_fields': ', '.join(missing_fields)
+                })
+        
+        logger.info(f"[cleaning] Found {len(missing_data_houses)} houses with missing data")
+        
+        # Создаем CSV
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=[
+            'ID', 'Адрес', 'УК', 'Бригада', 'Подъезды', 'Этажи', 
+            'Квартиры', 'Периодичность', 'Недостающие поля'
+        ])
+        
+        writer.writeheader()
+        
+        for house in missing_data_houses:
+            writer.writerow({
+                'ID': house['id'],
+                'Адрес': house['address'],
+                'УК': house['management_company'],
+                'Бригада': house['brigade_name'],
+                'Подъезды': house['entrances'],
+                'Этажи': house['floors'],
+                'Квартиры': house['apartments'],
+                'Периодичность': house['periodicity'],
+                'Недостающие поля': house['missing_fields']
+            })
+        
+        # Возвращаем CSV как downloadable file
+        output.seek(0)
+        
+        from datetime import datetime
+        filename = f"missing_data_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),  # BOM для корректного отображения в Excel
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"[cleaning] Error generating report: {e}")
+        return {"error": str(e), "houses_with_issues": []}
