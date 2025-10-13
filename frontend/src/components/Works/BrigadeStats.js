@@ -166,6 +166,7 @@ const BrigadeStats = () => {
     } catch (error) {
       console.error('[BrigadeStats] Error loading brigade stats:', error);
       console.error(error.stack);
+      setError(error.message || 'Ошибка загрузки данных');
     } finally {
       console.log('[BrigadeStats] Loading complete, setting loading=false');
       setLoading(false);
