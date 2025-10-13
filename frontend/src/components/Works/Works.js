@@ -38,6 +38,8 @@ const Works = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showActSignModal, setShowActSignModal] = useState(false);
   const [selectedHouseForAct, setSelectedHouseForAct] = useState(null);
+  const [showPhotoHistoryModal, setShowPhotoHistoryModal] = useState(false);
+  const [selectedHouseForPhotos, setSelectedHouseForPhotos] = useState(null);
   const detailsLoadingRef = useRef(false);
 
   useEffect(() => { fetchInitial(); }, []);
