@@ -76,16 +76,40 @@ const BrigadeStats = () => {
         stats[brigade].totalFloors += (house.entrances || 0) * (house.floors || 0);
         
         // Подсчет уборок по датам
-        if (house.cleaning_dates) {
-          Object.values(house.cleaning_dates).forEach(period => {
-            if (period.dates) {
-              period.dates.forEach(date => {
+        // Проверяем оба возможных формата: cleaning_dates и all_cleaning_dates
+        const cleaningDatesObj = house.cleaning_dates || house.all_cleaning_dates;
+        
+        if (cleaningDatesObj && typeof cleaningDatesObj === 'object') {
+          Object.values(cleaningDatesObj).forEach(period => {
+            // period может быть объектом {dates: [...], type: '...'} 
+            // или массивом дат
+            let dates = [];
+            let type = '';
+            
+            if (Array.isArray(period)) {
+              dates = period;
+            } else if (period && typeof period === 'object') {
+              dates = period.dates || [];
+              type = period.type || '';
+            }
+            
+            if (dates && dates.length > 0) {
+              dates.forEach(dateItem => {
+                // dateItem может быть строкой или объектом {date: '...'}
+                const dateStr = typeof dateItem === 'string' ? dateItem : dateItem?.date;
+                
+                if (!dateStr) return;
+                
                 // Фильтрация по выбранному месяцу
-                const dateObj = new Date(date);
+                const dateObj = new Date(dateStr);
+                if (isNaN(dateObj.getTime())) return; // Невалидная дата
+                
                 if (dateObj.getFullYear() !== selectedYear || dateObj.getMonth() !== selectedMonth) {
                   return; // Пропускаем даты не из выбранного месяца
                 }
-                const type = (period.type || '').toLowerCase();
+                
+                const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
+                const typeText = (type || '').toLowerCase();
                 const isFullCleaning = type.includes('всех этаж');
                 const isSweeping = type.includes('подмет');
                 
