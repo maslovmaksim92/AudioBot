@@ -150,6 +150,8 @@ const BrigadeStats = () => {
               });
             }
           });
+        } else if (idx < 3) {
+          console.log('[BrigadeStats] No cleaning dates for house:', house.address?.substring(0, 30));
         }
       });
       
