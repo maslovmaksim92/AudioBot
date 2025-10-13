@@ -35,22 +35,55 @@ async def get_cleaning_houses(
             # извлечём число из brigade_number
             if current.brigade_number:
                 effective_brigade = current.brigade_number
-        data = await bitrix24_service.list_houses(
-            brigade=effective_brigade,
-            status=status,
-            management_company=management_company,
-            cleaning_date=cleaning_date,
-            date_from=date_from,
-            date_to=date_to,
-            page=page,
-            limit=limit,
-        )
-        # Адресная фильтрация
+        # Если есть поиск по адресу - загружаем ВСЕ дома (без пагинации)
         if address:
-            houses = [h for h in data.get('houses', []) if address.lower() in (h.get('address') or '').lower() or address.lower() in (h.get('title') or '').lower()]
-            total = len(houses)
-            data.update({'houses': houses, 'total': total, 'pages': (total + limit - 1)//limit})
-        return data
+            logger.info(f"[cleaning] Searching for address: {address}")
+            # Загружаем больше домов для поиска
+            data = await bitrix24_service.list_houses(
+                brigade=effective_brigade,
+                status=status,
+                management_company=management_company,
+                cleaning_date=cleaning_date,
+                date_from=date_from,
+                date_to=date_to,
+                page=1,
+                limit=1000,  # Загружаем много домов для поиска
+            )
+            # Фильтрация по адресу
+            all_houses = data.get('houses', [])
+            filtered_houses = [
+                h for h in all_houses 
+                if address.lower() in (h.get('address') or '').lower() 
+                or address.lower() in (h.get('title') or '').lower()
+            ]
+            logger.info(f"[cleaning] Found {len(filtered_houses)} houses matching '{address}'")
+            
+            # Применяем пагинацию к отфильтрованным домам
+            total = len(filtered_houses)
+            start = (page - 1) * limit
+            end = start + limit
+            paginated_houses = filtered_houses[start:end]
+            
+            return {
+                'houses': paginated_houses,
+                'total': total,
+                'page': page,
+                'limit': limit,
+                'pages': (total + limit - 1) // limit if total > 0 else 0
+            }
+        else:
+            # Обычная загрузка с пагинацией
+            data = await bitrix24_service.list_houses(
+                brigade=effective_brigade,
+                status=status,
+                management_company=management_company,
+                cleaning_date=cleaning_date,
+                date_from=date_from,
+                date_to=date_to,
+                page=page,
+                limit=limit,
+            )
+            return data
     except Exception as e:
         logger.error(f"Error getting houses: {e}")
         # fallback mock
