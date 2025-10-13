@@ -8,6 +8,7 @@ const BrigadeStats = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [brigadeData, setBrigadeData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedBrigade, setSelectedBrigade] = useState(null);
   const [dailyStats, setDailyStats] = useState({});
   const [brigadeDistribution, setBrigadeDistribution] = useState([]);
