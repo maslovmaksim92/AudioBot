@@ -198,6 +198,153 @@ async def update_house(house_id: str, data: dict):
         logger.error(f"Error updating house {house_id}: {e}")
         return {"success": False, "error": str(e)}
 
+@router.get("/house/{house_id}/photo-history")
+async def get_house_photo_history(
+    house_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Получить историю фото уборок для конкретного дома
+    Возвращает список всех уборок с фото, датами и ссылками на посты в TG
+    """
+    try:
+        from app.config.database import get_db_pool
+        
+        db_pool = await get_db_pool()
+        if not db_pool:
+            logger.error("[cleaning] DB pool not available")
+            return {"error": "Database connection error", "cleanings": []}
+        
+        async with db_pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT 
+                    id,
+                    house_id,
+                    house_address,
+                    brigade_id,
+                    cleaning_date,
+                    photo_file_ids,
+                    photo_count,
+                    ai_caption,
+                    telegram_message_id,
+                    telegram_chat_id,
+                    telegram_post_url,
+                    status,
+                    sent_to_group_at,
+                    created_at
+                FROM cleaning_photos
+                WHERE house_id = $1
+                ORDER BY cleaning_date DESC
+                """,
+                house_id
+            )
+            
+            cleanings = []
+            for row in rows:
+                cleanings.append({
+                    "id": str(row['id']),
+                    "house_id": row['house_id'],
+                    "house_address": row['house_address'],
+                    "brigade_id": row['brigade_id'],
+                    "cleaning_date": row['cleaning_date'].isoformat() if row['cleaning_date'] else None,
+                    "photo_file_ids": row['photo_file_ids'] or [],
+                    "photo_count": row['photo_count'],
+                    "ai_caption": row['ai_caption'],
+                    "telegram_message_id": row['telegram_message_id'],
+                    "telegram_chat_id": row['telegram_chat_id'],
+                    "telegram_post_url": row['telegram_post_url'],
+                    "status": row['status'],
+                    "sent_to_group_at": row['sent_to_group_at'].isoformat() if row['sent_to_group_at'] else None,
+                    "created_at": row['created_at'].isoformat() if row['created_at'] else None
+                })
+            
+            logger.info(f"[cleaning] Found {len(cleanings)} cleanings for house {house_id}")
+            return {"cleanings": cleanings}
+            
+    except Exception as e:
+        logger.error(f"[cleaning] Error getting photo history for house {house_id}: {e}")
+        return {"error": str(e), "cleanings": []}
+
+@router.post("/resend-photos")
+async def resend_photos_to_telegram(data: dict):
+    """
+    Повторно отправить фото в Telegram группы
+    """
+    try:
+        cleaning_id = data.get('cleaning_id')
+        
+        if not cleaning_id:
+            return {"success": False, "error": "cleaning_id is required"}
+        
+        from app.config.database import get_db_pool
+        import os
+        
+        db_pool = await get_db_pool()
+        if not db_pool:
+            return {"success": False, "error": "Database connection error"}
+        
+        # Получаем данные уборки
+        async with db_pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT 
+                    house_address,
+                    photo_file_ids,
+                    ai_caption
+                FROM cleaning_photos
+                WHERE id = $1
+                """,
+                cleaning_id
+            )
+            
+            if not row:
+                return {"success": False, "error": "Cleaning not found"}
+            
+            photo_file_ids = row['photo_file_ids'] or []
+            caption = row['ai_caption']
+            
+            if not photo_file_ids:
+                return {"success": False, "error": "No photos to send"}
+            
+            # Отправляем в группы
+            from backend.app.services.telegram_cleaning_bot import send_photo, send_media_group
+            
+            target_chat_id = os.getenv('TELEGRAM_TARGET_CHAT_ID')
+            report_chat_id = os.getenv('TELEGRAM_REPORT_CHAT_ID')
+            
+            sent_count = 0
+            
+            # Отправка в публичную группу
+            if target_chat_id:
+                if len(photo_file_ids) == 1:
+                    result = await send_photo(target_chat_id, photo_file_ids[0], caption)
+                else:
+                    result = await send_media_group(target_chat_id, photo_file_ids, caption)
+                
+                if result and result.get('success'):
+                    sent_count += 1
+            
+            # Отправка в отчетную группу
+            if report_chat_id and report_chat_id != target_chat_id:
+                if len(photo_file_ids) == 1:
+                    result = await send_photo(report_chat_id, photo_file_ids[0], caption)
+                else:
+                    result = await send_media_group(report_chat_id, photo_file_ids, caption)
+                
+                if result and result.get('success'):
+                    sent_count += 1
+            
+            return {
+                "success": True,
+                "sent_to_groups": sent_count,
+                "message": f"Фото отправлено в {sent_count} группу(ы)"
+            }
+            
+    except Exception as e:
+        logger.error(f"[cleaning] Error resending photos: {e}")
+        return {"success": False, "error": str(e)}
+
 @router.get("/missing-data-report")
 async def get_missing_data_report():
     """
