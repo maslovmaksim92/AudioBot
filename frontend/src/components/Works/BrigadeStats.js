@@ -186,6 +186,8 @@ const BrigadeStats = () => {
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
+  const day = currentMonth.getDate();
+  const formattedDate = `${day} ${months[month]} ${year}`;
   const daysInMonth = getDaysInMonth(currentMonth);
 
   return (
