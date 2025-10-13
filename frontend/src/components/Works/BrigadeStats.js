@@ -40,12 +40,12 @@ const BrigadeStats = () => {
       
       console.log('[BrigadeStats] Loaded', data.houses?.length || 0, 'houses');
       
-      // Определяем выбранную ДАТУ для фильтрации (не месяц!)
-      const selectedDate = currentMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Определяем выбранный МЕСЯЦ для фильтрации
       const selectedYear = currentMonth.getFullYear();
       const selectedMonth = currentMonth.getMonth();
+      const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`; // YYYY-MM
       
-      console.log('[BrigadeStats] Filtering for DATE:', selectedDate);
+      console.log('[BrigadeStats] Filtering for MONTH:', monthPrefix);
       
       // Подсчет статистики по бригадам
       const stats = {};
