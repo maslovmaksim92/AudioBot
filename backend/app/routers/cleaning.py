@@ -404,19 +404,40 @@ async def get_missing_data_report():
             if not has_october and not has_november:
                 missing_fields.append('График уборки')
             
-            # Если есть недостающие данные, добавляем в отчет
-            if missing_fields:
-                missing_data_houses.append({
-                    'id': house.get('id', ''),
-                    'address': house.get('address') or house.get('title', 'Не указан'),
-                    'management_company': house.get('management_company', 'Не указана'),
-                    'brigade_name': house.get('brigade_name', 'Не назначена'),
-                    'entrances': house.get('entrances', 0),
-                    'floors': house.get('floors', 0),
-                    'apartments': house.get('apartments', 0),
-                    'periodicity': house.get('periodicity', 'Не указана'),
-                    'missing_fields': ', '.join(missing_fields)
-                })
+            # Проверка контактов старшего
+            elder_contact = house.get('elder_contact', {})
+            elder_name = ''
+            elder_phone = ''
+            elder_email = ''
+            
+            if isinstance(elder_contact, dict):
+                elder_name = elder_contact.get('name', '')
+                phones = elder_contact.get('phones', [])
+                emails = elder_contact.get('emails', [])
+                elder_phone = phones[0] if phones else ''
+                elder_email = emails[0] if emails else ''
+            
+            if not elder_name:
+                missing_fields.append('Старший (ФИО)')
+            if not elder_phone:
+                missing_fields.append('Старший (телефон)')
+            
+            # Добавляем в отчет (всегда, не только если есть недостающие поля)
+            # Это позволит видеть полную информацию по всем домам
+            missing_data_houses.append({
+                'id': house.get('id', ''),
+                'address': house.get('address') or house.get('title', 'Не указан'),
+                'management_company': house.get('management_company', 'Не указана'),
+                'brigade_name': house.get('brigade_name', 'Не назначена'),
+                'entrances': house.get('entrances', 0),
+                'floors': house.get('floors', 0),
+                'apartments': house.get('apartments', 0),
+                'periodicity': house.get('periodicity', 'Не указана'),
+                'elder_name': elder_name or 'Не указан',
+                'elder_phone': elder_phone or 'Не указан',
+                'elder_email': elder_email or 'Не указан',
+                'missing_fields': ', '.join(missing_fields) if missing_fields else 'Нет'
+            })
         
         logger.info(f"[cleaning] Found {len(missing_data_houses)} houses with missing data")
         
