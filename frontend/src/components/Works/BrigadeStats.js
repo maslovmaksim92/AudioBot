@@ -110,8 +110,8 @@ const BrigadeStats = () => {
                 
                 const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
                 const typeText = (type || '').toLowerCase();
-                const isFullCleaning = type.includes('всех этаж');
-                const isSweeping = type.includes('подмет');
+                const isFullCleaning = typeText.includes('всех этаж');
+                const isSweeping = typeText.includes('подмет');
                 
                 if (!dailyWork[date]) {
                   dailyWork[date] = {};
