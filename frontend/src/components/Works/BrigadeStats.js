@@ -403,25 +403,36 @@ const BrigadeStats = () => {
                     
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Домов:</span>
+                        <span className="text-sm text-gray-600">Домов всего:</span>
                         <span className="text-lg font-semibold">{brigade.totalHouses}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Подъездов:</span>
+                        <span className="text-sm text-gray-600">Подъездов всего:</span>
                         <span className="text-lg font-semibold text-blue-600">{brigade.totalEntrances}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Этажей:</span>
-                        <span className="text-lg font-semibold text-purple-600">{brigade.totalFloors}</span>
+                      
+                      <div className="pt-2 border-t border-gray-200">
+                        <div className="text-xs text-gray-500 mb-2 font-semibold">За выбранный месяц:</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Уборок:</span>
+                            <span className="text-xl font-bold text-green-600">{totalCleanings}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Подъездов убрано:</span>
+                            <span className="text-xl font-bold text-blue-600">{totalEntrances}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Этажей убрано:</span>
+                            <span className="text-xl font-bold text-purple-600">{totalFloors}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Подметаний:</span>
+                            <span className="text-xl font-bold text-orange-600">{totalSweepings}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Уборок:</span>
-                        <span className="text-lg font-semibold text-green-600">{totalCleanings}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Подметаний:</span>
-                        <span className="text-lg font-semibold text-orange-600">{totalSweepings}</span>
-                      </div>
+                      
                       <div className="pt-2 border-t border-gray-200">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500">Средн. подъездов/день:</span>
