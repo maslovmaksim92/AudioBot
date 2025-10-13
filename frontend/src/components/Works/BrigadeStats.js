@@ -103,15 +103,13 @@ const BrigadeStats = () => {
                 
                 if (!dateStr) return;
                 
-                // Фильтрация по выбранному месяцу
-                const dateObj = new Date(dateStr);
-                if (isNaN(dateObj.getTime())) return; // Невалидная дата
+                const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
                 
-                if (dateObj.getFullYear() !== selectedYear || dateObj.getMonth() !== selectedMonth) {
-                  return; // Пропускаем даты не из выбранного месяца
+                // Фильтрация: ТОЛЬКО выбранная дата
+                if (date !== selectedDate) {
+                  return; // Пропускаем все даты кроме выбранной
                 }
                 
-                const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
                 const typeText = (type || '').toLowerCase();
                 const isFullCleaning = typeText.includes('всех этаж');
                 const isSweeping = typeText.includes('подмет');
