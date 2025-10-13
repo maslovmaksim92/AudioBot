@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Тестирование подсчета KPI бригад - проверить endpoint GET /api/cleaning/houses?limit=1000, структуру данных для октября 2025, математическую проверку для бригады №1 за октябрь 2025"
+user_problem_statement: "Протестировать CSV отчет с контактами старшего - проверить endpoint /api/cleaning/missing-data-report, структуру CSV файла с ~500 домами, контакты дома ID 8674 (Кибальчича 3), статистику домов с/без контактов"
 
 backend:
   - task: "GET /api/cleaning/houses endpoint"
