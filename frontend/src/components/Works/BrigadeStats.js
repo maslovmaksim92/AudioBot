@@ -200,7 +200,7 @@ const BrigadeStats = () => {
               <Users className="w-10 h-10 text-blue-600" />
               KPI Бригад
             </h1>
-            <p className="text-gray-600">Статистика работы бригад за {months[month]} {year}</p>
+            <p className="text-gray-600">Статистика работы бригад на <span className="font-semibold text-blue-600">{formattedDate}</span></p>
           </div>
           
           {/* Селектор месяца с календарем */}
