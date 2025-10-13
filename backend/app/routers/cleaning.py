@@ -468,6 +468,9 @@ async def get_missing_data_report():
                 'Этажи': house['floors'],
                 'Квартиры': house['apartments'],
                 'Периодичность': house['periodicity'],
+                'Старший (ФИО)': house['elder_name'],
+                'Старший (телефон)': house['elder_phone'],
+                'Старший (email)': house['elder_email'],
                 'Недостающие поля': house['missing_fields']
             })
         
