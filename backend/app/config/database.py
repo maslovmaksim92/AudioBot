@@ -113,3 +113,49 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("✅ Database tables created successfully")
+
+# Для работы с asyncpg напрямую (используется в миграциях и Telegram боте)
+_db_pool = None
+
+async def get_db_pool():
+    """
+    Получить asyncpg connection pool
+    Используется для прямых SQL запросов в миграциях и Telegram боте
+    """
+    global _db_pool
+    
+    if _db_pool is None:
+        try:
+            import asyncpg
+            from .settings import settings
+            
+            # Парсим DATABASE_URL
+            parsed = urlparse(settings.DATABASE_URL)
+            
+            # Создаем pool с SSL
+            _db_pool = await asyncpg.create_pool(
+                host=parsed.hostname,
+                port=parsed.port or 5432,
+                user=parsed.username,
+                password=parsed.password,
+                database=parsed.path.lstrip('/'),
+                ssl=ssl_context,
+                min_size=2,
+                max_size=10,
+                command_timeout=60
+            )
+            
+            logger.info("✅ AsyncPG pool created successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to create asyncpg pool: {e}")
+            return None
+    
+    return _db_pool
+
+async def close_db_pool():
+    """Закрыть asyncpg connection pool"""
+    global _db_pool
+    if _db_pool:
+        await _db_pool.close()
+        _db_pool = None
+        logger.info("✅ AsyncPG pool closed")
