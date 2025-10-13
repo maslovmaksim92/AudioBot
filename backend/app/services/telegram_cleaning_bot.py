@@ -446,10 +446,18 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         
         # 1. ВСЕГДА отправляем обратно пользователю (подтверждение)
         logger.info(f"[telegram_cleaning_bot] Sending confirmation to user: {chat_id}")
+        logger.info(f"[telegram_cleaning_bot] Photo count: {len(session.photos)}, photo_ids: {session.photos}")
+        
+        user_send_result = None
         if len(session.photos) == 1:
-            await send_photo(chat_id, session.photos[0], caption)
+            user_send_result = await send_photo(chat_id, session.photos[0], caption)
         else:
-            await send_media_group(chat_id, session.photos, caption)
+            user_send_result = await send_media_group(chat_id, session.photos, caption)
+        
+        if user_send_result and user_send_result.get('success'):
+            logger.info(f"[telegram_cleaning_bot] ✅ Successfully sent photos back to user {chat_id}")
+        else:
+            logger.error(f"[telegram_cleaning_bot] ❌ Failed to send photos back to user {chat_id}")
         
         # 2. Отправляем в публичную группу (сохраняем message_id)
         if target_chat_id:
