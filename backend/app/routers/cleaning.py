@@ -363,12 +363,8 @@ async def get_missing_data_report():
         data = await bitrix24_service.list_houses(limit=1000)
         all_houses = data.get('houses', [])
         
-        # ОПТИМИЗАЦИЯ: Ограничиваем первыми 100 домами для быстрой генерации
-        # TODO: В будущем сделать асинхронную фоновую задачу для полного отчета
-        all_houses = all_houses[:100]
-        
         logger.info(f"[cleaning] Loaded {len(all_houses)} houses for report")
-        logger.info("[cleaning] Loading elder contacts for each house (this may take a while)...")
+        logger.info("[cleaning] Loading elder contacts for each house (this may take 2-3 minutes)...")
         
         # Проверяем каждый дом на недостающие данные
         missing_data_houses = []
