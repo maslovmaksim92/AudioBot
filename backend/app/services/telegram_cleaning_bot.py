@@ -438,6 +438,12 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         target_chat_id = os.getenv('TELEGRAM_TARGET_CHAT_ID')  # Публичная группа
         report_chat_id = os.getenv('TELEGRAM_REPORT_CHAT_ID')  # Отчетная группа
         
+        # Переменные для сохранения message_id и chat_id
+        telegram_message_id = None
+        telegram_chat_id = None
+        telegram_post_url = None
+        sent_to_group = False
+        
         # 1. ВСЕГДА отправляем обратно пользователю (подтверждение)
         logger.info(f"[telegram_cleaning_bot] Sending confirmation to user: {chat_id}")
         if len(session.photos) == 1:
@@ -445,13 +451,33 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
         else:
             await send_media_group(chat_id, session.photos, caption)
         
-        # 2. Отправляем в публичную группу
+        # 2. Отправляем в публичную группу (сохраняем message_id)
         if target_chat_id:
             logger.info(f"[telegram_cleaning_bot] Sending to public group: {target_chat_id}")
+            result = None
             if len(session.photos) == 1:
-                await send_photo(target_chat_id, session.photos[0], caption)
+                result = await send_photo(target_chat_id, session.photos[0], caption)
             else:
-                await send_media_group(target_chat_id, session.photos, caption)
+                result = await send_media_group(target_chat_id, session.photos, caption)
+            
+            if result and result.get('success'):
+                telegram_message_id = result.get('message_id')
+                telegram_chat_id = result.get('chat_id')
+                sent_to_group = True
+                
+                # Формируем ссылку на пост (если есть username канала)
+                # Для приватных групп используется формат: t.me/c/{chat_id без -100}/{message_id}
+                if telegram_chat_id and telegram_message_id:
+                    # Убираем -100 из chat_id для приватных групп
+                    chat_id_str = str(telegram_chat_id)
+                    if chat_id_str.startswith('-100'):
+                        clean_chat_id = chat_id_str[4:]  # Убираем -100
+                        telegram_post_url = f"https://t.me/c/{clean_chat_id}/{telegram_message_id}"
+                    else:
+                        # Для публичных каналов формат другой
+                        telegram_post_url = f"https://t.me/{chat_id_str}/{telegram_message_id}"
+                    
+                    logger.info(f"[telegram_cleaning_bot] Generated post URL: {telegram_post_url}")
         
         # 3. Отправляем в отчетную группу (если отличается от публичной)
         if report_chat_id and report_chat_id != target_chat_id:
@@ -474,8 +500,9 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
                         INSERT INTO cleaning_photos (
                             house_id, house_address, brigade_id, telegram_user_id,
                             cleaning_date, photo_file_ids, photo_count, ai_caption,
-                            status, sent_to_group_at
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                            status, sent_to_group_at,
+                            telegram_message_id, telegram_chat_id, telegram_post_url
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                         ON CONFLICT (house_id, cleaning_date, brigade_id) 
                         DO UPDATE SET
                             photo_file_ids = EXCLUDED.photo_file_ids,
@@ -483,6 +510,9 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
                             ai_caption = EXCLUDED.ai_caption,
                             status = EXCLUDED.status,
                             sent_to_group_at = EXCLUDED.sent_to_group_at,
+                            telegram_message_id = EXCLUDED.telegram_message_id,
+                            telegram_chat_id = EXCLUDED.telegram_chat_id,
+                            telegram_post_url = EXCLUDED.telegram_post_url,
                             updated_at = NOW()
                         """,
                         session.selected_house_id,
@@ -494,9 +524,12 @@ async def handle_done_command(chat_id: int, user_id: int, db_session):
                         len(session.photos),
                         caption,
                         'sent_to_group' if sent_to_group else 'uploaded',
-                        datetime.now() if sent_to_group else None
+                        datetime.now() if sent_to_group else None,
+                        telegram_message_id,
+                        telegram_chat_id,
+                        telegram_post_url
                     )
-                    logger.info(f"[telegram_cleaning_bot] ✅ Saved to DB: {session.selected_house_id}")
+                    logger.info(f"[telegram_cleaning_bot] ✅ Saved to DB: {session.selected_house_id}, post_url: {telegram_post_url}")
         except Exception as db_error:
             logger.error(f"[telegram_cleaning_bot] ❌ Failed to save to DB: {db_error}")
         
