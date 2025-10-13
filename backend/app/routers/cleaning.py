@@ -420,12 +420,19 @@ async def get_missing_data_report():
         
         logger.info(f"[cleaning] Found {len(missing_data_houses)} houses with missing data")
         
-        # Создаем CSV
+        # Создаем CSV с правильным разделителем для Excel
         output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=[
-            'ID', 'Адрес', 'УК', 'Бригада', 'Подъезды', 'Этажи', 
-            'Квартиры', 'Периодичность', 'Недостающие поля'
-        ])
+        
+        # Используем точку с запятой как разделитель для совместимости с Excel
+        writer = csv.DictWriter(
+            output, 
+            fieldnames=[
+                'ID', 'Адрес', 'УК', 'Бригада', 'Подъезды', 'Этажи', 
+                'Квартиры', 'Периодичность', 'Недостающие поля'
+            ],
+            delimiter=';',  # Точка с запятой для Excel
+            quoting=csv.QUOTE_MINIMAL
+        )
         
         writer.writeheader()
         
