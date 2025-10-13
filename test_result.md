@@ -101,3 +101,84 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Тестирование подсчета KPI бригад - проверить endpoint GET /api/cleaning/houses?limit=1000, структуру данных для октября 2025, математическую проверку для бригады №1 за октябрь 2025"
+
+backend:
+  - task: "GET /api/cleaning/houses endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Endpoint работает корректно. Загружено 499 домов. Структура ответа валидна с полями total, page, limit, houses."
+
+  - task: "Cleaning dates data structure validation"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/bitrix24_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Структура cleaning_dates корректна. Найдены поля october_1 и october_2 с датами и типами уборок. Данные содержат dates (массив дат) и type (тип уборки)."
+
+  - task: "Brigade #1 KPI calculation for October 2025"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/bitrix24_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ KPI расчет для бригады №1 за октябрь 2025 работает корректно. Найдено 70 домов бригады №1. Итоговые показатели: 232 уборки, 734 подъезда, 4728 этажей, 0 подметаний за 20 дней работы."
+
+  - task: "Mathematical verification of cleaning calculations"
+    implemented: true
+    working: true
+    file: "/app/backend_test.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Математические расчеты проверены и корректны. Для влажной уборки всех этажей: подъезды × этажи. Для уборки 1 этажа: считается как обычная уборка. Подметания не обнаружены в данных октября 2025."
+
+  - task: "Additional cleaning endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routers/cleaning.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ Дополнительные endpoints работают: /cleaning/filters (200), /cleaning/brigades (200), /cleaning/cleaning-types (200)."
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "GET /api/cleaning/houses endpoint"
+    - "Brigade #1 KPI calculation for October 2025"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: "Тестирование KPI системы уборки завершено успешно. Все основные функции работают корректно. Endpoint /api/cleaning/houses возвращает данные из Bitrix24, структура cleaning_dates содержит корректные данные для октября 2025, математические расчеты KPI для бригады №1 выполняются правильно. Обнаружено 70 домов бригады №1 с 232 уборками за октябрь 2025."
