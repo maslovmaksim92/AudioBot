@@ -683,6 +683,16 @@ const Works = () => {
           showNotification(`✅ Акт подписан! Уборок в месяце: ${data.cleaning_count}`, 'success');
         }}
       />
+
+      {/* Photo History Modal */}
+      <PhotoHistoryModal
+        house={selectedHouseForPhotos}
+        isOpen={showPhotoHistoryModal}
+        onClose={() => {
+          setShowPhotoHistoryModal(false);
+          setSelectedHouseForPhotos(null);
+        }}
+      />
       </>
       )}
     </div>
