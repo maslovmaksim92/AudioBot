@@ -105,9 +105,9 @@ const BrigadeStats = () => {
                 
                 const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
                 
-                // Фильтрация: ТОЛЬКО выбранная дата
-                if (date !== selectedDate) {
-                  return; // Пропускаем все даты кроме выбранной
+                // Фильтрация: ТОЛЬКО выбранный месяц
+                if (!date.startsWith(monthPrefix)) {
+                  return; // Пропускаем все даты не из выбранного месяца
                 }
                 
                 const typeText = (type || '').toLowerCase();
