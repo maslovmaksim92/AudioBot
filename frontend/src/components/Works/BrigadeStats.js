@@ -372,10 +372,20 @@ const BrigadeStats = () => {
                 return numA - numB;
               })
               .map((brigade, idx) => {
-                const totalCleanings = Object.keys(brigade.cleanings).length;
-                const totalSweepings = Object.keys(brigade.sweepings).length;
-                const avgEntrancesPerDay = totalCleanings > 0 
-                  ? Math.round(Object.values(brigade.cleanings).reduce((sum, day) => sum + day.entrances, 0) / totalCleanings)
+                // Подсчет СУММАРНОГО количества уборок за месяц
+                const totalCleanings = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.houses || 0), 0);
+                const totalSweepings = Object.values(brigade.sweepings).reduce((sum, count) => sum + count, 0);
+                
+                // Общее количество подъездов за месяц
+                const totalEntrances = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.entrances || 0), 0);
+                
+                // Общее количество этажей за месяц
+                const totalFloors = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.floors || 0), 0);
+                
+                // Средние значения
+                const daysWithCleanings = Object.keys(brigade.cleanings).length;
+                const avgEntrancesPerDay = daysWithCleanings > 0 
+                  ? Math.round(totalEntrances / daysWithCleanings)
                   : 0;
                 
                 return (
