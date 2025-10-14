@@ -4,6 +4,7 @@ import { Mic, MicOff, Save, Sparkles, CheckCircle, Calendar, Users, FileText } f
 const Plannerka = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState(''); // Промежуточный текст
   const [title, setTitle] = useState(`Планёрка ${new Date().toLocaleDateString('ru-RU')}`);
   const [summary, setSummary] = useState('');
   const [tasks, setTasks] = useState([]);
@@ -12,6 +13,7 @@ const Plannerka = () => {
   const [currentMeetingId, setCurrentMeetingId] = useState(null);
   
   const recognitionRef = useRef(null);
+  const finalTranscriptRef = useRef(''); // Хранилище финального текста
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
