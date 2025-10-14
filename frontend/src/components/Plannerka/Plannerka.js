@@ -226,13 +226,25 @@ const Plannerka = () => {
         {/* Транскрипция */}
         <div className="relative">
           <textarea
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            value={transcript + interimTranscript}
+            onChange={(e) => {
+              // При ручном редактировании сбрасываем промежуточный текст
+              setTranscript(e.target.value);
+              setInterimTranscript('');
+              finalTranscriptRef.current = e.target.value;
+            }}
             className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
             placeholder="Здесь будет отображаться транскрипция речи в реальном времени..."
           />
-          <div className="absolute bottom-3 right-3 text-xs text-gray-500">
-            {transcript.length} символов
+          <div className="absolute bottom-3 right-3 flex gap-3 text-xs text-gray-500">
+            {interimTranscript && (
+              <span className="text-blue-600 animate-pulse">
+                🎤 Распознаю...
+              </span>
+            )}
+            <span>
+              {(transcript + interimTranscript).length} символов
+            </span>
           </div>
         </div>
 
