@@ -242,7 +242,6 @@ async def list_plannerkas(limit: int = 20, offset: int = 0):
             
             meetings = []
             for row in rows:
-                import json
                 meetings.append({
                     "id": str(row['id']),
                     "title": row['title'],
