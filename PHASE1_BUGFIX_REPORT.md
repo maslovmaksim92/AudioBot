@@ -270,6 +270,6 @@ period.dates.forEach(date => {
 
 ---
 
-**Preview URL:** https://cleancaption.preview.emergentagent.com
+**Preview URL:** https://clean-works-hub.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:42 UTC

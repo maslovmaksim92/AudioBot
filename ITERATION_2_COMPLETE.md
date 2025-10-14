@@ -192,7 +192,7 @@
 - ⚠️ Настроить webhook:
   ```bash
   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-    -d "url=https://cleancaption.preview.emergentagent.com/api/telegram-webhook/"
+    -d "url=https://clean-works-hub.preview.emergentagent.com/api/telegram-webhook/"
   ```
 
 ### Статус

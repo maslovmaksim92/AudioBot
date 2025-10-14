@@ -146,6 +146,6 @@
 
 ## 🔗 Полезные ссылки
 
-- Preview URL: https://cleancaption.preview.emergentagent.com
+- Preview URL: https://clean-works-hub.preview.emergentagent.com
 - GitHub: https://github.com/maslovmaksim92/AudioBot
 - План разработки: `/app/DEVELOPMENT_PLAN_ITERATIONS.md`

@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://cleancaption.preview.emergentagent.com
+**Preview URL**: https://clean-works-hub.preview.emergentagent.com
 
 ---
 
