@@ -99,9 +99,17 @@ const RevenueInput = () => {
       const result = await response.json();
 
       if (result.success) {
+        // Синхронизируем с транзакциями
+        const syncResponse = await fetch(`${BACKEND_URL}/api/finances/revenue/sync-to-transactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const syncResult = await syncResponse.json();
+        
         setMessage({
           type: 'success',
-          text: `Успешно сохранено! ${result.message}`
+          text: `Успешно сохранено! ${result.message}. ${syncResult.message}`
         });
         setTimeout(() => loadRevenues(), 1000);
       }
