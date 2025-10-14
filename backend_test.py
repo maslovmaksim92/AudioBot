@@ -34,221 +34,252 @@ class PlannerkaTestResults:
         self.tasks_extracted = []
         self.summary_generated = False
 
-async def test_cleaning_houses_endpoint():
-    """Test the main cleaning houses endpoint"""
-    print("=== ТЕСТ KPI БРИГАДЫ 1 - ОКТЯБРЬ 2025 ===\n")
+async def test_plannerka_create_endpoint():
+    """Test plannerka creation endpoint"""
+    print("=== ТЕСТ СОЗДАНИЯ ПЛАНЁРКИ ===\n")
     
-    results = KPITestResults()
+    results = PlannerkaTestResults()
+    
+    # Test data from the review request
+    test_data = {
+        "title": "Тестовая планёрка",
+        "transcription": "Обсуждали задачи на неделю. Иванову поручено завершить отчет до пятницы. Петрову нужно проверить документы до среды. Сидорову поручена подготовка презентации с высоким приоритетом до четверга.",
+        "participants": ["Иванов", "Петров", "Сидоров"]
+    }
     
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            print("🔍 Загружаем все дома с графиками уборок...")
+            print("🔍 Создаем планёрку...")
+            print(f"📝 Данные: {json.dumps(test_data, ensure_ascii=False, indent=2)}")
             
-            # Test the main endpoint
-            response = await client.get(f"{API_BASE}/cleaning/houses?limit=1000")
+            # Test the create endpoint
+            response = await client.post(
+                f"{API_BASE}/plannerka/create",
+                json=test_data,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
             
             if response.status_code != 200:
-                error_msg = f"❌ Ошибка API: {response.status_code} - {response.text}"
+                error_msg = f"❌ Ошибка создания планёрки: {response.status_code} - {response.text}"
                 results.errors.append(error_msg)
                 print(error_msg)
                 return results
             
             data = response.json()
-            houses = data.get('houses', [])
-            results.total_houses_loaded = len(houses)
+            results.created_meeting_data = data
+            results.created_meeting_id = data.get('id')
+            results.database_working = True
             
-            print(f"✅ Загружено домов: {results.total_houses_loaded}")
-            print(f"📊 Структура ответа: total={data.get('total')}, page={data.get('page')}, limit={data.get('limit')}")
+            print(f"✅ Планёрка создана с ID: {results.created_meeting_id}")
+            print(f"📊 Структура ответа:")
+            print(f"   - ID: {data.get('id')}")
+            print(f"   - Title: {data.get('title')}")
+            print(f"   - Date: {data.get('date')}")
+            print(f"   - Participants: {data.get('participants')}")
+            print(f"   - Transcription length: {len(data.get('transcription', ''))}")
+            print(f"   - Summary: {data.get('summary')}")
+            print(f"   - Tasks: {data.get('tasks')}")
             
-            if not houses:
-                results.errors.append("❌ Нет данных о домах")
-                return results
-            
-            # Filter houses for Brigade #1
-            print("\n🔍 Фильтруем дома бригады №1...")
-            
-            for house in houses:
-                # Check various brigade fields
-                brigade_name = house.get('brigade_name', '')
-                assigned_by_name = house.get('assigned_by_name', '')
-                
-                # Look for brigade #1 indicators
-                is_brigade_1 = (
-                    '1 бригада' in str(brigade_name).lower() or
-                    'бригада 1' in str(brigade_name).lower() or
-                    '1 бригада' in str(assigned_by_name).lower() or
-                    'бригада 1' in str(assigned_by_name).lower()
-                )
-                
-                if is_brigade_1:
-                    results.brigade_1_houses.append(house)
-            
-            print(f"✅ Найдено домов бригады №1: {len(results.brigade_1_houses)}")
-            
-            if not results.brigade_1_houses:
-                results.errors.append("❌ Не найдено домов для бригады №1")
-                return results
-            
-            # Analyze October 2025 cleaning data
-            print("\n📅 Анализируем данные уборок за октябрь 2025...")
-            
-            # Take first 5 houses as samples for detailed output
-            results.sample_houses = results.brigade_1_houses[:5]
-            
-            print("\nПримеры домов:")
-            for i, house in enumerate(results.sample_houses, 1):
-                house_id = house.get('id', 'N/A')
-                address = house.get('address') or house.get('title', 'Адрес не указан')
-                entrances = house.get('entrances', 0)
-                floors = house.get('floors', 0)
-                
-                print(f"{i}. Дом ID {house_id}, Адрес: {address}")
-                print(f"   - Подъезды: {entrances}, Этажи: {floors}")
-                
-                # Analyze cleaning dates
-                cleaning_dates = house.get('cleaning_dates', {})
-                october_dates = []
-                
-                # Check october_1 and october_2
-                for period in ['october_1', 'october_2']:
-                    period_data = cleaning_dates.get(period, {})
-                    if period_data:
-                        dates = period_data.get('dates', [])
-                        cleaning_type = period_data.get('type', '')
-                        
-                        for date in dates:
-                            if date and '2025-10' in str(date):
-                                october_dates.append({
-                                    'date': date,
-                                    'type': cleaning_type,
-                                    'entrances': entrances,
-                                    'floors': floors
-                                })
-                
-                if october_dates:
-                    print(f"   - Даты в октябре:")
-                    for cleaning in october_dates:
-                        date = cleaning['date']
-                        cleaning_type = cleaning['type']
-                        entrances_count = cleaning['entrances']
-                        floors_count = cleaning['floors']
-                        
-                        # Calculate floors for wet cleaning
-                        if 'влажная' in cleaning_type.lower() and 'этаж' in cleaning_type.lower():
-                            total_floors = entrances_count * floors_count
-                            print(f"     * {date} ({cleaning_type}) → {entrances_count} подъезда, {total_floors} этажей")
-                        elif 'подмет' in cleaning_type.lower():
-                            print(f"     * {date} ({cleaning_type}) → подметание")
-                        else:
-                            print(f"     * {date} ({cleaning_type})")
+            # Validate response structure
+            required_fields = ['id', 'title', 'date', 'transcription', 'participants', 'created_at']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в ответе")
                 else:
-                    print(f"   - ⚠️ Нет дат уборки в октябре 2025")
-                
-                print()
+                    print(f"✅ Поле '{field}' присутствует")
             
-            # Calculate KPIs for all Brigade #1 houses
-            print("📊 Расчет KPI за октябрь 2025:")
+            # Validate data integrity
+            if data.get('title') != test_data['title']:
+                results.errors.append(f"❌ Неверный title: ожидался '{test_data['title']}', получен '{data.get('title')}'")
             
-            # Initialize daily counters
-            daily_stats = {}
+            if data.get('transcription') != test_data['transcription']:
+                results.errors.append(f"❌ Неверная transcription")
             
-            for house in results.brigade_1_houses:
-                house_id = house.get('id', '')
-                entrances = house.get('entrances', 0) or 0
-                floors = house.get('floors', 0) or 0
-                cleaning_dates = house.get('cleaning_dates', {})
-                
-                # Process october_1 and october_2
-                for period in ['october_1', 'october_2']:
-                    period_data = cleaning_dates.get(period, {})
-                    if not period_data:
-                        continue
-                    
-                    dates = period_data.get('dates', [])
-                    cleaning_type = period_data.get('type', '').lower()
-                    
-                    for date in dates:
-                        if not date or '2025-10' not in str(date):
-                            continue
-                        
-                        # Initialize date if not exists
-                        if date not in daily_stats:
-                            daily_stats[date] = {
-                                'houses': 0,
-                                'entrances': 0,
-                                'floors': 0,
-                                'sweepings': 0
-                            }
-                        
-                        # Count house
-                        daily_stats[date]['houses'] += 1
-                        
-                        # Calculate based on cleaning type
-                        if 'влажная' in cleaning_type and 'этаж' in cleaning_type:
-                            # Wet cleaning of all floors
-                            daily_stats[date]['entrances'] += entrances
-                            daily_stats[date]['floors'] += entrances * floors
-                        elif 'подмет' in cleaning_type:
-                            # Sweeping
-                            daily_stats[date]['sweepings'] += 1
-                        elif 'влажная' in cleaning_type:
-                            # General wet cleaning (count entrances)
-                            daily_stats[date]['entrances'] += entrances
+            if data.get('participants') != test_data['participants']:
+                results.errors.append(f"❌ Неверные participants")
             
-            # Sort dates and display results
-            sorted_dates = sorted(daily_stats.keys())
-            
-            for date in sorted_dates:
-                stats = daily_stats[date]
-                print(f"- {date}: {stats['houses']} домов, {stats['entrances']} подъездов, {stats['floors']} этажей, {stats['sweepings']} подметаний")
-                
-                # Add to totals
-                results.total_cleanings += stats['houses']
-                results.total_entrances += stats['entrances']
-                results.total_floors += stats['floors']
-                results.total_sweepings += stats['sweepings']
-            
-            # Store daily stats
-            results.october_cleanings = daily_stats
-            
-            print(f"\nИТОГО ЗА ОКТЯБРЬ:")
-            print(f"✅ Уборок: {results.total_cleanings}")
-            print(f"✅ Подъездов: {results.total_entrances}")
-            print(f"✅ Этажей: {results.total_floors}")
-            print(f"✅ Подметаний: {results.total_sweepings}")
-            
-            # Validation checks
-            print(f"\n🔍 Проверки валидации:")
-            
-            if results.total_cleanings == 0:
-                results.errors.append("❌ Нет уборок в октябре 2025 для бригады №1")
-            else:
-                print(f"✅ Найдены уборки: {results.total_cleanings}")
-            
-            if len(daily_stats) == 0:
-                results.errors.append("❌ Нет дат уборок в октябре 2025")
-            else:
-                print(f"✅ Дней с уборками: {len(daily_stats)}")
-            
-            # Check data structure
-            sample_house = results.brigade_1_houses[0] if results.brigade_1_houses else None
-            if sample_house:
-                cleaning_dates = sample_house.get('cleaning_dates', {})
-                has_october_1 = 'october_1' in cleaning_dates
-                has_october_2 = 'october_2' in cleaning_dates
-                
-                print(f"✅ Структура данных: october_1={has_october_1}, october_2={has_october_2}")
-                
-                if has_october_1:
-                    oct1_data = cleaning_dates['october_1']
-                    print(f"   - october_1: dates={len(oct1_data.get('dates', []))}, type='{oct1_data.get('type', '')}'")
-                
-                if has_october_2:
-                    oct2_data = cleaning_dates['october_2']
-                    print(f"   - october_2: dates={len(oct2_data.get('dates', []))}, type='{oct2_data.get('type', '')}'")
+            if not results.errors:
+                print("✅ Все поля корректны")
             
     except Exception as e:
-        error_msg = f"❌ Ошибка при тестировании: {str(e)}"
+        error_msg = f"❌ Ошибка при тестировании создания планёрки: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_plannerka_analyze_endpoint(meeting_id: str):
+    """Test plannerka AI analysis endpoint"""
+    print("\n=== ТЕСТ AI-АНАЛИЗА ПЛАНЁРКИ ===\n")
+    
+    results = PlannerkaTestResults()
+    results.created_meeting_id = meeting_id
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:  # Longer timeout for AI analysis
+            print(f"🤖 Запускаем AI-анализ планёрки ID: {meeting_id}")
+            
+            # Test the analyze endpoint
+            response = await client.post(f"{API_BASE}/plannerka/analyze/{meeting_id}")
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка AI-анализа: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                
+                # Check for specific OpenAI errors
+                if "OPENAI_API_KEY" in response.text:
+                    results.errors.append("❌ OPENAI_API_KEY не настроен")
+                elif "transcription is too short" in response.text:
+                    results.errors.append("❌ Транскрипция слишком короткая")
+                
+                return results
+            
+            data = response.json()
+            results.analysis_result = data
+            results.openai_working = True
+            
+            print(f"✅ AI-анализ завершен успешно")
+            print(f"📊 Результат анализа:")
+            print(f"   - Success: {data.get('success')}")
+            print(f"   - Tasks count: {data.get('tasks_count')}")
+            
+            # Check summary
+            summary = data.get('summary', '')
+            if summary:
+                results.summary_generated = True
+                print(f"✅ Саммари сгенерировано ({len(summary)} символов)")
+                print(f"📝 Саммари: {summary[:200]}{'...' if len(summary) > 200 else ''}")
+            else:
+                results.errors.append("❌ Саммари не сгенерировано")
+            
+            # Check tasks
+            tasks = data.get('tasks', [])
+            results.tasks_extracted = tasks
+            
+            if tasks:
+                print(f"✅ Извлечено задач: {len(tasks)}")
+                print("📋 Задачи:")
+                
+                for i, task in enumerate(tasks, 1):
+                    title = task.get('title', 'Без названия')
+                    assignee = task.get('assignee', 'Не назначен')
+                    deadline = task.get('deadline', 'Не указан')
+                    priority = task.get('priority', 'medium')
+                    
+                    print(f"   {i}. {title}")
+                    print(f"      - Исполнитель: {assignee}")
+                    print(f"      - Срок: {deadline}")
+                    print(f"      - Приоритет: {priority}")
+                    
+                    # Validate task structure
+                    required_task_fields = ['title']
+                    for field in required_task_fields:
+                        if field not in task or not task[field]:
+                            results.errors.append(f"❌ Задача {i}: отсутствует поле '{field}'")
+                
+                # Check if expected tasks are found
+                expected_assignees = ['Иванов', 'Петров', 'Сидоров']
+                found_assignees = [task.get('assignee', '') for task in tasks]
+                
+                for expected in expected_assignees:
+                    if any(expected in assignee for assignee in found_assignees):
+                        print(f"✅ Найдена задача для {expected}")
+                    else:
+                        print(f"⚠️ Не найдена задача для {expected}")
+                
+            else:
+                results.errors.append("❌ Задачи не извлечены")
+            
+            # Validate response structure
+            required_fields = ['success', 'summary', 'tasks', 'tasks_count']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в ответе анализа")
+            
+            # Check if success is true
+            if not data.get('success'):
+                results.errors.append("❌ Поле 'success' не равно true")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании AI-анализа: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_plannerka_list_endpoint():
+    """Test plannerka list endpoint"""
+    print("\n=== ТЕСТ СПИСКА ПЛАНЁРОК ===\n")
+    
+    results = PlannerkaTestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("📋 Получаем список планёрок...")
+            
+            # Test the list endpoint
+            response = await client.get(f"{API_BASE}/plannerka/list?limit=20&offset=0")
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка получения списка: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.meetings_list = data.get('meetings', [])
+            
+            print(f"✅ Список получен успешно")
+            print(f"📊 Результат:")
+            print(f"   - Количество планёрок: {data.get('count', 0)}")
+            print(f"   - Планёрок в ответе: {len(results.meetings_list)}")
+            
+            # Validate response structure
+            required_fields = ['meetings', 'count']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в ответе списка")
+            
+            # Check meetings structure
+            if results.meetings_list:
+                print("📋 Примеры планёрок:")
+                
+                for i, meeting in enumerate(results.meetings_list[:3], 1):  # Show first 3
+                    meeting_id = meeting.get('id', 'N/A')
+                    title = meeting.get('title', 'Без названия')
+                    date = meeting.get('date', 'Не указана')
+                    participants_count = len(meeting.get('participants', []))
+                    tasks_count = len(meeting.get('tasks', []))
+                    has_summary = bool(meeting.get('summary'))
+                    
+                    print(f"   {i}. ID: {meeting_id}")
+                    print(f"      - Название: {title}")
+                    print(f"      - Дата: {date}")
+                    print(f"      - Участников: {participants_count}")
+                    print(f"      - Задач: {tasks_count}")
+                    print(f"      - Есть саммари: {has_summary}")
+                
+                # Validate meeting structure
+                sample_meeting = results.meetings_list[0]
+                expected_meeting_fields = ['id', 'title', 'date', 'transcription', 'participants']
+                
+                for field in expected_meeting_fields:
+                    if field not in sample_meeting:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в структуре планёрки")
+                    else:
+                        print(f"✅ Поле '{field}' присутствует в структуре")
+            else:
+                print("⚠️ Список планёрок пуст")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании списка планёрок: {str(e)}"
         results.errors.append(error_msg)
         print(error_msg)
     
