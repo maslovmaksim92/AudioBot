@@ -27,21 +27,26 @@ const Plannerka = () => {
       recognition.lang = 'ru-RU';
       
       recognition.onresult = (event) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+        let interim = '';
         
-        // Собираем весь текст из результатов
-        for (let i = 0; i < event.results.length; i++) {
-          const transcriptText = event.results[i][0].transcript;
+        // Проходим по результатам, обновляя финальный и промежуточный текст
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPiece = event.results[i][0].transcript;
+          
           if (event.results[i].isFinal) {
-            finalTranscript += transcriptText + ' ';
+            // Финальный текст добавляем в ref и state
+            finalTranscriptRef.current += transcriptPiece + ' ';
+            setTranscript(finalTranscriptRef.current);
+            console.log('✅ Final:', transcriptPiece);
           } else {
-            interimTranscript += transcriptText;
+            // Промежуточный текст только для отображения
+            interim += transcriptPiece;
+            console.log('⏳ Interim:', transcriptPiece);
           }
         }
         
-        // Обновляем транскрипцию: финальный текст + промежуточный
-        setTranscript(finalTranscript + interimTranscript);
+        // Обновляем промежуточный текст для отображения
+        setInterimTranscript(interim);
       };
       
       recognition.onerror = (event) => {
