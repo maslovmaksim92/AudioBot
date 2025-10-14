@@ -13,6 +13,7 @@ const Plannerka = () => {
   const [currentMeetingId, setCurrentMeetingId] = useState(null);
   
   const recognitionRef = useRef(null);
+  const isRecordingRef = useRef(false); // Ref для отслеживания статуса записи
   const finalTranscriptRef = useRef(''); // Хранилище финального текста
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -53,29 +54,46 @@ const Plannerka = () => {
         console.error('Speech recognition error:', event.error);
         if (event.error === 'no-speech') {
           // Игнорируем, это нормально
+        } else if (event.error === 'aborted') {
+          // Игнорируем, это нормально при остановке
         } else {
           alert(`Ошибка распознавания речи: ${event.error}`);
         }
       };
       
       recognition.onend = () => {
-        if (isRecording) {
+        console.log('🔄 Recognition ended, isRecording:', isRecordingRef.current);
+        if (isRecordingRef.current) {
           // Перезапускаем если запись еще активна
-          recognition.start();
+          try {
+            setTimeout(() => {
+              if (recognitionRef.current && isRecordingRef.current) {
+                console.log('🔄 Restarting recognition...');
+                recognitionRef.current.start();
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error restarting recognition:', error);
+          }
         }
       };
       
       recognitionRef.current = recognition;
+      console.log('✅ Speech recognition initialized');
     } else {
       alert('⚠️ Ваш браузер не поддерживает распознавание речи. Используйте Chrome или Edge.');
     }
     
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch (error) {
+          console.error('Error stopping recognition:', error);
+        }
       }
     };
-  }, [isRecording]);
+  }, []); // Пустой массив зависимостей - инициализация только один раз
 
   const startRecording = () => {
     if (recognitionRef.current) {
