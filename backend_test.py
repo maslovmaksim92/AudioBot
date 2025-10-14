@@ -330,40 +330,68 @@ async def test_database_connection():
 
 async def main():
     """Main test function"""
-    print("🚀 Запуск тестирования KPI системы уборки VasDom")
+    print("🚀 Запуск тестирования системы Планёрок VasDom")
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
     print("=" * 60)
     
-    # Test main functionality
-    results = await test_cleaning_houses_endpoint()
+    all_errors = []
     
-    # Test additional endpoints
-    await test_additional_endpoints()
+    # Test database connection first
+    db_working = await test_database_connection()
+    if not db_working:
+        all_errors.append("❌ База данных недоступна")
+    
+    # Test OpenAI configuration
+    await test_openai_configuration()
+    
+    # Test plannerka creation
+    create_results = await test_plannerka_create_endpoint()
+    all_errors.extend(create_results.errors)
+    
+    # Test AI analysis (only if creation was successful)
+    analysis_results = None
+    if create_results.created_meeting_id and not create_results.errors:
+        analysis_results = await test_plannerka_analyze_endpoint(create_results.created_meeting_id)
+        all_errors.extend(analysis_results.errors)
+    else:
+        print("\n⚠️ Пропускаем тест AI-анализа из-за ошибок создания планёрки")
+    
+    # Test list endpoint
+    list_results = await test_plannerka_list_endpoint()
+    all_errors.extend(list_results.errors)
     
     # Final summary
     print("\n" + "=" * 60)
-    print("📋 ИТОГОВЫЙ ОТЧЕТ:")
+    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ПЛАНЁРОК:")
     print("=" * 60)
     
-    if results.errors:
+    if all_errors:
         print("❌ ОБНАРУЖЕНЫ ОШИБКИ:")
-        for error in results.errors:
+        for error in all_errors:
             print(f"   {error}")
     else:
         print("✅ ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО")
     
-    print(f"\n📊 Статистика:")
-    print(f"   - Всего домов загружено: {results.total_houses_loaded}")
-    print(f"   - Домов бригады №1: {len(results.brigade_1_houses)}")
-    print(f"   - Уборок в октябре: {results.total_cleanings}")
-    print(f"   - Подъездов убрано: {results.total_entrances}")
-    print(f"   - Этажей убрано: {results.total_floors}")
-    print(f"   - Подметаний: {results.total_sweepings}")
-    print(f"   - Дней с уборками: {len(results.october_cleanings)}")
+    print(f"\n📊 Статистика тестирования:")
+    print(f"   - База данных работает: {db_working}")
+    print(f"   - Планёрка создана: {create_results.created_meeting_id is not None}")
+    print(f"   - OpenAI анализ работает: {analysis_results.openai_working if analysis_results else False}")
+    print(f"   - Саммари сгенерировано: {analysis_results.summary_generated if analysis_results else False}")
+    print(f"   - Задач извлечено: {len(analysis_results.tasks_extracted) if analysis_results else 0}")
+    print(f"   - Планёрок в списке: {len(list_results.meetings_list)}")
+    
+    # Detailed results
+    if create_results.created_meeting_id:
+        print(f"\n🆔 ID созданной планёрки: {create_results.created_meeting_id}")
+    
+    if analysis_results and analysis_results.tasks_extracted:
+        print(f"\n📋 Извлеченные задачи:")
+        for i, task in enumerate(analysis_results.tasks_extracted, 1):
+            print(f"   {i}. {task.get('title', 'Без названия')} → {task.get('assignee', 'Не назначен')}")
     
     # Return success/failure
-    return len(results.errors) == 0
+    return len(all_errors) == 0
 
 if __name__ == "__main__":
     success = asyncio.run(main())
