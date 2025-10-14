@@ -140,10 +140,28 @@ async def get_profit_loss(
 ):
     """
     Получить отчёт о прибылях и убытках
+    Использует ручную выручку из monthly_revenue если она есть
     """
     try:
         conn = await get_db_connection()
         try:
+            # Проверяем существует ли таблица monthly_revenue
+            table_exists = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'monthly_revenue'
+                )
+            """)
+            
+            # Получаем ручную выручку если таблица существует
+            manual_revenue = {}
+            if table_exists:
+                manual_rows = await conn.fetch("""
+                    SELECT month, revenue
+                    FROM monthly_revenue
+                """)
+                manual_revenue = {row['month']: float(row['revenue']) for row in manual_rows}
+            
             # Группируем данные по месяцам
             query = """
                 SELECT 
@@ -174,17 +192,20 @@ async def get_profit_loss(
             
             profit_loss = []
             for row in rows:
-                revenue = float(row['revenue'])
+                period = row['period']
+                # Используем ручную выручку если она есть, иначе из транзакций
+                revenue = manual_revenue.get(period, float(row['revenue']))
                 expenses = float(row['expenses'])
                 profit = revenue - expenses
                 margin = (profit / revenue * 100) if revenue > 0 else 0
                 
                 profit_loss.append({
-                    "period": row['period'],
+                    "period": period,
                     "revenue": revenue,
                     "expenses": expenses,
                     "profit": profit,
-                    "margin": round(margin, 2)
+                    "margin": round(margin, 2),
+                    "manual_revenue": period in manual_revenue
                 })
             
             if not profit_loss:
