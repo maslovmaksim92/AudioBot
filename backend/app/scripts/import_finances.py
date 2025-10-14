@@ -11,9 +11,13 @@ from uuid import uuid4
 import logging
 import re
 import requests
+from dotenv import load_dotenv
 
 # Добавляем путь к корневой директории для импортов
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+# Загружаем переменные окружения
+load_dotenv('/app/backend/.env')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
