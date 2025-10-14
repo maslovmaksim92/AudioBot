@@ -143,15 +143,26 @@ def parse_excel_file(filepath, sheet_name, month_name):
             
             # Создаем транзакции
             if total_expense > 0:
-                all_transactions.append({
-                    'date': trans_date,
-                    'amount': total_expense,
-                    'type': 'expense',
-                    'description': description,
-                    'article': article,
-                    'category': category,
-                    'month': month_name
-                })
+                # Проверяем валидность статьи (исключаем разделители и пустые)
+                if article and article != '----------' and article.strip():
+                    # Проверяем что статья в диапазоне 1.001 - 18.006
+                    try:
+                        parts = article.split('.')
+                        if len(parts) == 2:
+                            major = int(parts[0])
+                            if 1 <= major <= 18:
+                                all_transactions.append({
+                                    'date': trans_date,
+                                    'amount': total_expense,
+                                    'type': 'expense',
+                                    'description': description,
+                                    'article': article,
+                                    'category': category,
+                                    'month': month_name
+                                })
+                    except:
+                        # Пропускаем невалидные статьи
+                        pass
             
             if total_income > 0:
                 all_transactions.append({
