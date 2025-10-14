@@ -12,129 +12,167 @@ const Plannerka = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [currentMeetingId, setCurrentMeetingId] = useState(null);
   
-  const recognitionRef = useRef(null);
-  const isRecordingRef = useRef(false); // Ref для отслеживания статуса записи
-  const finalTranscriptRef = useRef(''); // Хранилище финального текста
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const wsRef = useRef(null);
+  const isRecordingRef = useRef(false);
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+  const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
   useEffect(() => {
-    // Инициализация Web Speech API
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'ru-RU';
-      
-      recognition.onresult = (event) => {
-        let interim = '';
-        
-        // Проходим по результатам, обновляя финальный и промежуточный текст
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcriptPiece = event.results[i][0].transcript;
-          
-          if (event.results[i].isFinal) {
-            // Финальный текст добавляем в ref и state
-            finalTranscriptRef.current += transcriptPiece + ' ';
-            setTranscript(finalTranscriptRef.current);
-            console.log('✅ Final:', transcriptPiece);
-          } else {
-            // Промежуточный текст только для отображения
-            interim += transcriptPiece;
-            console.log('⏳ Interim:', transcriptPiece);
-          }
-        }
-        
-        // Обновляем промежуточный текст для отображения
-        setInterimTranscript(interim);
-      };
-      
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        if (event.error === 'no-speech') {
-          // Игнорируем, это нормально
-        } else if (event.error === 'aborted') {
-          // Игнорируем, это нормально при остановке
-        } else {
-          alert(`Ошибка распознавания речи: ${event.error}`);
-        }
-      };
-      
-      recognition.onend = () => {
-        console.log('🔄 Recognition ended, isRecording:', isRecordingRef.current);
-        if (isRecordingRef.current) {
-          // Перезапускаем если запись еще активна
-          try {
-            setTimeout(() => {
-              if (recognitionRef.current && isRecordingRef.current) {
-                console.log('🔄 Restarting recognition...');
-                recognitionRef.current.start();
-              }
-            }, 100);
-          } catch (error) {
-            console.error('Error restarting recognition:', error);
-          }
-        }
-      };
-      
-      recognitionRef.current = recognition;
-      console.log('✅ Speech recognition initialized');
-    } else {
-      alert('⚠️ Ваш браузер не поддерживает распознавание речи. Используйте Chrome или Edge.');
-    }
-    
+    // Очистка при размонтировании
     return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (error) {
-          console.error('Error stopping recognition:', error);
-        }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
       }
     };
-  }, []); // Пустой массив зависимостей - инициализация только один раз
+  }, []);
 
-  const startRecording = () => {
-    if (recognitionRef.current) {
-      try {
-        // Очищаем предыдущие результаты
-        finalTranscriptRef.current = transcript;
-        setInterimTranscript('');
+  const initWebSocket = () => {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(`${WS_URL}/api/ws/transcribe`);
+      
+      ws.onopen = () => {
+        console.log('✅ WebSocket connected');
+        resolve(ws);
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
         
-        // Обновляем ref перед стартом
-        isRecordingRef.current = true;
-        setIsRecording(true);
-        
-        recognitionRef.current.start();
-        setIsSaved(false);
-        console.log('🎤 Recording started');
-      } catch (error) {
-        console.error('Error starting recognition:', error);
-        // Если уже запущено, это нормально
-        if (error.message.includes('already started')) {
-          isRecordingRef.current = true;
-          setIsRecording(true);
-        } else {
-          alert(`Ошибка запуска записи: ${error.message}`);
+        if (data.type === 'transcription') {
+          // Добавляем транскрипцию к тексту
+          setTranscript(prev => prev + data.text + ' ');
+          setInterimTranscript(''); // Очищаем промежуточный текст
+          console.log('✅ Received transcription:', data.text);
+        } else if (data.type === 'error') {
+          console.error('❌ Transcription error:', data.message);
+          alert(`Ошибка транскрипции: ${data.message}`);
         }
-      }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        reject(error);
+      };
+      
+      ws.onclose = () => {
+        console.log('🔌 WebSocket disconnected');
+      };
+      
+      wsRef.current = ws;
+    });
+  };
+
+  const startRecording = async () => {
+    try {
+      // Инициализируем WebSocket
+      await initWebSocket();
+      
+      // Получаем доступ к микрофону
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Создаем MediaRecorder с форматом webm
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm'
+      });
+      
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        console.log('🎤 Recording stopped, processing audio...');
+        
+        // Создаем blob из всех чанков
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Конвертируем в base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Audio = reader.result.split(',')[1];
+          
+          // Отправляем на сервер через WebSocket
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'audio',
+              audio: base64Audio
+            }));
+            setInterimTranscript('🎙️ Обрабатываю запись...');
+          }
+        };
+        
+        // Очищаем chunks
+        audioChunksRef.current = [];
+        
+        // Останавливаем все треки
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      // Записываем чанками по 5 секунд для более быстрой обратной связи
+      mediaRecorder.start();
+      
+      // Автоматически отправляем каждые 5 секунд
+      const intervalId = setInterval(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && isRecordingRef.current) {
+          mediaRecorder.stop();
+          // Перезапускаем запись
+          setTimeout(() => {
+            if (isRecordingRef.current) {
+              audioChunksRef.current = [];
+              mediaRecorder.start();
+            }
+          }, 100);
+        }
+      }, 5000);
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorderRef.current.intervalId = intervalId;
+      isRecordingRef.current = true;
+      setIsRecording(true);
+      setIsSaved(false);
+      setInterimTranscript('🎤 Слушаю...');
+      
+      console.log('🎤 Recording started');
+    } catch (error) {
+      console.error('❌ Error starting recording:', error);
+      alert(`Ошибка запуска записи: ${error.message}`);
     }
   };
 
   const stopRecording = () => {
-    if (recognitionRef.current) {
-      try {
-        // Обновляем ref перед остановкой
-        isRecordingRef.current = false;
-        setIsRecording(false);
+    try {
+      isRecordingRef.current = false;
+      setIsRecording(false);
+      
+      if (mediaRecorderRef.current) {
+        // Останавливаем интервал
+        if (mediaRecorderRef.current.intervalId) {
+          clearInterval(mediaRecorderRef.current.intervalId);
+        }
         
-        recognitionRef.current.stop();
-        setInterimTranscript(''); // Очищаем промежуточный текст
-        console.log('🛑 Recording stopped');
-      } catch (error) {
-        console.error('Error stopping recognition:', error);
+        // Останавливаем запись
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
       }
+      
+      // Закрываем WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      
+      console.log('🛑 Recording stopped');
+    } catch (error) {
+      console.error('❌ Error stopping recording:', error);
     }
   };
 
