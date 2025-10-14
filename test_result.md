@@ -196,8 +196,56 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+frontend:
+  - task: "Plannerka UI page"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Plannerka/Plannerka.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Начинаю тестирование UI страницы Планёрки с диктофоном."
+        - working: true
+          agent: "testing"
+          comment: "✅ UI страница Планёрки работает корректно. Все элементы присутствуют: заголовок, поле названия, кнопка записи, textarea, кнопки сохранения и очистки, счетчик символов. Ручной ввод текста работает, счетчик обновляется, кнопка сохранения активируется при достаточном количестве символов."
+
+  - task: "Plannerka save and analyze functionality"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Plannerka/Plannerka.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Тестирование функционала сохранения и анализа планёрки."
+        - working: true
+          agent: "testing"
+          comment: "✅ Функционал сохранения и анализа работает корректно. API запросы выполняются успешно: POST /api/plannerka/create создает планёрку (ID: 274d93a3-e3ba-4262-ba05-bab1bbf9696f), POST /api/plannerka/analyze/{id} выполняет AI-анализ. Отображается индикатор загрузки, саммари и извлеченные задачи (3 задачи найдено)."
+
+  - task: "Web Speech API integration"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Plannerka/Plannerka.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "testing"
+          comment: "Проверка интеграции Web Speech API для записи голоса."
+        - working: true
+          agent: "testing"
+          comment: "✅ Web Speech API поддерживается браузером (webkitSpeechRecognition: true, SpeechRecognition: true). Кнопка записи присутствует. В headless режиме реальная запись не тестировалась (системное ограничение), но API инициализируется корректно без ошибок в консоли."
+
 agent_communication:
     - agent: "testing"
       message: "Начинаю тестирование функционала Планёрки. Буду проверять создание планёрки, AI-анализ с GPT-4o, список планёрок, работу с БД и интеграцию с OpenAI API."
     - agent: "testing"
       message: "Тестирование планёрок завершено. ✅ Создание планёрок работает (POST /api/plannerka/create), ✅ список планёрок работает (GET /api/plannerka/list), ✅ БД работает корректно. ❌ AI-анализ не работает из-за неверного OPENAI_API_KEY в .env файле. Исправлен баг с импортом json. Требуется обновить API ключ OpenAI для работы анализа."
+    - agent: "testing"
+      message: "Тестирование UI Планёрки завершено. ✅ Страница /plannerka загружается корректно, все UI элементы присутствуют и работают. ✅ Ручной ввод текста работает, счетчик символов обновляется. ✅ Функционал сохранения и AI-анализа работает - планёрка создается в БД, выполняется анализ GPT-4o, отображается саммари и 3 извлеченные задачи. ✅ Web Speech API поддерживается браузером. Backend интеграция работает корректно, OpenAI API ключ теперь действующий."
