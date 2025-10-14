@@ -44,6 +44,7 @@ function App() {
           <Route path="/works" element={<Works />} />
           <Route path="/works/constructor" element={<WorksConstructor />} />
           <Route path="/calendar" element={<CleaningCalendar />} />
+          <Route path="/plannerka" element={<Plannerka />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/sales" element={<SalesFunnel />} />
           <Route path="/ai" element={<AIChatWrapper />} />
