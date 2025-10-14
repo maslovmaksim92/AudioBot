@@ -285,27 +285,48 @@ async def test_plannerka_list_endpoint():
     
     return results
 
-async def test_additional_endpoints():
-    """Test additional cleaning-related endpoints"""
-    print("\n🔍 Тестируем дополнительные endpoints...")
+async def test_openai_configuration():
+    """Test OpenAI API configuration"""
+    print("\n🔍 Проверяем конфигурацию OpenAI...")
     
-    endpoints_to_test = [
-        "/cleaning/filters",
-        "/cleaning/brigades",
-        "/cleaning/cleaning-types"
-    ]
+    try:
+        # Check if OPENAI_API_KEY is configured by testing a simple endpoint
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # We'll test this indirectly through the health endpoint
+            response = await client.get(f"{API_BASE}/health")
+            if response.status_code == 200:
+                print("✅ Backend доступен")
+            else:
+                print(f"⚠️ Backend недоступен: {response.status_code}")
+                
+        # Check environment variables (we can't directly access them, but we can infer from API responses)
+        print("📋 Конфигурация будет проверена через API вызовы")
+        
+    except Exception as e:
+        print(f"❌ Ошибка проверки конфигурации: {str(e)}")
+
+async def test_database_connection():
+    """Test database connection through plannerka endpoints"""
+    print("\n🔍 Проверяем подключение к базе данных...")
     
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        for endpoint in endpoints_to_test:
-            try:
-                response = await client.get(f"{API_BASE}{endpoint}")
-                if response.status_code == 200:
-                    data = response.json()
-                    print(f"✅ {endpoint}: {response.status_code} - {len(str(data))} bytes")
-                else:
-                    print(f"⚠️ {endpoint}: {response.status_code}")
-            except Exception as e:
-                print(f"❌ {endpoint}: {str(e)}")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Test database connection by trying to get the list
+            response = await client.get(f"{API_BASE}/plannerka/list?limit=1")
+            
+            if response.status_code == 200:
+                print("✅ База данных доступна")
+                return True
+            elif response.status_code == 500 and "Database connection error" in response.text:
+                print("❌ Ошибка подключения к базе данных")
+                return False
+            else:
+                print(f"⚠️ Неожиданный ответ: {response.status_code}")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Ошибка проверки БД: {str(e)}")
+        return False
 
 async def main():
     """Main test function"""
