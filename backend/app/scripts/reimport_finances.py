@@ -23,11 +23,15 @@ logger = logging.getLogger(__name__)
 
 # URL файлов
 FILE_URLS = [
-    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/nfd56oad_01.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%AF%D0%BD%D0%B2%D0%B0%D1%80%D1%8C%202025.xlsx", "Январь 2025", "Январь 2025"),
-    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/u3xa9pbv_02.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%A4%D0%B5%D0%B2%D1%80%D0%B0%D0%BB%D1%8C%202025.xlsx", "Февраль 2025", "Февраль 2025"),
-    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/oho2203i_03.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D1%80%D1%82%202025.xlsx", "Март 2025", "Март 2025"),
-    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/wmtw5wo4_04.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%90%D0%BF%D1%80%D0%B5%D0%BB%D1%8C%202025.xlsx", "Апрель 2025", "Апрель 2025"),
-    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/mtp9dsv6_05.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D0%B9%202025.xlsx", "Май 2025", "Май 2025"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/nfd56oad_01.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%AF%D0%BD%D0%B2%D0%B0%D1%80%D1%8C%202025.xlsx", "Январь 2025", "Январь"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/u3xa9pbv_02.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%A4%D0%B5%D0%B2%D1%80%D0%B0%D0%BB%D1%8C%202025.xlsx", "Февраль 2025", "Февраль"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/oho2203i_03.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D1%80%D1%82%202025.xlsx", "Март 2025", "Март"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/wmtw5wo4_04.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%90%D0%BF%D1%80%D0%B5%D0%BB%D1%8C%202025.xlsx", "Апрель 2025", "Апрель"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/mtp9dsv6_05.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D0%B9%202025.xlsx", "Май 2025", "Май"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/pus96mnn_06.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%98%D1%8E%D0%BD%D1%8C%202025.xlsx", "Июнь 2025", "Июнь"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/v0hc2cgx_07.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%98%D1%8E%D0%BB%D1%8C%202025.xlsx", "Июль 2025", "Июль"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/p6m2dcec_08.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%90%D0%B2%D0%B3%D1%83%D1%81%D1%82%202025.xlsx", "Август 2025", "Август"),
+    ("https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/293oqddr_09.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%A1%D0%B5%D0%BD%D1%82%D1%8F%D0%B1%D1%80%D1%8C%202025.xlsx", "Сентябрь 2025", "Сентябрь"),
 ]
 
 # Маппинг статей расходов на категории
