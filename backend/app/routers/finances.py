@@ -83,7 +83,7 @@ async def get_cash_flow(
                     SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
                     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
                 FROM financial_transactions
-                WHERE date >= CURRENT_DATE - INTERVAL '30 days'
+                WHERE date >= CURRENT_DATE - 30
                 GROUP BY DATE(date)
                 ORDER BY DATE(date) DESC
             """
