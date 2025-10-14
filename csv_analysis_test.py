@@ -10,7 +10,7 @@ import httpx
 from typing import Dict, List
 
 # Backend URL from environment
-BACKEND_URL = "https://cleancaption.preview.emergentagent.com"
+BACKEND_URL = "https://smarthouse-app.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 def analyze_csv_file(filepath: str):

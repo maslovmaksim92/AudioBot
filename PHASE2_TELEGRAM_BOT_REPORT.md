@@ -359,6 +359,6 @@ INFO - [telegram_cleaning_bot] Media group sent to 12345: 3 photos
 
 ---
 
-**Preview URL:** https://cleancaption.preview.emergentagent.com
+**Preview URL:** https://smarthouse-app.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:56 UTC

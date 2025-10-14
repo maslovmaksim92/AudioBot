@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://cleancaption.preview.emergentagent.com**
+Приложение доступно: **https://smarthouse-app.preview.emergentagent.com**
 
 ---
 
