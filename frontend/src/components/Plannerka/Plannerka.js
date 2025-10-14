@@ -102,23 +102,39 @@ const Plannerka = () => {
         finalTranscriptRef.current = transcript;
         setInterimTranscript('');
         
-        recognitionRef.current.start();
+        // Обновляем ref перед стартом
+        isRecordingRef.current = true;
         setIsRecording(true);
+        
+        recognitionRef.current.start();
         setIsSaved(false);
         console.log('🎤 Recording started');
       } catch (error) {
         console.error('Error starting recognition:', error);
-        alert(`Ошибка запуска записи: ${error.message}`);
+        // Если уже запущено, это нормально
+        if (error.message.includes('already started')) {
+          isRecordingRef.current = true;
+          setIsRecording(true);
+        } else {
+          alert(`Ошибка запуска записи: ${error.message}`);
+        }
       }
     }
   };
 
   const stopRecording = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      setInterimTranscript(''); // Очищаем промежуточный текст
-      console.log('🛑 Recording stopped');
+      try {
+        // Обновляем ref перед остановкой
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        
+        recognitionRef.current.stop();
+        setInterimTranscript(''); // Очищаем промежуточный текст
+        console.log('🛑 Recording stopped');
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
     }
   };
 
