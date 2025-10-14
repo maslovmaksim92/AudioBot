@@ -34,6 +34,10 @@ function Finances() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button onClick={() => window.location.href = '/finances/articles'} variant="outline" className="bg-blue-600 hover:bg-blue-700 text-white">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Управление статьями
+            </Button>
             <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700">
               <Plus className="h-4 w-4 mr-2" />
               Добавить транзакцию
