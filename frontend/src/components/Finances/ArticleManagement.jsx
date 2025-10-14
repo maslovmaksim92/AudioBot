@@ -24,6 +24,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 
 const AVAILABLE_CATEGORIES = [
   "Зарплата",
+  "Филиал Ленинск-Кузнецкий",
   "Материалы",
   "Аренда",
   "Коммунальные услуги",
