@@ -167,20 +167,45 @@ async def get_expense_analysis():
     Анализ расходов по категориям
     """
     try:
-        # Mock данные
-        expenses = [
-            {"category": "Зарплата", "amount": 8500000, "percentage": 45.0},
-            {"category": "Материалы", "amount": 4500000, "percentage": 24.0},
-            {"category": "Аренда", "amount": 2000000, "percentage": 10.6},
-            {"category": "Коммунальные", "amount": 1200000, "percentage": 6.4},
-            {"category": "Транспорт", "amount": 1500000, "percentage": 8.0},
-            {"category": "Прочие", "amount": 1200000, "percentage": 6.0}
-        ]
-        
-        return {
-            "expenses": expenses,
-            "total": sum(item["amount"] for item in expenses)
-        }
+        conn = await get_db_connection()
+        try:
+            # Получаем реальные данные из БД
+            query = """
+                SELECT category, SUM(amount) as total_amount
+                FROM financial_transactions
+                WHERE type = 'expense'
+                GROUP BY category
+                ORDER BY total_amount DESC
+            """
+            rows = await conn.fetch(query)
+            
+            if not rows:
+                # Если данных нет, возвращаем пустой результат
+                return {
+                    "expenses": [],
+                    "total": 0
+                }
+            
+            # Вычисляем общую сумму
+            total = sum(float(row['total_amount']) for row in rows)
+            
+            # Формируем результат с процентами
+            expenses = []
+            for row in rows:
+                amount = float(row['total_amount'])
+                percentage = (amount / total * 100) if total > 0 else 0
+                expenses.append({
+                    "category": row['category'],
+                    "amount": amount,
+                    "percentage": round(percentage, 2)
+                })
+            
+            return {
+                "expenses": expenses,
+                "total": total
+            }
+        finally:
+            await conn.close()
     except Exception as e:
         logger.error(f"Error fetching expense analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
