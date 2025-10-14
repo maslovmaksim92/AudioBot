@@ -63,12 +63,37 @@ function ExpenseAnalysis() {
 
   return (
     <div className="space-y-6">
+      {/* Month Selector */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Фильтр по периоду</CardTitle>
+              <CardDescription>Выберите месяц для анализа расходов</CardDescription>
+            </div>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Выберите месяц" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все месяцы</SelectItem>
+                {availableMonths.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Summary Card */}
       <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-900">
             <PieChartIcon className="h-5 w-5" />
-            Общие расходы
+            Общие расходы {selectedMonth !== 'all' && `- ${selectedMonth}`}
           </CardTitle>
           <CardDescription className="text-orange-700">Анализ расходов по категориям</CardDescription>
         </CardHeader>
