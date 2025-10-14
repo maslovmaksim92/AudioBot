@@ -102,84 +102,84 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Протестировать CSV отчет с контактами старшего - проверить endpoint /api/cleaning/missing-data-report, структуру CSV файла с ~500 домами, контакты дома ID 8674 (Кибальчича 3), статистику домов с/без контактов"
+user_problem_statement: "Протестировать функционал Планёрки - проверить endpoint /api/plannerka/create (создание планёрки), /api/plannerka/analyze/{id} (AI-анализ с GPT-4o), /api/plannerka/list (список планёрок). Проверить создание планёрки в БД, работу OpenAI GPT-4o анализа, извлечение задач (title, assignee, deadline, priority), генерацию саммари."
 
 backend:
-  - task: "CSV missing data report endpoint"
+  - task: "Plannerka create endpoint"
     implemented: true
-    working: true
-    file: "/app/backend/app/routers/cleaning.py"
+    working: "NA"
+    file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ Endpoint /api/cleaning/missing-data-report работает корректно. Генерирует CSV файл с правильной структурой (12 колонок). Обрабатывает ~500 домов из Bitrix24. Время генерации >5 минут из-за загрузки контактов старших для каждого дома."
+        - working: "NA"
+          agent: "main"
+          comment: "Endpoint POST /api/plannerka/create реализован. Создает планёрку в БД с транскрипцией и участниками. Требует тестирования."
 
-  - task: "CSV file structure validation"
+  - task: "Plannerka AI analysis endpoint"
     implemented: true
-    working: true
-    file: "/app/backend/app/routers/cleaning.py"
+    working: "NA"
+    file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ Структура CSV корректна. Содержит все требуемые колонки: ID, Адрес, УК, Бригада, Подъезды, Этажи, Квартиры, Периодичность, Старший (ФИО), Старший (телефон), Старший (email), Недостающие поля. Использует разделитель ';' и кодировку UTF-8 с BOM."
+        - working: "NA"
+          agent: "main"
+          comment: "Endpoint POST /api/plannerka/analyze/{id} реализован. Использует OpenAI GPT-4o для анализа транскрипции, извлечения задач и генерации саммари. Требует тестирования."
 
-  - task: "House 8674 contact verification"
+  - task: "Plannerka list endpoint"
     implemented: true
-    working: true
-    file: "/app/backend/app/services/bitrix24_service.py"
+    working: "NA"
+    file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ Дом ID 8674 (Кибальчича 3) найден в системе. Контакт старшего корректен: 'новая старшая Светлана', телефон '+79657005267'. Данные загружаются из Bitrix24 через /cleaning/house/{id}/details endpoint."
+        - working: "NA"
+          agent: "main"
+          comment: "Endpoint GET /api/plannerka/list реализован. Возвращает список планёрок с пагинацией. Требует тестирования."
 
-  - task: "Elder contacts statistics"
+  - task: "OpenAI GPT-4o integration"
     implemented: true
-    working: true
-    file: "/app/backend/app/routers/cleaning.py"
+    working: "NA"
+    file: "/app/backend/app/routers/plannerka.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Интеграция с OpenAI GPT-4o для анализа планёрок реализована. Использует OPENAI_API_KEY из .env. Требует тестирования работы API и парсинга JSON ответов."
+
+  - task: "Database plannerka_meetings table"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
-          agent: "testing"
-          comment: "✅ Статистика контактов работает корректно. В тестовой выборке (100 домов): 45 домов с контактами, 55 домов без контактов. Система корректно определяет наличие/отсутствие контактов старших."
-
-  - task: "CSV report performance"
-    implemented: true
-    working: false
-    file: "/app/backend/app/routers/cleaning.py"
-    stuck_count: 1
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-        - working: false
-          agent: "testing"
-          comment: "⚠️ Производительность отчета требует оптимизации. Генерация полного отчета (~500 домов) занимает >5 минут из-за последовательных запросов к Bitrix24 для каждого дома. Рекомендуется кэширование или пакетная обработка."
+        - working: "NA"
+          agent: "main"
+          comment: "Таблица plannerka_meetings для хранения планёрок реализована. Содержит поля: id, title, date, transcription, summary, tasks, participants. Требует тестирования."
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "1.1"
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "CSV missing data report endpoint"
-    - "House 8674 contact verification"
-  stuck_tasks:
-    - "CSV report performance"
+    - "Plannerka create endpoint"
+    - "Plannerka AI analysis endpoint"
+    - "OpenAI GPT-4o integration"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
-      message: "Тестирование CSV отчета с контактами старшего завершено. Endpoint /api/cleaning/missing-data-report функционирует корректно, генерирует CSV с правильной структурой. Дом ID 8674 (Кибальчича 3) найден с корректными контактами: 'новая старшая Светлана', +79657005267. Статистика контактов работает. Единственная проблема - производительность: полный отчет генерируется >5 минут из-за последовательных запросов к Bitrix24."
+      message: "Начинаю тестирование функционала Планёрки. Буду проверять создание планёрки, AI-анализ с GPT-4o, список планёрок, работу с БД и интеграцию с OpenAI API."
