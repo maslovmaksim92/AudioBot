@@ -356,35 +356,6 @@ async def get_available_months():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/finances/balance-sheet")
-                    "expenses": [],
-                    "total": 0
-                }
-            
-            # Вычисляем общую сумму
-            total = sum(float(row['total_amount']) for row in rows)
-            
-            # Формируем результат с процентами
-            expenses = []
-            for row in rows:
-                amount = float(row['total_amount'])
-                percentage = (amount / total * 100) if total > 0 else 0
-                expenses.append({
-                    "category": row['category'],
-                    "amount": amount,
-                    "percentage": round(percentage, 2)
-                })
-            
-            return {
-                "expenses": expenses,
-                "total": total
-            }
-        finally:
-            await conn.close()
-    except Exception as e:
-        logger.error(f"Error fetching expense analysis: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.get("/finances/debts")
 async def get_debts():
     """
