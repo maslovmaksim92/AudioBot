@@ -1310,7 +1310,8 @@ if health:
         app.include_router(agent_dashboard.router, prefix="/api")
         app.include_router(render_logs.router, prefix="/api")
         app.include_router(plannerka.router, prefix="/api")
-        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka')
+        app.include_router(realtime_transcription.router, prefix="/api")
+        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription')
     except Exception as e:
         logger.warning(f'⚠️ Could not mount new routers: {e}')
         import traceback
