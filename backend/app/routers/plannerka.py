@@ -117,16 +117,14 @@ async def analyze_plannerka(meeting_id: str):
         if not transcription or len(transcription) < 50:
             raise HTTPException(status_code=400, detail="Transcription is too short for analysis")
         
-        # Инициализация LLM
-        api_key = os.getenv('EMERGENT_LLM_KEY')
+        # Инициализация OpenAI
+        api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
-            raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
         
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"plannerka_{meeting_id}",
-            system_message="Ты помощник для анализа планёрок. Создаёшь краткие саммари и извлекаешь задачи."
-        ).with_model("openai", "gpt-5")
+        from openai import AsyncOpenAI
+        
+        client = AsyncOpenAI(api_key=api_key)
         
         # Промпт для анализа
         analysis_prompt = f"""
@@ -155,11 +153,20 @@ async def analyze_plannerka(meeting_id: str):
 }}
 """
         
-        logger.info(f"[plannerka] Analyzing meeting {meeting_id} with GPT-5...")
+        logger.info(f"[plannerka] Analyzing meeting {meeting_id} with GPT-4o...")
         
-        # Отправка запроса к GPT-5
-        user_message = UserMessage(text=analysis_prompt)
-        response = await chat.send_message(user_message)
+        # Отправка запроса к OpenAI GPT-4o
+        completion = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Ты помощник для анализа планёрок. Создаёшь краткие саммари и извлекаешь задачи. Отвечаешь ТОЛЬКО в формате JSON."},
+                {"role": "user", "content": analysis_prompt}
+            ],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        
+        response = completion.choices[0].message.content
         
         logger.info(f"[plannerka] GPT-5 response received")
         
