@@ -10,6 +10,21 @@ import os
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["finances"])
 
+# Helper function для получения DB connection
+async def get_db_connection():
+    """Получить прямое соединение с БД для raw SQL"""
+    db_url = os.environ.get('DATABASE_URL', '')
+    
+    if not db_url:
+        raise HTTPException(status_code=500, detail="Database not configured")
+    
+    # Для asyncpg не нужно преобразовывать URL
+    try:
+        return await asyncpg.connect(db_url)
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+
 # Pydantic модели
 class CashFlowItem(BaseModel):
     date: str
