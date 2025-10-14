@@ -1302,6 +1302,7 @@ if health:
         app.include_router(finances.router, prefix="/api")
         app.include_router(finance_transactions.router, prefix="/api/finances")
         app.include_router(finance_articles.router, prefix="/api")
+        app.include_router(revenue.router, prefix="/api")
         app.include_router(brain_router.router, prefix="/api")
 
         app.include_router(ai_assistant_api_router.router, prefix="/api")
