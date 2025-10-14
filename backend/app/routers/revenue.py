@@ -212,3 +212,120 @@ async def delete_monthly_revenue(month: str):
     except Exception as e:
         logger.error(f"Error deleting monthly revenue: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/finances/revenue/sync-to-transactions")
+async def sync_revenue_to_transactions():
+    """
+    Синхронизировать выручку из monthly_revenue в financial_transactions
+    Создает или обновляет транзакции типа income для каждого месяца
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Проверяем существует ли таблица monthly_revenue
+            table_exists = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'monthly_revenue'
+                )
+            """)
+            
+            if not table_exists:
+                return {
+                    "success": False,
+                    "message": "Таблица monthly_revenue не существует"
+                }
+            
+            # Получаем все записи выручки
+            revenue_rows = await conn.fetch("""
+                SELECT month, revenue, notes
+                FROM monthly_revenue
+                ORDER BY month
+            """)
+            
+            if not revenue_rows:
+                return {
+                    "success": False,
+                    "message": "Нет данных для синхронизации"
+                }
+            
+            created_count = 0
+            updated_count = 0
+            
+            for row in revenue_rows:
+                month = row['month']
+                revenue = float(row['revenue'])
+                notes = row['notes'] or 'Выручка за месяц'
+                
+                # Определяем дату для транзакции (последний день месяца)
+                month_mapping = {
+                    'Январь': (1, 31), 'Февраль': (2, 28), 'Март': (3, 31),
+                    'Апрель': (4, 30), 'Май': (5, 31), 'Июнь': (6, 30),
+                    'Июль': (7, 31), 'Август': (8, 31), 'Сентябрь': (9, 30),
+                    'Октябрь': (10, 31), 'Ноябрь': (11, 30), 'Декабрь': (12, 31)
+                }
+                
+                month_name = month.split()[0]
+                year = int(month.split()[1]) if len(month.split()) > 1 else 2025
+                
+                if month_name in month_mapping:
+                    month_num, last_day = month_mapping[month_name]
+                    trans_date = datetime(year, month_num, last_day)
+                else:
+                    # Fallback к текущей дате
+                    trans_date = datetime.now()
+                
+                # Проверяем существует ли уже транзакция выручки для этого месяца
+                existing = await conn.fetchval("""
+                    SELECT id FROM financial_transactions
+                    WHERE project = $1 
+                    AND type = 'income'
+                    AND description LIKE '%Выручка за месяц%'
+                    LIMIT 1
+                """, month)
+                
+                now = datetime.now()
+                
+                if existing:
+                    # Обновляем существующую транзакцию
+                    await conn.execute("""
+                        UPDATE financial_transactions
+                        SET amount = $1, 
+                            date = $2,
+                            description = $3,
+                            category = 'Поступление от покупателей'
+                        WHERE id = $4
+                    """, revenue, trans_date, notes, existing)
+                    updated_count += 1
+                else:
+                    # Создаем новую транзакцию
+                    transaction_id = str(uuid4())
+                    await conn.execute("""
+                        INSERT INTO financial_transactions 
+                        (id, date, amount, category, type, description, 
+                         project, created_at)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    """, 
+                        transaction_id,
+                        trans_date,
+                        revenue,
+                        'Поступление от покупателей',
+                        'income',
+                        notes,
+                        month,
+                        now
+                    )
+                    created_count += 1
+            
+            return {
+                "success": True,
+                "created": created_count,
+                "updated": updated_count,
+                "message": f"Создано: {created_count}, обновлено: {updated_count} транзакций"
+            }
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error syncing revenue to transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
