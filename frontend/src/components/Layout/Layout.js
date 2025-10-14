@@ -17,7 +17,8 @@ import {
   ClipboardList,
   Sparkles,
   DollarSign,
-  Activity
+  Activity,
+  Mic
 } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
