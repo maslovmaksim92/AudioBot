@@ -170,7 +170,6 @@ async def analyze_plannerka(meeting_id: str):
         logger.info(f"[plannerka] GPT-5 response received")
         
         # Парсинг ответа
-        import json
         
         # Извлекаем JSON из ответа (может быть обёрнут в markdown)
         response_text = response.strip()
