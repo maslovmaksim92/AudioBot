@@ -80,12 +80,17 @@ const Plannerka = () => {
   const startRecording = () => {
     if (recognitionRef.current) {
       try {
+        // Очищаем предыдущие результаты
+        finalTranscriptRef.current = transcript;
+        setInterimTranscript('');
+        
         recognitionRef.current.start();
         setIsRecording(true);
         setIsSaved(false);
         console.log('🎤 Recording started');
       } catch (error) {
         console.error('Error starting recognition:', error);
+        alert(`Ошибка запуска записи: ${error.message}`);
       }
     }
   };
@@ -94,6 +99,7 @@ const Plannerka = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
+      setInterimTranscript(''); // Очищаем промежуточный текст
       console.log('🛑 Recording stopped');
     }
   };
