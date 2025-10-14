@@ -28,7 +28,8 @@ const Plannerka = () => {
         let interimTranscript = '';
         let finalTranscript = '';
         
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Собираем весь текст из результатов
+        for (let i = 0; i < event.results.length; i++) {
           const transcriptText = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcriptText + ' ';
@@ -37,9 +38,8 @@ const Plannerka = () => {
           }
         }
         
-        if (finalTranscript) {
-          setTranscript(prev => prev + finalTranscript);
-        }
+        // Обновляем транскрипцию: финальный текст + промежуточный
+        setTranscript(finalTranscript + interimTranscript);
       };
       
       recognition.onerror = (event) => {
