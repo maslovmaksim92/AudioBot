@@ -49,6 +49,7 @@ DEFAULT_INCOME_CATEGORIES = [
 
 DEFAULT_EXPENSE_CATEGORIES = [
     "Зарплата", 
+    "Филиал Ленинск-Кузнецкий",
     "Материалы", 
     "Аренда", 
     "Коммунальные услуги", 
