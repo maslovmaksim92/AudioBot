@@ -295,6 +295,70 @@ async def get_expense_analysis(month: Optional[str] = None):
                 # Если данных нет, возвращаем пустой результат
                 return {
                     "expenses": [],
+                    "total": 0,
+                    "month": month
+                }
+            
+            # Вычисляем общую сумму
+            total = sum(float(row['total_amount']) for row in rows)
+            
+            # Формируем результат с процентами
+            expenses = []
+            for row in rows:
+                amount = float(row['total_amount'])
+                percentage = (amount / total * 100) if total > 0 else 0
+                expenses.append({
+                    "category": row['category'],
+                    "amount": amount,
+                    "percentage": round(percentage, 2)
+                })
+            
+            return {
+                "expenses": expenses,
+                "total": total,
+                "month": month
+            }
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching expense analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/finances/available-months")
+async def get_available_months():
+    """
+    Получить список доступных месяцев с данными
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            query = """
+                SELECT DISTINCT project as month,
+                       MIN(date) as start_date
+                FROM financial_transactions
+                WHERE project IS NOT NULL
+                GROUP BY project
+                ORDER BY start_date DESC
+            """
+            rows = await conn.fetch(query)
+            
+            months = [row['month'] for row in rows if row['month']]
+            
+            return {
+                "months": months,
+                "total": len(months)
+            }
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching available months: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+            
+            if not rows:
+                # Если данных нет, возвращаем пустой результат
+                return {
+                    "expenses": [],
                     "total": 0
                 }
             
