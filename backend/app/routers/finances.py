@@ -354,10 +354,9 @@ async def get_available_months():
     except Exception as e:
         logger.error(f"Error fetching available months: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-            
-            if not rows:
-                # Если данных нет, возвращаем пустой результат
-                return {
+
+
+@router.get("/finances/balance-sheet")
                     "expenses": [],
                     "total": 0
                 }
