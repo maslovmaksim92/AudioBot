@@ -165,15 +165,24 @@ def parse_excel_file(filepath, sheet_name, month_name):
                         pass
             
             if total_income > 0:
-                all_transactions.append({
-                    'date': trans_date,
-                    'amount': total_income,
-                    'type': 'income',
-                    'description': description,
-                    'article': article,
-                    'category': "Поступление от покупателей",
-                    'month': month_name
-                })
+                # Проверяем валидность статьи для поступлений
+                if article and article != '----------' and article.strip():
+                    try:
+                        parts = article.split('.')
+                        if len(parts) == 2:
+                            major = int(parts[0])
+                            if 1 <= major <= 18:
+                                all_transactions.append({
+                                    'date': trans_date,
+                                    'amount': total_income,
+                                    'type': 'income',
+                                    'description': description,
+                                    'article': article,
+                                    'category': "Поступление от покупателей",
+                                    'month': month_name
+                                })
+                    except:
+                        pass
         
         logger.info(f"Извлечено транзакций: {len(all_transactions)}")
         return all_transactions
