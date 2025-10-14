@@ -76,16 +76,16 @@ async def get_cash_flow(
     try:
         conn = await get_db_connection()
         try:
-            # Получаем данные за последние 30 дней
+            # Получаем данные по дням
             query = """
                 SELECT 
                     DATE(date) as transaction_date,
                     SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
                     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
                 FROM financial_transactions
-                WHERE date >= CURRENT_DATE - 30
                 GROUP BY DATE(date)
                 ORDER BY DATE(date) DESC
+                LIMIT 30
             """
             rows = await conn.fetch(query)
             
