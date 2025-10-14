@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Works from './components/Works/Works';
 import CleaningCalendar from './components/Calendar/CleaningCalendar';
 import WorksConstructor from './components/Works/WorksConstructor';
+import Plannerka from './components/Plannerka/Plannerka';
 import AIChatWrapper from './components/AIChat/AIChatWrapper';
 import Meetings from './components/Meetings/Meetings';
 import LiveConversation from './components/LiveConversation/LiveConversation';
