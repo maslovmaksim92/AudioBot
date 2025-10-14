@@ -62,7 +62,7 @@ jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
 litellm>=1.77.1
 livekit==1.0.13
-livekit-agents==1.2.11
+livekit-agents>=1.2.11
 livekit-api==1.0.5
 livekit-blingfire==1.0.0
 livekit-plugins-openai==1.2.11
