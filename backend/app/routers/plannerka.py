@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime, date
 import logging
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
