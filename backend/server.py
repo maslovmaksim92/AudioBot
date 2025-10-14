@@ -1309,6 +1309,7 @@ if health:
         app.include_router(telegram_webhook.router, prefix="/api")
         app.include_router(agent_dashboard.router, prefix="/api")
         app.include_router(render_logs.router, prefix="/api")
+        app.include_router(plannerka.router, prefix="/api")
         logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs')
     except Exception as e:
         logger.warning(f'⚠️ Could not mount new routers: {e}')
