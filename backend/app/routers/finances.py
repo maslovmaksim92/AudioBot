@@ -74,28 +74,62 @@ async def get_cash_flow(
     Получить данные движения денег
     """
     try:
-        # Mock данные для демонстрации
-        # В продакшене здесь будет запрос к БД
-        cash_flow = []
-        
-        today = datetime.now(timezone.utc)
-        for i in range(30, 0, -1):
-            date = today - timedelta(days=i)
-            cash_flow.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "income": 150000 + (i * 5000),
-                "expense": 120000 + (i * 3000),
-                "balance": 30000 + (i * 2000)
-            })
-        
-        return {
-            "cash_flow": cash_flow,
-            "summary": {
-                "total_income": sum(item["income"] for item in cash_flow),
-                "total_expense": sum(item["expense"] for item in cash_flow),
-                "net_cash_flow": sum(item["balance"] for item in cash_flow)
+        conn = await get_db_connection()
+        try:
+            # Получаем данные за последние 30 дней
+            query = """
+                SELECT 
+                    DATE(date) as transaction_date,
+                    SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
+                FROM financial_transactions
+                WHERE date >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY DATE(date)
+                ORDER BY DATE(date) DESC
+            """
+            rows = await conn.fetch(query)
+            
+            cash_flow = []
+            running_balance = 0
+            
+            # Сортируем от старых к новым для правильного расчета баланса
+            for row in reversed(rows):
+                income = float(row['income'])
+                expense = float(row['expense'])
+                balance = income - expense
+                running_balance += balance
+                
+                cash_flow.append({
+                    "date": row['transaction_date'].strftime("%Y-%m-%d"),
+                    "income": income,
+                    "expense": expense,
+                    "balance": running_balance
+                })
+            
+            # Возвращаем в обратном порядке (от новых к старым)
+            cash_flow.reverse()
+            
+            if not cash_flow:
+                # Если данных нет, возвращаем пустой результат
+                return {
+                    "cash_flow": [],
+                    "summary": {
+                        "total_income": 0,
+                        "total_expense": 0,
+                        "net_cash_flow": 0
+                    }
+                }
+            
+            return {
+                "cash_flow": cash_flow,
+                "summary": {
+                    "total_income": sum(item["income"] for item in cash_flow),
+                    "total_expense": sum(item["expense"] for item in cash_flow),
+                    "net_cash_flow": sum(item["income"] for item in cash_flow) - sum(item["expense"] for item in cash_flow)
+                }
             }
-        }
+        finally:
+            await conn.close()
     except Exception as e:
         logger.error(f"Error fetching cash flow: {e}")
         raise HTTPException(status_code=500, detail=str(e))
