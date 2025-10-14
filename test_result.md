@@ -107,63 +107,78 @@ user_problem_statement: "Протестировать функционал Пл�
 backend:
   - task: "Plannerka create endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Endpoint POST /api/plannerka/create реализован. Создает планёрку в БД с транскрипцией и участниками. Требует тестирования."
+        - working: true
+          agent: "testing"
+          comment: "✅ Endpoint POST /api/plannerka/create работает корректно. Создает планёрку в БД с UUID, сохраняет title, transcription, participants. Возвращает правильную структуру ответа со всеми требуемыми полями. Тестовая планёрка создана с ID: 789358ac-4c26-43de-9da8-2cb9c7b07a1b."
 
   - task: "Plannerka AI analysis endpoint"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/app/routers/plannerka.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Endpoint POST /api/plannerka/analyze/{id} реализован. Использует OpenAI GPT-4o для анализа транскрипции, извлечения задач и генерации саммари. Требует тестирования."
+        - working: false
+          agent: "testing"
+          comment: "❌ Endpoint POST /api/plannerka/analyze/{id} не работает из-за неверного OPENAI_API_KEY. Ошибка 401: 'Incorrect API key provided: sk-proj-**********************************************************iL-1'. API ключ в .env файле неполный или недействительный. Исправлен баг с импортом json модуля."
 
   - task: "Plannerka list endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Endpoint GET /api/plannerka/list реализован. Возвращает список планёрок с пагинацией. Требует тестирования."
+        - working: true
+          agent: "testing"
+          comment: "✅ Endpoint GET /api/plannerka/list работает корректно. Возвращает список планёрок с правильной структурой (meetings, count). Поддерживает пагинацию (limit, offset). Найдено 2 планёрки в системе. Все поля присутствуют: id, title, date, transcription, participants."
 
   - task: "OpenAI GPT-4o integration"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/app/routers/plannerka.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Интеграция с OpenAI GPT-4o для анализа планёрок реализована. Использует OPENAI_API_KEY из .env. Требует тестирования работы API и парсинга JSON ответов."
+        - working: false
+          agent: "testing"
+          comment: "❌ OpenAI GPT-4o интеграция не работает. OPENAI_API_KEY в /app/backend/.env недействительный (sk-proj-lc-AH990fOe-dDzI1_F950lZdfI8-VTB0r1Xd14zxDlrzbqpyA4zeeInG2iL-1). Требуется обновить API ключ на действующий из https://platform.openai.com/account/api-keys."
 
   - task: "Database plannerka_meetings table"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Таблица plannerka_meetings для хранения планёрок реализована. Содержит поля: id, title, date, transcription, summary, tasks, participants. Требует тестирования."
+        - working: true
+          agent: "testing"
+          comment: "✅ База данных plannerka_meetings работает корректно. Успешно создаются записи с UUID, сохраняются все поля (title, transcription, participants, date). Поддерживается чтение списка планёрок. Подключение к БД стабильное."
 
 metadata:
   created_by: "testing_agent"
