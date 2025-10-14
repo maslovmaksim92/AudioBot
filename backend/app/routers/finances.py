@@ -108,25 +108,74 @@ async def get_profit_loss(
     Получить отчёт о прибылях и убытках
     """
     try:
-        # Mock данные
-        profit_loss = [
-            {"period": "Январь 2025", "revenue": 5000000, "expenses": 3800000, "profit": 1200000, "margin": 24.0},
-            {"period": "Февраль 2025", "revenue": 5500000, "expenses": 4100000, "profit": 1400000, "margin": 25.5},
-            {"period": "Март 2025", "revenue": 6000000, "expenses": 4300000, "profit": 1700000, "margin": 28.3},
-            {"period": "Апрель 2025", "revenue": 5800000, "expenses": 4200000, "profit": 1600000, "margin": 27.6},
-            {"period": "Май 2025", "revenue": 6200000, "expenses": 4400000, "profit": 1800000, "margin": 29.0},
-            {"period": "Июнь 2025", "revenue": 6500000, "expenses": 4600000, "profit": 1900000, "margin": 29.2}
-        ]
-        
-        return {
-            "profit_loss": profit_loss,
-            "summary": {
-                "total_revenue": sum(item["revenue"] for item in profit_loss),
-                "total_expenses": sum(item["expenses"] for item in profit_loss),
-                "net_profit": sum(item["profit"] for item in profit_loss),
-                "average_margin": sum(item["margin"] for item in profit_loss) / len(profit_loss)
+        conn = await get_db_connection()
+        try:
+            # Группируем данные по месяцам
+            query = """
+                SELECT 
+                    project as period,
+                    SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as revenue,
+                    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expenses
+                FROM financial_transactions
+                WHERE project IS NOT NULL
+                GROUP BY project
+                ORDER BY 
+                    CASE 
+                        WHEN project LIKE '%Январь%' THEN 1
+                        WHEN project LIKE '%Февраль%' THEN 2
+                        WHEN project LIKE '%Март%' THEN 3
+                        WHEN project LIKE '%Апрель%' THEN 4
+                        WHEN project LIKE '%Май%' THEN 5
+                        WHEN project LIKE '%Июнь%' THEN 6
+                        WHEN project LIKE '%Июль%' THEN 7
+                        WHEN project LIKE '%Август%' THEN 8
+                        WHEN project LIKE '%Сентябрь%' THEN 9
+                        WHEN project LIKE '%Октябрь%' THEN 10
+                        WHEN project LIKE '%Ноябрь%' THEN 11
+                        WHEN project LIKE '%Декабрь%' THEN 12
+                        ELSE 13
+                    END
+            """
+            rows = await conn.fetch(query)
+            
+            profit_loss = []
+            for row in rows:
+                revenue = float(row['revenue'])
+                expenses = float(row['expenses'])
+                profit = revenue - expenses
+                margin = (profit / revenue * 100) if revenue > 0 else 0
+                
+                profit_loss.append({
+                    "period": row['period'],
+                    "revenue": revenue,
+                    "expenses": expenses,
+                    "profit": profit,
+                    "margin": round(margin, 2)
+                })
+            
+            if not profit_loss:
+                # Если данных нет, возвращаем пустой результат
+                return {
+                    "profit_loss": [],
+                    "summary": {
+                        "total_revenue": 0,
+                        "total_expenses": 0,
+                        "net_profit": 0,
+                        "average_margin": 0
+                    }
+                }
+            
+            return {
+                "profit_loss": profit_loss,
+                "summary": {
+                    "total_revenue": sum(item["revenue"] for item in profit_loss),
+                    "total_expenses": sum(item["expenses"] for item in profit_loss),
+                    "net_profit": sum(item["profit"] for item in profit_loss),
+                    "average_margin": round(sum(item["margin"] for item in profit_loss) / len(profit_loss), 2) if profit_loss else 0
+                }
             }
-        }
+        finally:
+            await conn.close()
     except Exception as e:
         logger.error(f"Error fetching profit/loss: {e}")
         raise HTTPException(status_code=500, detail=str(e))
