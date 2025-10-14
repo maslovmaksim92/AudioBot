@@ -28,7 +28,7 @@ FILE_URLS = [
     "https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/u3xa9pbv_02.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%A4%D0%B5%D0%B2%D1%80%D0%B0%D0%BB%D1%8C%202025.xlsx",
     "https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/oho2203i_03.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D1%80%D1%82%202025.xlsx",
     "https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/wmtw5wo4_04.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%90%D0%BF%D1%80%D0%B5%D0%BB%D1%8C%202025.xlsx",
-    "https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/mtp9dsv_05.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D0%B9%202025.xlsx"
+    "https://customer-assets.emergentagent.com/job_clean-works-hub/artifacts/mtp9dsv6_05.%D0%A0%D0%B5%D0%B5%D1%81%D1%82%D1%80%20%D1%80%D0%B0%D1%81%D1%85%D0%BE%D0%B4%D0%BE%D0%B2%20%D0%B7%D0%B0%20%D0%9C%D0%B0%D0%B9%202025.xlsx"
 ]
 
 # Маппинг статей расходов на категории
