@@ -19,6 +19,7 @@ import Logs from './components/Logs/Logs';
 import Agents from './components/Agents/Agents';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
+import ArticleManagement from './components/Finances/ArticleManagement';
 
 function App() {
   const [improvementModalOpen, setImprovementModalOpen] = useState(false);
