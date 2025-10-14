@@ -283,15 +283,18 @@ async def import_to_database(transactions):
         logger.error("DATABASE_URL не установлен")
         return
     
-    # Преобразуем URL для asyncpg
-    db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+    # Преобразуем URL для asyncpg - заменяем postgresql:// на postgresql://
+    # asyncpg работает с URL без протокола async
+    db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://').replace('postgresql://', 'postgresql://')
     
     try:
         conn = await asyncpg.connect(db_url)
         
+        logger.info("Подключение к базе данных установлено")
+        
         # Очищаем существующие данные (опционально)
-        # await conn.execute("TRUNCATE TABLE financial_transactions")
-        # logger.info("Таблица очищена")
+        # await conn.execute("DELETE FROM financial_transactions WHERE project LIKE '%2025'")
+        # logger.info("Старые данные очищены")
         
         imported_count = 0
         skipped_count = 0
@@ -322,13 +325,16 @@ async def import_to_database(transactions):
                 
                 imported_count += 1
                 
+                if imported_count % 100 == 0:
+                    logger.info(f"Импортировано: {imported_count} транзакций")
+                
             except Exception as e:
                 logger.error(f"Ошибка при импорте транзакции: {e}")
                 skipped_count += 1
         
         await conn.close()
         
-        logger.info(f"Импортировано: {imported_count}, пропущено: {skipped_count}")
+        logger.info(f"Импорт завершен! Импортировано: {imported_count}, пропущено: {skipped_count}")
         
     except Exception as e:
         logger.error(f"Ошибка подключения к базе данных: {e}")
