@@ -288,8 +288,6 @@ async def get_plannerka(meeting_id: str):
             
             if not row:
                 raise HTTPException(status_code=404, detail="Meeting not found")
-            
-            import json
             return {
                 "id": str(row['id']),
                 "title": row['title'],
