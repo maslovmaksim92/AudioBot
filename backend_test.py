@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for VasDom Cleaning KPI System
-Testing KPI calculation for Brigade #1 in October 2025
+Backend Test Suite for VasDom Plannerka System
+Testing Plannerka functionality with AI analysis
 
 This test validates:
-1. GET /api/cleaning/houses endpoint with limit=1000
-2. Data structure verification for cleaning_dates (october_1, october_2)
-3. Mathematical KPI calculations for Brigade #1
-4. Cleaning types and counts verification
+1. POST /api/plannerka/create - создание планёрки
+2. POST /api/plannerka/analyze/{id} - AI-анализ с GPT-4o
+3. GET /api/plannerka/list - список планёрок
+4. OpenAI GPT-4o integration and JSON parsing
+5. Database operations for plannerka_meetings table
 """
 
 import asyncio
