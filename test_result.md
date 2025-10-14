@@ -182,19 +182,22 @@ backend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.1"
-  test_sequence: 2
+  version: "1.2"
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Plannerka create endpoint"
-    - "Plannerka AI analysis endpoint"
     - "OpenAI GPT-4o integration"
-  stuck_tasks: []
+    - "Plannerka AI analysis endpoint"
+  stuck_tasks:
+    - "OpenAI GPT-4o integration"
+    - "Plannerka AI analysis endpoint"
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
       message: "Начинаю тестирование функционала Планёрки. Буду проверять создание планёрки, AI-анализ с GPT-4o, список планёрок, работу с БД и интеграцию с OpenAI API."
+    - agent: "testing"
+      message: "Тестирование планёрок завершено. ✅ Создание планёрок работает (POST /api/plannerka/create), ✅ список планёрок работает (GET /api/plannerka/list), ✅ БД работает корректно. ❌ AI-анализ не работает из-за неверного OPENAI_API_KEY в .env файле. Исправлен баг с импортом json. Требуется обновить API ключ OpenAI для работы анализа."
