@@ -122,7 +122,7 @@ backend:
 
   - task: "Plannerka AI analysis endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 1
     priority: "high"
@@ -134,6 +134,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ Endpoint POST /api/plannerka/analyze/{id} не работает из-за неверного OPENAI_API_KEY. Ошибка 401: 'Incorrect API key provided: sk-proj-**********************************************************iL-1'. API ключ в .env файле неполный или недействительный. Исправлен баг с импортом json модуля."
+        - working: true
+          agent: "testing"
+          comment: "✅ Endpoint POST /api/plannerka/analyze/{id} теперь работает корректно. Успешно выполняет AI-анализ с GPT-4o, извлекает задачи (3 задачи из тестовой транскрипции), генерирует саммари. API ключ OpenAI исправлен и функционирует. Возвращает правильную структуру: {success: true, summary: '...', tasks: [...], tasks_count: 3}."
 
   - task: "Plannerka list endpoint"
     implemented: true
