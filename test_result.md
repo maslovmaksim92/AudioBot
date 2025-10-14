@@ -155,7 +155,7 @@ backend:
 
   - task: "OpenAI GPT-4o integration"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/app/routers/plannerka.py"
     stuck_count: 1
     priority: "high"
@@ -167,6 +167,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ OpenAI GPT-4o интеграция не работает. OPENAI_API_KEY в /app/backend/.env недействительный (sk-proj-lc-AH990fOe-dDzI1_F950lZdfI8-VTB0r1Xd14zxDlrzbqpyA4zeeInG2iL-1). Требуется обновить API ключ на действующий из https://platform.openai.com/account/api-keys."
+        - working: true
+          agent: "testing"
+          comment: "✅ OpenAI GPT-4o интеграция работает корректно. API ключ обновлен и функционирует. Успешно выполняется анализ транскрипции, извлечение задач с полями (title, assignee, deadline, priority), генерация саммари. JSON парсинг работает правильно. Тестовая планёрка проанализирована успешно с извлечением 3 задач."
 
   - task: "Database plannerka_meetings table"
     implemented: true
