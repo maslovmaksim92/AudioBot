@@ -22,17 +22,17 @@ import os
 BACKEND_URL = "https://cleancaption.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
-class KPITestResults:
+class PlannerkaTestResults:
     def __init__(self):
-        self.total_houses_loaded = 0
-        self.brigade_1_houses = []
-        self.october_cleanings = {}  # date -> {houses: count, entrances: count, floors: count, sweepings: count}
-        self.total_cleanings = 0
-        self.total_entrances = 0
-        self.total_floors = 0
-        self.total_sweepings = 0
+        self.created_meeting_id = None
+        self.created_meeting_data = None
+        self.analysis_result = None
+        self.meetings_list = []
         self.errors = []
-        self.sample_houses = []
+        self.openai_working = False
+        self.database_working = False
+        self.tasks_extracted = []
+        self.summary_generated = False
 
 async def test_cleaning_houses_endpoint():
     """Test the main cleaning houses endpoint"""
