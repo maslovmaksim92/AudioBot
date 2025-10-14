@@ -96,7 +96,6 @@ async def analyze_plannerka(meeting_id: str):
     """
     try:
         from app.config.database import get_db_pool
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         # Получаем транскрипцию из БД
         db_pool = await get_db_pool()
