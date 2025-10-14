@@ -1261,7 +1261,7 @@ logger.info('API router mounted with all voice endpoints')
 # Import and mount new modular routers
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
-    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka
+    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription
     from backend.app.routers import brain as brain_router
 
     from backend.app.routers import ai_assistant_api as ai_assistant_api_router
@@ -1275,13 +1275,13 @@ except Exception as e1:
         from app.routers import ai_assistant_api as ai_assistant_api_router
 
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
-        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs
+        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription
         logger.info('✅ Routers imported via app.routers')
     except Exception as e2:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
         import traceback
         logger.error(f'Traceback: {traceback.format_exc()}')
-        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = agents = telegram_webhook = agent_dashboard = render_logs = None
+        health = auth = houses = cleaning = telegram = dashboard = logs = ai_knowledge = tasks = meetings = notifications = employees = ai_agent = ai_chat = finances = finance_transactions = agents = telegram_webhook = agent_dashboard = render_logs = plannerka = realtime_transcription = None
 
 if health:
     try:
