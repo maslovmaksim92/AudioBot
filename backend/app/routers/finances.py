@@ -4,6 +4,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 import logging
+import asyncpg
+import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["finances"])
