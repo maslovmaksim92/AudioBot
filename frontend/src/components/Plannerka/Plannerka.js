@@ -240,6 +240,88 @@ const Plannerka = () => {
     }
   };
 
+  const handleCreateTasksInDB = async () => {
+    if (!tasks || tasks.length === 0) {
+      alert('⚠️ Нет задач для создания');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+      const createdTasks = [];
+
+      for (const task of tasks) {
+        const response = await fetch(`${BACKEND_URL}/api/tasks/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: task.title,
+            description: task.description || '',
+            status: 'todo',
+            priority: task.priority || 'medium',
+            assigned_to_id: task.assignee || null,
+            due_date: task.deadline || null,
+            ai_proposed: true,
+            ai_reasoning: `Создано из планёрки: ${title}`,
+            meeting_id: currentMeetingId
+          })
+        });
+
+        if (response.ok) {
+          const created = await response.json();
+          createdTasks.push(created);
+        }
+      }
+
+      alert(`✅ Создано задач в БД: ${createdTasks.length}`);
+      console.log('Created tasks:', createdTasks);
+
+    } catch (error) {
+      console.error('Error creating tasks:', error);
+      alert(`❌ Ошибка создания задач: ${error.message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleCreateTasksInBitrix = async () => {
+    if (!tasks || tasks.length === 0) {
+      alert('⚠️ Нет задач для создания');
+      return;
+    }
+
+    try {
+      setIsAnalyzing(true);
+
+      const response = await fetch(`${BACKEND_URL}/api/tasks/bitrix/bulk-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tasks: tasks.map(task => ({
+            title: task.title,
+            description: task.description || `Создано из планёрки: ${title}`,
+            responsible_id: task.assignee || null,
+            deadline: task.deadline || null,
+            priority: task.priority === 'high' ? '2' : '1'
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка создания задач в Bitrix24');
+      }
+
+      const data = await response.json();
+      alert(`✅ Создано задач в Bitrix24: ${data.created_count || tasks.length}`);
+
+    } catch (error) {
+      console.error('Error creating tasks in Bitrix24:', error);
+      alert(`❌ Ошибка создания задач в Bitrix24: ${error.message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-6">
