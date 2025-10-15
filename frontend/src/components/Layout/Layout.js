@@ -36,6 +36,7 @@ const Layout = ({ children }) => {
     { name: 'Воронка продаж', href: '/sales', icon: TrendingUp, color: 'text-emerald-600' },
     { name: 'Задачи', href: '/tasks', icon: ClipboardList, color: 'text-blue-600' },
     { name: 'Планёрка', href: '/plannerka', icon: Mic, color: 'text-purple-600' },
+    { name: 'Звонки', href: '/calls', icon: Phone, color: 'text-cyan-600' },
     { name: 'Финансы', href: '/finances', icon: DollarSign, color: 'text-green-600' },
     { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
     { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },
