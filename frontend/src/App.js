@@ -21,6 +21,7 @@ import Agents from './components/Agents/Agents';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
 import TelegramLogin from './components/Login/TelegramLogin';
+import CallSummaries from './components/CallSummaries/CallSummaries';
 
 // Проверка аутентификации
 const PrivateRoute = ({ children }) => {
