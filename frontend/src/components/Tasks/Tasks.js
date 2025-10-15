@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import TasksList from './TasksList';
 import AITaskGenerator from './AITaskGenerator';
+import Plannerka from '../Plannerka/Plannerka';
 
 const Tasks = () => {
   const [activeTab, setActiveTab] = useState('list');
@@ -21,6 +22,16 @@ const Tasks = () => {
             📋 Список задач
           </button>
           <button
+            onClick={() => setActiveTab('plannerka')}
+            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+              activeTab === 'plannerka'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🎤 Планёрка
+          </button>
+          <button
             onClick={() => setActiveTab('ai')}
             className={`px-4 py-3 font-medium border-b-2 transition-colors ${
               activeTab === 'ai'
@@ -35,6 +46,7 @@ const Tasks = () => {
 
       {/* Контент */}
       {activeTab === 'list' && <TasksList />}
+      {activeTab === 'plannerka' && <Plannerka />}
       {activeTab === 'ai' && <AITaskGenerator />}
     </div>
   );
