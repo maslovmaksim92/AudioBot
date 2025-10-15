@@ -44,7 +44,8 @@ async def create_task(
             checklist=task.checklist,
             mindmap=task.mindmap,
             ai_proposed=task.ai_proposed,
-            ai_reasoning=task.ai_reasoning
+            ai_reasoning=task.ai_reasoning,
+            meeting_id=task.meeting_id
         )
         
         db.add(new_task)
