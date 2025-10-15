@@ -14,6 +14,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from backend.app.services.bitrix24_service import bitrix24_service
 from backend.app.services.telegram_service import telegram_service
 from backend.app.config.database import AsyncSessionLocal
+from backend.app.tasks.call_summary_agent import run_call_summary_agent
 
 logger = logging.getLogger(__name__)
 
