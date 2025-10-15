@@ -207,8 +207,79 @@ const CallSummaries = () => {
         </div>
       </div>
 
-      {/* Список звонков */}
-      {calls.length === 0 ? (
+      {/* Список звонков из Bitrix24 */}
+      {activeTab === 'bitrix' && (
+        <>
+          {bitrixCalls.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <Phone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">Нет звонков из Bitrix24</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {bitrixCalls.map((call) => (
+                <div key={call.call_id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      {call.direction === 'in' ? (
+                        <PhoneIncoming className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <PhoneOutgoing className="w-6 h-6 text-orange-600" />
+                      )}
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {call.direction === 'in' ? 'Входящий' : 'Исходящий'} звонок
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                          <span>📱 {call.phone_number}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {formatDuration(parseInt(call.duration))}
+                          </span>
+                          {call.has_record ? (
+                            <span className="text-green-600">🎙️ Есть запись</span>
+                          ) : (
+                            <span className="text-gray-400">🚫 Нет записи</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 items-end">
+                      <span className="text-sm text-gray-500">
+                        {new Date(call.start_date).toLocaleString('ru-RU')}
+                      </span>
+                      {call.has_record && (
+                        <button
+                          onClick={() => handleCreateSummary(call.call_id)}
+                          disabled={processingCallId === call.call_id}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {processingCallId === call.call_id ? (
+                            <span className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Обработка...
+                            </span>
+                          ) : (
+                            '🤖 Создать саммари'
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-gray-600">
+                    <p>ID звонка: <span className="font-mono text-xs">{call.call_id}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Список саммари */}
+      {activeTab === 'summaries' && calls.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <Phone className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 text-lg">Пока нет саммари звонков</p>
