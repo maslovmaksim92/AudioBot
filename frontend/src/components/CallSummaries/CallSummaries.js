@@ -287,7 +287,7 @@ const CallSummaries = () => {
             Саммари будут создаваться автоматически после завершения звонков
           </p>
         </div>
-      ) : (
+      ) : activeTab === 'summaries' ? (
         <div className="space-y-4">
           {calls.map((call) => (
             <div key={call.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
