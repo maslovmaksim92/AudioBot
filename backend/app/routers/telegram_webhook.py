@@ -222,6 +222,69 @@ async def handle_telegram_command(chat_id: int, user_id: int, command: str, user
             logger.error(f"❌ Error sending telegram response: {e}")
 
 
+async def handle_telegram_callback(chat_id: int, user_id: int, callback_data: str, callback_query_id: str):
+    """
+    Обработка нажатий на inline кнопки
+    """
+    import httpx
+    
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return
+    
+    # Обработка аутентификации
+    if callback_data.startswith('auth_confirm_'):
+        auth_code = callback_data.replace('auth_confirm_', '')
+        
+        # Подтверждаем через backend API
+        from backend.app.routers.telegram_auth import auth_codes
+        
+        if auth_code in auth_codes:
+            auth_codes[auth_code]['confirmed'] = True
+            auth_codes[auth_code]['telegram_chat_id'] = chat_id
+            
+            # Отправляем уведомление
+            message = "✅ <b>Вход подтверждён!</b>\n\nВы можете вернуться в браузер."
+            
+            await send_telegram_message(chat_id, message, bot_token)
+            
+            # Отвечаем на callback query
+            await answer_callback_query(callback_query_id, "✅ Вход подтверждён", bot_token)
+            logger.info(f"Auth confirmed by user {user_id} for code {auth_code}")
+        else:
+            await answer_callback_query(callback_query_id, "❌ Код истёк", bot_token)
+    
+    elif callback_data.startswith('auth_cancel_'):
+        auth_code = callback_data.replace('auth_cancel_', '')
+        
+        # Отменяем
+        from backend.app.routers.telegram_auth import auth_codes
+        if auth_code in auth_codes:
+            del auth_codes[auth_code]
+        
+        message = "❌ <b>Вход отменён</b>"
+        await send_telegram_message(chat_id, message, bot_token)
+        await answer_callback_query(callback_query_id, "Отменено", bot_token)
+    
+    # Обработка выбора дома для уборки (существующий функционал)
+    elif callback_data.startswith('select_house_'):
+        from backend.app.services.telegram_cleaning_bot import handle_house_selection
+        await handle_house_selection(chat_id, user_id, callback_data, callback_query_id)
+
+async def answer_callback_query(callback_query_id: str, text: str, bot_token: str):
+    """Ответить на callback query"""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery",
+                json={
+                    "callback_query_id": callback_query_id,
+                    "text": text
+                }
+            )
+    except Exception as e:
+        logger.error(f"Error answering callback query: {e}")
+
 async def handle_telegram_message(chat_id: int, text: str, user: Dict[str, Any]):
     """
     Обработка обычных сообщений (не команд)
