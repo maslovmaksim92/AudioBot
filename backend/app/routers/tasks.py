@@ -198,6 +198,79 @@ async def delete_task(
 
 # ============= Bitrix24 Integration =============
 
+from pydantic import BaseModel
+
+class BitrixTaskCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    responsible_id: Optional[int] = None
+    deadline: Optional[str] = None
+    priority: Optional[str] = "1"  # 1 - обычный, 2 - важный
+
+class BitrixBulkTasksCreate(BaseModel):
+    tasks: List[BitrixTaskCreate]
+
+@router.post("/bitrix/bulk-create")
+async def create_tasks_in_bitrix(
+    data: BitrixBulkTasksCreate
+):
+    """
+    Массовое создание задач в Bitrix24
+    """
+    import os
+    import httpx
+    
+    BITRIX24_WEBHOOK_URL = os.getenv("BITRIX24_WEBHOOK_URL")
+    
+    if not BITRIX24_WEBHOOK_URL:
+        raise HTTPException(status_code=500, detail="Bitrix24 webhook URL not configured")
+    
+    try:
+        created_tasks = []
+        
+        async with httpx.AsyncClient() as client:
+            for task in data.tasks:
+                # Формируем данные для Bitrix24
+                bitrix_data = {
+                    "fields": {
+                        "TITLE": task.title,
+                        "DESCRIPTION": task.description or "",
+                        "PRIORITY": task.priority or "1"
+                    }
+                }
+                
+                if task.responsible_id:
+                    bitrix_data["fields"]["RESPONSIBLE_ID"] = task.responsible_id
+                
+                if task.deadline:
+                    bitrix_data["fields"]["DEADLINE"] = task.deadline
+                
+                # Отправляем запрос в Bitrix24
+                response = await client.post(
+                    f"{BITRIX24_WEBHOOK_URL}tasks.task.add",
+                    json=bitrix_data,
+                    timeout=10.0
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get("result"):
+                        created_tasks.append({
+                            "bitrix_id": result["result"]["task"]["id"],
+                            "title": task.title
+                        })
+                        logger.info(f"Task created in Bitrix24: {task.title}")
+        
+        return {
+            "success": True,
+            "created_count": len(created_tasks),
+            "tasks": created_tasks
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating tasks in Bitrix24: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create tasks in Bitrix24: {str(e)}")
+
 # ============= Checklist Operations =============
 
 @router.put("/{task_id}/checklist")
