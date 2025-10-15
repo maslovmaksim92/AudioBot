@@ -87,10 +87,17 @@ async def handle_telegram_command(chat_id: int, user_id: int, command: str, user
     response_text = ""
     
     # Команды для бригад
-    if command == '/start':
-        # Вызываем обработчик для бригад (с моковыми данными)
-        await handle_start_command(chat_id, user_id, db_session=None)
-        return
+    if command.startswith('/start'):
+        # Проверяем, есть ли параметр для аутентификации
+        if command.startswith('/start AUTH_'):
+            # Это запрос на аутентификацию
+            auth_code = command.replace('/start AUTH_', '').strip()
+            await handle_auth_request(chat_id, user_id, auth_code, user)
+            return
+        else:
+            # Обычный /start - показываем список домов
+            await handle_start_command(chat_id, user_id, db_session=None)
+            return
     
     elif command == '/done':
         await handle_done_command(chat_id, user_id, db_session=None)
