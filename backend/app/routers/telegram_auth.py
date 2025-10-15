@@ -95,7 +95,16 @@ async def init_telegram_auth(
         
         # Получаем имя бота из переменной окружения
         import os
-        BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "YourBot")
+        BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME")
+        
+        if not BOT_USERNAME:
+            logger.error("❌ TELEGRAM_BOT_USERNAME not set in environment variables!")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Telegram bot username not configured. Please contact administrator."
+            )
+        
+        logger.info(f"✅ Using bot: @{BOT_USERNAME}")
         
         # Создаем deep link для бота
         bot_link = f"https://t.me/{BOT_USERNAME}?start=AUTH_{auth_code}"
