@@ -137,11 +137,37 @@ const CallSummaries = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Phone className="w-7 h-7 text-blue-600" />
-          Саммари звонков
+          Звонки и саммари
         </h1>
         <p className="text-gray-600 mt-1">
-          Автоматическая транскрипция и анализ звонков из Новофон
+          Автоматическая транскрипция и анализ звонков
         </p>
+      </div>
+
+      {/* Табы */}
+      <div className="bg-white border-b mb-6">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('summaries')}
+            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+              activeTab === 'summaries'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            📝 Саммари ({calls.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('bitrix')}
+            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+              activeTab === 'bitrix'
+                ? 'border-purple-600 text-purple-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            📞 Звонки из Bitrix24 ({bitrixCalls.length})
+          </button>
+        </div>
       </div>
 
       {/* Статистика */}
