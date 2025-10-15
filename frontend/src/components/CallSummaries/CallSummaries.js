@@ -3,13 +3,20 @@ import { Phone, PhoneIncoming, PhoneOutgoing, Clock, Calendar, TrendingUp, Alert
 
 const CallSummaries = () => {
   const [calls, setCalls] = useState([]);
+  const [bitrixCalls, setBitrixCalls] = useState([]);
+  const [activeTab, setActiveTab] = useState('summaries'); // 'summaries' или 'bitrix'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [processingCallId, setProcessingCallId] = useState(null);
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
-    fetchCallHistory();
-  }, []);
+    if (activeTab === 'summaries') {
+      fetchCallHistory();
+    } else {
+      fetchBitrixCalls();
+    }
+  }, [activeTab]);
 
   const fetchCallHistory = async () => {
     try {
@@ -27,6 +34,48 @@ const CallSummaries = () => {
       console.error('Error fetching call history:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBitrixCalls = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${BACKEND_URL}/api/bitrix-calls/recent?limit=50`);
+      
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки звонков из Bitrix24');
+      }
+
+      const data = await response.json();
+      setBitrixCalls(data.calls || []);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching Bitrix calls:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateSummary = async (callId) => {
+    try {
+      setProcessingCallId(callId);
+      
+      const response = await fetch(`${BACKEND_URL}/api/bitrix-calls/process/${callId}`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Ошибка создания саммари');
+      }
+
+      alert('✅ Саммари создаётся! Проверьте через 30-60 секунд в разделе "Саммари"');
+      
+    } catch (err) {
+      alert(`❌ ${err.message}`);
+      console.error('Error creating summary:', err);
+    } finally {
+      setProcessingCallId(null);
     }
   };
 
