@@ -14,7 +14,12 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Добавляем роль director (максимальные права)
+-- Проверяем и создаем роль director если не существует
+INSERT INTO roles (name, description, created_at)
+VALUES ('director', 'Директор - полный доступ', NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- Добавляем роль director
 INSERT INTO user_roles (user_id, role_name)
 VALUES ('admin-user-id', 'director')
 ON CONFLICT DO NOTHING;
