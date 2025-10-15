@@ -1314,7 +1314,8 @@ if health:
         app.include_router(telegram_auth.router, prefix="/api")
         app.include_router(call_summary.router, prefix="/api")
         app.include_router(bitrix_calls.router, prefix="/api")
-        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls')
+        app.include_router(bitrix_webhook.router, prefix="/api")
+        logger.info('✅ New modular routers mounted: health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook')
     except Exception as e:
         logger.warning(f'⚠️ Could not mount new routers: {e}')
         import traceback
