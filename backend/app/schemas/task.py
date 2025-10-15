@@ -23,6 +23,7 @@ class TaskCreate(TaskBase):
     mindmap: Optional[Dict[str, Any]] = None
     ai_proposed: bool = False
     ai_reasoning: Optional[str] = None
+    meeting_id: Optional[str] = None
 
 class TaskUpdate(BaseModel):
     """Схема обновления задачи"""
