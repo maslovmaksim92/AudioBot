@@ -61,12 +61,75 @@ async def telegram_webhook(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def handle_auth_request(chat_id: int, user_id: int, auth_code: str, user: Dict[str, Any]):
+    """
+    Обработка запроса на аутентификацию через Telegram
+    """
+    import httpx
+    
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    BACKEND_URL = os.getenv("BACKEND_INTERNAL_URL", "http://localhost:8001")
+    
+    # Проверяем существование auth_code через backend
+    from backend.app.routers.telegram_auth import auth_codes
+    
+    if auth_code not in auth_codes:
+        # Код не найден или истёк
+        await send_telegram_message(
+            chat_id,
+            "❌ Код не найден или истёк. Попробуйте начать вход заново.",
+            bot_token
+        )
+        return
+    
+    auth_data = auth_codes[auth_code]
+    username = auth_data.get("username", "неизвестный")
+    
+    # Отправляем сообщение с кнопками подтверждения
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "✅ Подтвердить вход", "callback_data": f"auth_confirm_{auth_code}"},
+                {"text": "❌ Отменить", "callback_data": f"auth_cancel_{auth_code}"}
+            ]
+        ]
+    }
+    
+    message = f"🔐 <b>Вход в VasDom</b>\n\n"
+    message += f"Пользователь: <b>{username}</b>\n\n"
+    message += "Подтвердите вход в систему:"
+    
+    await send_telegram_message(chat_id, message, bot_token, reply_markup=keyboard)
+    logger.info(f"Auth request sent to user {user_id} for code {auth_code}")
+
+async def send_telegram_message(chat_id: int, text: str, bot_token: str, reply_markup: Dict = None):
+    """Отправить сообщение в Telegram"""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML"
+            }
+            if reply_markup:
+                payload["reply_markup"] = reply_markup
+            
+            response = await client.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json=payload
+            )
+            return response.status_code == 200
+    except Exception as e:
+        logger.error(f"Error sending telegram message: {e}")
+        return False
+
 async def handle_telegram_command(chat_id: int, user_id: int, command: str, user: Dict[str, Any]):
     """
     Обработка команд от пользователей
     
     Поддерживаемые команды для бригад:
     - /start - Список домов на сегодня
+    - /start AUTH_xxx - Аутентификация через Telegram
     - /done - Завершить уборку и отправить фото
     
     Общие команды:
