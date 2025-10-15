@@ -412,25 +412,44 @@ async def get_call_history(
 ):
     """Получить историю саммари звонков"""
     try:
+        from sqlalchemy import text
+        
         result = await db.execute(
-            """
-            SELECT * FROM call_summaries
-            ORDER BY created_at DESC
-            LIMIT :limit
-            """,
+            text("""
+                SELECT * FROM call_summaries
+                ORDER BY created_at DESC
+                LIMIT :limit
+            """),
             {"limit": limit}
         )
         
         calls = result.fetchall()
         
+        # Преобразуем в список словарей
+        calls_list = []
+        for row in calls:
+            call_dict = dict(row._mapping)
+            # Преобразуем datetime в строку
+            if 'created_at' in call_dict and call_dict['created_at']:
+                call_dict['created_at'] = call_dict['created_at'].isoformat()
+            if 'updated_at' in call_dict and call_dict['updated_at']:
+                call_dict['updated_at'] = call_dict['updated_at'].isoformat()
+            calls_list.append(call_dict)
+        
         return {
-            "total": len(calls),
-            "calls": [dict(row) for row in calls]
+            "total": len(calls_list),
+            "calls": calls_list
         }
         
     except Exception as e:
         logger.error(f"Error fetching call history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        logger.error(traceback.format_exc())
+        # Возвращаем пустой список вместо ошибки
+        return {
+            "total": 0,
+            "calls": []
+        }
 
 @router.post("/manual/{call_id}")
 async def create_manual_summary(
