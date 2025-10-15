@@ -43,6 +43,9 @@ class Task(Base):
     # Связь с домом (если задача привязана к объекту)
     house_id = Column(String, ForeignKey('houses.id'), nullable=True)
     
+    # Связь с планёркой (если задача создана из планёрки)
+    meeting_id = Column(String, nullable=True)
+    
     # Чек-лист
     checklist = Column(JSON, nullable=True)
     # Формат: [{"id": "1", "text": "...", "done": false}, ...]
