@@ -1275,7 +1275,7 @@ except Exception as e1:
         from app.routers import ai_assistant_api as ai_assistant_api_router
 
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
-        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription
+        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth
         logger.info('✅ Routers imported via app.routers')
     except Exception as e2:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
