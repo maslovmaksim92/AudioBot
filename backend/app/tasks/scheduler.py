@@ -49,6 +49,15 @@ class TaskScheduler:
             replace_existing=True
         )
         
+        # Автоматическая обработка звонков каждые 5 минут
+        self.scheduler.add_job(
+            run_call_summary_agent,
+            trigger=IntervalTrigger(minutes=5),
+            id='call_summary_agent',
+            name='Агент саммари звонков',
+            replace_existing=True
+        )
+        
         # AI звонки сотрудникам каждый день в 16:55
         self.scheduler.add_job(
             self.ai_call_employees,
