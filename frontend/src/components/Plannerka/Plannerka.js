@@ -454,10 +454,28 @@ const Plannerka = () => {
       {/* Задачи */}
       {tasks.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold flex items-center mb-4">
-            <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-            Извлечённые задачи ({tasks.length})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+              Извлечённые задачи ({tasks.length})
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateTasksInDB}
+                disabled={isAnalyzing}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                💾 Сохранить в БД
+              </button>
+              <button
+                onClick={handleCreateTasksInBitrix}
+                disabled={isAnalyzing}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                📋 Создать в Bitrix24
+              </button>
+            </div>
+          </div>
           <div className="space-y-3">
             {tasks.map((task, index) => (
               <div
@@ -467,6 +485,9 @@ const Plannerka = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">{task.title}</h3>
+                    {task.description && (
+                      <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-3 text-sm">
                       {task.assignee && (
                         <span className="flex items-center gap-1 text-gray-600">
