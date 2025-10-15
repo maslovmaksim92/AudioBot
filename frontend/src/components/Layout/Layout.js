@@ -18,7 +18,8 @@ import {
   Sparkles,
   DollarSign,
   Activity,
-  Mic
+  Mic,
+  Phone
 } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
