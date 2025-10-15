@@ -12,14 +12,7 @@ VALUES (
     NOW(),
     NOW()
 )
-ON CONFLICT (id) DO NOTHING;
-
--- Проверяем и создаем роль director если не существует
-INSERT INTO roles (name, description)
-VALUES ('director', 'Директор - полный доступ')
-ON CONFLICT (name) DO NOTHING;
-
--- Добавляем роль director пользователю
-INSERT INTO user_roles (user_id, role_name)
-VALUES ('admin-user-id', 'director')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (email) DO UPDATE
+SET full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    is_active = EXCLUDED.is_active;
