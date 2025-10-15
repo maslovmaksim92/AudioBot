@@ -375,7 +375,7 @@ const CallSummaries = () => {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
