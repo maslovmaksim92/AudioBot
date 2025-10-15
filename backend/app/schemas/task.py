@@ -46,6 +46,7 @@ class TaskResponse(TaskBase):
     mindmap: Optional[Dict[str, Any]] = None
     ai_proposed: bool
     ai_reasoning: Optional[str] = None
+    meeting_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
