@@ -14,7 +14,7 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Добавляем роль admin
-INSERT INTO user_roles (user_id, role)
-VALUES ('admin-user-id', 'admin')
+-- Добавляем роль director (максимальные права)
+INSERT INTO user_roles (user_id, role_name)
+VALUES ('admin-user-id', 'director')
 ON CONFLICT DO NOTHING;
