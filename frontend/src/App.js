@@ -70,6 +70,7 @@ function App() {
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/finances" element={<Finances />} />
                 <Route path="/agents" element={<Agents />} />
+                <Route path="/calls" element={<CallSummaries />} />
               </Routes>
             </Layout>
           </PrivateRoute>
