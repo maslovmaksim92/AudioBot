@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
 import Works from './components/Works/Works';
@@ -20,6 +20,13 @@ import Logs from './components/Logs/Logs';
 import Agents from './components/Agents/Agents';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
+import TelegramLogin from './components/Login/TelegramLogin';
+
+// Проверка аутентификации
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('access_token');
+  return token ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
   const [improvementModalOpen, setImprovementModalOpen] = useState(false);
@@ -37,26 +44,36 @@ function App() {
 
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/works" element={<Works />} />
-          <Route path="/works/constructor" element={<WorksConstructor />} />
-          <Route path="/calendar" element={<CleaningCalendar />} />
-          <Route path="/plannerka" element={<Plannerka />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/sales" element={<SalesFunnel />} />
-          <Route path="/ai" element={<AIChatWrapper />} />
-          <Route path="/meetings" element={<Meetings />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/constructor" element={<FunctionStudio />} />
-          <Route path="/training" element={<Training />} />
-          <Route path="/logs" element={<Logs />} />
-          <Route path="/finances" element={<Finances />} />
-          <Route path="/agents" element={<Agents />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* Публичный маршрут - страница входа */}
+        <Route path="/login" element={<TelegramLogin />} />
+        
+        {/* Защищённые маршруты с Layout */}
+        <Route path="/*" element={
+          <PrivateRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/works" element={<Works />} />
+                <Route path="/works/constructor" element={<WorksConstructor />} />
+                <Route path="/calendar" element={<CleaningCalendar />} />
+                <Route path="/plannerka" element={<Plannerka />} />
+                <Route path="/employees" element={<Employees />} />
+                <Route path="/sales" element={<SalesFunnel />} />
+                <Route path="/ai" element={<AIChatWrapper />} />
+                <Route path="/meetings" element={<Meetings />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/constructor" element={<FunctionStudio />} />
+                <Route path="/training" element={<Training />} />
+                <Route path="/logs" element={<Logs />} />
+                <Route path="/finances" element={<Finances />} />
+                <Route path="/agents" element={<Agents />} />
+              </Routes>
+            </Layout>
+          </PrivateRoute>
+        } />
+      </Routes>
 
       {/* AI Improvement Modal */}
       <AIImprovementModal
