@@ -250,9 +250,13 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
             houses_raw = data.get('houses', [])
             logger.info(f"[telegram_cleaning_bot] Loaded {len(houses_raw)} houses for {target_date}")
             
-            # Фильтруем по бригаде 1
-            brigade_houses = [h for h in houses_raw if h.get('brigade_name') == brigade_name]
-            logger.info(f"[telegram_cleaning_bot] Filtered to {len(brigade_houses)} houses for {brigade_name}")
+            # Фильтруем по бригаде если она определена
+            if brigade_name:
+                brigade_houses = [h for h in houses_raw if h.get('brigade_name') == brigade_name]
+                logger.info(f"[telegram_cleaning_bot] Filtered to {len(brigade_houses)} houses for {brigade_name}")
+            else:
+                brigade_houses = houses_raw[:50]  # Показываем первые 50 домов если бригада не определена
+                logger.info(f"[telegram_cleaning_bot] No brigade filter, showing {len(brigade_houses)} houses")
             
             if brigade_houses:
                 houses = []
