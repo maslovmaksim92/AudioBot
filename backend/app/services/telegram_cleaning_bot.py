@@ -200,14 +200,15 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # Определяем бригаду пользователя из БД
         from datetime import datetime, date
         from sqlalchemy import select, text
+        from backend.app.config.database import AsyncSessionLocal
         
         brigade_number = None
         user_name = "Неизвестный"
         
         # Получаем пользователя по telegram_user_id из БД
-        if db_session:
-            try:
-                result = await db_session.execute(
+        try:
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
                     text("""
                         SELECT brigade_number, full_name 
                         FROM users 
@@ -220,9 +221,9 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
                 if user_row:
                     brigade_number = user_row[0]
                     user_name = user_row[1]
-                    logger.info(f"Found user {user_name} from brigade {brigade_number}")
-            except Exception as e:
-                logger.error(f"Error getting user brigade: {e}")
+                    logger.info(f"✅ Found user {user_name} from brigade {brigade_number}")
+        except Exception as e:
+            logger.error(f"❌ Error getting user brigade: {e}")
         
         # Если бригада не найдена, показываем все дома
         if not brigade_number:
