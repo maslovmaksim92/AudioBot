@@ -273,10 +273,10 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
                         "floors": h.get('floors', 5)
                     })
                 
-                logger.info(f"[telegram_cleaning_bot] ✅ Found {len(brigade_houses)} houses for brigade 1, showing {len(houses)} on {target_date}")
+                logger.info(f"[telegram_cleaning_bot] ✅ Found {len(brigade_houses)} houses for {brigade_name or 'ALL'}, showing {len(houses)} on {target_date}")
             else:
-                # Если нет домов для бригады 1 на 13.10, показываем все дома этой даты
-                logger.warning(f"[telegram_cleaning_bot] No houses for {brigade_name} on {target_date}, showing all houses")
+                # Если нет домов для бригады, показываем первые 10 домов этой даты
+                logger.warning(f"[telegram_cleaning_bot] No houses for {brigade_name or 'brigade'} on {target_date}, showing sample houses")
                 
                 houses = []
                 for h in houses_raw[:10]:
