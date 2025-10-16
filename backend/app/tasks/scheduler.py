@@ -43,10 +43,13 @@ class TaskScheduler:
             replace_existing=True
         )
         
-        # Напоминание о планерке каждый день в 8:25
+        # Московский часовой пояс
+        moscow_tz = pytz.timezone('Europe/Moscow')
+        
+        # Напоминание о планерке каждый день в 8:25 MSK
         self.scheduler.add_job(
             self.send_plannerka_reminder,
-            trigger=CronTrigger(hour=8, minute=25),
+            trigger=CronTrigger(hour=8, minute=25, timezone=moscow_tz),
             id='plannerka_reminder',
             name='Напоминание о планерке',
             replace_existing=True
@@ -61,10 +64,10 @@ class TaskScheduler:
             replace_existing=True
         )
         
-        # AI звонки сотрудникам каждый день в 16:55
+        # AI звонки сотрудникам каждый день в 16:55 MSK
         self.scheduler.add_job(
             self.ai_call_employees,
-            trigger=CronTrigger(hour=16, minute=55),
+            trigger=CronTrigger(hour=16, minute=55, timezone=moscow_tz),
             id='ai_calls_daily',
             name='AI звонки сотрудникам',
             replace_existing=True
