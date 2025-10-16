@@ -55,16 +55,23 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
-    """Вход пользователя"""
+    """Вход пользователя (по email или логину)"""
     
-    # Поиск пользователя
-    result = await db.execute(select(User).where(User.email == credentials.email))
+    # Поиск пользователя по email или full_name (логину)
+    result = await db.execute(
+        select(User).where(
+            (User.email == credentials.email) | 
+            (User.full_name == credentials.email) |
+            (User.email.like(f"%{credentials.email}%")) |
+            (User.full_name.like(f"%{credentials.email}%"))
+        )
+    )
     user = result.scalar_one_or_none()
     
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный email или пароль"
+            detail="Неверный логин или пароль"
         )
     
     # Проверка пароля
