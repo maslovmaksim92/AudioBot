@@ -60,9 +60,13 @@ async def init_telegram_auth(
     """
     try:
         # Проверяем существование пользователя (по username или email)
+        # Поддерживаем как точное совпадение, так и частичное (LIKE)
         result = await db.execute(
             select(User).where(
-                (User.email == request.username) | (User.full_name == request.username)
+                (User.email == request.username) | 
+                (User.full_name == request.username) |
+                (User.email.like(f"%{request.username}%")) |
+                (User.full_name.like(f"%{request.username}%"))
             )
         )
         user = result.scalar_one_or_none()
