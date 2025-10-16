@@ -78,7 +78,7 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     if not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный email или пароль"
+            detail="Неверный логин или пароль"
         )
     
     # Проверка активности
