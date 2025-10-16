@@ -76,10 +76,13 @@ class TaskScheduler:
         logger.info("=" * 70)
         logger.info("🚀 Task Scheduler started!")
         logger.info("=" * 70)
-        logger.info("📅 Scheduled tasks:")
+        logger.info("📅 Scheduled tasks (Moscow Time - MSK):")
+        moscow_tz = pytz.timezone('Europe/Moscow')
         for job in self.scheduler.get_jobs():
+            next_run_msk = job.next_run_time.astimezone(moscow_tz) if job.next_run_time else None
             logger.info(f"   - {job.name} (ID: {job.id})")
-            logger.info(f"     Next run: {job.next_run_time}")
+            if next_run_msk:
+                logger.info(f"     Next run: {next_run_msk.strftime('%Y-%m-%d %H:%M:%S MSK')}")
         logger.info("=" * 70)
     
     def stop(self):
