@@ -24,7 +24,8 @@ async def run_migrations(db_pool):
         "create_plannerka_table.sql",
         "add_meeting_id_to_tasks.sql",
         "add_admin_user.sql",
-        "create_call_summaries_table.sql"
+        "create_call_summaries_table.sql",
+        "add_maslov_user.sql"
     ]
     
     for migration_file in migrations:
