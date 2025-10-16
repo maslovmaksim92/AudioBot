@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 const TelegramLogin = () => {
   const [username, setUsername] = useState('');
-  const [authCode, setAuthCode] = useState('');
-  const [qrCode, setQrCode] = useState('');
-  const [botLink, setBotLink] = useState('');
-  const [status, setStatus] = useState('idle'); // idle, waiting, error, success
+  const [password, setPassword] = useState('');
+  const [status, setStatus] = useState('idle'); // idle, loading, error, success
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -19,76 +17,43 @@ const TelegramLogin = () => {
     }
   }, [navigate]);
 
-  useEffect(() => {
-    // Если есть authCode, начинаем polling
-    if (authCode && status === 'waiting') {
-      const interval = setInterval(async () => {
-        try {
-          const response = await fetch(`${BACKEND_URL}/api/telegram-auth/status/${authCode}`);
-          const data = await response.json();
-
-          if (data.status === 'confirmed') {
-            // Успешная аутентификация!
-            localStorage.setItem('access_token', data.access_token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            setStatus('success');
-            clearInterval(interval);
-            
-            // Перенаправляем на главную
-            setTimeout(() => {
-              navigate('/');
-            }, 1000);
-          } else if (data.status === 'expired' || data.status === 'invalid') {
-            setStatus('error');
-            setError('Код истёк или недействителен. Попробуйте снова.');
-            clearInterval(interval);
-          }
-        } catch (err) {
-          console.error('Error checking auth status:', err);
-        }
-      }, 2000); // Проверка каждые 2 секунды
-
-      return () => clearInterval(interval);
-    }
-  }, [authCode, status, BACKEND_URL, navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setStatus('loading');
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/telegram-auth/init`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ 
+          email: username,
+          password: password
+        })
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Ошибка входа');
+        throw new Error(data.detail || 'Неверный логин или пароль');
       }
 
       const data = await response.json();
       
-      setAuthCode(data.auth_code);
-      setQrCode(data.qr_code);
-      setBotLink(data.bot_link);
-      setStatus('waiting');
+      // Сохраняем токен
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user || { email: username }));
+      
+      setStatus('success');
+      
+      // Перенаправляем на главную
+      setTimeout(() => {
+        navigate('/');
+      }, 500);
 
     } catch (err) {
       setStatus('error');
       setError(err.message);
     }
-  };
-
-  const handleReset = () => {
-    setUsername('');
-    setAuthCode('');
-    setQrCode('');
-    setBotLink('');
-    setStatus('idle');
-    setError('');
   };
 
   return (
