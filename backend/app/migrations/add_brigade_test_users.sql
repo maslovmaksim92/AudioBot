@@ -1,6 +1,6 @@
 -- Создание тестовых аккаунтов для бригад 1-7
 -- Логин: тест1, тест2, ... тест7
--- Пароль: test123 (хеш: $2b$12$KIXn3qhNWz5z9YhN.CqLfuZJ5L8xYzN6Z8W0j6hN5J8L9xYzN6Z8W)
+-- Пароль: test123
 
 -- Бригада 1
 INSERT INTO users (id, email, full_name, phone, password_hash, is_active, brigade_number, created_at, updated_at)
