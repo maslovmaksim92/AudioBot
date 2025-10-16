@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+import pytz
 
 from backend.app.services.bitrix24_service import bitrix24_service
 from backend.app.services.telegram_service import telegram_service
