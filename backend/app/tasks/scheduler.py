@@ -23,7 +23,9 @@ class TaskScheduler:
     """Планировщик автоматических задач"""
     
     def __init__(self):
-        self.scheduler = AsyncIOScheduler()
+        # Создаём планировщик с московским часовым поясом
+        moscow_tz = pytz.timezone('Europe/Moscow')
+        self.scheduler = AsyncIOScheduler(timezone=moscow_tz)
         self.running = False
     
     def start(self):
