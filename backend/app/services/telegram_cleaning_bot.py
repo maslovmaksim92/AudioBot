@@ -197,14 +197,43 @@ async def handle_start_command(chat_id: int, user_id: int, db_session):
         # today = date.today()
         # houses = await get_houses_for_brigade_by_date(brigade.id, today, db_session)
         
-        # Определяем бригаду пользователя
-        # TODO: В продакшене получать из БД по telegram_user_id
-        session.brigade_id = "brigade_1"  # Бригада 1
-        brigade_name = "1 бригада"  # Название бригады для фильтрации
+        # Определяем бригаду пользователя из БД
+        from datetime import datetime, date
+        from sqlalchemy import select, text
         
-        # Получаем дома бригады 1 на 13.10.2025 из Bitrix24 через API
-        from datetime import datetime
-        target_date = "2025-10-13"
+        brigade_number = None
+        user_name = "Неизвестный"
+        
+        # Получаем пользователя по telegram_user_id из БД
+        if db_session:
+            try:
+                result = await db_session.execute(
+                    text("""
+                        SELECT brigade_number, full_name 
+                        FROM users 
+                        WHERE phone = :telegram_id OR id = :telegram_id
+                        LIMIT 1
+                    """),
+                    {"telegram_id": str(telegram_user_id)}
+                )
+                user_row = result.fetchone()
+                if user_row:
+                    brigade_number = user_row[0]
+                    user_name = user_row[1]
+                    logger.info(f"Found user {user_name} from brigade {brigade_number}")
+            except Exception as e:
+                logger.error(f"Error getting user brigade: {e}")
+        
+        # Если бригада не найдена, показываем все дома
+        if not brigade_number:
+            logger.warning(f"No brigade found for telegram_user {telegram_user_id}, showing all houses")
+        
+        session.brigade_id = f"brigade_{brigade_number}" if brigade_number else "all"
+        brigade_name = f"{brigade_number} бригада" if brigade_number else None
+        
+        # Используем текущую дату
+        target_date = date.today().strftime("%Y-%m-%d")
+        logger.info(f"Loading houses for {target_date}, brigade: {brigade_name or 'ALL'}")
         
         try:
             # Импортируем сервис напрямую, без db_session
