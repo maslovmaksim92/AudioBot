@@ -34,17 +34,24 @@ import os
 BACKEND_URL = "https://airealtime.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
-class PlannerkaTestResults:
+class TestResults:
     def __init__(self):
+        # Plannerka results
         self.created_meeting_id = None
         self.created_meeting_data = None
         self.analysis_result = None
         self.meetings_list = []
-        self.errors = []
         self.openai_working = False
-        self.database_working = False
         self.tasks_extracted = []
         self.summary_generated = False
+        
+        # Finance results
+        self.finance_endpoints = {}
+        self.created_transaction_id = None
+        self.database_working = False
+        
+        # Common
+        self.errors = []
 
 async def test_plannerka_create_endpoint():
     """Test plannerka creation endpoint"""
