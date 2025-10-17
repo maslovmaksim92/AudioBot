@@ -932,65 +932,151 @@ async def test_database_connection():
 
 async def main():
     """Main test function"""
-    print("🚀 Запуск тестирования системы Планёрок VasDom")
+    print("🚀 Запуск тестирования VasDom AudioBot - Финансовый модуль")
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
-    print("=" * 60)
+    print("=" * 80)
     
     all_errors = []
+    finance_results = {}
     
     # Test database connection first
     db_working = await test_database_connection()
     if not db_working:
         all_errors.append("❌ База данных недоступна")
     
-    # Test OpenAI configuration
-    await test_openai_configuration()
+    # ===== FINANCE MODULE TESTING =====
+    print("\n🏦 ТЕСТИРОВАНИЕ ФИНАНСОВОГО МОДУЛЯ")
+    print("=" * 80)
     
-    # Test plannerka creation
-    create_results = await test_plannerka_create_endpoint()
-    all_errors.extend(create_results.errors)
+    # Test main finance endpoints (high priority)
+    print("\n📊 Тестирование основных финансовых endpoints...")
     
-    # Test AI analysis (only if creation was successful)
-    analysis_results = None
-    if create_results.created_meeting_id and not create_results.errors:
-        analysis_results = await test_plannerka_analyze_endpoint(create_results.created_meeting_id)
-        all_errors.extend(analysis_results.errors)
-    else:
-        print("\n⚠️ Пропускаем тест AI-анализа из-за ошибок создания планёрки")
+    # 1. Cash Flow
+    cash_flow_results = await test_finance_cash_flow()
+    all_errors.extend(cash_flow_results.errors)
+    finance_results['cash_flow'] = cash_flow_results
     
-    # Test list endpoint
-    list_results = await test_plannerka_list_endpoint()
-    all_errors.extend(list_results.errors)
+    # 2. Profit Loss
+    profit_loss_results = await test_finance_profit_loss()
+    all_errors.extend(profit_loss_results.errors)
+    finance_results['profit_loss'] = profit_loss_results
+    
+    # 3. Expense Analysis
+    expense_analysis_results = await test_finance_expense_analysis()
+    all_errors.extend(expense_analysis_results.errors)
+    finance_results['expense_analysis'] = expense_analysis_results
+    
+    # 4. Available Months
+    available_months_results = await test_finance_available_months()
+    all_errors.extend(available_months_results.errors)
+    finance_results['available_months'] = available_months_results
+    
+    # 5. Dashboard (aggregates all data)
+    dashboard_results = await test_finance_dashboard()
+    all_errors.extend(dashboard_results.errors)
+    finance_results['dashboard'] = dashboard_results
+    
+    # Test secondary endpoints (mock data)
+    print("\n📋 Тестирование дополнительных endpoints...")
+    
+    # 6. Balance Sheet (mock)
+    balance_sheet_results = await test_finance_balance_sheet()
+    all_errors.extend(balance_sheet_results.errors)
+    finance_results['balance_sheet'] = balance_sheet_results
+    
+    # 7. Debts (mock)
+    debts_results = await test_finance_debts()
+    all_errors.extend(debts_results.errors)
+    finance_results['debts'] = debts_results
+    
+    # 8. Inventory (mock)
+    inventory_results = await test_finance_inventory()
+    all_errors.extend(inventory_results.errors)
+    finance_results['inventory'] = inventory_results
+    
+    # Test CRUD operations
+    print("\n💼 Тестирование CRUD операций...")
+    
+    # 9. Transactions List
+    transactions_list_results = await test_finance_transactions_list()
+    all_errors.extend(transactions_list_results.errors)
+    finance_results['transactions_list'] = transactions_list_results
+    
+    # 10. Create Transaction
+    create_transaction_results = await test_finance_create_transaction()
+    all_errors.extend(create_transaction_results.errors)
+    finance_results['create_transaction'] = create_transaction_results
+    
+    # 11. Revenue Monthly
+    revenue_monthly_results = await test_finance_revenue_monthly()
+    all_errors.extend(revenue_monthly_results.errors)
+    finance_results['revenue_monthly'] = revenue_monthly_results
     
     # Final summary
-    print("\n" + "=" * 60)
-    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ПЛАНЁРОК:")
-    print("=" * 60)
+    print("\n" + "=" * 80)
+    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ФИНАНСОВОГО МОДУЛЯ:")
+    print("=" * 80)
+    
+    # Count successful vs failed endpoints
+    successful_endpoints = []
+    failed_endpoints = []
+    
+    endpoint_names = {
+        'cash_flow': 'GET /api/finances/cash-flow',
+        'profit_loss': 'GET /api/finances/profit-loss', 
+        'expense_analysis': 'GET /api/finances/expense-analysis',
+        'available_months': 'GET /api/finances/available-months',
+        'balance_sheet': 'GET /api/finances/balance-sheet',
+        'debts': 'GET /api/finances/debts',
+        'inventory': 'GET /api/finances/inventory',
+        'dashboard': 'GET /api/finances/dashboard',
+        'transactions_list': 'GET /api/finances/transactions',
+        'create_transaction': 'POST /api/finances/transactions',
+        'revenue_monthly': 'GET /api/finances/revenue/monthly'
+    }
+    
+    for key, name in endpoint_names.items():
+        if key in finance_results and not finance_results[key].errors:
+            successful_endpoints.append(name)
+        else:
+            failed_endpoints.append(name)
+    
+    print(f"\n✅ УСПЕШНЫЕ ENDPOINTS ({len(successful_endpoints)}):")
+    for endpoint in successful_endpoints:
+        print(f"   ✅ {endpoint}")
+    
+    if failed_endpoints:
+        print(f"\n❌ НЕУСПЕШНЫЕ ENDPOINTS ({len(failed_endpoints)}):")
+        for endpoint in failed_endpoints:
+            print(f"   ❌ {endpoint}")
     
     if all_errors:
-        print("❌ ОБНАРУЖЕНЫ ОШИБКИ:")
+        print(f"\n❌ ОБНАРУЖЕННЫЕ ОШИБКИ ({len(all_errors)}):")
         for error in all_errors:
             print(f"   {error}")
     else:
-        print("✅ ВСЕ ТЕСТЫ ПРОЙДЕНЫ УСПЕШНО")
+        print("\n🎉 ВСЕ ФИНАНСОВЫЕ ENDPOINTS РАБОТАЮТ КОРРЕКТНО!")
     
     print(f"\n📊 Статистика тестирования:")
     print(f"   - База данных работает: {db_working}")
-    print(f"   - Планёрка создана: {create_results.created_meeting_id is not None}")
-    print(f"   - OpenAI анализ работает: {analysis_results.openai_working if analysis_results else False}")
-    print(f"   - Саммари сгенерировано: {analysis_results.summary_generated if analysis_results else False}")
-    print(f"   - Задач извлечено: {len(analysis_results.tasks_extracted) if analysis_results else 0}")
-    print(f"   - Планёрок в списке: {len(list_results.meetings_list)}")
+    print(f"   - Успешных endpoints: {len(successful_endpoints)}/{len(endpoint_names)}")
+    print(f"   - Транзакция создана: {create_transaction_results.created_transaction_id is not None}")
+    print(f"   - Данные извлекаются из БД: {len([r for r in finance_results.values() if r.finance_endpoints]) > 0}")
     
     # Detailed results
-    if create_results.created_meeting_id:
-        print(f"\n🆔 ID созданной планёрки: {create_results.created_meeting_id}")
+    if create_transaction_results.created_transaction_id:
+        print(f"\n🆔 ID созданной транзакции: {create_transaction_results.created_transaction_id}")
     
-    if analysis_results and analysis_results.tasks_extracted:
-        print(f"\n📋 Извлеченные задачи:")
-        for i, task in enumerate(analysis_results.tasks_extracted, 1):
-            print(f"   {i}. {task.get('title', 'Без названия')} → {task.get('assignee', 'Не назначен')}")
+    # Show sample data from key endpoints
+    if 'cash_flow' in finance_results and finance_results['cash_flow'].finance_endpoints:
+        cf_data = finance_results['cash_flow'].finance_endpoints.get('cash_flow', {})
+        cf_summary = cf_data.get('summary', {})
+        if cf_summary:
+            print(f"\n💰 Сводка движения денег:")
+            print(f"   - Общий доход: {cf_summary.get('total_income', 0)}")
+            print(f"   - Общий расход: {cf_summary.get('total_expense', 0)}")
+            print(f"   - Чистый поток: {cf_summary.get('net_cash_flow', 0)}")
     
     # Return success/failure
     return len(all_errors) == 0
