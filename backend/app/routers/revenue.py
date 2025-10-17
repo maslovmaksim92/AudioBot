@@ -115,7 +115,7 @@ async def get_monthly_revenue():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/finances/revenue/monthly")
+@router.post("/revenue/monthly")
 async def update_monthly_revenue(request: UpdateRevenueRequest):
     """
     Обновить выручку по месяцам (создать или обновить)
