@@ -27,7 +27,8 @@ async def run_migrations(db_pool):
         "create_call_summaries_table.sql",
         "add_maslov_user.sql",
         "add_brigade_test_users.sql",
-        "update_test_passwords.sql"
+        "update_test_passwords.sql",
+        "create_financial_transactions_table.sql"
     ]
     
     for migration_file in migrations:
