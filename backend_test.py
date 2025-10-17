@@ -53,11 +53,594 @@ class TestResults:
         # Common
         self.errors = []
 
+async def test_finance_cash_flow():
+    """Test finance cash flow endpoint"""
+    print("=== ТЕСТ ДВИЖЕНИЯ ДЕНЕГ (CASH FLOW) ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💰 Тестируем GET /api/finances/cash-flow...")
+            
+            response = await client.get(f"{API_BASE}/finances/cash-flow")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка cash-flow: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['cash_flow'] = data
+            
+            print("✅ Cash flow получен успешно")
+            print(f"📊 Структура ответа:")
+            
+            # Validate structure
+            required_fields = ['cash_flow', 'summary']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в cash-flow")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            # Check summary structure
+            if 'summary' in data:
+                summary = data['summary']
+                summary_fields = ['total_income', 'total_expense', 'net_cash_flow']
+                for field in summary_fields:
+                    if field not in summary:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в summary")
+                    else:
+                        print(f"✅ Summary поле '{field}': {summary[field]}")
+            
+            # Check cash flow items
+            cash_flow_items = data.get('cash_flow', [])
+            print(f"📈 Записей движения денег: {len(cash_flow_items)}")
+            
+            if cash_flow_items:
+                sample_item = cash_flow_items[0]
+                item_fields = ['date', 'income', 'expense', 'balance']
+                for field in item_fields:
+                    if field not in sample_item:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в записи cash_flow")
+                    else:
+                        print(f"✅ Поле записи '{field}': {sample_item[field]}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании cash-flow: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_profit_loss():
+    """Test finance profit loss endpoint"""
+    print("\n=== ТЕСТ ПРИБЫЛЕЙ И УБЫТКОВ (PROFIT LOSS) ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("📊 Тестируем GET /api/finances/profit-loss...")
+            
+            response = await client.get(f"{API_BASE}/finances/profit-loss")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка profit-loss: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['profit_loss'] = data
+            
+            print("✅ Profit loss получен успешно")
+            print(f"📊 Структура ответа:")
+            
+            # Validate structure
+            required_fields = ['profit_loss', 'summary']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в profit-loss")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            # Check summary structure
+            if 'summary' in data:
+                summary = data['summary']
+                summary_fields = ['total_revenue', 'total_expenses', 'net_profit', 'average_margin']
+                for field in summary_fields:
+                    if field not in summary:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в summary")
+                    else:
+                        print(f"✅ Summary поле '{field}': {summary[field]}")
+            
+            # Check profit loss items
+            profit_loss_items = data.get('profit_loss', [])
+            print(f"📈 Записей прибылей/убытков: {len(profit_loss_items)}")
+            
+            if profit_loss_items:
+                sample_item = profit_loss_items[0]
+                item_fields = ['period', 'revenue', 'expenses', 'profit', 'margin']
+                for field in item_fields:
+                    if field not in sample_item:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в записи profit_loss")
+                    else:
+                        print(f"✅ Поле записи '{field}': {sample_item[field]}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании profit-loss: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_expense_analysis():
+    """Test finance expense analysis endpoint"""
+    print("\n=== ТЕСТ АНАЛИЗА РАСХОДОВ (EXPENSE ANALYSIS) ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💸 Тестируем GET /api/finances/expense-analysis...")
+            
+            # Test without month filter
+            response = await client.get(f"{API_BASE}/finances/expense-analysis")
+            print(f"📡 Ответ сервера (без фильтра): {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка expense-analysis: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['expense_analysis'] = data
+            
+            print("✅ Expense analysis получен успешно")
+            
+            # Validate structure
+            required_fields = ['expenses', 'total']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в expense-analysis")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            # Check expenses structure
+            expenses = data.get('expenses', [])
+            print(f"📈 Категорий расходов: {len(expenses)}")
+            print(f"💰 Общая сумма расходов: {data.get('total', 0)}")
+            
+            if expenses:
+                sample_expense = expenses[0]
+                expense_fields = ['category', 'amount', 'percentage']
+                for field in expense_fields:
+                    if field not in sample_expense:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в записи expense")
+                    else:
+                        print(f"✅ Поле расхода '{field}': {sample_expense[field]}")
+            
+            # Test with month filter
+            print("\n🗓️ Тестируем с фильтром по месяцу...")
+            response_month = await client.get(f"{API_BASE}/finances/expense-analysis?month=Январь 2025")
+            print(f"📡 Ответ сервера (с фильтром): {response_month.status_code}")
+            
+            if response_month.status_code == 200:
+                month_data = response_month.json()
+                print(f"✅ Фильтр по месяцу работает")
+                print(f"📅 Месяц: {month_data.get('month')}")
+                print(f"💰 Расходов за месяц: {len(month_data.get('expenses', []))}")
+            else:
+                print(f"⚠️ Фильтр по месяцу не работает: {response_month.status_code}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании expense-analysis: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_available_months():
+    """Test finance available months endpoint"""
+    print("\n=== ТЕСТ ДОСТУПНЫХ МЕСЯЦЕВ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("📅 Тестируем GET /api/finances/available-months...")
+            
+            response = await client.get(f"{API_BASE}/finances/available-months")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка available-months: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['available_months'] = data
+            
+            print("✅ Available months получен успешно")
+            
+            # Validate structure
+            required_fields = ['months', 'total']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в available-months")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            months = data.get('months', [])
+            print(f"📅 Доступных месяцев: {data.get('total', 0)}")
+            
+            if months:
+                print(f"📋 Примеры месяцев: {months[:5]}")
+            else:
+                print("⚠️ Нет доступных месяцев")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании available-months: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_balance_sheet():
+    """Test finance balance sheet endpoint (mock data)"""
+    print("\n=== ТЕСТ БАЛАНСОВОГО ОТЧЁТА ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("🏦 Тестируем GET /api/finances/balance-sheet...")
+            
+            response = await client.get(f"{API_BASE}/finances/balance-sheet")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка balance-sheet: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['balance_sheet'] = data
+            
+            print("✅ Balance sheet получен успешно (mock данные)")
+            
+            # Validate structure
+            required_sections = ['assets', 'liabilities', 'equity']
+            for section in required_sections:
+                if section not in data:
+                    results.errors.append(f"❌ Отсутствует секция '{section}' в balance-sheet")
+                else:
+                    print(f"✅ Секция '{section}' присутствует")
+                    section_data = data[section]
+                    if 'total' in section_data:
+                        print(f"   💰 Итого {section}: {section_data['total']}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании balance-sheet: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_debts():
+    """Test finance debts endpoint (mock data)"""
+    print("\n=== ТЕСТ ЗАДОЛЖЕННОСТЕЙ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💳 Тестируем GET /api/finances/debts...")
+            
+            response = await client.get(f"{API_BASE}/finances/debts")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка debts: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['debts'] = data
+            
+            print("✅ Debts получен успешно (mock данные)")
+            
+            # Validate structure
+            required_fields = ['debts', 'summary']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в debts")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            debts = data.get('debts', [])
+            summary = data.get('summary', {})
+            
+            print(f"💳 Количество задолженностей: {len(debts)}")
+            print(f"💰 Общая сумма: {summary.get('total', 0)}")
+            print(f"⚠️ Просроченная сумма: {summary.get('overdue', 0)}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании debts: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_inventory():
+    """Test finance inventory endpoint (mock data)"""
+    print("\n=== ТЕСТ ТОВАРНЫХ ЗАПАСОВ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("📦 Тестируем GET /api/finances/inventory...")
+            
+            response = await client.get(f"{API_BASE}/finances/inventory")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка inventory: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['inventory'] = data
+            
+            print("✅ Inventory получен успешно (mock данные)")
+            
+            # Validate structure
+            required_fields = ['inventory', 'summary']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в inventory")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            inventory = data.get('inventory', [])
+            summary = data.get('summary', {})
+            
+            print(f"📦 Количество позиций: {len(inventory)}")
+            print(f"💰 Общая стоимость: {summary.get('total_value', 0)}")
+            print(f"📊 Общее количество: {summary.get('total_items', 0)}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании inventory: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_dashboard():
+    """Test finance dashboard endpoint"""
+    print("\n=== ТЕСТ ФИНАНСОВОЙ СВОДКИ (DASHBOARD) ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:  # Longer timeout as it aggregates data
+            print("📊 Тестируем GET /api/finances/dashboard...")
+            
+            response = await client.get(f"{API_BASE}/finances/dashboard")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка dashboard: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['dashboard'] = data
+            
+            print("✅ Dashboard получен успешно")
+            
+            # Validate structure - dashboard aggregates all other endpoints
+            expected_sections = ['cash_flow', 'profit_loss', 'balance', 'expenses', 'debts', 'inventory']
+            for section in expected_sections:
+                if section not in data:
+                    results.errors.append(f"❌ Отсутствует секция '{section}' в dashboard")
+                else:
+                    print(f"✅ Секция '{section}' присутствует")
+            
+            print("📊 Сводка по всем показателям получена")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании dashboard: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_transactions_list():
+    """Test finance transactions list endpoint"""
+    print("\n=== ТЕСТ СПИСКА ТРАНЗАКЦИЙ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💼 Тестируем GET /api/finances/transactions...")
+            
+            response = await client.get(f"{API_BASE}/finances/transactions?limit=10&offset=0")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка transactions list: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['transactions_list'] = data
+            
+            print("✅ Transactions list получен успешно")
+            print(f"📊 Количество транзакций: {len(data)}")
+            
+            if data:
+                sample_transaction = data[0]
+                required_fields = ['id', 'date', 'amount', 'category', 'type', 'created_at']
+                for field in required_fields:
+                    if field not in sample_transaction:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в транзакции")
+                    else:
+                        print(f"✅ Поле транзакции '{field}': {sample_transaction[field]}")
+            else:
+                print("⚠️ Список транзакций пуст")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании transactions list: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_create_transaction():
+    """Test finance create transaction endpoint"""
+    print("\n=== ТЕСТ СОЗДАНИЯ ТРАНЗАКЦИИ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💰 Тестируем POST /api/finances/transactions...")
+            
+            # Test data as specified in the review request
+            test_transaction = {
+                "date": "2025-10-17T00:00:00Z",
+                "amount": 1000,
+                "category": "Зарплата",
+                "type": "expense",
+                "description": "Тестовая транзакция для проверки API",
+                "payment_method": "Банковский перевод",
+                "counterparty": "Тестовый сотрудник",
+                "project": "Январь 2025"
+            }
+            
+            print(f"📝 Данные транзакции: {json.dumps(test_transaction, ensure_ascii=False, indent=2)}")
+            
+            response = await client.post(
+                f"{API_BASE}/finances/transactions",
+                json=test_transaction,
+                headers={"Content-Type": "application/json"}
+            )
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка создания транзакции: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.created_transaction_id = data.get('id')
+            results.finance_endpoints['created_transaction'] = data
+            
+            print(f"✅ Транзакция создана с ID: {results.created_transaction_id}")
+            
+            # Validate response structure
+            required_fields = ['id', 'date', 'amount', 'category', 'type', 'created_at']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в ответе создания")
+                else:
+                    print(f"✅ Поле '{field}': {data[field]}")
+            
+            # Validate data integrity
+            if data.get('amount') != test_transaction['amount']:
+                results.errors.append(f"❌ Неверная сумма: ожидалась {test_transaction['amount']}, получена {data.get('amount')}")
+            
+            if data.get('category') != test_transaction['category']:
+                results.errors.append(f"❌ Неверная категория: ожидалась '{test_transaction['category']}', получена '{data.get('category')}'")
+            
+            if data.get('type') != test_transaction['type']:
+                results.errors.append(f"❌ Неверный тип: ожидался '{test_transaction['type']}', получен '{data.get('type')}'")
+            
+            if not results.errors:
+                print("✅ Все поля транзакции корректны")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании создания транзакции: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_finance_revenue_monthly():
+    """Test finance monthly revenue endpoint"""
+    print("\n=== ТЕСТ РУЧНОЙ ВЫРУЧКИ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            print("💵 Тестируем GET /api/finances/revenue/monthly...")
+            
+            response = await client.get(f"{API_BASE}/finances/revenue/monthly")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка revenue monthly: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            results.finance_endpoints['revenue_monthly'] = data
+            
+            print("✅ Revenue monthly получен успешно")
+            
+            # Validate structure
+            required_fields = ['revenues']
+            for field in required_fields:
+                if field not in data:
+                    results.errors.append(f"❌ Отсутствует поле '{field}' в revenue monthly")
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            revenues = data.get('revenues', [])
+            print(f"📊 Записей выручки: {len(revenues)}")
+            
+            if revenues:
+                sample_revenue = revenues[0]
+                revenue_fields = ['month', 'revenue']
+                for field in revenue_fields:
+                    if field not in sample_revenue:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в записи выручки")
+                    else:
+                        print(f"✅ Поле выручки '{field}': {sample_revenue[field]}")
+            else:
+                print("⚠️ Нет записей выручки (таблица может быть пустой)")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании revenue monthly: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def test_plannerka_create_endpoint():
     """Test plannerka creation endpoint"""
-    print("=== ТЕСТ СОЗДАНИЯ ПЛАНЁРКИ ===\n")
+    print("\n=== ТЕСТ СОЗДАНИЯ ПЛАНЁРКИ ===\n")
     
-    results = PlannerkaTestResults()
+    results = TestResults()
     
     # Test data from the review request
     test_data = {
