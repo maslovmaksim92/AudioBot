@@ -716,7 +716,7 @@ async def test_plannerka_analyze_endpoint(meeting_id: str):
     """Test plannerka AI analysis endpoint"""
     print("\n=== ТЕСТ AI-АНАЛИЗА ПЛАНЁРКИ ===\n")
     
-    results = PlannerkaTestResults()
+    results = TestResults()
     results.created_meeting_id = meeting_id
     
     try:
