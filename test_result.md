@@ -249,7 +249,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Finance module - API endpoints"
     - "TELEGRAM_TARGET_CHAT_ID update"
   stuck_tasks: []
   test_all: false
