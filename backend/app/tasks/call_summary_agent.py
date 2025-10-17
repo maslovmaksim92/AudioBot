@@ -1,5 +1,5 @@
 """
-Агент для автоматической обработки звонков из Bitrix24
+Агент для автоматической обработки звонков из Novofon и Bitrix24
 Проверяет новые звонки каждые 5 минут и создаёт саммари
 """
 import asyncio
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Set
 
 from backend.app.services.bitrix_calls_service import BitrixCallsService
+from backend.app.services.novofon_service import novofon_service
 from backend.app.routers.call_summary import process_call_recording
 
 logger = logging.getLogger(__name__)
