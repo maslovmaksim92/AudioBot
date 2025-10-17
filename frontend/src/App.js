@@ -20,6 +20,8 @@ import Logs from './components/Logs/Logs';
 import Agents from './components/Agents/Agents';
 import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
+import RevenueInput from './components/Finances/RevenueInput';
+import ArticleManagement from './components/Finances/ArticleManagement';
 import TelegramLogin from './components/Login/TelegramLogin';
 import CallSummaries from './components/CallSummaries/CallSummaries';
 
