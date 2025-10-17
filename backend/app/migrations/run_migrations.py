@@ -43,9 +43,19 @@ async def run_migrations(db_pool):
             with open(migration_path, 'r', encoding='utf-8') as f:
                 sql = f.read()
             
-            # Выполняем
+            # Выполняем каждую команду отдельно вне транзакции
             async with db_pool.acquire() as conn:
-                await conn.execute(sql)
+                # Разбиваем SQL на отдельные команды
+                commands = [cmd.strip() for cmd in sql.split(';') if cmd.strip()]
+                for command in commands:
+                    try:
+                        await conn.execute(command)
+                    except Exception as cmd_error:
+                        # Если команда уже выполнена (таблица/индекс существует), пропускаем
+                        if "already exists" in str(cmd_error).lower():
+                            continue
+                        else:
+                            raise
             
             logger.info(f"[migrations] ✅ Migration executed: {migration_file}")
             
