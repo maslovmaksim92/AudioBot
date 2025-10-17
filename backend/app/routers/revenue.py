@@ -185,7 +185,7 @@ async def update_monthly_revenue(request: UpdateRevenueRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/finances/revenue/monthly/{month}")
+@router.delete("/revenue/monthly/{month}")
 async def delete_monthly_revenue(month: str):
     """
     Удалить выручку за конкретный месяц
