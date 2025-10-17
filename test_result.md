@@ -109,6 +109,54 @@ user_problem_statement: "
 "
 
 backend:
+  - task: "TELEGRAM_TARGET_CHAT_ID update"
+    implemented: true
+    working: true
+    file: "/app/backend/.env"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: "TELEGRAM_TARGET_CHAT_ID обновлен на -1002964910466 в /app/backend/.env. Backend перезапущен."
+  
+  - task: "Finance module - API endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/app/routers/finances.py, finance_transactions.py, finance_articles.py, revenue.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Интегрированы роутеры из ветки finance: finances.py (cash-flow, profit-loss, balance-sheet, expense-analysis, debts, inventory, dashboard), finance_transactions.py (CRUD операций), finance_articles.py (управление статьями), revenue.py (ввод выручки). Проверены endpoints /api/finances/cash-flow и /api/finances/profit-loss - возвращают корректные данные. Требуется полное тестирование всех endpoints."
+  
+  - task: "Finance module - Database migrations"
+    implemented: true
+    working: true
+    file: "/app/backend/app/migrations/create_financial_transactions_table.sql"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создана миграция для таблиц: financial_transactions, monthly_revenue, finance_articles. Таблицы financial_transactions и monthly_revenue уже существуют в БД. Таблица finance_articles не создалась из-за ограничений прав (read-only transaction в Yandex Cloud PostgreSQL), но это не критично - маппинг статей хранится в коде роутера finance_articles.py."
+  
+  - task: "Novofon API integration"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/app/routers/call_summary.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Для расширения интеграции с Novofon требуются API ключи (API Key, API Token, Account ID). Пользователь предоставил только SIP credentials (NOVOFON_CALLER_ID, NOVOFON_SIP_DOMAIN, NOVOFON_SIP_USERNAME, NOVOFON_SIP_PASSWORD), которые используются для VoIP, но не для REST API. Ожидаем получение API ключей от пользователя."
+
   - task: "Plannerka create endpoint"
     implemented: true
     working: true
