@@ -38,7 +38,7 @@ async def get_db_connection():
         raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
 
-@router.get("/finances/revenue/monthly")
+@router.get("/revenue/monthly")
 async def get_monthly_revenue():
     """
     Получить выручку по месяцам (ручной ввод)
