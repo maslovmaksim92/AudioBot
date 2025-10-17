@@ -1,14 +1,26 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for VasDom Plannerka System
-Testing Plannerka functionality with AI analysis
+Backend Test Suite for VasDom AudioBot System
+Testing Finance Module and Plannerka functionality
 
 This test validates:
+FINANCE MODULE:
+1. GET /api/finances/cash-flow - движение денег
+2. GET /api/finances/profit-loss - прибыли и убытки  
+3. GET /api/finances/balance-sheet - балансовый отчёт
+4. GET /api/finances/expense-analysis - анализ расходов
+5. GET /api/finances/available-months - доступные месяцы
+6. GET /api/finances/debts - задолженности
+7. GET /api/finances/inventory - товарные запасы
+8. GET /api/finances/dashboard - сводка
+9. GET /api/finances/transactions - список транзакций
+10. POST /api/finances/transactions - создание транзакции
+11. GET /api/finances/revenue/monthly - ручная выручка
+
+PLANNERKA MODULE:
 1. POST /api/plannerka/create - создание планёрки
 2. POST /api/plannerka/analyze/{id} - AI-анализ с GPT-4o
 3. GET /api/plannerka/list - список планёрок
-4. OpenAI GPT-4o integration and JSON parsing
-5. Database operations for plannerka_meetings table
 """
 
 import asyncio
