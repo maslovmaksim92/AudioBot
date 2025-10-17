@@ -111,7 +111,7 @@ class CallSummaryAgent:
     
     async def process_single_call(self, call: dict):
         """
-        Обработать один звонок
+        Обработать один звонок из Bitrix24
         """
         call_id = call.get("CALL_ID")
         
@@ -135,6 +135,45 @@ class CallSummaryAgent:
         
         # Обрабатываем (транскрипция + саммари + отправка)
         await process_call_recording(webhook_data, None)
+    
+    async def process_novofon_call(self, call: dict):
+        """
+        Обработать один звонок из Novofon
+        """
+        call_id = call.get("id") or call.get("call_id")
+        
+        logger.info(f"🎙️ Processing Novofon call {call_id}")
+        
+        # Проверяем условия
+        duration = int(call.get("duration", 0))
+        status = call.get("status", "")
+        
+        if duration < 10:
+            logger.debug(f"⏭️ Call {call_id}: too short ({duration}s)")
+            return
+        
+        # Получаем URL записи
+        recording_url = call.get("recording_url") or await self.novofon_service.get_call_recording_url(call_id)
+        
+        if not recording_url:
+            logger.warning(f"⚠️ No recording URL for call {call_id}")
+            return
+        
+        # Формируем данные для обработки
+        webhook_data = {
+            "call_id": f"novofon_{call_id}",
+            "caller": call.get("caller", call.get("from", "")),
+            "called": call.get("called", call.get("to", "")),
+            "direction": call.get("direction", "in"),
+            "duration": duration,
+            "status": status,
+            "record_url": recording_url,
+            "timestamp": call.get("start_time", call.get("timestamp", datetime.now().isoformat()))
+        }
+        
+        # Обрабатываем (транскрипция + саммари + отправка)
+        await process_call_recording(webhook_data, None)
+        logger.info(f"✅ Successfully processed Novofon call {call_id}")
 
 # Глобальный экземпляр агента
 call_summary_agent = CallSummaryAgent()
