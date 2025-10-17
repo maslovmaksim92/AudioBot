@@ -102,7 +102,11 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Протестировать функционал Планёрки - проверить endpoint /api/plannerka/create (создание планёрки), /api/plannerka/analyze/{id} (AI-анализ с GPT-4o), /api/plannerka/list (список планёрок). Проверить создание планёрки в БД, работу OpenAI GPT-4o анализа, извлечение задач (title, assignee, deadline, priority), генерацию саммари."
+user_problem_statement: "
+1. Обновить TELEGRAM_TARGET_CHAT_ID на -1002964910466 для отправки саммари звонков в правильный Telegram чат
+2. Интегрировать раздел 'Финансы' (Управленческая отчетность) из ветки finance репозитория https://github.com/maslovmaksim92/AudioBot/tree/finance
+3. Расширить интеграцию с Novofon для получения саммари всех звонков (требуются API ключи от Novofon)
+"
 
 backend:
   - task: "Plannerka create endpoint"
