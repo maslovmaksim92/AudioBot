@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { PieChart as PieChartIcon } from 'lucide-react';
 
@@ -11,15 +12,31 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 function ExpenseAnalysis() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [availableMonths, setAvailableMonths] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState('all');
+
+  useEffect(() => {
+    fetchAvailableMonths();
+  }, []);
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
+  }, [selectedMonth]);
+
+  const fetchAvailableMonths = async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/finances/available-months`);
+      setAvailableMonths(response.data.months || []);
+    } catch (error) {
+      console.error('Error fetching months:', error);
+    }
+  };
 
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BACKEND_URL}/api/finances/expense-analysis`);
+      const params = selectedMonth !== 'all' ? { month: selectedMonth } : {};
+      const response = await axios.get(`${BACKEND_URL}/api/finances/expense-analysis`, { params });
       setData(response.data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -46,12 +63,37 @@ function ExpenseAnalysis() {
 
   return (
     <div className="space-y-6">
+      {/* Month Selector */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Фильтр по периоду</CardTitle>
+              <CardDescription>Выберите месяц для анализа расходов</CardDescription>
+            </div>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Выберите месяц" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все месяцы</SelectItem>
+                {availableMonths.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* Summary Card */}
       <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-900">
             <PieChartIcon className="h-5 w-5" />
-            Общие расходы
+            Общие расходы {selectedMonth !== 'all' && `- ${selectedMonth}`}
           </CardTitle>
           <CardDescription className="text-orange-700">Анализ расходов по категориям</CardDescription>
         </CardHeader>
