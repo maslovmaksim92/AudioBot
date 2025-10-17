@@ -214,7 +214,7 @@ async def delete_monthly_revenue(month: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/finances/revenue/sync-to-transactions")
+@router.post("/revenue/sync-to-transactions")
 async def sync_revenue_to_transactions():
     """
     Синхронизировать выручку из monthly_revenue в financial_transactions
