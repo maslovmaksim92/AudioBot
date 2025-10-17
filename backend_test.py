@@ -818,7 +818,7 @@ async def test_plannerka_list_endpoint():
     """Test plannerka list endpoint"""
     print("\n=== ТЕСТ СПИСКА ПЛАНЁРОК ===\n")
     
-    results = PlannerkaTestResults()
+    results = TestResults()
     
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
