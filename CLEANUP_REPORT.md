@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://smarthouse-app.preview.emergentagent.com**
+Приложение доступно: **https://airealtime.preview.emergentagent.com**
 
 ---
 

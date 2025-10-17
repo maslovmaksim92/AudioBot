@@ -19,7 +19,7 @@ from typing import Dict, List, Any, Optional
 import os
 
 # Backend URL from environment
-BACKEND_URL = "https://smarthouse-app.preview.emergentagent.com"
+BACKEND_URL = "https://airealtime.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class CSVReportResults:

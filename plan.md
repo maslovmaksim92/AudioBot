@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://smarthouse-app.preview.emergentagent.com
+**Preview URL**: https://airealtime.preview.emergentagent.com
 
 ---
 
