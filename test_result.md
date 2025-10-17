@@ -253,6 +253,18 @@ test_plan:
   test_priority: "high_first"
 
 frontend:
+  - task: "Finances UI module"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/Finances.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Интегрированы все компоненты финансового модуля из ветки finance: Finances.jsx (основной компонент с вкладками), CashFlow.jsx, ProfitLoss.jsx, BalanceSheet.jsx, ExpenseAnalysis.jsx, Debts.jsx, Inventory.jsx, TransactionForm.jsx, RevenueInput.jsx, ArticleManagement.jsx. Добавлены маршруты в App.js: /finances, /finances/revenue, /finances/articles. Пункт 'Финансы' уже был в меню Layout. Требуется тестирование UI."
+  
   - task: "Plannerka UI page"
     implemented: true
     working: true
