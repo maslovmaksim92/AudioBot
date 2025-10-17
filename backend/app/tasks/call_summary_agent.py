@@ -19,11 +19,12 @@ processed_calls: Set[str] = set()
 class CallSummaryAgent:
     def __init__(self):
         self.bitrix_service = BitrixCallsService()
+        self.novofon_service = novofon_service
         self.is_running = False
     
     async def check_and_process_calls(self):
         """
-        Проверяет новые звонки и создаёт саммари
+        Проверяет новые звонки из Novofon и Bitrix24 и создаёт саммари
         """
         try:
             if self.is_running:
@@ -33,67 +34,70 @@ class CallSummaryAgent:
             self.is_running = True
             logger.info("🔍 Checking for new calls to process...")
             
-            # Получаем последние звонки за последние 2 часа
-            calls = await self.bitrix_service.get_recent_calls(limit=20)
-            
-            if not calls:
-                logger.info("📭 No calls found")
-                self.is_running = False
-                return
-            
             processed_count = 0
             
-            for call in calls:
-                call_id = call.get("CALL_ID")
+            # 1. Обработка звонков из Novofon (приоритет)
+            try:
+                novofon_calls = await self.novofon_service.get_calls(
+                    start_date=datetime.now() - timedelta(hours=2),
+                    limit=50,
+                    is_recorded=True
+                )
                 
-                # Пропускаем уже обработанные
-                if call_id in processed_calls:
-                    continue
+                if novofon_calls:
+                    logger.info(f"📞 Found {len(novofon_calls)} calls from Novofon")
+                    for call in novofon_calls:
+                        call_id = f"novofon_{call.get('id', call.get('call_id'))}"
+                        
+                        if call_id in processed_calls:
+                            continue
+                        
+                        try:
+                            await self.process_novofon_call(call)
+                            processed_calls.add(call_id)
+                            processed_count += 1
+                            await asyncio.sleep(2)
+                        except Exception as e:
+                            logger.error(f"❌ Failed to process Novofon call {call_id}: {e}")
+            except Exception as e:
+                logger.error(f"❌ Error fetching Novofon calls: {e}")
+            
+            # 2. Обработка звонков из Bitrix24 (резервный источник)
+            try:
+                bitrix_calls = await self.bitrix_service.get_recent_calls(limit=20)
                 
-                # Проверяем условия
-                has_record = bool(call.get("RECORD_FILE_ID"))
-                duration = int(call.get("CALL_DURATION", 0))
-                call_status = call.get("CALL_STATUS")
-                
-                # Только звонки с записью, длительностью > 10 сек и отвеченные
-                if not has_record:
-                    logger.debug(f"⏭️ Call {call_id}: no recording")
-                    processed_calls.add(call_id)  # Помечаем чтобы больше не проверять
-                    continue
-                
-                if duration < 10:
-                    logger.debug(f"⏭️ Call {call_id}: too short ({duration}s)")
-                    processed_calls.add(call_id)
-                    continue
-                
-                if call_status != "200":  # 200 = answered
-                    logger.debug(f"⏭️ Call {call_id}: not answered (status: {call_status})")
-                    processed_calls.add(call_id)
-                    continue
-                
-                # Обрабатываем звонок
-                logger.info(f"🎙️ Processing call {call_id} ({duration}s)")
-                
-                try:
-                    await self.process_single_call(call)
-                    processed_calls.add(call_id)
-                    processed_count += 1
-                    logger.info(f"✅ Successfully processed call {call_id}")
-                    
-                    # Небольшая пауза между обработкой
-                    await asyncio.sleep(2)
-                    
-                except Exception as e:
-                    logger.error(f"❌ Failed to process call {call_id}: {e}")
-                    import traceback
-                    logger.error(traceback.format_exc())
+                if bitrix_calls:
+                    logger.info(f"📞 Found {len(bitrix_calls)} calls from Bitrix24")
+                    for call in bitrix_calls:
+                        call_id = f"bitrix_{call.get('CALL_ID')}"
+                        
+                        if call_id in processed_calls:
+                            continue
+                        
+                        has_record = bool(call.get("RECORD_FILE_ID"))
+                        duration = int(call.get("CALL_DURATION", 0))
+                        call_status = call.get("CALL_STATUS")
+                        
+                        if not has_record or duration < 10 or call_status != "200":
+                            processed_calls.add(call_id)
+                            continue
+                        
+                        try:
+                            await self.process_single_call(call)
+                            processed_calls.add(call_id)
+                            processed_count += 1
+                            await asyncio.sleep(2)
+                        except Exception as e:
+                            logger.error(f"❌ Failed to process Bitrix call {call_id}: {e}")
+            except Exception as e:
+                logger.error(f"❌ Error fetching Bitrix24 calls: {e}")
             
             if processed_count > 0:
-                logger.info(f"✅ Processed {processed_count} calls")
+                logger.info(f"✅ Processed {processed_count} calls total")
             else:
                 logger.info("📭 No new calls to process")
             
-            # Очищаем старые ID из памяти (старше 24 часов)
+            # Очищаем старые ID из памяти
             if len(processed_calls) > 1000:
                 logger.info("🧹 Cleaning old call IDs from memory...")
                 processed_calls.clear()
