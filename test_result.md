@@ -239,14 +239,15 @@ backend:
           comment: "✅ База данных plannerka_meetings работает корректно. Успешно создаются записи с UUID, сохраняются все поля (title, transcription, participants, date). Поддерживается чтение списка планёрок. Подключение к БД стабильное."
 
 metadata:
-  created_by: "testing_agent"
-  version: "1.2"
-  test_sequence: 3
+  created_by: "main_agent"
+  version: "2.0"
+  test_sequence: 4
   run_ui: false
 
 test_plan:
   current_focus:
-    - "All Plannerka functionality tested"
+    - "Finance module - API endpoints"
+    - "TELEGRAM_TARGET_CHAT_ID update"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
