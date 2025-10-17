@@ -71,6 +71,8 @@ function App() {
                 <Route path="/training" element={<Training />} />
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/finances" element={<Finances />} />
+                <Route path="/finances/revenue" element={<RevenueInput />} />
+                <Route path="/finances/articles" element={<ArticleManagement />} />
                 <Route path="/agents" element={<Agents />} />
                 <Route path="/calls" element={<CallSummaries />} />
               </Routes>
