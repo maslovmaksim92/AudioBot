@@ -1261,7 +1261,7 @@ logger.info('API router mounted with all voice endpoints')
 # Import and mount new modular routers
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
-    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users
+    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users
     from backend.app.routers import brain as brain_router
 
     from backend.app.routers import ai_assistant_api as ai_assistant_api_router
