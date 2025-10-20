@@ -6,8 +6,8 @@ import CashFlow from './CashFlow';
 import ProfitLoss from './ProfitLoss';
 import BalanceSheet from './BalanceSheet';
 import ExpenseAnalysis from './ExpenseAnalysis';
-import Debts from './Debts';
-import Inventory from './Inventory';
+import DebtsManagement from './DebtsManagement';
+import InventoryManagement from './InventoryManagement';
 import TransactionForm from './TransactionForm';
 import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload } from 'lucide-react';
 
