@@ -1315,6 +1315,7 @@ if health:
         app.include_router(render_logs.router, prefix="/api")
         app.include_router(plannerka.router, prefix="/api")
         app.include_router(realtime_transcription.router, prefix="/api")
+        app.include_router(openai_realtime.router, prefix="/api")
         app.include_router(telegram_auth.router, prefix="/api")
         app.include_router(call_summary.router, prefix="/api")
         app.include_router(bitrix_calls.router, prefix="/api")
