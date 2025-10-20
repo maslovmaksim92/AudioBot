@@ -64,6 +64,8 @@ function App() {
               <Route path="/finances" element={<Finances />} />
               <Route path="/finances/revenue" element={<RevenueInput />} />
               <Route path="/finances/articles" element={<ArticleManagement />} />
+              <Route path="/finances/debts" element={<DebtsManagement />} />
+              <Route path="/finances/inventory" element={<InventoryManagement />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/calls" element={<CallSummaries />} />
             </Routes>
