@@ -269,13 +269,16 @@ backend:
 
 metadata:
   created_by: "main_agent"
-  version: "2.0"
-  test_sequence: 4
-  run_ui: false
+  version: "3.0"
+  test_sequence: 5
+  run_ui: true
 
 test_plan:
   current_focus:
-    - "TELEGRAM_TARGET_CHAT_ID update"
+    - "Debts Management - UI and CRUD operations"
+    - "Inventory Management - UI and CRUD operations"
+    - "Debts API - CRUD endpoints"
+    - "Inventory API - CRUD endpoints"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
