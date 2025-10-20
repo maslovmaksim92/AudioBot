@@ -257,17 +257,41 @@ test_plan:
   test_priority: "high_first"
 
 frontend:
-  - task: "Finances UI module"
+  - task: "Debts Management - UI and CRUD operations"
     implemented: true
     working: "NA"
-    file: "/app/frontend/src/components/Finances/Finances.jsx"
+    file: "/app/frontend/src/components/Finances/DebtsManagement.jsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Интегрированы все компоненты финансового модуля из ветки finance: Finances.jsx (основной компонент с вкладками), CashFlow.jsx, ProfitLoss.jsx, BalanceSheet.jsx, ExpenseAnalysis.jsx, Debts.jsx, Inventory.jsx, TransactionForm.jsx, RevenueInput.jsx, ArticleManagement.jsx. Добавлены маршруты в App.js: /finances, /finances/revenue, /finances/articles. Пункт 'Финансы' уже был в меню Layout. Требуется тестирование UI."
+          comment: "Создан компонент DebtsManagement с полным CRUD функционалом: просмотр всех задолженностей, добавление новых, редактирование существующих, удаление. Включает суммарную статистику (общая задолженность, просроченная, активная). Формы с валидацией для типов задолженности (кредит, лизинг, кредиторская задолженность). Требуется тестирование UI и взаимодействия с backend API."
+  
+  - task: "Inventory Management - UI and CRUD operations"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/InventoryManagement.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан компонент InventoryManagement с полным CRUD функционалом: просмотр всех товарных запасов, добавление новых позиций, редактирование (количество, цена, местоположение), удаление. Автоматический расчёт стоимости (количество × цена). Суммарная статистика (общая стоимость, количество позиций, категории). Требуется тестирование UI и API интеграции."
+  
+  - task: "Finances main page integration"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/Finances.jsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Обновлён главный компонент Finances.jsx для использования новых компонентов DebtsManagement и InventoryManagement вместо старых Debts и Inventory. Вкладки 'Задолженности' и 'Товарные запасы' теперь ведут на страницы с полным CRUD функционалом. Требуется проверка навигации и отображения."
   
   - task: "Plannerka UI page"
     implemented: true
