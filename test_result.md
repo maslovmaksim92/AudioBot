@@ -111,17 +111,41 @@ user_problem_statement: "
 "
 
 backend:
-  - task: "TELEGRAM_TARGET_CHAT_ID update"
+  - task: "Debts API - CRUD endpoints"
     implemented: true
-    working: true
-    file: "/app/backend/.env"
+    working: "NA"
+    file: "/app/backend/app/routers/debts.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: true
+        - working: "NA"
           agent: "main"
-          comment: "TELEGRAM_TARGET_CHAT_ID обновлен на -1002964910466 в /app/backend/.env. Backend перезапущен."
+          comment: "Создан роутер debts.py с полным CRUD API: GET /api/finances/debts (получить все задолженности + summary), POST /api/finances/debts (создать), PUT /api/finances/debts/{id} (обновить), DELETE /api/finances/debts/{id} (удалить). Поддержка типов: loan, credit_line, accounts_payable, lease, other. Статусы: active, overdue, paid. Возвращает mock данные если таблица не существует. Требуется тестирование всех endpoints."
+  
+  - task: "Inventory API - CRUD endpoints"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routers/inventory.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан роутер inventory.py с полным CRUD API: GET /api/finances/inventory (получить все запасы + summary), POST /api/finances/inventory (создать), PUT /api/finances/inventory/{id} (обновить), DELETE /api/finances/inventory/{id} (удалить). Автоматический расчёт value = quantity * cost. Возвращает mock данные если таблица не существует. Требуется тестирование всех endpoints."
+  
+  - task: "Database migrations - debts and inventory tables"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/migrations/create_debts_inventory_tables.sql"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создана миграция для таблиц debts (задолженности) и inventory (товарные запасы) с необходимыми полями и индексами. Таблицы включают created_at, updated_at для отслеживания изменений. Требуется проверка создания таблиц в БД и работы с данными."
   
   - task: "Finance module - API endpoints"
     implemented: true
