@@ -22,6 +22,8 @@ import AIImprovementModal from './components/AIImprovement/AIImprovementModal';
 import Finances from './components/Finances/Finances';
 import RevenueInput from './components/Finances/RevenueInput';
 import ArticleManagement from './components/Finances/ArticleManagement';
+import DebtsManagement from './components/Finances/DebtsManagement';
+import InventoryManagement from './components/Finances/InventoryManagement';
 import CallSummaries from './components/CallSummaries/CallSummaries';
 
 function App() {
