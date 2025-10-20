@@ -117,11 +117,11 @@ function Finances() {
           </TabsContent>
 
           <TabsContent value="debts" className="space-y-4">
-            <Debts />
+            <DebtsManagement />
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-4">
-            <Inventory />
+            <InventoryManagement />
           </TabsContent>
         </Tabs>
 
