@@ -4,100 +4,181 @@ import { Mic, MicOff, Save, Sparkles, CheckCircle, Calendar, Users, FileText } f
 const Plannerka = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [interimTranscript, setInterimTranscript] = useState(''); // Промежуточный текст
   const [title, setTitle] = useState(`Планёрка ${new Date().toLocaleDateString('ru-RU')}`);
   const [summary, setSummary] = useState('');
   const [tasks, setTasks] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [currentMeetingId, setCurrentMeetingId] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected'); // disconnected, connecting, connected
   
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
   const wsRef = useRef(null);
-  const isRecordingRef = useRef(false);
+  const audioContextRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const processorRef = useRef(null);
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-  const WS_URL = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://');
 
   useEffect(() => {
-    // Очистка при размонтировании
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
+      stopRecording();
     };
   }, []);
 
-  const initWebSocket = () => {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${WS_URL}/api/ws/transcribe`);
-      
-      ws.onopen = () => {
-        console.log('✅ WebSocket connected');
-        resolve(ws);
-      };
-      
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'transcription') {
-          // Добавляем транскрипцию к тексту
-          setTranscript(prev => prev + data.text + ' ');
-          setInterimTranscript(''); // Очищаем промежуточный текст
-          console.log('✅ Received transcription:', data.text);
-        } else if (data.type === 'error') {
-          console.error('❌ Transcription error:', data.message);
-          alert(`Ошибка транскрипции: ${data.message}`);
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
-        reject(error);
-      };
-      
-      ws.onclose = () => {
-        console.log('🔌 WebSocket disconnected');
-      };
-      
-      wsRef.current = ws;
-    });
-  };
-
   const startRecording = async () => {
     try {
-      // Инициализируем WebSocket
-      await initWebSocket();
+      setConnectionStatus('connecting');
       
       // Получаем доступ к микрофону
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Создаем MediaRecorder с форматом webm
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm'
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          channelCount: 1,
+          sampleRate: 24000,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
+      mediaStreamRef.current = stream;
+
+      // Создаем AudioContext
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({
+        sampleRate: 24000
       });
       
-      audioChunksRef.current = [];
+      const source = audioContextRef.current.createMediaStreamSource(stream);
       
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      // Создаем ScriptProcessor для получения аудио данных
+      const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
+      
+      source.connect(processor);
+      processor.connect(audioContextRef.current.destination);
+
+      // Подключаемся к OpenAI Realtime API напрямую
+      const ws = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01');
+      wsRef.current = ws;
+
+      ws.onopen = async () => {
+        console.log('✅ Connected to OpenAI Realtime API');
+        setConnectionStatus('connected');
+        setIsRecording(true);
+
+        // Отправляем токен авторизации
+        const response = await fetch(`${BACKEND_URL}/api/openai/realtime-token`);
+        const { token } = await response.json();
+
+        // Настраиваем сессию
+        ws.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            modalities: ['text', 'audio'],
+            instructions: 'Ты помощник для транскрипции совещаний на русском языке. Транскрибируй всё что слышишь точно и подробно.',
+            voice: 'alloy',
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: {
+              model: 'whisper-1'
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 500
+            }
+          }
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          // Обрабатываем транскрипцию
+          if (data.type === 'conversation.item.input_audio_transcription.completed') {
+            const transcribedText = data.transcript;
+            setTranscript(prev => prev + transcribedText + ' ');
+            console.log('✅ Transcription:', transcribedText);
+          }
+          
+          // Обрабатываем другие события
+          if (data.type === 'error') {
+            console.error('❌ Realtime API error:', data.error);
+          }
+        } catch (error) {
+          console.error('Error parsing message:', error);
         }
       };
-      
-      mediaRecorder.onstop = async () => {
-        console.log('🎤 Recording stopped, processing audio...');
-        
-        // Создаем blob из всех чанков
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        // Конвертируем в base64
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
+
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+        setConnectionStatus('disconnected');
+      };
+
+      ws.onclose = () => {
+        console.log('🔌 Disconnected from Realtime API');
+        setConnectionStatus('disconnected');
+      };
+
+      // Обработка аудио и отправка в Realtime API
+      processor.onaudioprocess = (e) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          const inputData = e.inputBuffer.getChannelData(0);
+          
+          // Конвертируем Float32Array в Int16Array (PCM16)
+          const pcm16 = new Int16Array(inputData.length);
+          for (let i = 0; i < inputData.length; i++) {
+            const s = Math.max(-1, Math.min(1, inputData[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          
+          // Конвертируем в base64
+          const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcm16.buffer)));
+          
+          // Отправляем аудио
+          ws.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: base64Audio
+          }));
+        }
+      };
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Ошибка при запуске записи: ' + error.message);
+      setConnectionStatus('disconnected');
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    console.log('🛑 Stopping recording...');
+    
+    // Останавливаем WebSocket
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
+    // Останавливаем аудио процессор
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    
+    // Останавливаем AudioContext
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    // Останавливаем медиа поток
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    
+    setIsRecording(false);
+    setConnectionStatus('disconnected');
+  };
           const base64Audio = reader.result.split(',')[1];
           
           // Отправляем на сервер через WebSocket
