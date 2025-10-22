@@ -103,22 +103,28 @@ function InventoryManagement() {
       </div>
 
       <Card><CardContent className="pt-6"><div className="space-y-3">
-        {data.inventory.map((item) => (
-          <Card key={item.id}>
-            <CardContent className="pt-6 flex justify-between">
-              <div>
-                <h3 className="font-semibold">{item.name}</h3>
-                <div className="text-sm text-gray-600">{item.category} • {item.quantity} {item.unit} × {formatCurrency(item.cost)}</div>
-                {item.location && <div className="text-xs text-gray-500">{item.location}</div>}
-              </div>
-              <div className="flex gap-2 items-center">
-                <div className="text-xl font-bold">{formatCurrency(item.value)}</div>
-                <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setFormData({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit, cost: item.cost, location: item.location || '' }); setShowDialog(true); }}><Edit className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {inventory.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            Нет данных. Добавьте позиции в запасы.
+          </div>
+        ) : (
+          inventory.map((item) => (
+            <Card key={item.id}>
+              <CardContent className="pt-6 flex justify-between">
+                <div>
+                  <h3 className="font-semibold">{item.name}</h3>
+                  <div className="text-sm text-gray-600">{item.category} • {item.quantity} {item.unit} × {formatCurrency(item.cost)}</div>
+                  {item.location && <div className="text-xs text-gray-500">{item.location}</div>}
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className="text-xl font-bold">{formatCurrency(item.value)}</div>
+                  <Button variant="outline" size="sm" onClick={() => { setEditingItem(item); setFormData({ name: item.name, category: item.category, quantity: item.quantity, unit: item.unit, cost: item.cost, location: item.location || '' }); setShowDialog(true); }}><Edit className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(item.id)} className="text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div></CardContent></Card>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
