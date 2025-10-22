@@ -169,6 +169,17 @@ function TransactionsManager() {
             </div>
             <div><Label>Категория *</Label><Input value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} placeholder="Зарплата, Аренда, Материалы..." /></div>
             <div><Label>Сумма (₽) *</Label><Input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} placeholder="0" /></div>
+            <div><Label>НДС</Label>
+              <Select value={String(formData.vat_rate || 5)} onValueChange={(v) => setFormData({...formData, vat_rate: parseInt(v)})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Без НДС (0%)</SelectItem>
+                  <SelectItem value="5">НДС 5%</SelectItem>
+                  <SelectItem value="10">НДС 10%</SelectItem>
+                  <SelectItem value="20">НДС 20%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Способ оплаты</Label>
               <Select value={formData.payment_method} onValueChange={(v) => setFormData({...formData, payment_method: v})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
