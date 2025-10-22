@@ -62,6 +62,25 @@ function ExpenseAnalysis() {
     }).format(value);
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/finances/export-expenses?year=2025`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'expenses_2025.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error('Error exporting expenses:', error);
+      alert('Ошибка при экспорте данных');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Month Selector */}
@@ -72,13 +91,14 @@ function ExpenseAnalysis() {
               <CardTitle>Фильтр по периоду</CardTitle>
               <CardDescription>Выберите месяц для анализа расходов</CardDescription>
             </div>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Выберите месяц" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все месяцы</SelectItem>
-                {availableMonths.map((month) => (
+            <div className="flex gap-2">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Выберите месяц" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все месяцы</SelectItem>
+                  {availableMonths.map((month) => (
                   <SelectItem key={month} value={month}>
                     {month}
                   </SelectItem>
