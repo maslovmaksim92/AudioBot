@@ -26,14 +26,14 @@ function Finances() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 px-2 md:px-0">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-gray-900">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+          <div className="space-y-1 md:space-y-2">
+            <h1 className="text-2xl md:text-4xl font-bold text-gray-900">
               Финансовый анализ
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-sm md:text-lg text-gray-600">
               Минимизируйте ручную работу с отчетами и получайте данные о финансовом состоянии компании в один клик
             </p>
           </div>
