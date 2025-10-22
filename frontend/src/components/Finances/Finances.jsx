@@ -57,13 +57,20 @@ function Finances() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2 bg-white p-2 rounded-xl shadow-sm">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2 bg-white p-2 rounded-xl shadow-sm">
             <TabsTrigger 
               value="overview" 
               className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
             >
               <Activity className="h-4 w-4" />
-              <span className="hidden md:inline">Общий анализ</span>
+              <span className="hidden md:inline">Анализ</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="transactions" 
+              className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+            >
+              <List className="h-4 w-4" />
+              <span className="hidden md:inline">Транзакции</span>
             </TabsTrigger>
             <TabsTrigger 
               value="cash-flow" 
