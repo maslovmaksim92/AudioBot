@@ -82,8 +82,9 @@ function TransactionsManager() {
 
   const formatCurrency = (value) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value);
 
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.total_amount || t.amount), 0);
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.total_amount || t.amount), 0);
+  const totalVAT = transactions.reduce((sum, t) => sum + parseFloat(t.vat_amount || 0), 0);
 
   return (
     <div className="space-y-6">
