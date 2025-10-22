@@ -179,22 +179,37 @@ async def get_profit_loss(
             """
             rows = await conn.fetch(query)
             
+            # Маппинг английских названий месяцев на русские
+            month_map = {
+                'January': 'Январь', 'February': 'Февраль', 'March': 'Март',
+                'April': 'Апрель', 'May': 'Май', 'June': 'Июнь',
+                'July': 'Июль', 'August': 'Август', 'September': 'Сентябрь',
+                'October': 'Октябрь', 'November': 'Ноябрь', 'December': 'Декабрь'
+            }
+            
             profit_loss = []
             for row in rows:
-                period = row['period']
+                period_en = row['period'].strip()
+                # Переводим на русский
+                period_ru = period_en
+                for eng, rus in month_map.items():
+                    if eng in period_en:
+                        period_ru = period_en.replace(eng, rus)
+                        break
+                
                 # Используем ручную выручку если она есть, иначе из транзакций
-                revenue = manual_revenue.get(period, float(row['revenue']))
+                revenue = manual_revenue.get(period_ru, float(row['revenue']))
                 expenses = float(row['expenses'])
                 profit = revenue - expenses
                 margin = (profit / revenue * 100) if revenue > 0 else 0
                 
                 profit_loss.append({
-                    "period": period,
+                    "period": period_ru,
                     "revenue": revenue,
                     "expenses": expenses,
                     "profit": profit,
                     "margin": round(margin, 2),
-                    "manual_revenue": period in manual_revenue
+                    "manual_revenue": period_ru in manual_revenue
                 })
             
             if not profit_loss:
