@@ -13,7 +13,7 @@ import TransactionForm from './TransactionForm';
 import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload, Activity } from 'lucide-react';
 
 function Finances() {
-  const [activeTab, setActiveTab] = useState('cash-flow');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showAddForm, setShowAddForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
