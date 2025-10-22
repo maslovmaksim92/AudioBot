@@ -120,6 +120,10 @@ function Finances() {
             <OverviewAnalysis />
           </TabsContent>
 
+          <TabsContent value="transactions" className="space-y-4">
+            <TransactionsManager />
+          </TabsContent>
+
           <TabsContent value="cash-flow" className="space-y-4">
             <CashFlow />
           </TabsContent>
