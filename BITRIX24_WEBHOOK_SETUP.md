@@ -32,7 +32,7 @@
    - **Событие:** `ONVOXIMPLANTCALLEND` (завершение звонка)
    - **Обработчик (URL):** 
      ```
-     https://airealtime.preview.emergentagent.com/api/bitrix-webhook/call-finished
+     https://financial-ai-3.preview.emergentagent.com/api/bitrix-webhook/call-finished
      ```
      *(замените на ваш production URL на Render)*
 
@@ -63,7 +63,7 @@ OPENAI_API_KEY=ваш_ключ
 
 ### Тест 1: Проверка endpoint
 ```bash
-curl https://airealtime.preview.emergentagent.com/api/bitrix-webhook/test
+curl https://financial-ai-3.preview.emergentagent.com/api/bitrix-webhook/test
 ```
 
 Ожидаемый результат:

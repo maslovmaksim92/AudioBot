@@ -192,7 +192,7 @@
 - ⚠️ Настроить webhook:
   ```bash
   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-    -d "url=https://airealtime.preview.emergentagent.com/api/telegram-webhook/"
+    -d "url=https://financial-ai-3.preview.emergentagent.com/api/telegram-webhook/"
   ```
 
 ### Статус

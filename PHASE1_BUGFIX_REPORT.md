@@ -270,6 +270,6 @@ period.dates.forEach(date => {
 
 ---
 
-**Preview URL:** https://airealtime.preview.emergentagent.com
+**Preview URL:** https://financial-ai-3.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:42 UTC

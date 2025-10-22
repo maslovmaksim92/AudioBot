@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://airealtime.preview.emergentagent.com
+**Preview URL**: https://financial-ai-3.preview.emergentagent.com
 
 ---
 
