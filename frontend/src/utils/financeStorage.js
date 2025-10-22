@@ -212,8 +212,134 @@ export const setMonthlyRevenue = (month, amount, notes = '') => {
   return revenue;
 };
 
-// Расходы (категории)
-export const getExpenses = () => {
+// Бюджеты (план)
+export const getBudgets = () => {
+  initData();
+  return JSON.parse(localStorage.getItem(STORAGE_KEYS.BUDGETS) || '[]');
+};
+
+export const addBudget = (budget) => {
+  const budgets = getBudgets();
+  const newBudget = {
+    id: `budget-${Date.now()}`,
+    ...budget,
+    created_at: new Date().toISOString()
+  };
+  budgets.push(newBudget);
+  localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(budgets));
+  return newBudget;
+};
+
+export const updateBudget = (id, updates) => {
+  const budgets = getBudgets();
+  const index = budgets.findIndex(b => b.id === id);
+  if (index !== -1) {
+    budgets[index] = { ...budgets[index], ...updates, updated_at: new Date().toISOString() };
+    localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(budgets));
+    return budgets[index];
+  }
+  return null;
+};
+
+export const deleteBudget = (id) => {
+  const budgets = getBudgets();
+  const filtered = budgets.filter(b => b.id !== id);
+  localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(filtered));
+  return true;
+};
+
+// Платежный календарь (предстоящие платежи)
+export const getPaymentCalendar = () => {
+  initData();
+  return JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENT_CALENDAR) || '[]');
+};
+
+export const addPaymentEvent = (payment) => {
+  const calendar = getPaymentCalendar();
+  const newPayment = {
+    id: `payment-${Date.now()}`,
+    ...payment,
+    status: payment.status || 'planned', // planned, paid, cancelled
+    created_at: new Date().toISOString()
+  };
+  calendar.push(newPayment);
+  localStorage.setItem(STORAGE_KEYS.PAYMENT_CALENDAR, JSON.stringify(calendar));
+  return newPayment;
+};
+
+export const updatePaymentEvent = (id, updates) => {
+  const calendar = getPaymentCalendar();
+  const index = calendar.findIndex(p => p.id === id);
+  if (index !== -1) {
+    calendar[index] = { ...calendar[index], ...updates, updated_at: new Date().toISOString() };
+    localStorage.setItem(STORAGE_KEYS.PAYMENT_CALENDAR, JSON.stringify(calendar));
+    return calendar[index];
+  }
+  return null;
+};
+
+export const deletePaymentEvent = (id) => {
+  const calendar = getPaymentCalendar();
+  const filtered = calendar.filter(p => p.id !== id);
+  localStorage.setItem(STORAGE_KEYS.PAYMENT_CALENDAR, JSON.stringify(filtered));
+  return true;
+};
+
+// План-факт анализ
+export const getPlanFactAnalysis = (month) => {
+  const budgets = getBudgets();
+  const transactions = getTransactions();
+  
+  // Фильтруем бюджет и транзакции по месяцу
+  const monthBudgets = budgets.filter(b => b.month === month);
+  const monthTransactions = transactions.filter(t => {
+    const date = new Date(t.date);
+    const transMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return transMonth === month;
+  });
+  
+  // Группируем по категориям
+  const analysis = {};
+  
+  // Добавляем плановые данные
+  monthBudgets.forEach(b => {
+    if (!analysis[b.category]) {
+      analysis[b.category] = {
+        category: b.category,
+        type: b.type,
+        plan: 0,
+        fact: 0,
+        variance: 0,
+        variance_percent: 0
+      };
+    }
+    analysis[b.category].plan += parseFloat(b.amount);
+  });
+  
+  // Добавляем фактические данные
+  monthTransactions.forEach(t => {
+    if (!analysis[t.category]) {
+      analysis[t.category] = {
+        category: t.category,
+        type: t.type,
+        plan: 0,
+        fact: 0,
+        variance: 0,
+        variance_percent: 0
+      };
+    }
+    analysis[t.category].fact += parseFloat(t.total_amount || t.amount);
+  });
+  
+  // Рассчитываем отклонения
+  Object.keys(analysis).forEach(category => {
+    const item = analysis[category];
+    item.variance = item.fact - item.plan;
+    item.variance_percent = item.plan !== 0 ? (item.variance / item.plan) * 100 : 0;
+  });
+  
+  return Object.values(analysis);
+};
   initData();
   return JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
 };
