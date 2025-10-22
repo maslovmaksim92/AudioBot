@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
 // НДС ставки
 export const VAT_RATES = {
   NONE: 0,
+  VAT_5: 5,
   VAT_10: 10,
   VAT_20: 20
 };
