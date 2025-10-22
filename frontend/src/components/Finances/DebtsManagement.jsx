@@ -119,7 +119,8 @@ function DebtsManagement() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div></CardContent></Card>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
