@@ -213,9 +213,12 @@ export const deleteExpense = (id) => {
 // Расчеты
 export const calculateFinancialData = () => {
   const transactions = getTransactions();
-  const debts = getDebts();
+  const debtsData = getDebts();
   const inventory = getInventory();
   const revenue = getRevenue();
+  
+  // Убеждаемся что debts это массив
+  const debts = Array.isArray(debtsData) ? debtsData : [];
   
   // Группируем транзакции по месяцам
   const monthlyData = {};
@@ -229,9 +232,9 @@ export const calculateFinancialData = () => {
     }
     
     if (t.type === 'income') {
-      monthlyData[monthKey].income += t.amount;
+      monthlyData[monthKey].income += parseFloat(t.amount);
     } else {
-      monthlyData[monthKey].expense += t.amount;
+      monthlyData[monthKey].expense += parseFloat(t.amount);
     }
   });
   
@@ -245,7 +248,7 @@ export const calculateFinancialData = () => {
     if (!monthlyData[monthKey]) {
       monthlyData[monthKey] = { income: 0, expense: 0 };
     }
-    monthlyData[monthKey].income += r.amount;
+    monthlyData[monthKey].income += parseFloat(r.amount);
   });
   
   // Считаем итоги по задолженностям
@@ -255,7 +258,7 @@ export const calculateFinancialData = () => {
     .reduce((sum, d) => sum + parseFloat(d.amount), 0);
   
   // Считаем стоимость запасов
-  const totalInventoryValue = inventory.reduce((sum, i) => sum + i.value, 0);
+  const totalInventoryValue = inventory.reduce((sum, i) => sum + parseFloat(i.value || 0), 0);
   
   return {
     monthlyData,
