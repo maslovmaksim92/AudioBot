@@ -212,53 +212,68 @@ export const deleteExpense = (id) => {
 
 // Расчеты
 export const calculateFinancialData = () => {
-  const transactions = getTransactions();
+  const transactionsData = getTransactions();
   const debtsData = getDebts();
-  const inventory = getInventory();
-  const revenue = getRevenue();
+  const inventoryData = getInventory();
+  const revenueData = getRevenue();
   
-  // Убеждаемся что debts это массив
+  // Убеждаемся что все данные это массивы
+  const transactions = Array.isArray(transactionsData) ? transactionsData : [];
   const debts = Array.isArray(debtsData) ? debtsData : [];
+  const inventory = Array.isArray(inventoryData) ? inventoryData : [];
+  const revenue = Array.isArray(revenueData) ? revenueData : [];
   
   // Группируем транзакции по месяцам
   const monthlyData = {};
   
   transactions.forEach(t => {
-    const date = new Date(t.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    
-    if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = { income: 0, expense: 0 };
-    }
-    
-    if (t.type === 'income') {
-      monthlyData[monthKey].income += parseFloat(t.amount);
-    } else {
-      monthlyData[monthKey].expense += parseFloat(t.amount);
+    try {
+      const date = new Date(t.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { income: 0, expense: 0 };
+      }
+      
+      const amount = parseFloat(t.amount) || 0;
+      
+      if (t.type === 'income') {
+        monthlyData[monthKey].income += amount;
+      } else {
+        monthlyData[monthKey].expense += amount;
+      }
+    } catch (e) {
+      console.error('Error processing transaction:', e);
     }
   });
   
   // Добавляем ручную выручку
   revenue.forEach(r => {
-    const [monthName, year] = r.month.split(' ');
-    const monthIndex = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-                       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'].indexOf(monthName);
-    const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
-    
-    if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = { income: 0, expense: 0 };
+    try {
+      const [monthName, year] = r.month.split(' ');
+      const monthIndex = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'].indexOf(monthName);
+      const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { income: 0, expense: 0 };
+      }
+      monthlyData[monthKey].income += parseFloat(r.amount) || 0;
+    } catch (e) {
+      console.error('Error processing revenue:', e);
     }
-    monthlyData[monthKey].income += parseFloat(r.amount);
   });
   
   // Считаем итоги по задолженностям
-  const totalDebts = debts.filter(d => d.status === 'active' || d.status === 'overdue')
-    .reduce((sum, d) => sum + parseFloat(d.amount), 0);
-  const overdueDebts = debts.filter(d => d.status === 'overdue')
-    .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+  const totalDebts = debts
+    .filter(d => d.status === 'active' || d.status === 'overdue')
+    .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+  const overdueDebts = debts
+    .filter(d => d.status === 'overdue')
+    .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
   
   // Считаем стоимость запасов
-  const totalInventoryValue = inventory.reduce((sum, i) => sum + parseFloat(i.value || 0), 0);
+  const totalInventoryValue = inventory.reduce((sum, i) => sum + (parseFloat(i.value) || 0), 0);
   
   return {
     monthlyData,
