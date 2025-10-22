@@ -536,6 +536,11 @@ export const calculateFinancialData = () => {
 };
 
 export default {
+  VAT_RATES,
+  calculateVAT,
+  calculateAmountWithVAT,
+  extractVATFromAmount,
+  getAmountWithoutVAT,
   getTransactions,
   addTransaction,
   updateTransaction,
@@ -554,5 +559,14 @@ export default {
   addExpense,
   updateExpense,
   deleteExpense,
+  getBudgets,
+  addBudget,
+  updateBudget,
+  deleteBudget,
+  getPaymentCalendar,
+  addPaymentEvent,
+  updatePaymentEvent,
+  deletePaymentEvent,
+  getPlanFactAnalysis,
   calculateFinancialData
 };
