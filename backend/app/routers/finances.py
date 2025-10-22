@@ -530,6 +530,8 @@ async def get_finances_dashboard():
             "inventory": inventory["summary"]
         }
     except Exception as e:
+        logger.error(f"Error getting dashboard: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/finances/export-expenses")
 async def export_expenses(year: int = 2025):
