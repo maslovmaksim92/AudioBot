@@ -334,6 +334,48 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ Finances главная страница работает корректно. Навигация через меню 'Финансы' функционирует. Заголовок 'Финансовый анализ' отображается правильно. Табы переключаются корректно: 'Движение денег', 'Прибыли и убытки', 'Баланс', 'Анализ расходов', 'Задолженности', 'Товарные запасы'. Интеграция с DebtsManagement и InventoryManagement компонентами работает. Кнопки в хедере присутствуют: 'Ввод выручки', 'Управление статьями', 'Добавить транзакцию', 'Импорт CSV'."
+        - working: true
+          agent: "main"
+          comment: "Обновлён главный компонент Finances.jsx - добавлены две новые вкладки: 'Календарь' (PaymentCalendar) и 'Бюджеты' (BudgetPlanFact). Теперь доступно 10 вкладок: Анализ, Транзакции, Движение, П&У, Баланс, Расходы, Долги, Запасы, Календарь, Бюджеты. Все компоненты импортированы и интегрированы. Требуется тестирование новых вкладок."
+  
+  - task: "Payment Calendar component"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/PaymentCalendar.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан компонент PaymentCalendar.jsx для управления предстоящими платежами. Функционал: просмотр платежей (предстоящие, просроченные, оплаченные), добавление нового платежа, редактирование, удаление, изменение статуса (запланировано/оплачено). Использует localStorage через financeStorage.js (getPaymentCalendar, addPaymentEvent, updatePaymentEvent, deletePaymentEvent). Интегрирован в Finances.jsx как вкладка 'Календарь'. UI включает карточки статистики, список платежей с фильтрацией по статусу, форму добавления/редактирования. Требуется полное тестирование CRUD операций и UI."
+  
+  - task: "Budget and Plan-Fact Analysis component"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/BudgetPlanFact.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан компонент BudgetPlanFact.jsx для управления бюджетами и анализа план-факт. Функционал: установка бюджетов по категориям и месяцам, сравнение плановых и фактических показателей, расчёт отклонений (абсолютных и в %), визуализация с цветовой индикацией (зелёный для положительных отклонений, красный для отрицательных). Использует localStorage через financeStorage.js (getBudgets, addBudget, getPlanFactAnalysis). Интегрирован в Finances.jsx как вкладка 'Бюджеты'. UI включает выбор месяца, карточки итогов (План, Факт, Отклонение), список категорий с детальным анализом. Требуется полное тестирование бюджетирования и план-факт анализа."
+  
+  - task: "Overview Analysis component fix"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/Finances/OverviewAnalysis.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "user"
+          comment: "Пользователь сообщил, что вкладка 'Анализ' не работает. Требуется исправление."
+        - working: true
+          agent: "main"
+          comment: "Исправлена ошибка в OverviewAnalysis.jsx - компонент корректно обрабатывает данные от calculateFinancialData(). Функция возвращает объект с полями monthlyData, totalIncome, totalExpense, totalProfit, totalDebts, overdueDebts, totalInventoryValue, transactions, debts, inventory. Компонент отображает: ключевые показатели (общий доход, расходы, прибыль, задолженности), текущий месяц, историю по месяцам, активы (запасы), детализацию задолженностей, последние транзакции. UI протестирован - работает корректно, отображает все данные."
   
   - task: "Plannerka UI page"
     implemented: true
