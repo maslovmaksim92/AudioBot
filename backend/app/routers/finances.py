@@ -165,31 +165,17 @@ async def get_profit_loss(
                 """)
                 manual_revenue = {row['month']: float(row['revenue']) for row in manual_rows}
             
-            # Группируем данные по месяцам
+            # Группируем данные по месяцам из даты
             query = """
                 SELECT 
-                    project as period,
+                    TO_CHAR(date, 'Month YYYY') as period,
+                    TO_CHAR(date, 'YYYY-MM') as sort_key,
                     SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as revenue,
                     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expenses
                 FROM financial_transactions
-                WHERE project IS NOT NULL
-                GROUP BY project
-                ORDER BY 
-                    CASE 
-                        WHEN project LIKE '%Январь%' THEN 1
-                        WHEN project LIKE '%Февраль%' THEN 2
-                        WHEN project LIKE '%Март%' THEN 3
-                        WHEN project LIKE '%Апрель%' THEN 4
-                        WHEN project LIKE '%Май%' THEN 5
-                        WHEN project LIKE '%Июнь%' THEN 6
-                        WHEN project LIKE '%Июль%' THEN 7
-                        WHEN project LIKE '%Август%' THEN 8
-                        WHEN project LIKE '%Сентябрь%' THEN 9
-                        WHEN project LIKE '%Октябрь%' THEN 10
-                        WHEN project LIKE '%Ноябрь%' THEN 11
-                        WHEN project LIKE '%Декабрь%' THEN 12
-                        ELSE 13
-                    END
+                WHERE date IS NOT NULL AND EXTRACT(YEAR FROM date) = 2025
+                GROUP BY TO_CHAR(date, 'Month YYYY'), TO_CHAR(date, 'YYYY-MM')
+                ORDER BY TO_CHAR(date, 'YYYY-MM')
             """
             rows = await conn.fetch(query)
             
