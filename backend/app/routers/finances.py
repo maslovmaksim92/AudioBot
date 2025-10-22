@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
@@ -6,6 +7,8 @@ from pydantic import BaseModel
 import logging
 import asyncpg
 import os
+import io
+import csv
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["finances"])
