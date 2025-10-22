@@ -374,41 +374,78 @@ export const deleteExpense = (id) => {
   return true;
 };
 
-// Расчеты
+// Расчеты (правильные финансовые формулы)
 export const calculateFinancialData = () => {
   const transactionsData = getTransactions();
   const debtsData = getDebts();
   const inventoryData = getInventory();
   const revenueData = getRevenue();
+  const budgetsData = getBudgets();
   
-  // Убеждаемся что все данные это массивы
   const transactions = Array.isArray(transactionsData) ? transactionsData : [];
   const debts = Array.isArray(debtsData) ? debtsData : [];
   const inventory = Array.isArray(inventoryData) ? inventoryData : [];
   const revenue = Array.isArray(revenueData) ? revenueData : [];
+  const budgets = Array.isArray(budgetsData) ? budgetsData : [];
   
-  // Группируем транзакции по месяцам
+  // 1. ДВИЖЕНИЕ ДЕНЕЖНЫХ СРЕДСТВ (Cash Flow)
   const monthlyData = {};
+  const dailyData = {};
   
   transactions.forEach(t => {
     try {
       const date = new Date(t.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = date.toISOString().split('T')[0];
       
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expense: 0 };
+        monthlyData[monthKey] = { 
+          income: 0, 
+          expense: 0, 
+          income_vat: 0, 
+          expense_vat: 0,
+          net_profit: 0 
+        };
       }
       
-      const amount = parseFloat(t.amount) || 0;
+      if (!dailyData[dayKey]) {
+        dailyData[dayKey] = { 
+          income: 0, 
+          expense: 0, 
+          balance: 0 
+        };
+      }
+      
+      const amount = parseFloat(t.total_amount || t.amount) || 0;
+      const vatAmount = parseFloat(t.vat_amount) || 0;
       
       if (t.type === 'income') {
         monthlyData[monthKey].income += amount;
+        monthlyData[monthKey].income_vat += vatAmount;
+        dailyData[dayKey].income += amount;
       } else {
         monthlyData[monthKey].expense += amount;
+        monthlyData[monthKey].expense_vat += vatAmount;
+        dailyData[dayKey].expense += amount;
       }
     } catch (e) {
       console.error('Error processing transaction:', e);
     }
+  });
+  
+  // Рассчитываем чистую прибыль по месяцам
+  Object.keys(monthlyData).forEach(month => {
+    const data = monthlyData[month];
+    data.net_profit = data.income - data.expense;
+    data.margin = data.income !== 0 ? ((data.net_profit / data.income) * 100).toFixed(2) : 0;
+  });
+  
+  // Рассчитываем накопительный баланс по дням
+  const sortedDays = Object.keys(dailyData).sort();
+  let runningBalance = 0;
+  sortedDays.forEach(day => {
+    runningBalance += dailyData[day].income - dailyData[day].expense;
+    dailyData[day].balance = runningBalance;
   });
   
   // Добавляем ручную выручку
@@ -420,34 +457,81 @@ export const calculateFinancialData = () => {
       const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
       
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expense: 0 };
+        monthlyData[monthKey] = { income: 0, expense: 0, income_vat: 0, expense_vat: 0, net_profit: 0 };
       }
       monthlyData[monthKey].income += parseFloat(r.amount) || 0;
+      monthlyData[monthKey].net_profit = monthlyData[monthKey].income - monthlyData[monthKey].expense;
     } catch (e) {
       console.error('Error processing revenue:', e);
     }
   });
   
-  // Считаем итоги по задолженностям
+  // 2. ЗАДОЛЖЕННОСТИ (Debts)
   const totalDebts = debts
     .filter(d => d.status === 'active' || d.status === 'overdue')
     .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
   const overdueDebts = debts
     .filter(d => d.status === 'overdue')
     .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+  const activeDebts = totalDebts - overdueDebts;
   
-  // Считаем стоимость запасов
+  // 3. ТОВАРНЫЕ ЗАПАСЫ (Inventory)
   const totalInventoryValue = inventory.reduce((sum, i) => sum + (parseFloat(i.value) || 0), 0);
+  
+  // 4. НДС (VAT)
+  const totalVATReceivable = Object.values(monthlyData).reduce((sum, m) => sum + m.income_vat, 0);
+  const totalVATPayable = Object.values(monthlyData).reduce((sum, m) => sum + m.expense_vat, 0);
+  const netVAT = totalVATReceivable - totalVATPayable;
+  
+  // 5. ОБЩИЕ ПОКАЗАТЕЛИ
+  const totalIncome = Object.values(monthlyData).reduce((sum, m) => sum + m.income, 0);
+  const totalExpense = Object.values(monthlyData).reduce((sum, m) => sum + m.expense, 0);
+  const totalProfit = totalIncome - totalExpense;
+  const profitMargin = totalIncome !== 0 ? ((totalProfit / totalIncome) * 100).toFixed(2) : 0;
+  
+  // 6. АКТИВЫ И ПАССИВЫ (для баланса)
+  const assets = {
+    cash: runningBalance, // Остаток денежных средств
+    inventory: totalInventoryValue,
+    receivables: 0, // TODO: добавить дебиторку
+    total: runningBalance + totalInventoryValue
+  };
+  
+  const liabilities = {
+    debts: totalDebts,
+    payables: 0, // TODO: добавить кредиторку
+    vat_payable: netVAT > 0 ? 0 : Math.abs(netVAT),
+    total: totalDebts + (netVAT > 0 ? 0 : Math.abs(netVAT))
+  };
+  
+  const equity = assets.total - liabilities.total;
   
   return {
     monthlyData,
+    dailyData,
     totalDebts,
     overdueDebts,
+    activeDebts,
     totalInventoryValue,
+    totalIncome,
+    totalExpense,
+    totalProfit,
+    profitMargin,
+    vat: {
+      receivable: totalVATReceivable,
+      payable: totalVATPayable,
+      net: netVAT
+    },
+    balance: {
+      assets,
+      liabilities,
+      equity
+    },
     transactions,
     debts,
     inventory,
-    revenue
+    revenue,
+    budgets
   };
 };
 
