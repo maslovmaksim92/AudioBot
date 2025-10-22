@@ -173,7 +173,7 @@ async def import_expenses():
             month_num = MONTH_MAP[month_name]
             
             # Создаем дату (1-е число месяца)
-            date = f"{year}-{month_num:02d}-01"
+            date = datetime(int(year), month_num, 1)
             
             # Вставляем запись
             await conn.execute("""
