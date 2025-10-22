@@ -90,7 +90,7 @@ function Finances() {
               className="flex items-center gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white"
             >
               <PieChart className="h-4 w-4" />
-              <span className="hidden md:inline">Анализ расходов</span>
+              <span className="hidden md:inline">Расходы</span>
             </TabsTrigger>
             <TabsTrigger 
               value="debts"
