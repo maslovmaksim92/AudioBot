@@ -80,6 +80,10 @@ function InventoryManagement() {
   if (loading) return <div className="text-center p-8">Загрузка...</div>;
   if (!data) return <div className="text-center p-8">Нет данных</div>;
 
+  // Убедимся, что summary существует
+  const summary = data.summary || { total_value: 0, total_items: 0, categories: 0 };
+  const inventory = data.inventory || [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -93,9 +97,9 @@ function InventoryManagement() {
       </div>
       
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardHeader><CardTitle className="text-sm">Общая стоимость</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatCurrency(data.summary.total_value)}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Всего позиций</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data.summary.total_items}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">Категорий</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{data.summary.categories}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">Общая стоимость</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatCurrency(summary.total_value)}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">Всего позиций</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.total_items}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">Категорий</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.categories}</div></CardContent></Card>
       </div>
 
       <Card><CardContent className="pt-6"><div className="space-y-3">
