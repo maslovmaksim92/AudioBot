@@ -59,7 +59,7 @@ function Finances() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 gap-2 bg-white p-2 rounded-xl shadow-sm">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 gap-2 bg-white p-2 rounded-xl shadow-sm">
             <TabsTrigger 
               value="overview" 
               className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
@@ -115,6 +115,20 @@ function Finances() {
             >
               <Package className="h-4 w-4" />
               <span className="hidden md:inline">Запасы</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="payment-calendar"
+              className="flex items-center gap-2 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="hidden md:inline">Календарь</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="budget-plan-fact"
+              className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white"
+            >
+              <Target className="h-4 w-4" />
+              <span className="hidden md:inline">Бюджеты</span>
             </TabsTrigger>
           </TabsList>
 
