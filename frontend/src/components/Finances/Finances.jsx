@@ -9,11 +9,9 @@ import ProfitLoss from './ProfitLoss';
 import BalanceSheet from './BalanceSheet';
 import ExpenseAnalysis from './ExpenseAnalysis';
 import DebtsManagement from './DebtsManagement';
-import InventoryManagement from './InventoryManagement';
 import PaymentCalendar from './PaymentCalendar';
-import BudgetPlanFact from './BudgetPlanFact';
 import TransactionForm from './TransactionForm';
-import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload, Activity, List, Calendar, Target } from 'lucide-react';
+import { TrendingUp, DollarSign, PieChart, CreditCard, BarChart3, Plus, Upload, Activity, List, Calendar } from 'lucide-react';
 
 function Finances() {
   const [activeTab, setActiveTab] = useState('overview');
