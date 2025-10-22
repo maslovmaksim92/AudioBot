@@ -146,16 +146,8 @@ function Finances() {
             <DebtsManagement />
           </TabsContent>
 
-          <TabsContent value="inventory" className="space-y-4">
-            <InventoryManagement />
-          </TabsContent>
-
           <TabsContent value="payment-calendar" className="space-y-4">
             <PaymentCalendar />
-          </TabsContent>
-
-          <TabsContent value="budget-plan-fact" className="space-y-4">
-            <BudgetPlanFact />
           </TabsContent>
         </Tabs>
 
