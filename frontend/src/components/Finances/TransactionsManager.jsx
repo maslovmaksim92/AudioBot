@@ -98,7 +98,7 @@ function TransactionsManager() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <Card className="bg-green-50 border-green-200">
           <CardHeader><CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="h-4 w-4 text-green-600" />Доходы</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome)}</div></CardContent>
@@ -110,6 +110,10 @@ function TransactionsManager() {
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader><CardTitle className="text-sm">Баланс</CardTitle></CardHeader>
           <CardContent><div className={`text-2xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>{formatCurrency(totalIncome - totalExpense)}</div></CardContent>
+        </Card>
+        <Card className="bg-purple-50 border-purple-200">
+          <CardHeader><CardTitle className="text-sm">НДС</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-purple-600">{formatCurrency(totalVAT)}</div></CardContent>
         </Card>
       </div>
 
