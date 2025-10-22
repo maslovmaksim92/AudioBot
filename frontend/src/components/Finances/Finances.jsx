@@ -108,6 +108,10 @@ function Finances() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="overview" className="space-y-4">
+            <OverviewAnalysis />
+          </TabsContent>
+
           <TabsContent value="cash-flow" className="space-y-4">
             <CashFlow />
           </TabsContent>
