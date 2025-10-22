@@ -4,7 +4,33 @@ const STORAGE_KEYS = {
   DEBTS: 'vasdom_debts',
   INVENTORY: 'vasdom_inventory',
   REVENUE: 'vasdom_revenue',
-  EXPENSES: 'vasdom_expenses'
+  EXPENSES: 'vasdom_expenses',
+  BUDGETS: 'vasdom_budgets',
+  PAYMENT_CALENDAR: 'vasdom_payment_calendar'
+};
+
+// НДС ставки
+export const VAT_RATES = {
+  NONE: 0,
+  VAT_10: 10,
+  VAT_20: 20
+};
+
+// Расчет НДС
+export const calculateVAT = (amount, rate) => {
+  return amount * (rate / 100);
+};
+
+export const calculateAmountWithVAT = (amount, rate) => {
+  return amount * (1 + rate / 100);
+};
+
+export const extractVATFromAmount = (amountWithVAT, rate) => {
+  return amountWithVAT * (rate / (100 + rate));
+};
+
+export const getAmountWithoutVAT = (amountWithVAT, rate) => {
+  return amountWithVAT / (1 + rate / 100);
 };
 
 // Инициализация данных
