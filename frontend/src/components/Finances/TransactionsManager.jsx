@@ -127,7 +127,12 @@ function TransactionsManager() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{t.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">{new Date(t.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                      <span>{new Date(t.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      {t.vat_rate > 0 && (
+                        <span className="text-blue-600">НДС {t.vat_rate}%: {formatCurrency(t.vat_amount || 0)}</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className={`text-2xl font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
