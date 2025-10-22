@@ -69,11 +69,23 @@ export const getTransactions = () => {
 
 export const addTransaction = (transaction) => {
   const transactions = getTransactions();
+  
+  // Рассчитываем НДС если указана ставка
+  const vatRate = transaction.vat_rate || 0;
+  const amountWithoutVAT = transaction.amount;
+  const vatAmount = calculateVAT(amountWithoutVAT, vatRate);
+  const totalAmount = amountWithoutVAT + vatAmount;
+  
   const newTransaction = {
     id: `trans-${Date.now()}`,
     ...transaction,
+    amount: parseFloat(amountWithoutVAT),
+    vat_rate: vatRate,
+    vat_amount: vatAmount,
+    total_amount: totalAmount,
     created_at: new Date().toISOString()
   };
+  
   transactions.push(newTransaction);
   localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
   return newTransaction;
