@@ -530,5 +530,84 @@ async def get_finances_dashboard():
             "inventory": inventory["summary"]
         }
     except Exception as e:
+
+@router.get("/finances/export-expenses")
+async def export_expenses(year: int = 2025):
+    """
+    Экспорт расходов в CSV формат помесячно
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Получаем расходы по месяцам с детализацией по категориям
+            query = """
+                SELECT 
+                    TO_CHAR(date, 'YYYY-MM') as month,
+                    TO_CHAR(date, 'Month YYYY') as month_name,
+                    category,
+                    SUM(amount) as total_amount,
+                    COUNT(*) as transactions_count
+                FROM financial_transactions
+                WHERE type = 'expense' AND EXTRACT(YEAR FROM date) = $1
+                GROUP BY TO_CHAR(date, 'YYYY-MM'), TO_CHAR(date, 'Month YYYY'), category
+                ORDER BY month, category
+            """
+            rows = await conn.fetch(query, year)
+            
+            # Создаем CSV в памяти
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Заголовки
+            writer.writerow(['Месяц', 'Категория', 'Сумма расходов (₽)', 'Количество транзакций'])
+            
+            # Данные
+            for row in rows:
+                writer.writerow([
+                    row['month_name'].strip(),
+                    row['category'],
+                    float(row['total_amount']),
+                    row['transactions_count']
+                ])
+            
+            # Добавляем итоги по месяцам
+            writer.writerow([])
+            writer.writerow(['ИТОГО ПО МЕСЯЦАМ:'])
+            writer.writerow(['Месяц', 'Всего расходов (₽)'])
+            
+            monthly_query = """
+                SELECT 
+                    TO_CHAR(date, 'Month YYYY') as month_name,
+                    SUM(amount) as total_amount
+                FROM financial_transactions
+                WHERE type = 'expense' AND EXTRACT(YEAR FROM date) = $1
+                GROUP BY TO_CHAR(date, 'YYYY-MM'), TO_CHAR(date, 'Month YYYY')
+                ORDER BY TO_CHAR(date, 'YYYY-MM')
+            """
+            monthly_rows = await conn.fetch(monthly_query, year)
+            
+            for row in monthly_rows:
+                writer.writerow([
+                    row['month_name'].strip(),
+                    float(row['total_amount'])
+                ])
+            
+            # Возвращаем CSV файл
+            output.seek(0)
+            
+            return StreamingResponse(
+                io.BytesIO(output.getvalue().encode('utf-8-sig')),  # utf-8-sig для правильного отображения в Excel
+                media_type='text/csv',
+                headers={
+                    'Content-Disposition': f'attachment; filename=expenses_{year}.csv'
+                }
+            )
+            
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error exporting expenses: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         logger.error(f"Error fetching finances dashboard: {e}")
         raise HTTPException(status_code=500, detail=str(e))
