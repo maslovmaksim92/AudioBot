@@ -105,7 +105,7 @@ function Finances() {
               className="flex items-center gap-2 data-[state=active]:bg-red-600 data-[state=active]:text-white"
             >
               <CreditCard className="h-4 w-4" />
-              <span className="hidden md:inline">Задолженности</span>
+              <span className="hidden md:inline">Долги</span>
             </TabsTrigger>
             <TabsTrigger 
               value="inventory"
