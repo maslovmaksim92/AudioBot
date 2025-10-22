@@ -23,14 +23,14 @@ function OverviewAnalysis() {
 
   // Расчет текущего месяца
   const currentMonth = new Date().toISOString().substring(0, 7);
-  const currentMonthData = data.monthlyData[currentMonth] || { income: 0, expense: 0 };
-  const currentProfit = currentMonthData.income - currentMonthData.expense;
+  const currentMonthData = data.monthlyData[currentMonth] || { income: 0, expense: 0, net_profit: 0 };
+  const currentProfit = currentMonthData.net_profit || (currentMonthData.income - currentMonthData.expense);
 
   // Итоги по всем месяцам
   const allMonths = Object.keys(data.monthlyData).sort().reverse();
-  const totalIncome = Object.values(data.monthlyData).reduce((sum, m) => sum + m.income, 0);
-  const totalExpense = Object.values(data.monthlyData).reduce((sum, m) => sum + m.expense, 0);
-  const totalProfit = totalIncome - totalExpense;
+  const totalIncome = data.totalIncome || 0;
+  const totalExpense = data.totalExpense || 0;
+  const totalProfit = data.totalProfit || 0;
 
   return (
     <div className="space-y-6">
