@@ -46,8 +46,8 @@ async def export_expenses(year=2025, output_file='expenses_2025.csv'):
             
             # Добавляем итоги по месяцам
             writer.writerow([])
-            writer.writerow(['ИТОГО ПО МЕСЯЦАМ:'])
-            writer.writerow(['Месяц', 'Всего расходов (₽)'])
+            writer.writerow(['ИТОГО ПО МЕСЯЦАМ:', '', ''])
+            writer.writerow(['Месяц', 'Всего расходов (руб)', '', ''])
             
             monthly_query = """
                 SELECT 
@@ -63,7 +63,9 @@ async def export_expenses(year=2025, output_file='expenses_2025.csv'):
             for row in monthly_rows:
                 writer.writerow([
                     row['month_name'].strip(),
-                    float(row['total_amount'])
+                    f"{float(row['total_amount']):.2f}",
+                    '',
+                    ''
                 ])
         
         print(f"✅ Расходы экспортированы в файл: {output_file}")
