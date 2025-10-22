@@ -104,7 +104,7 @@ function Finances() {
               className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
             >
               <Package className="h-4 w-4" />
-              <span className="hidden md:inline">Товарные запасы</span>
+              <span className="hidden md:inline">Запасы</span>
             </TabsTrigger>
           </TabsList>
 
