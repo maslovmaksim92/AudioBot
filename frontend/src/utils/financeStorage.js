@@ -340,6 +340,9 @@ export const getPlanFactAnalysis = (month) => {
   
   return Object.values(analysis);
 };
+
+// Расходы (категории)
+export const getExpenses = () => {
   initData();
   return JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]');
 };
