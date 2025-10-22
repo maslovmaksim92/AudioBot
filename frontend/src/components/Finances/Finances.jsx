@@ -69,66 +69,66 @@ function Finances() {
             </TabsTrigger>
             <TabsTrigger 
               value="transactions" 
-              className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <List className="h-4 w-4" />
-              <span className="hidden md:inline">Транзакции</span>
+              <List className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Транзакции</span>
             </TabsTrigger>
             <TabsTrigger 
               value="cash-flow" 
-              className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden md:inline">Движение</span>
+              <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Движение</span>
             </TabsTrigger>
             <TabsTrigger 
               value="profit-loss"
-              className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-green-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <DollarSign className="h-4 w-4" />
-              <span className="hidden md:inline">П&У</span>
+              <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">П&У</span>
             </TabsTrigger>
             <TabsTrigger 
               value="balance"
-              className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden md:inline">Баланс</span>
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Баланс</span>
             </TabsTrigger>
             <TabsTrigger 
               value="expenses"
-              className="flex items-center gap-2 data-[state=active]:bg-orange-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-orange-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <PieChart className="h-4 w-4" />
-              <span className="hidden md:inline">Расходы</span>
+              <PieChart className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Расходы</span>
             </TabsTrigger>
             <TabsTrigger 
               value="debts"
-              className="flex items-center gap-2 data-[state=active]:bg-red-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-red-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden md:inline">Долги</span>
+              <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Долги</span>
             </TabsTrigger>
             <TabsTrigger 
               value="inventory"
-              className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-teal-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <Package className="h-4 w-4" />
-              <span className="hidden md:inline">Запасы</span>
+              <Package className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Запасы</span>
             </TabsTrigger>
             <TabsTrigger 
               value="payment-calendar"
-              className="flex items-center gap-2 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-cyan-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <Calendar className="h-4 w-4" />
-              <span className="hidden md:inline">Календарь</span>
+              <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Календарь</span>
             </TabsTrigger>
             <TabsTrigger 
               value="budget-plan-fact"
-              className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <Target className="h-4 w-4" />
-              <span className="hidden md:inline">Бюджеты</span>
+              <Target className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Бюджеты</span>
             </TabsTrigger>
           </TabsList>
 
