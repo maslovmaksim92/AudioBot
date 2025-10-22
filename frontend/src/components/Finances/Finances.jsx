@@ -110,25 +110,11 @@ function Finances() {
               <span className="inline">Долги</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="inventory"
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-teal-600 data-[state=active]:text-white px-2 md:px-3"
-            >
-              <Package className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="inline">Запасы</span>
-            </TabsTrigger>
-            <TabsTrigger 
               value="payment-calendar"
               className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-cyan-600 data-[state=active]:text-white px-2 md:px-3"
             >
               <Calendar className="h-3 w-3 md:h-4 md:w-4" />
               <span className="inline">Календарь</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="budget-plan-fact"
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white px-2 md:px-3"
-            >
-              <Target className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="inline">Бюджеты</span>
             </TabsTrigger>
           </TabsList>
 
