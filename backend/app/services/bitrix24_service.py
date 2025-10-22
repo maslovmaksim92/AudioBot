@@ -750,9 +750,8 @@ class Bitrix24Service:
                         except Exception as e:
                             logger.warning(f"deal parse skip: {e}")
 
-                    # Если уже набрали достаточно совпадений по адресу — выходим рано
-                    if address and len(all_items) >= limit:
-                        break
+                    # Продолжаем поиск по всем страницам при поиске по адресу
+                    # чтобы найти все совпадения, не ограничиваясь первой страницей
 
                     next_val = data.get('next')
                     if next_val is None:
