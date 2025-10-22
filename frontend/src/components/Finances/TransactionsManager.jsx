@@ -20,7 +20,7 @@ function TransactionsManager() {
     amount: '',
     description: '',
     payment_method: 'cash',
-    vat_rate: 20
+    vat_rate: 5
   });
 
   useEffect(() => {
