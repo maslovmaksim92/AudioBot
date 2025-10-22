@@ -284,7 +284,9 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Payment Calendar component"
+    - "Budget and Plan-Fact Analysis component"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
