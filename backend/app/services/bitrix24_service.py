@@ -745,9 +745,8 @@ class Bitrix24Service:
                             if address:
                                 item['_match_score'] = address_match_score(address, item.get('address') or item.get('title') or '')
                             all_items.append(item)
-                            # Если ищем по адресу — достаточно первых совпадений в пределах limit
-                            if address and len(all_items) >= limit:
-                                break
+                            # При поиске по адресу продолжаем искать во всех страницах
+                            # Убираем раннее прерывание, чтобы найти все совпадения
                         except Exception as e:
                             logger.warning(f"deal parse skip: {e}")
 
