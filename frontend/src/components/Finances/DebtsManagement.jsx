@@ -102,26 +102,37 @@ function DebtsManagement() {
         <Card><CardHeader><CardTitle className="text-sm">Количество</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.count}</div></CardContent></Card>
       </div>
 
-      <Card><CardContent className="pt-6"><div className="space-y-3">
-        {debts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            Нет данных. Добавьте задолженности.
-          </div>
-        ) : (
-          debts.map((debt) => (
-          <Card key={debt.id} className={debt.status === 'overdue' ? 'border-red-200 bg-red-50' : ''}>
-            <CardContent className="pt-6 flex justify-between">
-              <div><h3 className="font-semibold">{debt.creditor}</h3><div className="text-sm text-gray-600">{debt.due_date}</div></div>
-              <div className="flex gap-2 items-center">
-                <div className="text-xl font-bold">{formatCurrency(debt.amount)}</div>
-                <Button variant="outline" size="sm" onClick={() => { setEditingDebt(debt); setFormData({ creditor: debt.creditor, amount: debt.amount, due_date: debt.due_date, status: debt.status, type: debt.type, description: debt.description || '' }); setShowDialog(true); }}><Edit className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" onClick={() => handleDelete(debt.id)} className="text-red-600"><Trash2 className="h-4 w-4" /></Button>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-3">
+            {debts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Нет данных. Добавьте задолженности.
               </div>
-            </CardContent>
-          </Card>
-          ))
-        )}
-      </div></CardContent></Card>
+            ) : (
+              debts.map((debt) => (
+                <Card key={debt.id} className={debt.status === 'overdue' ? 'border-red-200 bg-red-50' : ''}>
+                  <CardContent className="pt-6 flex justify-between">
+                    <div>
+                      <h3 className="font-semibold">{debt.creditor}</h3>
+                      <div className="text-sm text-gray-600">{debt.due_date}</div>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <div className="text-xl font-bold">{formatCurrency(debt.amount)}</div>
+                      <Button variant="outline" size="sm" onClick={() => { setEditingDebt(debt); setFormData({ creditor: debt.creditor, amount: debt.amount, due_date: debt.due_date, status: debt.status, type: debt.type, description: debt.description || '' }); setShowDialog(true); }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDelete(debt.id)} className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
