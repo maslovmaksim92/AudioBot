@@ -19,7 +19,8 @@ function TransactionsManager() {
     category: '',
     amount: '',
     description: '',
-    payment_method: 'cash'
+    payment_method: 'cash',
+    vat_rate: 20
   });
 
   useEffect(() => {
