@@ -62,10 +62,10 @@ function Finances() {
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-xl shadow-sm overflow-x-auto">
             <TabsTrigger 
               value="overview" 
-              className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3"
             >
-              <Activity className="h-4 w-4" />
-              <span className="hidden md:inline">Анализ</span>
+              <Activity className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="inline">Анализ</span>
             </TabsTrigger>
             <TabsTrigger 
               value="transactions" 
