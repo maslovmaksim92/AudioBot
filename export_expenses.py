@@ -28,19 +28,19 @@ async def export_expenses(year=2025, output_file='expenses_2025.csv'):
         """
         rows = await conn.fetch(query, year)
         
-        # Записываем в CSV
+        # Записываем в CSV с правильным форматированием чисел
         with open(output_file, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.writer(f)
+            writer = csv.writer(f, delimiter=';')  # Используем точку с запятой для Excel
             
             # Заголовки
-            writer.writerow(['Месяц', 'Категория', 'Сумма расходов (₽)', 'Количество транзакций'])
+            writer.writerow(['Месяц', 'Категория', 'Сумма расходов (руб)', 'Количество транзакций'])
             
             # Данные
             for row in rows:
                 writer.writerow([
                     row['month_name'].strip(),
                     row['category'],
-                    float(row['total_amount']),
+                    f"{float(row['total_amount']):.2f}",  # Форматируем число с 2 знаками
                     row['transactions_count']
                 ])
             
