@@ -135,8 +135,15 @@ function TransactionsManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className={`text-2xl font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {t.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(t.amount))}
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {t.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(t.total_amount || t.amount))}
+                      </div>
+                      {t.vat_rate > 0 && (
+                        <div className="text-xs text-gray-600">
+                          без НДС: {formatCurrency(Math.abs(t.amount))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleOpenDialog(t)}><Edit className="h-4 w-4" /></Button>
