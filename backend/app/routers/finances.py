@@ -190,12 +190,14 @@ async def get_profit_loss(
             profit_loss = []
             for row in rows:
                 period_en = row['period'].strip()
-                # Переводим на русский
+                # Переводим на русский и нормализуем пробелы
                 period_ru = period_en
                 for eng, rus in month_map.items():
                     if eng in period_en:
                         period_ru = period_en.replace(eng, rus)
                         break
+                # Убираем лишние пробелы между месяцем и годом
+                period_ru = ' '.join(period_ru.split())
                 
                 # Используем ручную выручку если она есть, иначе из транзакций
                 revenue = manual_revenue.get(period_ru, float(row['revenue']))
