@@ -770,11 +770,11 @@ class Bitrix24Service:
                 return False
             if management_company and management_company.lower() not in (item.get('management_company') or '').lower():
                 return False
-            # Address match with smart scoring - требуем точное совпадение
+            # Address match with smart scoring - снижаем порог до 70 для гибкости
             if norm_addr:
                 target = item.get('address') or item.get('title') or ''
                 match_score = address_match_score(address, target)
-                if match_score < 100:
+                if match_score < 70:  # Было 100, стало 70
                     return False
             def has_date(d: str) -> bool:
                 for v in (item.get('cleaning_dates') or {}).values():
