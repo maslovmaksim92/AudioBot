@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import OverviewAnalysis from './OverviewAnalysis';
 import CashFlow from './CashFlow';
 import ProfitLoss from './ProfitLoss';
 import BalanceSheet from './BalanceSheet';
@@ -9,7 +10,7 @@ import ExpenseAnalysis from './ExpenseAnalysis';
 import DebtsManagement from './DebtsManagement';
 import InventoryManagement from './InventoryManagement';
 import TransactionForm from './TransactionForm';
-import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload } from 'lucide-react';
+import { TrendingUp, DollarSign, PieChart, CreditCard, Package, BarChart3, Plus, Upload, Activity } from 'lucide-react';
 
 function Finances() {
   const [activeTab, setActiveTab] = useState('cash-flow');
