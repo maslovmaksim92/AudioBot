@@ -76,7 +76,7 @@ function Finances() {
               className="flex items-center gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white"
             >
               <DollarSign className="h-4 w-4" />
-              <span className="hidden md:inline">Прибыли и убытки</span>
+              <span className="hidden md:inline">П&У</span>
             </TabsTrigger>
             <TabsTrigger 
               value="balance"
