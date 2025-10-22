@@ -41,7 +41,8 @@ function TransactionsManager() {
         category: transaction.category || '',
         amount: transaction.amount,
         description: transaction.description || '',
-        payment_method: transaction.payment_method || 'cash'
+        payment_method: transaction.payment_method || 'cash',
+        vat_rate: transaction.vat_rate || 5
       });
     } else {
       setEditingTransaction(null);
@@ -51,7 +52,8 @@ function TransactionsManager() {
         category: '',
         amount: '',
         description: '',
-        payment_method: 'cash'
+        payment_method: 'cash',
+        vat_rate: 5
       });
     }
     setShowDialog(true);
