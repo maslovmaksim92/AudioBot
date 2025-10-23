@@ -60,7 +60,7 @@ function Finances() {
           <TabsList className="flex w-full overflow-x-auto gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-xl shadow-sm scrollbar-hide">
             <TabsTrigger 
               value="overview" 
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3"
+              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3 whitespace-nowrap flex-shrink-0"
             >
               <Activity className="h-3 w-3 md:h-4 md:w-4" />
               <span className="inline">Анализ</span>
