@@ -1154,7 +1154,8 @@ async def main():
         'dashboard': 'GET /api/finances/dashboard',
         'transactions_list': 'GET /api/finances/transactions',
         'create_transaction': 'POST /api/finances/transactions',
-        'revenue_monthly': 'GET /api/finances/revenue/monthly'
+        'revenue_monthly': 'GET /api/finances/revenue/monthly',
+        'expense_details': 'GET /api/finances/expense-details'
     }
     
     for key, name in endpoint_names.items():
