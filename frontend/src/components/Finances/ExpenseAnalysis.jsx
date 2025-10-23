@@ -10,14 +10,14 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-// Компонент для помесячной таблицы расходов (все месяцы)
-function MonthlyExpensesTable() {
+// Компонент для помесячной таблицы расходов
+function MonthlyExpensesTable({ selectedMonth }) {
   const [monthlyData, setMonthlyData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchMonthlyExpenses();
-  }, []);
+  }, [selectedMonth]);
 
   const fetchMonthlyExpenses = async () => {
     try {
@@ -42,6 +42,19 @@ function MonthlyExpensesTable() {
   if (loading) return <div className="text-center p-4">Загрузка...</div>;
   if (!monthlyData || !monthlyData.profit_loss) return <div className="text-center p-4">Нет данных</div>;
 
+  // Фильтруем данные по выбранному месяцу
+  const filteredData = selectedMonth === 'all' 
+    ? monthlyData.profit_loss 
+    : monthlyData.profit_loss.filter(month => month.period === selectedMonth);
+
+  if (filteredData.length === 0) {
+    return <div className="text-center p-4">Нет данных за выбранный месяц</div>;
+  }
+
+  // Вычисляем итого для отфильтрованных данных
+  const totalExpenses = filteredData.reduce((sum, month) => sum + month.expenses, 0);
+  const totalRevenue = filteredData.reduce((sum, month) => sum + month.revenue, 0);
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -54,8 +67,8 @@ function MonthlyExpensesTable() {
           </tr>
         </thead>
         <tbody>
-          {monthlyData.profit_loss.map((month, index) => {
-            const prevMonth = index > 0 ? monthlyData.profit_loss[index - 1] : null;
+          {filteredData.map((month, index) => {
+            const prevMonth = index > 0 ? filteredData[index - 1] : null;
             const change = prevMonth ? ((month.expenses - prevMonth.expenses) / prevMonth.expenses * 100) : 0;
             const expenseRatio = month.revenue > 0 ? (month.expenses / month.revenue * 100) : 0;
             
@@ -79,11 +92,11 @@ function MonthlyExpensesTable() {
           <tr className="border-t-2 font-bold bg-gray-100">
             <td className="p-3">ИТОГО</td>
             <td className="text-right p-3 text-red-700">
-              {formatCurrency(monthlyData.summary?.total_expenses || 0)}
+              {formatCurrency(totalExpenses)}
             </td>
             <td className="text-right p-3">
-              {monthlyData.summary?.total_revenue > 0 
-                ? ((monthlyData.summary.total_expenses / monthlyData.summary.total_revenue) * 100).toFixed(1)
+              {totalRevenue > 0 
+                ? ((totalExpenses / totalRevenue) * 100).toFixed(1)
                 : 0}%
             </td>
             <td></td>
