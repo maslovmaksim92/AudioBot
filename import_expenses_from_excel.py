@@ -41,12 +41,12 @@ async def import_expenses():
         
         for index, row in df.iterrows():
             try:
-                month_eng = str(row.iloc[0]).strip()  # Первая колонка - месяц
+                month_eng = str(row.iloc[0]).strip().split()[0]  # Первая колонка - месяц (берем первое слово)
                 category = str(row.iloc[1]).strip()   # Вторая колонка - категория
                 amount = float(row.iloc[2])            # Третья колонка - сумма
                 
                 # Пропускаем пустые строки или итоговые
-                if pd.isna(amount) or amount == 0 or month_eng == 'nan':
+                if pd.isna(amount) or amount == 0 or month_eng == 'nan' or month_eng == '':
                     skipped += 1
                     continue
                 
