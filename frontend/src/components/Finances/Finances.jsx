@@ -57,7 +57,7 @@ function Finances() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-xl shadow-sm overflow-x-auto">
+          <TabsList className="flex w-full overflow-x-auto gap-1 md:gap-2 bg-white p-1 md:p-2 rounded-xl shadow-sm scrollbar-hide">
             <TabsTrigger 
               value="overview" 
               className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3"
