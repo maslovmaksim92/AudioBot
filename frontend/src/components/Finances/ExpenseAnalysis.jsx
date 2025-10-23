@@ -15,6 +15,7 @@ function ExpenseAnalysis() {
   const [loading, setLoading] = useState(true);
   const [availableMonths, setAvailableMonths] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
 
   useEffect(() => {
     fetchAvailableMonths();
@@ -22,7 +23,7 @@ function ExpenseAnalysis() {
 
   useEffect(() => {
     fetchExpenses();
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedCompany]);
 
   const fetchAvailableMonths = async () => {
     try {
@@ -36,7 +37,12 @@ function ExpenseAnalysis() {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const params = selectedMonth !== 'all' ? { month: selectedMonth } : {};
+      const params = {
+        company: selectedCompany
+      };
+      if (selectedMonth !== 'all') {
+        params.month = selectedMonth;
+      }
       const response = await axios.get(`${BACKEND_URL}/api/finances/expense-analysis`, { params });
       setData(response.data);
     } catch (error) {
