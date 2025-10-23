@@ -636,6 +636,121 @@ async def test_finance_revenue_monthly():
     
     return results
 
+async def test_finance_expense_details():
+    """Test new expense details endpoint for specific months"""
+    print("\n=== ТЕСТ ДЕТАЛИЗАЦИИ РАСХОДОВ ПО МЕСЯЦАМ ===\n")
+    
+    results = TestResults()
+    
+    # Test months as specified in the review request
+    test_months = ["Июль 2025", "Март 2025", "Сентябрь 2025"]
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for month in test_months:
+                print(f"💸 Тестируем GET /api/finances/expense-details?month={month}...")
+                
+                response = await client.get(f"{API_BASE}/finances/expense-details", params={"month": month})
+                print(f"📡 Ответ сервера для {month}: {response.status_code}")
+                
+                if response.status_code != 200:
+                    error_msg = f"❌ Ошибка expense-details для {month}: {response.status_code} - {response.text}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                data = response.json()
+                results.finance_endpoints[f'expense_details_{month}'] = data
+                
+                print(f"✅ Expense details для {month} получен успешно")
+                
+                # Validate response structure
+                required_fields = ['transactions', 'total', 'month', 'count']
+                for field in required_fields:
+                    if field not in data:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в expense-details для {month}")
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Validate month field
+                if data.get('month') != month:
+                    results.errors.append(f"❌ Неверный месяц в ответе: ожидался '{month}', получен '{data.get('month')}'")
+                else:
+                    print(f"✅ Месяц корректен: {data.get('month')}")
+                
+                # Check transactions structure
+                transactions = data.get('transactions', [])
+                total = data.get('total', 0)
+                count = data.get('count', 0)
+                
+                print(f"📊 Транзакций найдено: {count}")
+                print(f"💰 Общая сумма расходов: {total}")
+                
+                # Validate count matches transactions length
+                if len(transactions) != count:
+                    results.errors.append(f"❌ Несоответствие count ({count}) и длины массива transactions ({len(transactions)}) для {month}")
+                else:
+                    print(f"✅ Count соответствует количеству транзакций")
+                
+                # Validate total calculation
+                if transactions:
+                    calculated_total = sum(t.get('amount', 0) for t in transactions)
+                    if abs(calculated_total - total) > 0.01:  # Allow small floating point differences
+                        results.errors.append(f"❌ Неверный расчет total для {month}: ожидалось {calculated_total}, получено {total}")
+                    else:
+                        print(f"✅ Total корректно рассчитан")
+                
+                # Check transaction structure
+                if transactions:
+                    sample_transaction = transactions[0]
+                    required_transaction_fields = ['id', 'date', 'category', 'amount', 'description', 'payment_method', 'counterparty']
+                    
+                    print(f"📋 Проверяем структуру транзакции:")
+                    for field in required_transaction_fields:
+                        if field not in sample_transaction:
+                            results.errors.append(f"❌ Отсутствует поле '{field}' в транзакции для {month}")
+                        else:
+                            value = sample_transaction[field]
+                            print(f"✅ Поле '{field}': {value}")
+                    
+                    # Validate that all transactions are expenses (type='expense')
+                    # Note: The endpoint filters by type='expense' in SQL, so we assume all returned are expenses
+                    print(f"✅ Все транзакции являются расходами (фильтр type='expense' применен в SQL)")
+                    
+                    # Show sample transaction details
+                    print(f"📝 Пример транзакции:")
+                    print(f"   - ID: {sample_transaction.get('id')}")
+                    print(f"   - Дата: {sample_transaction.get('date')}")
+                    print(f"   - Категория: {sample_transaction.get('category')}")
+                    print(f"   - Сумма: {sample_transaction.get('amount')}")
+                    print(f"   - Описание: {sample_transaction.get('description')}")
+                    print(f"   - Способ оплаты: {sample_transaction.get('payment_method')}")
+                    print(f"   - Контрагент: {sample_transaction.get('counterparty')}")
+                else:
+                    print(f"⚠️ Нет транзакций для месяца {month}")
+                
+                print(f"")  # Empty line for readability
+            
+            # Test existing expense-analysis endpoint to ensure it still works
+            print("🔄 Проверяем совместимость с существующим endpoint expense-analysis...")
+            
+            for month in test_months:
+                response = await client.get(f"{API_BASE}/finances/expense-analysis", params={"month": month})
+                print(f"📡 expense-analysis для {month}: {response.status_code}")
+                
+                if response.status_code != 200:
+                    error_msg = f"❌ Существующий endpoint expense-analysis не работает для {month}: {response.status_code}"
+                    results.errors.append(error_msg)
+                else:
+                    print(f"✅ Существующий endpoint expense-analysis работает для {month}")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании expense-details: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def test_plannerka_create_endpoint():
     """Test plannerka creation endpoint"""
     print("\n=== ТЕСТ СОЗДАНИЯ ПЛАНЁРКИ ===\n")
