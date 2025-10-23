@@ -121,10 +121,6 @@ function Finances() {
             <CashFlow />
           </TabsContent>
 
-          <TabsContent value="profit-loss" className="space-y-4">
-            <ProfitLoss />
-          </TabsContent>
-
           <TabsContent value="balance" className="space-y-4">
             <BalanceSheet />
           </TabsContent>
