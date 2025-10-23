@@ -60,6 +60,9 @@ async def import_ufic():
             fot_amount = float(fot) if not pd.isna(fot) else 0
             taxes_amount = float(taxes) if not pd.isna(taxes) else 0
             
+            # Преобразуем дату в Python datetime
+            python_date = date.to_pydatetime()
+            
             # Создаем транзакцию для ФОТ (Зарплата)
             if fot_amount > 0:
                 transaction_id = str(uuid4())
@@ -71,7 +74,7 @@ async def import_ufic():
                 await conn.execute(
                     query,
                     transaction_id,
-                    date,
+                    python_date,
                     fot_amount,
                     'Зарплата',
                     'expense',
@@ -88,7 +91,7 @@ async def import_ufic():
                 await conn.execute(
                     query,
                     transaction_id,
-                    date,
+                    python_date,
                     taxes_amount,
                     'Налоги',
                     'expense',
