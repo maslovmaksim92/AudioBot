@@ -289,11 +289,12 @@ async def get_balance_sheet():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/finances/expense-analysis")
-async def get_expense_analysis(month: Optional[str] = None):
+async def get_expense_analysis(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
     """
     Анализ расходов по категориям
     Параметры:
     - month: Опциональный фильтр по месяцу (например, "Январь 2025")
+    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
     """
     try:
         conn = await get_db_connection()
@@ -303,20 +304,20 @@ async def get_expense_analysis(month: Optional[str] = None):
                 query = """
                     SELECT category, SUM(amount) as total_amount
                     FROM financial_transactions
-                    WHERE type = 'expense' AND project = $1
+                    WHERE type = 'expense' AND project = $1 AND company = $2
                     GROUP BY category
                     ORDER BY total_amount DESC
                 """
-                rows = await conn.fetch(query, month)
+                rows = await conn.fetch(query, month, company)
             else:
                 query = """
                     SELECT category, SUM(amount) as total_amount
                     FROM financial_transactions
-                    WHERE type = 'expense'
+                    WHERE type = 'expense' AND company = $1
                     GROUP BY category
                     ORDER BY total_amount DESC
                 """
-                rows = await conn.fetch(query)
+                rows = await conn.fetch(query, company)
             
             if not rows:
                 # Если данных нет, возвращаем пустой результат
