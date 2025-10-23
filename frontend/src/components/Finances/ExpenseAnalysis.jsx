@@ -10,22 +10,32 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-// Компонент для помесячной таблицы расходов
+// Компонент для детализации расходов по категориям
 function MonthlyExpensesTable({ selectedMonth }) {
-  const [monthlyData, setMonthlyData] = useState(null);
+  const [detailsData, setDetailsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMonthlyExpenses();
+    fetchExpenseDetails();
   }, [selectedMonth]);
 
-  const fetchMonthlyExpenses = async () => {
+  const fetchExpenseDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`);
-      setMonthlyData(response.data);
+      
+      if (selectedMonth === 'all') {
+        // Для "Все месяцы" показываем сводку по всем месяцам
+        const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`);
+        setDetailsData({ type: 'monthly', data: response.data });
+      } else {
+        // Для конкретного месяца показываем детализацию по категориям
+        const response = await axios.get(`${BACKEND_URL}/api/finances/expense-details`, {
+          params: { month: selectedMonth }
+        });
+        setDetailsData({ type: 'categories', data: response.data });
+      }
     } catch (error) {
-      console.error('Error fetching monthly expenses:', error);
+      console.error('Error fetching expense details:', error);
     } finally {
       setLoading(false);
     }
@@ -40,49 +50,114 @@ function MonthlyExpensesTable({ selectedMonth }) {
   };
 
   if (loading) return <div className="text-center p-4">Загрузка...</div>;
-  if (!monthlyData || !monthlyData.profit_loss) return <div className="text-center p-4">Нет данных</div>;
+  if (!detailsData) return <div className="text-center p-4">Нет данных</div>;
 
-  // Фильтруем данные по выбранному месяцу
-  const filteredData = selectedMonth === 'all' 
-    ? monthlyData.profit_loss 
-    : monthlyData.profit_loss.filter(month => month.period === selectedMonth);
+  // Показываем сводку по месяцам
+  if (detailsData.type === 'monthly') {
+    const monthlyData = detailsData.data;
+    if (!monthlyData || !monthlyData.profit_loss) {
+      return <div className="text-center p-4">Нет данных</div>;
+    }
 
-  if (filteredData.length === 0) {
-    return <div className="text-center p-4">Нет данных за выбранный месяц</div>;
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-gray-50">
+              <th className="text-left p-3">Месяц</th>
+              <th className="text-right p-3">Расходы</th>
+              <th className="text-right p-3">% от выручки</th>
+              <th className="text-right p-3">Изменение</th>
+            </tr>
+          </thead>
+          <tbody>
+            {monthlyData.profit_loss.map((month, index) => {
+              const prevMonth = index > 0 ? monthlyData.profit_loss[index - 1] : null;
+              const change = prevMonth ? ((month.expenses - prevMonth.expenses) / prevMonth.expenses * 100) : 0;
+              const expenseRatio = month.revenue > 0 ? (month.expenses / month.revenue * 100) : 0;
+              
+              return (
+                <tr key={index} className="border-b hover:bg-gray-50">
+                  <td className="p-3 font-medium">{month.period}</td>
+                  <td className="text-right p-3 font-bold text-red-600">
+                    {formatCurrency(month.expenses)}
+                  </td>
+                  <td className="text-right p-3">
+                    {expenseRatio.toFixed(1)}%
+                  </td>
+                  <td className={`text-right p-3 font-medium ${change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : ''}`}>
+                    {prevMonth ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%` : '-'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 font-bold bg-gray-100">
+              <td className="p-3">ИТОГО</td>
+              <td className="text-right p-3 text-red-700">
+                {formatCurrency(monthlyData.summary?.total_expenses || 0)}
+              </td>
+              <td className="text-right p-3">
+                {monthlyData.summary?.total_revenue > 0 
+                  ? ((monthlyData.summary.total_expenses / monthlyData.summary.total_revenue) * 100).toFixed(1)
+                  : 0}%
+              </td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
   }
 
-  // Вычисляем итого для отфильтрованных данных
-  const totalExpenses = filteredData.reduce((sum, month) => sum + month.expenses, 0);
-  const totalRevenue = filteredData.reduce((sum, month) => sum + month.revenue, 0);
+  // Показываем детализацию по категориям для конкретного месяца
+  const categoryData = detailsData.data;
+  if (!categoryData || !categoryData.transactions || categoryData.transactions.length === 0) {
+    return <div className="text-center p-4">Нет данных за этот месяц</div>;
+  }
+
+  // Группируем транзакции по категориям
+  const categoriesMap = {};
+  categoryData.transactions.forEach(transaction => {
+    if (!categoriesMap[transaction.category]) {
+      categoriesMap[transaction.category] = {
+        category: transaction.category,
+        amount: 0,
+        count: 0
+      };
+    }
+    categoriesMap[transaction.category].amount += transaction.amount;
+    categoriesMap[transaction.category].count += 1;
+  });
+
+  const categories = Object.values(categoriesMap).sort((a, b) => b.amount - a.amount);
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-gray-50">
-            <th className="text-left p-3">Месяц</th>
-            <th className="text-right p-3">Расходы</th>
-            <th className="text-right p-3">% от выручки</th>
-            <th className="text-right p-3">Изменение</th>
+            <th className="text-left p-3">Категория/Статья</th>
+            <th className="text-right p-3">Сумма расходов</th>
+            <th className="text-right p-3">Количество транзакций</th>
+            <th className="text-right p-3">% от общих</th>
           </tr>
         </thead>
         <tbody>
-          {filteredData.map((month, index) => {
-            const prevMonth = index > 0 ? filteredData[index - 1] : null;
-            const change = prevMonth ? ((month.expenses - prevMonth.expenses) / prevMonth.expenses * 100) : 0;
-            const expenseRatio = month.revenue > 0 ? (month.expenses / month.revenue * 100) : 0;
-            
+          {categories.map((cat, index) => {
+            const percentage = (cat.amount / categoryData.total * 100).toFixed(1);
             return (
               <tr key={index} className="border-b hover:bg-gray-50">
-                <td className="p-3 font-medium">{month.period}</td>
+                <td className="p-3 font-medium">{cat.category}</td>
                 <td className="text-right p-3 font-bold text-red-600">
-                  {formatCurrency(month.expenses)}
+                  {formatCurrency(cat.amount)}
                 </td>
-                <td className="text-right p-3">
-                  {expenseRatio.toFixed(1)}%
+                <td className="text-right p-3 text-gray-600">
+                  {cat.count}
                 </td>
-                <td className={`text-right p-3 font-medium ${change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : ''}`}>
-                  {prevMonth ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%` : '-'}
+                <td className="text-right p-3 text-orange-600">
+                  {percentage}%
                 </td>
               </tr>
             );
@@ -92,14 +167,12 @@ function MonthlyExpensesTable({ selectedMonth }) {
           <tr className="border-t-2 font-bold bg-gray-100">
             <td className="p-3">ИТОГО</td>
             <td className="text-right p-3 text-red-700">
-              {formatCurrency(totalExpenses)}
+              {formatCurrency(categoryData.total)}
             </td>
             <td className="text-right p-3">
-              {totalRevenue > 0 
-                ? ((totalExpenses / totalRevenue) * 100).toFixed(1)
-                : 0}%
+              {categoryData.count}
             </td>
-            <td></td>
+            <td className="text-right p-3">100%</td>
           </tr>
         </tfoot>
       </table>
