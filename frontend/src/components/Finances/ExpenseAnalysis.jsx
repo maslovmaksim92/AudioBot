@@ -10,7 +10,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-// Компонент для помесячной таблицы расходов
+// Компонент для помесячной таблицы расходов (все месяцы)
 function MonthlyExpensesTable() {
   const [monthlyData, setMonthlyData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +87,84 @@ function MonthlyExpensesTable() {
                 : 0}%
             </td>
             <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+// Компонент для детализации расходов конкретного месяца
+function MonthExpenseDetailsTable({ month }) {
+  const [detailsData, setDetailsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (month && month !== 'all') {
+      fetchExpenseDetails();
+    }
+  }, [month]);
+
+  const fetchExpenseDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/finances/expense-details`, {
+        params: { month }
+      });
+      setDetailsData(response.data);
+    } catch (error) {
+      console.error('Error fetching expense details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: 0
+    }).format(value);
+  };
+
+  if (loading) return <div className="text-center p-4">Загрузка детализации...</div>;
+  if (!detailsData || !detailsData.transactions || detailsData.transactions.length === 0) {
+    return <div className="text-center p-4">Нет детальных данных за этот месяц</div>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-gray-50">
+            <th className="text-left p-3">Дата</th>
+            <th className="text-left p-3">Категория</th>
+            <th className="text-left p-3">Описание</th>
+            <th className="text-left p-3">Контрагент</th>
+            <th className="text-right p-3">Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          {detailsData.transactions.map((transaction, index) => (
+            <tr key={transaction.id || index} className="border-b hover:bg-gray-50">
+              <td className="p-3">{transaction.date}</td>
+              <td className="p-3 font-medium">{transaction.category}</td>
+              <td className="p-3 text-gray-600">{transaction.description || '—'}</td>
+              <td className="p-3 text-gray-600">{transaction.counterparty || '—'}</td>
+              <td className="text-right p-3 font-semibold text-red-600">
+                {formatCurrency(transaction.amount)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 font-bold bg-gray-100">
+            <td className="p-3" colSpan="4">
+              ИТОГО ({detailsData.count} {detailsData.count === 1 ? 'транзакция' : detailsData.count < 5 ? 'транзакции' : 'транзакций'})
+            </td>
+            <td className="text-right p-3 text-red-700">
+              {formatCurrency(detailsData.total)}
+            </td>
           </tr>
         </tfoot>
       </table>
