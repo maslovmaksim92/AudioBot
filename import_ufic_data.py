@@ -45,6 +45,7 @@ async def import_ufic():
             date = row[1]  # Дата
             fot = row[2]   # ФОТ (Зарплата)
             taxes = row[3] # Налоги
+            ndfl = row[4]  # НДФЛ
             
             if pd.isna(date) or pd.isna(fot):
                 continue
@@ -59,18 +60,20 @@ async def import_ufic():
             # Преобразуем в float
             fot_amount = float(fot) if not pd.isna(fot) else 0
             taxes_amount = float(taxes) if not pd.isna(taxes) else 0
+            ndfl_amount = float(ndfl) if not pd.isna(ndfl) else 0
             
             # Преобразуем дату в Python datetime
             python_date = date.to_pydatetime()
             
+            query = """
+                INSERT INTO financial_transactions 
+                (id, date, amount, category, type, description, project, company, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """
+            
             # Создаем транзакцию для ФОТ (Зарплата)
             if fot_amount > 0:
                 transaction_id = str(uuid4())
-                query = """
-                    INSERT INTO financial_transactions 
-                    (id, date, amount, category, type, description, project, company, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """
                 await conn.execute(
                     query,
                     transaction_id,
@@ -101,6 +104,23 @@ async def import_ufic():
                 )
                 imported += 1
                 print(f"✅ {month_ru}: Налоги {taxes_amount:,.2f} ₽")
+            
+            # Создаем транзакцию для НДФЛ
+            if ndfl_amount > 0:
+                transaction_id = str(uuid4())
+                await conn.execute(
+                    query,
+                    transaction_id,
+                    python_date,
+                    ndfl_amount,
+                    'НДФЛ',
+                    'expense',
+                    f'НДФЛ УФИЦ - {month_ru}',
+                    month_ru,
+                    'УФИЦ'
+                )
+                imported += 1
+                print(f"✅ {month_ru}: НДФЛ {ndfl_amount:,.2f} ₽")
         
         print(f"\n=== ИТОГО ===")
         print(f"✅ Импортировано транзакций: {imported}")
