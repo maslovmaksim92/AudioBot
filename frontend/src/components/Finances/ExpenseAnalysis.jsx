@@ -180,10 +180,23 @@ function ExpenseAnalysis() {
         </Card>
       </div>
 
+      {/* Monthly Expenses Table - NEW */}
+      {selectedMonth === 'all' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Расходы по месяцам</CardTitle>
+            <CardDescription>Детализация расходов помесячно для всех категорий</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MonthlyExpensesTable />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Детальная информация по расходам</CardTitle>
+          <CardTitle>Детальная информация по расходам {selectedMonth !== 'all' && `- ${selectedMonth}`}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
