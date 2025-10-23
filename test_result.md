@@ -109,6 +109,18 @@ user_problem_statement: "
 "
 
 backend:
+  - task: "Expense details API endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routers/finances.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан новый endpoint GET /api/finances/expense-details?month={month} для получения детальных транзакций расходов конкретного месяца. Возвращает список всех транзакций с полями: id, date, category, amount, description, payment_method, counterparty. Также возвращает общую сумму, количество транзакций и название месяца. Требуется тестирование."
+
   - task: "Debts API - CRUD endpoints"
     implemented: true
     working: true
