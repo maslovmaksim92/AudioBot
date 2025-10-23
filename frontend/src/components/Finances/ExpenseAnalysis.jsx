@@ -97,9 +97,19 @@ function ExpenseAnalysis() {
               <CardTitle>Фильтр по периоду</CardTitle>
               <CardDescription>Выберите месяц для анализа расходов</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Компания" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ООО ВАШ ДОМ">ООО ВАШ ДОМ</SelectItem>
+                  <SelectItem value="УФИЦ">УФИЦ</SelectItem>
+                </SelectContent>
+              </Select>
+              
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-64">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Выберите месяц" />
                 </SelectTrigger>
                 <SelectContent>
@@ -111,6 +121,7 @@ function ExpenseAnalysis() {
                 ))}
               </SelectContent>
             </Select>
+            
             <Button onClick={handleExport} variant="outline" className="gap-2">
               <Download className="h-4 w-4" />
               Экспорт в CSV
