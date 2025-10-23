@@ -1128,6 +1128,12 @@ async def main():
     all_errors.extend(revenue_monthly_results.errors)
     finance_results['revenue_monthly'] = revenue_monthly_results
     
+    # 12. NEW: Expense Details (Monthly breakdown)
+    print("\n💸 Тестирование нового функционала детализации расходов...")
+    expense_details_results = await test_finance_expense_details()
+    all_errors.extend(expense_details_results.errors)
+    finance_results['expense_details'] = expense_details_results
+    
     # Final summary
     print("\n" + "=" * 80)
     print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ФИНАНСОВОГО МОДУЛЯ:")
