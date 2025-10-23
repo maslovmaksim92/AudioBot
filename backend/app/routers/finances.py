@@ -173,11 +173,12 @@ async def get_profit_loss(
                     SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as revenue,
                     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expenses
                 FROM financial_transactions
-                WHERE date IS NOT NULL AND EXTRACT(YEAR FROM date) = 2025
+                WHERE date IS NOT NULL AND EXTRACT(YEAR FROM date) = 2025 AND company = $1
                 GROUP BY TO_CHAR(date, 'Month YYYY'), TO_CHAR(date, 'YYYY-MM')
                 ORDER BY TO_CHAR(date, 'YYYY-MM')
             """
-            rows = await conn.fetch(query)
+            company = "ООО ВАШ ДОМ"  # Пока захардкодим, потом добавим параметр
+            rows = await conn.fetch(query, company)
             
             # Маппинг английских названий месяцев на русские
             month_map = {
