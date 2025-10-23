@@ -183,7 +183,7 @@ function OverviewAnalysis() {
         </CardContent>
       </Card>
 
-      {/* Старая История по месяцам - удалена */}
+      {/* Конец анализа */}
       <Card style={{display: 'none'}}>
         <CardHeader>
           <CardTitle>История по месяцам (старая)</CardTitle>
