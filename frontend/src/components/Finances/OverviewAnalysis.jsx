@@ -90,16 +90,18 @@ function OverviewAnalysis() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <Card className={`bg-gradient-to-br ${data.summary?.average_margin >= 0 ? 'from-purple-50 to-purple-100 border-purple-200' : 'from-orange-50 to-orange-100 border-orange-200'}`}>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-purple-800 flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Задолженности
+            <CardTitle className={`text-sm font-medium ${data.summary?.average_margin >= 0 ? 'text-purple-800' : 'text-orange-800'} flex items-center gap-2`}>
+              <Package className="h-4 w-4" />
+              Средняя маржа
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900">{formatCurrency(data.totalDebts)}</div>
-            <p className="text-xs text-purple-700 mt-1">Активные + Просроченные</p>
+            <div className={`text-2xl font-bold ${data.summary?.average_margin >= 0 ? 'text-purple-900' : 'text-orange-900'}`}>
+              {data.summary?.average_margin?.toFixed(1) || 0}%
+            </div>
+            <p className={`text-xs ${data.summary?.average_margin >= 0 ? 'text-purple-700' : 'text-orange-700'} mt-1`}>Рентабельность</p>
           </CardContent>
         </Card>
       </div>
@@ -109,18 +111,18 @@ function OverviewAnalysis() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Текущий месяц
+            Последний месяц ({currentMonthData.period})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Доход</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(currentMonthData.income)}</p>
+              <p className="text-sm text-gray-600">Выручка</p>
+              <p className="text-xl font-bold text-green-600">{formatCurrency(currentMonthData.revenue)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Расход</p>
-              <p className="text-xl font-bold text-red-600">{formatCurrency(currentMonthData.expense)}</p>
+              <p className="text-sm text-gray-600">Расходы</p>
+              <p className="text-xl font-bold text-red-600">{formatCurrency(currentMonthData.expenses)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Прибыль</p>
@@ -132,21 +134,64 @@ function OverviewAnalysis() {
         </CardContent>
       </Card>
 
-      {/* История по месяцам */}
+      {/* Прибыль по месяцам - ТАБЛИЦА */}
       <Card>
         <CardHeader>
-          <CardTitle>История по месяцам</CardTitle>
+          <CardTitle>Прибыль по месяцам</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Месяц</th>
+                  <th className="text-right p-2">Выручка</th>
+                  <th className="text-right p-2">Расходы</th>
+                  <th className="text-right p-2">Прибыль</th>
+                  <th className="text-right p-2">Маржа</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.profit_loss.map((month, index) => {
+                  const isProfit = month.profit >= 0;
+                  return (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="p-2 font-medium">{month.period}</td>
+                      <td className="text-right p-2 text-green-600">{formatCurrency(month.revenue)}</td>
+                      <td className="text-right p-2 text-red-600">{formatCurrency(month.expenses)}</td>
+                      <td className={`text-right p-2 font-bold ${isProfit ? 'text-blue-600' : 'text-orange-600'}`}>
+                        {formatCurrency(month.profit)}
+                      </td>
+                      <td className="text-right p-2">{month.margin}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 font-bold bg-gray-100">
+                  <td className="p-2">ИТОГО</td>
+                  <td className="text-right p-2 text-green-700">{formatCurrency(totalIncome)}</td>
+                  <td className="text-right p-2 text-red-700">{formatCurrency(totalExpense)}</td>
+                  <td className={`text-right p-2 ${totalProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+                    {formatCurrency(totalProfit)}
+                  </td>
+                  <td className="text-right p-2">{data.summary?.average_margin?.toFixed(1) || 0}%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Старая История по месяцам - удалена */}
+      <Card style={{display: 'none'}}>
+        <CardHeader>
+          <CardTitle>История по месяцам (старая)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {allMonths.map(monthKey => {
-              const monthData = data.monthlyData[monthKey];
-              const profit = monthData.income - monthData.expense;
-              const [year, month] = monthKey.split('-');
-              const monthName = new Date(year, month - 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-              
-              return (
-                <Card key={monthKey} className="border-l-4 border-blue-500">
+            <div>Старый код удален</div>
+                <Card className="border-l-4 border-blue-500">
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-center">
                       <div>
