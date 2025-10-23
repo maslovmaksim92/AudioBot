@@ -29,18 +29,17 @@ function OverviewAnalysis() {
     return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value);
   };
 
-  if (!data) return <div className="text-center p-8">Загрузка...</div>;
+  if (loading) return <div className="text-center p-8">Загрузка...</div>;
+  if (!data || !data.profit_loss) return <div className="text-center p-8">Нет данных</div>;
 
-  // Расчет текущего месяца
-  const currentMonth = new Date().toISOString().substring(0, 7);
-  const currentMonthData = data.monthlyData[currentMonth] || { income: 0, expense: 0, net_profit: 0 };
-  const currentProfit = currentMonthData.net_profit || (currentMonthData.income - currentMonthData.expense);
-
-  // Итоги по всем месяцам
-  const allMonths = Object.keys(data.monthlyData).sort().reverse();
-  const totalIncome = data.totalIncome || 0;
-  const totalExpense = data.totalExpense || 0;
-  const totalProfit = data.totalProfit || 0;
+  // Данные из API
+  const totalIncome = data.summary?.total_revenue || 0;
+  const totalExpense = data.summary?.total_expenses || 0;
+  const totalProfit = data.summary?.net_profit || 0;
+  
+  // Текущий месяц (последний в списке)
+  const currentMonthData = data.profit_loss[data.profit_loss.length - 1] || {};
+  const currentProfit = currentMonthData.profit || 0;
 
   return (
     <div className="space-y-6">
