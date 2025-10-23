@@ -38,16 +38,26 @@ async def import_ufic():
     try:
         imported = 0
         
+        # Определяем категории и их колонки
+        categories = {
+            2: 'Зарплата',
+            3: 'Налоги',
+            4: 'НДФЛ',
+            6: 'Прикамский институт',
+            7: 'ВДПО КО',
+            8: 'КРЭО',
+            9: 'Водоканал',
+            10: 'ГАЗПРОМ',
+            11: 'Первый газовый'
+        }
+        
         # Обрабатываем строки со 2 по 10 (индексы 2-10, месяцы с января по сентябрь)
         for index in range(2, 11):
             row = df.iloc[index]
             
             date = row[1]  # Дата
-            fot = row[2]   # ФОТ (Зарплата)
-            taxes = row[3] # Налоги
-            ndfl = row[4]  # НДФЛ
             
-            if pd.isna(date) or pd.isna(fot):
+            if pd.isna(date):
                 continue
             
             # Получаем месяц
@@ -56,11 +66,6 @@ async def import_ufic():
             
             if not month_ru:
                 continue
-            
-            # Преобразуем в float
-            fot_amount = float(fot) if not pd.isna(fot) else 0
-            taxes_amount = float(taxes) if not pd.isna(taxes) else 0
-            ndfl_amount = float(ndfl) if not pd.isna(ndfl) else 0
             
             # Преобразуем дату в Python datetime
             python_date = date.to_pydatetime()
@@ -71,56 +76,30 @@ async def import_ufic():
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """
             
-            # Создаем транзакцию для ФОТ (Зарплата)
-            if fot_amount > 0:
-                transaction_id = str(uuid4())
-                await conn.execute(
-                    query,
-                    transaction_id,
-                    python_date,
-                    fot_amount,
-                    'Зарплата',
-                    'expense',
-                    f'ФОТ УФИЦ - {month_ru}',
-                    month_ru,
-                    'УФИЦ'
-                )
-                imported += 1
-                print(f"✅ {month_ru}: ФОТ {fot_amount:,.2f} ₽")
-            
-            # Создаем транзакцию для Налогов
-            if taxes_amount > 0:
-                transaction_id = str(uuid4())
-                await conn.execute(
-                    query,
-                    transaction_id,
-                    python_date,
-                    taxes_amount,
-                    'Налоги',
-                    'expense',
-                    f'Налоги УФИЦ - {month_ru}',
-                    month_ru,
-                    'УФИЦ'
-                )
-                imported += 1
-                print(f"✅ {month_ru}: Налоги {taxes_amount:,.2f} ₽")
-            
-            # Создаем транзакцию для НДФЛ
-            if ndfl_amount > 0:
-                transaction_id = str(uuid4())
-                await conn.execute(
-                    query,
-                    transaction_id,
-                    python_date,
-                    ndfl_amount,
-                    'НДФЛ',
-                    'expense',
-                    f'НДФЛ УФИЦ - {month_ru}',
-                    month_ru,
-                    'УФИЦ'
-                )
-                imported += 1
-                print(f"✅ {month_ru}: НДФЛ {ndfl_amount:,.2f} ₽")
+            # Обрабатываем все категории
+            for col_idx, category_name in categories.items():
+                value = row[col_idx]
+                
+                if pd.notna(value):
+                    try:
+                        amount = float(value)
+                        if amount > 0:
+                            transaction_id = str(uuid4())
+                            await conn.execute(
+                                query,
+                                transaction_id,
+                                python_date,
+                                amount,
+                                category_name,
+                                'expense',
+                                f'{category_name} УФИЦ - {month_ru}',
+                                month_ru,
+                                'УФИЦ'
+                            )
+                            imported += 1
+                            print(f"✅ {month_ru}: {category_name} {amount:,.2f} ₽")
+                    except (ValueError, TypeError):
+                        continue
         
         print(f"\n=== ИТОГО ===")
         print(f"✅ Импортировано транзакций: {imported}")
