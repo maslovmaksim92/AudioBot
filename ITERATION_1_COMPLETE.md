@@ -146,6 +146,6 @@
 
 ## 🔗 Полезные ссылки
 
-- Preview URL: https://financial-ai-3.preview.emergentagent.com
+- Preview URL: https://vasdom-finance.preview.emergentagent.com
 - GitHub: https://github.com/maslovmaksim92/AudioBot
 - План разработки: `/app/DEVELOPMENT_PLAN_ITERATIONS.md`

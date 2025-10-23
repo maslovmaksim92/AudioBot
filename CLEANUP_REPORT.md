@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://financial-ai-3.preview.emergentagent.com**
+Приложение доступно: **https://vasdom-finance.preview.emergentagent.com**
 
 ---
 
