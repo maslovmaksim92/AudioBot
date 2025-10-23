@@ -617,11 +617,12 @@ async def export_expenses(year: int = 2025):
 
 
 @router.get("/finances/expense-details")
-async def get_expense_details(month: str):
+async def get_expense_details(month: str, company: Optional[str] = "ООО ВАШ ДОМ"):
     """
     Получить детальные транзакции расходов для конкретного месяца
     Параметры:
     - month: Название месяца (например, "Июль 2025")
+    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
     """
     try:
         conn = await get_db_connection()
@@ -637,10 +638,10 @@ async def get_expense_details(month: str):
                     payment_method,
                     counterparty
                 FROM financial_transactions
-                WHERE type = 'expense' AND project = $1
+                WHERE type = 'expense' AND project = $1 AND company = $2
                 ORDER BY date DESC, category
             """
-            rows = await conn.fetch(query, month)
+            rows = await conn.fetch(query, month, company)
             
             if not rows:
                 return {
