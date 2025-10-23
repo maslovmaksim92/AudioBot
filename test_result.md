@@ -301,6 +301,21 @@ test_plan:
   test_priority: "high_first"
 
 frontend:
+  - task: "Monthly expense details component"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/Finances/ExpenseAnalysis.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Создан новый компонент MonthExpenseDetailsTable для отображения детализации расходов конкретного месяца. При выборе месяца (не 'Все месяцы') показывается таблица со всеми транзакциями: дата, категория, описание, контрагент, сумма. Компонент получает данные из нового API endpoint /api/finances/expense-details. Также показывается итого с количеством транзакций. Требуется тестирование работы компонента при выборе разных месяцев."
+        - working: "NA"
+          agent: "user"
+          comment: "При выборе конкретного месяца (например, Июль 2025) нет детализации расходов. Нужно показывать таблицу с детальными расходами по выбранному месяцу."
+
   - task: "Debts Management - UI and CRUD operations"
     implemented: true
     working: true
