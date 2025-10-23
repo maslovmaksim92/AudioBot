@@ -342,7 +342,7 @@ function ExpenseAnalysis() {
         </Card>
       </div>
 
-      {/* Monthly Expenses Table - NEW */}
+      {/* Monthly Expenses Table - для всех месяцев */}
       {selectedMonth === 'all' && (
         <Card>
           <CardHeader>
@@ -351,6 +351,19 @@ function ExpenseAnalysis() {
           </CardHeader>
           <CardContent>
             <MonthlyExpensesTable />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Expense Details Table - для конкретного месяца */}
+      {selectedMonth !== 'all' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Детализация расходов - {selectedMonth}</CardTitle>
+            <CardDescription>Полный список всех транзакций расходов за выбранный месяц</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MonthExpenseDetailsTable month={selectedMonth} />
           </CardContent>
         </Card>
       )}
