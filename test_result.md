@@ -294,8 +294,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Payment Calendar component"
-    - "Budget and Plan-Fact Analysis component"
+    - "Monthly expense details component"
+    - "Expense details API endpoint"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
