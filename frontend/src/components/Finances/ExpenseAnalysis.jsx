@@ -10,6 +10,90 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
+// Компонент для помесячной таблицы расходов
+function MonthlyExpensesTable() {
+  const [monthlyData, setMonthlyData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMonthlyExpenses();
+  }, []);
+
+  const fetchMonthlyExpenses = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`);
+      setMonthlyData(response.data);
+    } catch (error) {
+      console.error('Error fetching monthly expenses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: 0
+    }).format(value);
+  };
+
+  if (loading) return <div className="text-center p-4">Загрузка...</div>;
+  if (!monthlyData || !monthlyData.profit_loss) return <div className="text-center p-4">Нет данных</div>;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-gray-50">
+            <th className="text-left p-3">Месяц</th>
+            <th className="text-right p-3">Расходы</th>
+            <th className="text-right p-3">% от выручки</th>
+            <th className="text-right p-3">Изменение</th>
+          </tr>
+        </thead>
+        <tbody>
+          {monthlyData.profit_loss.map((month, index) => {
+            const prevMonth = index > 0 ? monthlyData.profit_loss[index - 1] : null;
+            const change = prevMonth ? ((month.expenses - prevMonth.expenses) / prevMonth.expenses * 100) : 0;
+            const expenseRatio = month.revenue > 0 ? (month.expenses / month.revenue * 100) : 0;
+            
+            return (
+              <tr key={index} className="border-b hover:bg-gray-50">
+                <td className="p-3 font-medium">{month.period}</td>
+                <td className="text-right p-3 font-bold text-red-600">
+                  {formatCurrency(month.expenses)}
+                </td>
+                <td className="text-right p-3">
+                  {expenseRatio.toFixed(1)}%
+                </td>
+                <td className={`text-right p-3 font-medium ${change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : ''}`}>
+                  {prevMonth ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%` : '-'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="border-t-2 font-bold bg-gray-100">
+            <td className="p-3">ИТОГО</td>
+            <td className="text-right p-3 text-red-700">
+              {formatCurrency(monthlyData.summary?.total_expenses || 0)}
+            </td>
+            <td className="text-right p-3">
+              {monthlyData.summary?.total_revenue > 0 
+                ? ((monthlyData.summary.total_expenses / monthlyData.summary.total_revenue) * 100).toFixed(1)
+                : 0}%
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
 function ExpenseAnalysis() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
