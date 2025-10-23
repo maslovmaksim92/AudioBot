@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { calculateFinancialData, getDebts, getRevenue, getTransactions } from '../../utils/financeStorage';
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, Package, Calendar } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 function OverviewAnalysis() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const financialData = calculateFinancialData();
-    setData(financialData);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`);
+      setData(response.data);
+    } catch (error) {
+      console.error('Error loading financial data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatCurrency = (value) => {
