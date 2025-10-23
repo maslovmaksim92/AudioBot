@@ -277,14 +277,18 @@ function ExpenseAnalysis() {
         </Card>
       </div>
 
-      {/* Monthly Expenses Table - всегда показываем */}
+      {/* Monthly Expenses Table - всегда показываем, фильтруем по выбранному месяцу */}
       <Card>
         <CardHeader>
           <CardTitle>Расходы по месяцам</CardTitle>
-          <CardDescription>Детализация расходов помесячно для всех категорий</CardDescription>
+          <CardDescription>
+            {selectedMonth === 'all' 
+              ? 'Детализация расходов помесячно для всех категорий' 
+              : `Детализация расходов за ${selectedMonth}`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <MonthlyExpensesTable />
+          <MonthlyExpensesTable selectedMonth={selectedMonth} />
         </CardContent>
       </Card>
 
