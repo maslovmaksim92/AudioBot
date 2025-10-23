@@ -614,5 +614,68 @@ async def export_expenses(year: int = 2025):
         logger.error(f"Error exporting expenses: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-        logger.error(f"Error fetching finances dashboard: {e}")
+
+@router.get("/finances/expense-details")
+async def get_expense_details(month: str):
+    """
+    Получить детальные транзакции расходов для конкретного месяца
+    Параметры:
+    - month: Название месяца (например, "Июль 2025")
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Получаем все транзакции расходов для указанного месяца
+            query = """
+                SELECT 
+                    id,
+                    date,
+                    amount,
+                    category,
+                    description,
+                    payment_method,
+                    counterparty
+                FROM financial_transactions
+                WHERE type = 'expense' AND project = $1
+                ORDER BY date DESC, category
+            """
+            rows = await conn.fetch(query, month)
+            
+            if not rows:
+                return {
+                    "transactions": [],
+                    "total": 0,
+                    "month": month,
+                    "count": 0
+                }
+            
+            # Формируем список транзакций
+            transactions = []
+            total = 0
+            
+            for row in rows:
+                amount = float(row['amount'])
+                total += amount
+                
+                transactions.append({
+                    "id": row['id'],
+                    "date": row['date'].strftime('%d.%m.%Y') if row['date'] else "",
+                    "category": row['category'],
+                    "amount": amount,
+                    "description": row['description'] or "",
+                    "payment_method": row['payment_method'] or "",
+                    "counterparty": row['counterparty'] or ""
+                })
+            
+            return {
+                "transactions": transactions,
+                "total": total,
+                "month": month,
+                "count": len(transactions)
+            }
+            
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching expense details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
