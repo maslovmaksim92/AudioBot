@@ -183,8 +183,11 @@ function OverviewAnalysis() {
         </CardContent>
       </Card>
 
-      {/* Конец анализа */}
-      <Card style={{display: 'none'}}>
+    </div>
+  );
+}
+
+export default OverviewAnalysis;
         <CardHeader>
           <CardTitle>История по месяцам (старая)</CardTitle>
         </CardHeader>
