@@ -105,7 +105,7 @@ function ExpenseAnalysis() {
                 <SelectContent>
                   <SelectItem value="ООО ВАШ ДОМ">ООО ВАШ ДОМ</SelectItem>
                   <SelectItem value="УФИЦ">УФИЦ</SelectItem>
-                  <SelectItem value="Консолидированный">Консолидированный</SelectItem>
+                  <SelectItem value="ООО ВАШ ДОМ + УФИЦ">ООО ВАШ ДОМ + УФИЦ</SelectItem>
                 </SelectContent>
               </Select>
               
