@@ -43,11 +43,13 @@ async def import_revenue():
                 """, revenue, month, 'УФИЦ')
                 print(f"✅ Обновлено: {month} = {revenue:,.0f} ₽")
             else:
-                # Вставляем новую запись
+                # Вставляем новую запись с UUID
+                from uuid import uuid4
+                record_id = str(uuid4())
                 await conn.execute("""
-                    INSERT INTO monthly_revenue (month, revenue, company)
-                    VALUES ($1, $2, $3)
-                """, month, revenue, 'УФИЦ')
+                    INSERT INTO monthly_revenue (id, month, revenue, company)
+                    VALUES ($1, $2, $3, $4)
+                """, record_id, month, revenue, 'УФИЦ')
                 print(f"✅ Добавлено: {month} = {revenue:,.0f} ₽")
             
             imported += 1
