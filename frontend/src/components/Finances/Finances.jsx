@@ -133,6 +133,10 @@ function Finances() {
             <BalanceSheet />
           </TabsContent>
 
+          <TabsContent value="revenue" className="space-y-4">
+            <RevenueAnalysis />
+          </TabsContent>
+
           <TabsContent value="expenses" className="space-y-4">
             <ExpenseAnalysis />
           </TabsContent>
