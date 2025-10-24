@@ -8,6 +8,7 @@ import CashFlow from './CashFlow';
 import ProfitLoss from './ProfitLoss';
 import BalanceSheet from './BalanceSheet';
 import ExpenseAnalysis from './ExpenseAnalysis';
+import RevenueAnalysis from './RevenueAnalysis';
 import DebtsManagement from './DebtsManagement';
 import PaymentCalendar from './PaymentCalendar';
 import TransactionForm from './TransactionForm';
