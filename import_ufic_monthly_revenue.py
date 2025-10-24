@@ -25,7 +25,14 @@ async def import_revenue():
     conn = await asyncpg.connect(db_url)
     
     try:
+        # Сначала удаляем все записи УФИЦ
+        await conn.execute("""
+            DELETE FROM monthly_revenue WHERE company = 'УФИЦ'
+        """)
+        print("🗑️  Удалены старые записи УФИЦ")
+        
         imported = 0
+        from uuid import uuid4
         
         for month, revenue in UFIC_REVENUE.items():
             # Проверяем, существует ли уже запись
