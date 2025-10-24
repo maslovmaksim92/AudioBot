@@ -111,28 +111,6 @@ function DebtsManagement() {
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingDebt ? 'Редактировать' : 'Добавить'}</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div><Label>Кредитор</Label><Input value={formData.creditor} onChange={(e) => setFormData({...formData, creditor: e.target.value})} /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Сумма</Label><Input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} /></div>
-              <div><Label>Срок</Label><Input type="date" value={formData.due_date} onChange={(e) => setFormData({...formData, due_date: e.target.value})} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Тип</Label><Select value={formData.type} onValueChange={(v) => setFormData({...formData, type: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="loan">Кредит</SelectItem><SelectItem value="credit_line">Кредитная линия</SelectItem><SelectItem value="accounts_payable">Задолженность</SelectItem><SelectItem value="lease">Лизинг</SelectItem></SelectContent></Select></div>
-              <div><Label>Статус</Label><Select value={formData.status} onValueChange={(v) => setFormData({...formData, status: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Активна</SelectItem><SelectItem value="overdue">Просрочена</SelectItem><SelectItem value="paid">Оплачена</SelectItem></SelectContent></Select></div>
-            </div>
-            <div><Label>Описание</Label><Textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={2} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Отмена</Button>
-            <Button onClick={handleSave} className="bg-blue-600">Сохранить</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
