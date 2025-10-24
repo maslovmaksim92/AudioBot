@@ -764,4 +764,75 @@ async def get_revenue_analysis(month: Optional[str] = None, company: Optional[st
         logger.error(f"Error fetching revenue analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+@router.get("/finances/revenue-details")
+async def get_revenue_details(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
+    """
+    Получить детальные транзакции доходов
+    Параметры:
+    - month: Опциональный фильтр по месяцу (например, "Январь 2025")
+    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Получаем все транзакции доходов
+            if month:
+                query = """
+                    SELECT 
+                        id, date, amount, category, description, counterparty
+                    FROM financial_transactions
+                    WHERE type = 'income' AND project = $1 AND company = $2
+                    ORDER BY date DESC
+                """
+                rows = await conn.fetch(query, month, company)
+            else:
+                query = """
+                    SELECT 
+                        id, date, amount, category, description, counterparty
+                    FROM financial_transactions
+                    WHERE type = 'income' AND company = $1
+                    ORDER BY date DESC
+                """
+                rows = await conn.fetch(query, company)
+            
+            if not rows:
+                return {
+                    "transactions": [],
+                    "total": 0,
+                    "month": month,
+                    "count": 0
+                }
+            
+            # Формируем список транзакций
+            transactions = []
+            total = 0
+            
+            for row in rows:
+                amount = float(row['amount'])
+                total += amount
+                
+                transactions.append({
+                    "id": str(row['id']),
+                    "date": row['date'].strftime('%d.%m.%Y') if row['date'] else "",
+                    "counterparty": row['counterparty'] or "—",
+                    "amount": amount,
+                    "description": row['description'] or "",
+                    "category": row['category']
+                })
+            
+            return {
+                "transactions": transactions,
+                "total": total,
+                "month": month,
+                "count": len(transactions)
+            }
+            
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching revenue details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         raise HTTPException(status_code=500, detail=str(e))
