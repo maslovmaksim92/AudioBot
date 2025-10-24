@@ -902,9 +902,9 @@ async def get_consolidated_profit_loss(conn):
     - Выручка: из monthly_revenue для "ВАШ ДОМ модель" (ручная)
     - Расходы:
       * Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
-      * Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал)
-      * Налоги: специальный расчет
-      * Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ
+      * Зарплата: ВАШ ДОМ ФАКТ - УФИЦ модель (помесячно)
+      * Налоги: 5% от выручки каждого месяца
+      * Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ, Юридические услуги, Продукты питания
     """
     # Получаем ручную выручку для консолидированной модели
     revenue_rows = await conn.fetch("""
@@ -980,19 +980,23 @@ async def get_consolidated_profit_loss(conn):
         
         for category, amount in vasdom_exp.items():
             # Исключаем категории
-            if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ']:
+            if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
                 continue
             
             # Специальная логика для Зарплаты
             if category == 'Зарплата':
-                # Вычитаем УФИЦ зарплату и ФОТ управляющие
+                # Вычитаем УФИЦ зарплату и ФОТ управляющие помесячно
                 ufic_salary = ufic_exp.get('Зарплата', 0)
                 ufic_fot = ufic_exp.get('ФОТ управляющие персонал', 0)
                 consolidated_amount = amount - ufic_salary - ufic_fot
-                month_expenses += max(0, consolidated_amount)  # Не может быть отрицательным
+                month_expenses += max(0, consolidated_amount)
             else:
                 # Для остальных категорий: только ВАШ ДОМ ФАКТ ("так же")
                 month_expenses += amount
+        
+        # Добавляем Налоги: 5% от выручки
+        taxes = revenue * 0.05
+        month_expenses += taxes
         
         profit = revenue - month_expenses
         margin = (profit / revenue * 100) if revenue > 0 else 0
