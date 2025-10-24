@@ -1051,7 +1051,8 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     - Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
     - Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал) помесячно
     - Налоги: 5% от выручки каждого месяца
-    - Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ, Юридические услуги, Продукты питания
+    - Аутсорсинг персонала: Выручка УФИЦ модель (уборщицы)
+    - Исключить: Кредиты, Швеи, Юридические услуги, Продукты питания
     """
     # Получаем выручку для расчета налогов
     if month:
@@ -1070,6 +1071,24 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         revenue_rows = await conn.fetch(revenue_query)
     
     revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
+    
+    # Получаем выручку УФИЦ модель для Аутсорсинга персонала
+    if month:
+        ufic_revenue_query = """
+            SELECT SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'income' AND company = 'УФИЦ модель' AND project = $1
+        """
+        ufic_revenue_row = await conn.fetchrow(ufic_revenue_query, month)
+    else:
+        ufic_revenue_query = """
+            SELECT SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'income' AND company = 'УФИЦ модель'
+        """
+        ufic_revenue_row = await conn.fetchrow(ufic_revenue_query)
+    
+    ufic_revenue_total = float(ufic_revenue_row['total_amount']) if ufic_revenue_row and ufic_revenue_row['total_amount'] else 0
     
     # Получаем расходы ВАШ ДОМ ФАКТ
     if month:
@@ -1120,7 +1139,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         category = row['category']
         vasdom_amount = float(row['total_amount'])
         
-        # Исключаем категории
+        # Исключаем категории (но НЕ "Аутсорсинг персонала с Ю/ЦЛ")
         if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
             continue
         
@@ -1144,6 +1163,14 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
                 "category": category,
                 "amount": vasdom_amount
             })
+    
+    # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель (уборщицы)
+    if ufic_revenue_total > 0:
+        total += ufic_revenue_total
+        expenses.append({
+            "category": "Аутсорсинг персонала",
+            "amount": ufic_revenue_total
+        })
     
     # Добавляем Налоги: 5% от выручки
     total_revenue = sum(revenue_by_month.values())
