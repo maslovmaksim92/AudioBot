@@ -719,34 +719,9 @@ async def get_revenue_analysis(month: Optional[str] = None, company: Optional[st
     try:
         conn = await get_db_connection()
         try:
-            # Консолидированный расчет - фиксированные суммы без детализации
-            if company == "Консолидированный":
-                consolidated_revenue = {
-                    'Январь 2025': 4712459,
-                    'Февраль 2025': 4425900,
-                    'Март 2025': 4402000,
-                    'Апрель 2025': 5245890,
-                    'Май 2025': 5127353,
-                    'Июнь 2025': 4418148,
-                    'Июль 2025': 4597926,
-                    'Август 2025': 5899305,
-                    'Сентябрь 2025': 5325049
-                }
-                
-                if month and month in consolidated_revenue:
-                    total = consolidated_revenue[month]
-                else:
-                    total = sum(consolidated_revenue.values())
-                
-                return {
-                    "revenue": [{
-                        "category": "Консолидированная выручка",
-                        "amount": total,
-                        "percentage": 100.0
-                    }],
-                    "total": total,
-                    "month": month
-                }
+            # Консолидированный расчет - выручка ООО ВАШ ДОМ минус "Швеи" и "Аутсорсинг"
+            if company == "ООО ВАШ ДОМ + УФИЦ":
+                return await get_consolidated_revenue(conn, month)
             
             # Получаем реальные данные из БД
             if month:
