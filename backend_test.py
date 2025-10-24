@@ -900,7 +900,7 @@ async def test_consolidated_financial_model():
                 print("✅ Консолидированный анализ выручки получен успешно")
                 
                 # Validate structure
-                required_fields = ['revenues', 'total']
+                required_fields = ['revenue', 'total']
                 for field in required_fields:
                     if field not in data:
                         results.errors.append(f"❌ Отсутствует поле '{field}' в consolidated revenue-analysis")
@@ -909,7 +909,7 @@ async def test_consolidated_financial_model():
                 
                 # Check excluded categories for revenue (Швеи, Аутсорсинг)
                 excluded_revenue_categories = ['Швеи', 'Аутсорсинг']
-                revenues = data.get('revenues', [])
+                revenues = data.get('revenue', [])
                 
                 print(f"📊 Консолидированная выручка:")
                 print(f"   - Категорий выручки: {len(revenues)}")
