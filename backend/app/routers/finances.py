@@ -709,18 +709,18 @@ async def get_expense_details(month: str, company: Optional[str] = "ООО ВА�
 
 
 @router.get("/finances/revenue-analysis")
-async def get_revenue_analysis(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
+async def get_revenue_analysis(month: Optional[str] = None, company: Optional[str] = "ВАШ ДОМ ФАКТ"):
     """
     Анализ выручки по категориям
     Параметры:
     - month: Опциональный фильтр по месяцу (например, "Январь 2025")
-    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
+    - company: Фильтр по компании (по умолчанию "ВАШ ДОМ ФАКТ")
     """
     try:
         conn = await get_db_connection()
         try:
             # Консолидированный расчет - выручка ООО ВАШ ДОМ минус "Швеи" и "Аутсорсинг"
-            if company == "ООО ВАШ ДОМ + УФИЦ":
+            if company == "ВАШ ДОМ модель":
                 return await get_consolidated_revenue(conn, month)
             
             # Получаем реальные данные из БД
