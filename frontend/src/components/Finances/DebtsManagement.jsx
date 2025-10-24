@@ -100,12 +100,9 @@ function DebtsManagement() {
                     </div>
                     <div className="flex gap-2 items-center">
                       <div className="text-xl font-bold">{formatCurrency(debt.amount)}</div>
-                      <Button variant="outline" size="sm" onClick={() => { setEditingDebt(debt); setFormData({ creditor: debt.creditor, amount: debt.amount, due_date: debt.due_date, status: debt.status, type: debt.type, description: debt.description || '' }); setShowDialog(true); }}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(debt.id)} className="text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Badge variant={debt.status === 'overdue' ? 'destructive' : 'default'}>
+                        {debt.status === 'active' ? 'Активна' : 'Просрочена'}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
