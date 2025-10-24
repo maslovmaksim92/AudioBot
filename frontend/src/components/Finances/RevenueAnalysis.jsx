@@ -190,6 +190,62 @@ function RevenueAnalysis() {
           </CardContent>
         </Card>
       )}
+
+      {/* Детальные транзакции */}
+      {detailsData && detailsData.transactions && detailsData.transactions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Детальные транзакции {selectedMonth !== 'all' && `- ${selectedMonth}`}</CardTitle>
+            <CardDescription>
+              Полная прозрачность для инвестора: все поступления с датами, контрагентами и назначениями платежей
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingDetails ? (
+              <div className="text-center p-4">Загрузка...</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3">Дата</th>
+                      <th className="text-left p-3">Контрагент</th>
+                      <th className="text-right p-3">Сумма</th>
+                      <th className="text-left p-3">Назначение платежа</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailsData.transactions.map((transaction, index) => (
+                      <tr key={transaction.id || index} className="border-b hover:bg-gray-50">
+                        <td className="p-3 whitespace-nowrap">{transaction.date}</td>
+                        <td className="p-3 font-medium">{transaction.counterparty}</td>
+                        <td className="text-right p-3 font-bold text-green-600 whitespace-nowrap">
+                          {formatCurrency(transaction.amount)}
+                        </td>
+                        <td className="p-3 text-sm text-gray-600 max-w-md">
+                          {transaction.description || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-bold bg-gray-100">
+                      <td className="p-3">ИТОГО</td>
+                      <td className="p-3 text-gray-600">
+                        {detailsData.count} {detailsData.count === 1 ? 'транзакция' : detailsData.count < 5 ? 'транзакции' : 'транзакций'}
+                      </td>
+                      <td className="text-right p-3 text-green-700">
+                        {formatCurrency(detailsData.total)}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
