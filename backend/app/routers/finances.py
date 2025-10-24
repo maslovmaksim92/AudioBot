@@ -850,50 +850,42 @@ async def get_revenue_details(month: Optional[str] = None, company: Optional[str
 
 async def get_consolidated_revenue(conn, month: Optional[str] = None):
     """
-    Консолидированная выручка: ООО ВАШ ДОМ минус "Швеи" и "Аутсорсинг"
+    Консолидированная выручка для "ВАШ ДОМ модель"
+    Используется ручная выручка из monthly_revenue
     """
-    # Получаем выручку ООО ВАШ ДОМ
+    # Для консолидированной модели используем ручную выручку из monthly_revenue
     if month:
         query = """
-            SELECT category, SUM(amount) as total_amount
-            FROM financial_transactions
-            WHERE type = 'income' AND project = $1 AND company = 'ООО ВАШ ДОМ'
-            GROUP BY category
+            SELECT month, revenue
+            FROM monthly_revenue
+            WHERE company = 'ВАШ ДОМ модель' AND month = $1
         """
         rows = await conn.fetch(query, month)
     else:
         query = """
-            SELECT category, SUM(amount) as total_amount
-            FROM financial_transactions
-            WHERE type = 'income' AND company = 'ООО ВАШ ДОМ'
-            GROUP BY category
+            SELECT month, revenue
+            FROM monthly_revenue
+            WHERE company = 'ВАШ ДОМ модель'
+            ORDER BY month
         """
         rows = await conn.fetch(query)
     
-    # Вычисляем консолидированную выручку (исключаем Швеи и Аутсорсинг)
-    revenue = []
-    total = 0
+    if not rows:
+        return {
+            "revenue": [],
+            "total": 0,
+            "month": month
+        }
     
-    for row in rows:
-        category = row['category']
-        amount = float(row['total_amount'])
-        
-        # Пропускаем Швеи и Аутсорсинг
-        if category in ['Швеи', 'Аутсорсинг']:
-            continue
-        
-        total += amount
-        revenue.append({
-            "category": category,
-            "amount": amount
-        })
+    # Вычисляем общую сумму
+    total = sum(float(row['revenue']) for row in rows)
     
-    # Сортируем по убыванию
-    revenue.sort(key=lambda x: x['amount'], reverse=True)
-    
-    # Добавляем проценты
-    for item in revenue:
-        item['percentage'] = round((item['amount'] / total * 100), 2) if total > 0 else 0
+    # Формируем результат
+    revenue = [{
+        "category": "Консолидированная выручка",
+        "amount": total,
+        "percentage": 100.0
+    }]
     
     return {
         "revenue": revenue,
