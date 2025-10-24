@@ -115,8 +115,10 @@ async def import_statements():
                 counterparty_col = None
                 
                 # Определяем тип файла (Сбербанк или Альфа)
-                is_sber = 'сбербизнес' in file_path.lower() or '40702810' in file_path
-                is_alpha = 'альфа' in file_path.lower() or 'выписка_40702810401710001223' in file_path
+                # Альфа-банк: счет 40702810401710001223
+                is_alpha = '40702810401710001223' in file_path
+                # Сбербанк: все остальные файлы с выписками
+                is_sber = not is_alpha
                 
                 for col in df.columns:
                     col_str = str(col).lower()
