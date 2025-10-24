@@ -11,34 +11,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, CheckCircle, Clock, CreditCard, Plus, Edit, Trash2 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const STORAGE_KEY = 'vasdom_debts';
 
 function DebtsManagement() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
-  const [editingDebt, setEditingDebt] = useState(null);
-  const [formData, setFormData] = useState({ creditor: '', amount: '', due_date: '', status: 'active', type: 'loan', description: '' });
 
-  const calculateSummary = (debts) => {
-    const total = debts.reduce((sum, d) => sum + d.amount, 0);
-    const overdue = debts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + d.amount, 0);
-    const active = debts.filter(d => d.status === 'active').reduce((sum, d) => sum + d.amount, 0);
-    return { total, overdue, active, count: debts.length };
+  const fetchDebts = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/finances/debts`);
+      setData(response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const fetchDebts = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${BACKEND_URL}/api/finances/debts`);
-        setData(response.data);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDebts();
   }, []);
 
