@@ -902,9 +902,9 @@ async def get_consolidated_profit_loss(conn):
     - Выручка: из monthly_revenue для "ВАШ ДОМ модель" (ручная)
     - Расходы:
       * Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
-      * Зарплата: ВАШ ДОМ ФАКТ - УФИЦ модель (помесячно)
+      * Зарплата: ВАШ ДОМ ФАКТ - УФИЦ модель (ТОЛЬКО Зарплата, без ФОТ) помесячно
       * Налоги: 5% от выручки каждого месяца
-      * Аутсорсинг персонала: Выручка УФИЦ модель (уборщицы)
+      * Аутсорсинг персонала: Выручка УФИЦ модель помесячно
       * Исключить: Кредиты, Швеи, Юридические услуги, Продукты питания
     """
     # Получаем ручную выручку для консолидированной модели
@@ -917,7 +917,7 @@ async def get_consolidated_profit_loss(conn):
     
     revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
     
-    # Получаем выручку УФИЦ модель для Аутсорсинга персонала
+    # Получаем выручку УФИЦ модель ПОМЕСЯЧНО для Аутсорсинга персонала
     ufic_revenue = await conn.fetch("""
         SELECT 
             project as month,
@@ -940,7 +940,7 @@ async def get_consolidated_profit_loss(conn):
         GROUP BY project, category
     """)
     
-    # Получаем расходы УФИЦ модель по месяцам и категориям (нужны только для Зарплаты)
+    # Получаем расходы УФИЦ модель по месяцам - ТОЛЬКО Зарплата (без ФОТ)
     ufic_expenses = await conn.fetch("""
         SELECT 
             project as month,
@@ -948,7 +948,7 @@ async def get_consolidated_profit_loss(conn):
             SUM(amount) as amount
         FROM financial_transactions
         WHERE type = 'expense' AND company = 'УФИЦ модель'
-          AND category IN ('Зарплата', 'ФОТ управляющие персонал')
+          AND category = 'Зарплата'
         GROUP BY project, category
     """)
     
@@ -963,16 +963,12 @@ async def get_consolidated_profit_loss(conn):
             vasdom_by_month[month] = {}
         vasdom_by_month[month][category] = amount
     
-    # Группируем расходы УФИЦ по месяцам
-    ufic_by_month = {}
+    # Группируем расходы УФИЦ по месяцам (только Зарплата)
+    ufic_salary_by_month = {}
     for row in ufic_expenses:
         month = row['month']
-        category = row['category']
         amount = float(row['amount'])
-        
-        if month not in ufic_by_month:
-            ufic_by_month[month] = {}
-        ufic_by_month[month][category] = amount
+        ufic_salary_by_month[month] = amount
     
     # Получаем все уникальные месяцы
     all_months = sorted(set(list(revenue_by_month.keys()) + list(vasdom_by_month.keys())))
@@ -987,7 +983,6 @@ async def get_consolidated_profit_loss(conn):
         
         # Вычисляем расходы
         vasdom_exp = vasdom_by_month.get(month, {})
-        ufic_exp = ufic_by_month.get(month, {})
         
         month_expenses = 0
         
@@ -996,18 +991,16 @@ async def get_consolidated_profit_loss(conn):
             if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
                 continue
             
-            # Специальная логика для Зарплаты
+            # Специальная логика для Зарплаты: ВАШ ДОМ ФАКТ - УФИЦ Зарплата (без ФОТ)
             if category == 'Зарплата':
-                # Вычитаем УФИЦ зарплату и ФОТ управляющие помесячно
-                ufic_salary = ufic_exp.get('Зарплата', 0)
-                ufic_fot = ufic_exp.get('ФОТ управляющие персонал', 0)
-                consolidated_amount = amount - ufic_salary - ufic_fot
-                month_expenses += max(0, consolidated_amount)
+                ufic_salary = ufic_salary_by_month.get(month, 0)
+                consolidated_salary = amount - ufic_salary
+                month_expenses += max(0, consolidated_salary)
             else:
                 # Для остальных категорий: только ВАШ ДОМ ФАКТ ("так же")
                 month_expenses += amount
         
-        # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель (уборщицы)
+        # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель ПОМЕСЯЧНО
         outsourcing = ufic_revenue_by_month.get(month, 0)
         month_expenses += outsourcing
         
