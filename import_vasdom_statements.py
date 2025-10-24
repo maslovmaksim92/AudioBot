@@ -46,27 +46,40 @@ def extract_counterparty(text):
     if not text or pd.isna(text):
         return None
     
-    text = str(text)
+    text = str(text).upper()
     
     # Ищем паттерны с названиями организаций
     patterns = [
-        r'(?:ООО|АО|ПАО|ИП|ЗАО)\s*["\']?([^"\']+?)["\']?(?:\s+по\s+|$|\s+от\s+)',
-        r'(?:ООО|АО|ПАО|ИП|ЗАО)\s+([А-Яа-я\s"]+?)(?:\s+по\s+|\s+от\s+|$)',
-        r'Для\s+([А-Яа-я\s"№]+?)(?:\s+по\s+|$)',
+        # "ЗА ООО "ЖРЭУ 21""
+        r'ЗА\s+(ООО|АО|ПАО|ИП|ЗАО)\s*["\']?([^"\']+?)["\']?\s*(?:ПО|ОТ|$)',
+        # "ООО "УК "Ваш Уют""
+        r'(ООО|АО|ПАО|ИП|ЗАО)\s*["\']([^"\']+)["\']',
+        # "ООО УК Ваш Уют"
+        r'(ООО|АО|ПАО|ИП|ЗАО)\s+([А-ЯЁ][А-ЯЁа-яё\s]+?)(?:\s+ПО\s+|\s+ОТ\s+|\s+ЗА\s+|$)',
     ]
     
     for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern, text)
         if match:
-            counterparty = match.group(1).strip()
+            if len(match.groups()) == 2:
+                org_type = match.group(1)
+                org_name = match.group(2).strip()
+                counterparty = f'{org_type} "{org_name}"'
+            else:
+                counterparty = match.group(0).strip()
+            
             # Очищаем от лишних символов
             counterparty = re.sub(r'\s+', ' ', counterparty)
-            if len(counterparty) > 5:
-                return counterparty[:255]
+            counterparty = counterparty.strip('"\'')
+            
+            # Приводим к нормальному регистру (первая буква заглавная)
+            words = counterparty.split()
+            counterparty = ' '.join([w.capitalize() if w not in ['ООО', 'АО', 'ПАО', 'ИП', 'ЗАО'] else w for w in words])
+            
+            if len(counterparty) > 5 and len(counterparty) < 255:
+                return counterparty
     
-    # Если не нашли паттерн, берем первые 100 символов назначения
-    words = text.split()[:5]
-    return ' '.join(words) if words else None
+    return None
 
 async def import_statements():
     db_url = os.environ.get('DATABASE_URL')
