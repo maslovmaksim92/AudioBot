@@ -71,12 +71,9 @@ function DebtsManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Управление задолженностями</h2>
-          <p className="text-xs text-orange-600">⚠️ Демо: данные в браузере</p>
+          <h2 className="text-2xl font-bold">Задолженности</h2>
+          <p className="text-sm text-gray-600">Список активных задолженностей компании</p>
         </div>
-        <Button onClick={() => { setEditingDebt(null); setFormData({ creditor: '', amount: '', due_date: '', status: 'active', type: 'loan', description: '' }); setShowDialog(true); }} className="bg-blue-600">
-          <Plus className="h-4 w-4 mr-2" />Добавить
-        </Button>
       </div>
       
       <div className="grid grid-cols-4 gap-4">
