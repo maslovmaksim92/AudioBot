@@ -1402,6 +1402,12 @@ async def main():
     all_errors.extend(expense_details_results.errors)
     finance_results['expense_details'] = expense_details_results
     
+    # 13. NEW: Consolidated Financial Model (HIGH PRIORITY)
+    print("\n🏢 Тестирование консолидированной финансовой модели...")
+    consolidated_results = await test_consolidated_financial_model()
+    all_errors.extend(consolidated_results.errors)
+    finance_results['consolidated_model'] = consolidated_results
+    
     # Final summary
     print("\n" + "=" * 80)
     print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ФИНАНСОВОГО МОДУЛЯ:")
