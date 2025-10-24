@@ -137,60 +137,6 @@ function RevenueAnalysis() {
         </CardContent>
       </Card>
 
-      {/* Детализация по категориям */}
-      {data.revenue && data.revenue.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Детальная информация по выручке {selectedMonth !== 'all' && `- ${selectedMonth}`}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3">Категория</th>
-                    <th className="text-right p-3">Сумма</th>
-                    <th className="text-right p-3">% от общей</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.revenue.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{
-                              backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]
-                            }}
-                          />
-                          <span className="font-medium">{item.category}</span>
-                        </div>
-                      </td>
-                      <td className="text-right p-3 font-bold text-green-600">
-                        {formatCurrency(item.amount)}
-                      </td>
-                      <td className="text-right p-3 text-green-700">
-                        {item.percentage.toFixed(1)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 font-bold bg-gray-100">
-                    <td className="p-3">ИТОГО</td>
-                    <td className="text-right p-3 text-green-700">
-                      {formatCurrency(data.total)}
-                    </td>
-                    <td className="text-right p-3">100%</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Детальные транзакции */}
       {detailsData && detailsData.transactions && detailsData.transactions.length > 0 && (
         <Card>
