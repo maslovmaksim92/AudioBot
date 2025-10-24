@@ -297,18 +297,18 @@ async def get_balance_sheet():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/finances/expense-analysis")
-async def get_expense_analysis(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
+async def get_expense_analysis(month: Optional[str] = None, company: Optional[str] = "ВАШ ДОМ ФАКТ"):
     """
     Анализ расходов по категориям
     Параметры:
     - month: Опциональный фильтр по месяцу (например, "Январь 2025")
-    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
+    - company: Фильтр по компании (по умолчанию "ВАШ ДОМ ФАКТ")
     """
     try:
         conn = await get_db_connection()
         try:
             # Консолидированный расчет
-            if company == "ООО ВАШ ДОМ + УФИЦ":
+            if company == "ВАШ ДОМ модель":
                 return await get_consolidated_expenses(conn, month)
             
             # Получаем реальные данные из БД
