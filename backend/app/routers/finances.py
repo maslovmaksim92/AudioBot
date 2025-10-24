@@ -1143,12 +1143,3 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         "month": month
     }
 
-            "total_profit": total_profit,
-            "margin": round(total_margin, 2)
-        }
-    }
-
-        logger.error(f"Error fetching revenue details: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-        raise HTTPException(status_code=500, detail=str(e))
