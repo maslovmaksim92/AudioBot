@@ -151,6 +151,10 @@ async def get_profit_loss(
     try:
         conn = await get_db_connection()
         try:
+            # Если выбрана консолидация - используем специальную функцию
+            if company == "Консолидированный":
+                result = await get_consolidated_profit_loss(conn)
+                return result
             # Проверяем существует ли таблица monthly_revenue
             table_exists = await conn.fetchval("""
                 SELECT EXISTS (
