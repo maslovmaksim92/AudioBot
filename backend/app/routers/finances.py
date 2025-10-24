@@ -391,57 +391,71 @@ async def get_available_months():
 @router.get("/finances/debts")
 async def get_debts():
     """
-    Получить список задолженностей
+    Получить список задолженностей из базы данных
     """
     try:
-        # Mock данные
-        debts = [
-            {
-                "id": "debt-1",
-                "creditor": "Банк ВТБ",
-                "amount": 5000000,
-                "due_date": "2025-12-31",
-                "status": "active",
-                "type": "loan"
-            },
-            {
-                "id": "debt-2",
-                "creditor": "Сбербанк",
-                "amount": 3000000,
-                "due_date": "2026-06-30",
-                "status": "active",
-                "type": "credit_line"
-            },
-            {
-                "id": "debt-3",
-                "creditor": "Поставщик ООО Стройматериалы",
-                "amount": 800000,
-                "due_date": "2025-11-15",
-                "status": "overdue",
-                "type": "accounts_payable"
-            },
-            {
-                "id": "debt-4",
-                "creditor": "Лизинговая компания",
-                "amount": 2000000,
-                "due_date": "2027-03-20",
-                "status": "active",
-                "type": "lease"
+        conn = await get_db_connection()
+        try:
+            # Проверяем существует ли таблица debts
+            table_exists = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'debts'
+                )
+            """)
+            
+            if not table_exists:
+                # Возвращаем пустой результат если таблицы нет
+                return {
+                    "debts": [],
+                    "summary": {
+                        "total": 0,
+                        "overdue": 0,
+                        "active": 0,
+                        "count": 0
+                    }
+                }
+            
+            # Получаем все долги
+            rows = await conn.fetch("""
+                SELECT 
+                    id, creditor, amount, due_date, status, type, description
+                FROM debts
+                ORDER BY due_date
+            """)
+            
+            debts = []
+            total_debt = 0
+            overdue_debt = 0
+            
+            for row in rows:
+                amount = float(row['amount'])
+                total_debt += amount
+                
+                if row['status'] == 'overdue':
+                    overdue_debt += amount
+                
+                debts.append({
+                    "id": str(row['id']),
+                    "creditor": row['creditor'],
+                    "amount": amount,
+                    "due_date": row['due_date'].strftime('%Y-%m-%d') if row['due_date'] else None,
+                    "status": row['status'],
+                    "type": row['type'],
+                    "description": row['description']
+                })
+            
+            return {
+                "debts": debts,
+                "summary": {
+                    "total": total_debt,
+                    "overdue": overdue_debt,
+                    "active": total_debt - overdue_debt,
+                    "count": len(debts)
+                }
             }
-        ]
-        
-        total_debt = sum(item["amount"] for item in debts)
-        overdue_debt = sum(item["amount"] for item in debts if item["status"] == "overdue")
-        
-        return {
-            "debts": debts,
-            "summary": {
-                "total": total_debt,
-                "overdue": overdue_debt,
-                "active": total_debt - overdue_debt,
-                "count": len(debts)
-            }
-        }
+        finally:
+            await conn.close()
     except Exception as e:
         logger.error(f"Error fetching debts: {e}")
         raise HTTPException(status_code=500, detail=str(e))
