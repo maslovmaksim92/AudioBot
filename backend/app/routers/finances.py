@@ -869,6 +869,62 @@ async def get_revenue_details(month: Optional[str] = None, company: Optional[str
         finally:
             await conn.close()
     except Exception as e:
+        logger.error(f"Error fetching revenue details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_consolidated_revenue(conn, month: Optional[str] = None):
+    """
+    Консолидированная выручка: ООО ВАШ ДОМ минус "Швеи" и "Аутсорсинг"
+    """
+    # Получаем выручку ООО ВАШ ДОМ
+    if month:
+        query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'income' AND project = $1 AND company = 'ООО ВАШ ДОМ'
+            GROUP BY category
+        """
+        rows = await conn.fetch(query, month)
+    else:
+        query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'income' AND company = 'ООО ВАШ ДОМ'
+            GROUP BY category
+        """
+        rows = await conn.fetch(query)
+    
+    # Вычисляем консолидированную выручку (исключаем Швеи и Аутсорсинг)
+    revenue = []
+    total = 0
+    
+    for row in rows:
+        category = row['category']
+        amount = float(row['total_amount'])
+        
+        # Пропускаем Швеи и Аутсорсинг
+        if category in ['Швеи', 'Аутсорсинг']:
+            continue
+        
+        total += amount
+        revenue.append({
+            "category": category,
+            "amount": amount
+        })
+    
+    # Сортируем по убыванию
+    revenue.sort(key=lambda x: x['amount'], reverse=True)
+    
+    # Добавляем проценты
+    for item in revenue:
+        item['percentage'] = round((item['amount'] / total * 100), 2) if total > 0 else 0
+    
+    return {
+        "revenue": revenue,
+        "total": total,
+        "month": month
+    }
 
 
 async def get_consolidated_profit_loss(conn):
