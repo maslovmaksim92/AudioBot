@@ -46,7 +46,18 @@ function OverviewAnalysis() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Общий финансовый анализ</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Общий финансовый анализ</h2>
+        <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Компания" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ООО ВАШ ДОМ">ООО ВАШ ДОМ</SelectItem>
+            <SelectItem value="УФИЦ">УФИЦ</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
       {/* Ключевые показатели */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
