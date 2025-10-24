@@ -114,6 +114,10 @@ async def import_statements():
                 purpose_col = None
                 counterparty_col = None
                 
+                # Определяем тип файла (Сбербанк или Альфа)
+                is_sber = 'сбербизнес' in file_path.lower() or '40702810' in file_path
+                is_alpha = 'альфа' in file_path.lower() or 'выписка_40702810401710001223' in file_path
+                
                 for col in df.columns:
                     col_str = str(col).lower()
                     if 'дата' in col_str and not date_col:
@@ -124,6 +128,10 @@ async def import_statements():
                         purpose_col = col
                     if 'контрагент' in col_str or 'название платежа' in col_str:
                         counterparty_col = col
+                
+                # Для Сбербанка контрагент в колонке 4 (E)
+                if is_sber:
+                    counterparty_col = df.columns[4]
                 
                 print(f"Найденные колонки:")
                 print(f"  Дата: {date_col}")
