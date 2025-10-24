@@ -751,6 +751,274 @@ async def test_finance_expense_details():
     
     return results
 
+async def test_consolidated_financial_model():
+    """Test consolidated financial model for ООО ВАШ ДОМ + УФИЦ"""
+    print("\n=== ТЕСТ КОНСОЛИДИРОВАННОЙ ФИНАНСОВОЙ МОДЕЛИ ООО ВАШ ДОМ + УФИЦ ===\n")
+    
+    results = TestResults()
+    consolidated_company = "ООО ВАШ ДОМ + УФИЦ"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем консолидированную модель для: {consolidated_company}")
+            print("📋 Логика консолидации:")
+            print("   - Выручка = ООО ВАШ ДОМ минус 'Швеи' и 'Аутсорсинг'")
+            print("   - Расходы = ООО ВАШ ДОМ + УФИЦ минус 'Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи'")
+            print("")
+            
+            # 1. Test consolidated profit-loss
+            print("💰 1. Тестируем GET /api/finances/profit-loss?company=ООО+ВАШ+ДОМ+%2B+УФИЦ")
+            
+            response = await client.get(f"{API_BASE}/finances/profit-loss", params={"company": consolidated_company})
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка consolidated profit-loss: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['consolidated_profit_loss'] = data
+                print("✅ Консолидированные прибыли/убытки получены успешно")
+                
+                # Validate structure
+                required_fields = ['profit_loss', 'summary']
+                for field in required_fields:
+                    if field not in data:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в consolidated profit-loss")
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Check summary
+                if 'summary' in data:
+                    summary = data['summary']
+                    print(f"📊 Консолидированная сводка:")
+                    print(f"   - Общая выручка: {summary.get('total_revenue', 0)}")
+                    print(f"   - Общие расходы: {summary.get('total_expenses', 0)}")
+                    print(f"   - Чистая прибыль: {summary.get('net_profit', 0)}")
+                    print(f"   - Средняя маржа: {summary.get('average_margin', 0)}%")
+            
+            print("")
+            
+            # 2. Test consolidated expense-analysis
+            print("💸 2. Тестируем GET /api/finances/expense-analysis?company=ООО+ВАШ+ДОМ+%2B+УФИЦ")
+            
+            response = await client.get(f"{API_BASE}/finances/expense-analysis", params={"company": consolidated_company})
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка consolidated expense-analysis: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['consolidated_expense_analysis'] = data
+                print("✅ Консолидированный анализ расходов получен успешно")
+                
+                # Validate structure
+                required_fields = ['expenses', 'total']
+                for field in required_fields:
+                    if field not in data:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в consolidated expense-analysis")
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Check excluded categories are not present
+                excluded_categories = ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']
+                expenses = data.get('expenses', [])
+                
+                print(f"📊 Консолидированные расходы:")
+                print(f"   - Категорий расходов: {len(expenses)}")
+                print(f"   - Общая сумма: {data.get('total', 0)}")
+                
+                # Check for excluded categories
+                found_excluded = []
+                for expense in expenses:
+                    category = expense.get('category', '')
+                    if category in excluded_categories:
+                        found_excluded.append(category)
+                
+                if found_excluded:
+                    error_msg = f"❌ Найдены исключаемые категории в консолидированных расходах: {found_excluded}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print("✅ Исключаемые категории отсутствуют в результатах")
+                
+                # Show top categories
+                if expenses:
+                    print("📋 Топ категории расходов:")
+                    for i, expense in enumerate(expenses[:5], 1):
+                        print(f"   {i}. {expense.get('category')}: {expense.get('amount')} ({expense.get('percentage')}%)")
+            
+            print("")
+            
+            # 3. Test consolidated expense-analysis with month filter
+            print("📅 3. Тестируем GET /api/finances/expense-analysis?company=ООО+ВАШ+ДОМ+%2B+УФИЦ&month=Январь+2025")
+            
+            response = await client.get(f"{API_BASE}/finances/expense-analysis", params={
+                "company": consolidated_company,
+                "month": "Январь 2025"
+            })
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка consolidated expense-analysis с месяцем: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['consolidated_expense_analysis_monthly'] = data
+                print("✅ Консолидированный анализ расходов за месяц получен успешно")
+                
+                # Validate month field
+                if data.get('month') != "Январь 2025":
+                    results.errors.append(f"❌ Неверный месяц в ответе: ожидался 'Январь 2025', получен '{data.get('month')}'")
+                else:
+                    print(f"✅ Месяц корректен: {data.get('month')}")
+                
+                expenses = data.get('expenses', [])
+                print(f"📊 Расходы за Январь 2025:")
+                print(f"   - Категорий: {len(expenses)}")
+                print(f"   - Общая сумма: {data.get('total', 0)}")
+            
+            print("")
+            
+            # 4. Test consolidated revenue-analysis
+            print("💵 4. Тестируем GET /api/finances/revenue-analysis?company=ООО+ВАШ+ДОМ+%2B+УФИЦ")
+            
+            response = await client.get(f"{API_BASE}/finances/revenue-analysis", params={"company": consolidated_company})
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка consolidated revenue-analysis: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['consolidated_revenue_analysis'] = data
+                print("✅ Консолидированный анализ выручки получен успешно")
+                
+                # Validate structure
+                required_fields = ['revenues', 'total']
+                for field in required_fields:
+                    if field not in data:
+                        results.errors.append(f"❌ Отсутствует поле '{field}' в consolidated revenue-analysis")
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Check excluded categories for revenue (Швеи, Аутсорсинг)
+                excluded_revenue_categories = ['Швеи', 'Аутсорсинг']
+                revenues = data.get('revenues', [])
+                
+                print(f"📊 Консолидированная выручка:")
+                print(f"   - Категорий выручки: {len(revenues)}")
+                print(f"   - Общая сумма: {data.get('total', 0)}")
+                
+                # Check for excluded categories
+                found_excluded_revenue = []
+                for revenue in revenues:
+                    category = revenue.get('category', '')
+                    if category in excluded_revenue_categories:
+                        found_excluded_revenue.append(category)
+                
+                if found_excluded_revenue:
+                    error_msg = f"❌ Найдены исключаемые категории в консолидированной выручке: {found_excluded_revenue}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print("✅ Исключаемые категории выручки отсутствуют в результатах")
+                
+                # Show revenue categories
+                if revenues:
+                    print("📋 Категории выручки:")
+                    for i, revenue in enumerate(revenues[:5], 1):
+                        print(f"   {i}. {revenue.get('category')}: {revenue.get('amount')} ({revenue.get('percentage')}%)")
+            
+            print("")
+            
+            # 5. Test individual company endpoints still work
+            print("🔄 5. Проверяем работу endpoints для отдельных компаний...")
+            
+            individual_companies = ["ООО ВАШ ДОМ", "УФИЦ"]
+            
+            for company in individual_companies:
+                print(f"\n🏢 Тестируем компанию: {company}")
+                
+                # Test profit-loss for individual company
+                response = await client.get(f"{API_BASE}/finances/profit-loss", params={"company": company})
+                print(f"📡 profit-loss для {company}: {response.status_code}")
+                
+                if response.status_code != 200:
+                    error_msg = f"❌ Endpoint profit-loss не работает для {company}: {response.status_code}"
+                    results.errors.append(error_msg)
+                else:
+                    print(f"✅ Endpoint profit-loss работает для {company}")
+                
+                # Test expense-analysis for individual company
+                response = await client.get(f"{API_BASE}/finances/expense-analysis", params={"company": company})
+                print(f"📡 expense-analysis для {company}: {response.status_code}")
+                
+                if response.status_code != 200:
+                    error_msg = f"❌ Endpoint expense-analysis не работает для {company}: {response.status_code}"
+                    results.errors.append(error_msg)
+                else:
+                    print(f"✅ Endpoint expense-analysis работает для {company}")
+            
+            print("")
+            
+            # 6. Validate consolidation logic by comparing individual vs consolidated
+            print("🧮 6. Проверяем логику консолидации...")
+            
+            # Get individual company data for validation
+            vasdom_response = await client.get(f"{API_BASE}/finances/expense-analysis", params={"company": "ООО ВАШ ДОМ"})
+            ufic_response = await client.get(f"{API_BASE}/finances/expense-analysis", params={"company": "УФИЦ"})
+            
+            if vasdom_response.status_code == 200 and ufic_response.status_code == 200:
+                vasdom_data = vasdom_response.json()
+                ufic_data = ufic_response.json()
+                
+                vasdom_total = vasdom_data.get('total', 0)
+                ufic_total = ufic_data.get('total', 0)
+                
+                print(f"📊 Данные для проверки консолидации:")
+                print(f"   - ООО ВАШ ДОМ общие расходы: {vasdom_total}")
+                print(f"   - УФИЦ общие расходы: {ufic_total}")
+                
+                # Get excluded amounts from ООО ВАШ ДОМ
+                excluded_amount = 0
+                vasdom_expenses = vasdom_data.get('expenses', [])
+                for expense in vasdom_expenses:
+                    if expense.get('category') in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
+                        excluded_amount += expense.get('amount', 0)
+                
+                expected_consolidated_total = vasdom_total + ufic_total - excluded_amount
+                
+                # Get actual consolidated total
+                if 'consolidated_expense_analysis' in results.finance_endpoints:
+                    actual_consolidated_total = results.finance_endpoints['consolidated_expense_analysis'].get('total', 0)
+                    
+                    print(f"   - Исключаемая сумма: {excluded_amount}")
+                    print(f"   - Ожидаемая консолидированная сумма: {expected_consolidated_total}")
+                    print(f"   - Фактическая консолидированная сумма: {actual_consolidated_total}")
+                    
+                    # Allow small differences due to floating point arithmetic
+                    if abs(expected_consolidated_total - actual_consolidated_total) < 1.0:
+                        print("✅ Логика консолидации расходов работает корректно")
+                    else:
+                        error_msg = f"❌ Неверная логика консолидации: ожидалось {expected_consolidated_total}, получено {actual_consolidated_total}"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+            else:
+                print("⚠️ Не удалось получить данные отдельных компаний для проверки логики")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании консолидированной модели: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def test_plannerka_create_endpoint():
     """Test plannerka creation endpoint"""
     print("\n=== ТЕСТ СОЗДАНИЯ ПЛАНЁРКИ ===\n")
