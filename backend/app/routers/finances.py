@@ -180,7 +180,6 @@ async def get_profit_loss(
                 GROUP BY TO_CHAR(date, 'Month YYYY'), TO_CHAR(date, 'YYYY-MM')
                 ORDER BY TO_CHAR(date, 'YYYY-MM')
             """
-            company = "ООО ВАШ ДОМ"  # Пока захардкодим, потом добавим параметр
             rows = await conn.fetch(query, company)
             
             # Маппинг английских названий месяцев на русские
