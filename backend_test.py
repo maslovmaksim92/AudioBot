@@ -1429,7 +1429,8 @@ async def main():
         'transactions_list': 'GET /api/finances/transactions',
         'create_transaction': 'POST /api/finances/transactions',
         'revenue_monthly': 'GET /api/finances/revenue/monthly',
-        'expense_details': 'GET /api/finances/expense-details'
+        'expense_details': 'GET /api/finances/expense-details',
+        'consolidated_model': 'Consolidated Financial Model ООО ВАШ ДОМ + УФИЦ'
     }
     
     for key, name in endpoint_names.items():
