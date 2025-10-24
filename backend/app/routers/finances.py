@@ -904,7 +904,8 @@ async def get_consolidated_profit_loss(conn):
       * Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
       * Зарплата: ВАШ ДОМ ФАКТ - УФИЦ модель (помесячно)
       * Налоги: 5% от выручки каждого месяца
-      * Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ, Юридические услуги, Продукты питания
+      * Аутсорсинг персонала: Выручка УФИЦ модель (уборщицы)
+      * Исключить: Кредиты, Швеи, Юридические услуги, Продукты питания
     """
     # Получаем ручную выручку для консолидированной модели
     revenue_rows = await conn.fetch("""
@@ -915,6 +916,18 @@ async def get_consolidated_profit_loss(conn):
     """)
     
     revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
+    
+    # Получаем выручку УФИЦ модель для Аутсорсинга персонала
+    ufic_revenue = await conn.fetch("""
+        SELECT 
+            project as month,
+            SUM(amount) as amount
+        FROM financial_transactions
+        WHERE type = 'income' AND company = 'УФИЦ модель'
+        GROUP BY project
+    """)
+    
+    ufic_revenue_by_month = {row['month']: float(row['amount']) for row in ufic_revenue}
     
     # Получаем расходы ВАШ ДОМ ФАКТ по месяцам и категориям
     vasdom_expenses = await conn.fetch("""
@@ -993,6 +1006,10 @@ async def get_consolidated_profit_loss(conn):
             else:
                 # Для остальных категорий: только ВАШ ДОМ ФАКТ ("так же")
                 month_expenses += amount
+        
+        # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель (уборщицы)
+        outsourcing = ufic_revenue_by_month.get(month, 0)
+        month_expenses += outsourcing
         
         # Добавляем Налоги: 5% от выручки
         taxes = revenue * 0.05
