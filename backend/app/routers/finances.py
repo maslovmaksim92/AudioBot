@@ -308,7 +308,7 @@ async def get_expense_analysis(month: Optional[str] = None, company: Optional[st
         conn = await get_db_connection()
         try:
             # Консолидированный расчет
-            if company == "Консолидированный":
+            if company == "ООО ВАШ ДОМ + УФИЦ":
                 return await get_consolidated_expenses(conn, month)
             
             # Получаем реальные данные из БД
