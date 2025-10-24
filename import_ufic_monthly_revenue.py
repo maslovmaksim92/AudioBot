@@ -35,29 +35,13 @@ async def import_revenue():
         from uuid import uuid4
         
         for month, revenue in UFIC_REVENUE.items():
-            # Проверяем, существует ли уже запись
-            existing = await conn.fetchval("""
-                SELECT revenue FROM monthly_revenue 
-                WHERE month = $1 AND company = $2
-            """, month, 'УФИЦ')
-            
-            if existing:
-                # Обновляем
-                await conn.execute("""
-                    UPDATE monthly_revenue 
-                    SET revenue = $1 
-                    WHERE month = $2 AND company = $3
-                """, revenue, month, 'УФИЦ')
-                print(f"✅ Обновлено: {month} = {revenue:,.0f} ₽")
-            else:
-                # Вставляем новую запись с UUID
-                from uuid import uuid4
-                record_id = str(uuid4())
-                await conn.execute("""
-                    INSERT INTO monthly_revenue (id, month, revenue, company)
-                    VALUES ($1, $2, $3, $4)
-                """, record_id, month, revenue, 'УФИЦ')
-                print(f"✅ Добавлено: {month} = {revenue:,.0f} ₽")
+            # Вставляем новую запись с UUID
+            record_id = str(uuid4())
+            await conn.execute("""
+                INSERT INTO monthly_revenue (id, month, revenue, company)
+                VALUES ($1, $2, $3, $4)
+            """, record_id, month, revenue, 'УФИЦ')
+            print(f"✅ Добавлено: {month} = {revenue:,.0f} ₽")
             
             imported += 1
         
