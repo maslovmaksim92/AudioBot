@@ -1024,15 +1024,19 @@ async def get_consolidated_profit_loss(conn):
 
 async def get_consolidated_expenses(conn, month: Optional[str] = None):
     """
-    Консолидированные расходы: ВАШ ДОМ + УФИЦ
-    Исключаем: "Кредиты", "Аутсорсинг персонала с Ю/ЦЛ", "Швеи"
+    Консолидированные расходы для "ВАШ ДОМ модель"
+    
+    Логика:
+    - Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
+    - Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал)
+    - Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ
     """
-    # Получаем расходы ВАШ ДОМ
+    # Получаем расходы ВАШ ДОМ ФАКТ
     if month:
         vasdom_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'expense' AND project = $1 AND company = 'ООО ВАШ ДОМ'
+            WHERE type = 'expense' AND project = $1 AND company = 'ВАШ ДОМ ФАКТ'
             GROUP BY category
         """
         vasdom_rows = await conn.fetch(vasdom_query, month)
@@ -1040,7 +1044,8 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         ufic_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'expense' AND project = $1 AND company = 'УФИЦ'
+            WHERE type = 'expense' AND project = $1 AND company = 'УФИЦ модель'
+              AND category IN ('Зарплата', 'ФОТ управляющие персонал')
             GROUP BY category
         """
         ufic_rows = await conn.fetch(ufic_query, month)
@@ -1048,7 +1053,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         vasdom_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'expense' AND company = 'ООО ВАШ ДОМ'
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ ФАКТ'
             GROUP BY category
         """
         vasdom_rows = await conn.fetch(vasdom_query)
@@ -1056,50 +1061,49 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         ufic_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'expense' AND company = 'УФИЦ'
+            WHERE type = 'expense' AND company = 'УФИЦ модель'
+              AND category IN ('Зарплата', 'ФОТ управляющие персонал')
             GROUP BY category
         """
         ufic_rows = await conn.fetch(ufic_query)
     
-    # Группируем по категориям (ВАШ ДОМ + УФИЦ)
-    expenses_dict = {}
-    
-    # Добавляем расходы ВАШ ДОМ
-    for row in vasdom_rows:
-        category = row['category']
-        amount = float(row['total_amount'])
-        
-        # Пропускаем исключаемые категории
-        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
-            continue
-        
-        if category not in expenses_dict:
-            expenses_dict[category] = 0
-        expenses_dict[category] += amount
-    
-    # Добавляем расходы УФИЦ
+    # Группируем УФИЦ по категориям
+    ufic_dict = {}
     for row in ufic_rows:
-        category = row['category']
-        amount = float(row['total_amount'])
-        
-        # Пропускаем исключаемые категории
-        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
-            continue
-        
-        if category not in expenses_dict:
-            expenses_dict[category] = 0
-        expenses_dict[category] += amount
+        ufic_dict[row['category']] = float(row['total_amount'])
     
-    # Формируем результат
+    # Формируем консолидированные расходы
     expenses = []
     total = 0
     
-    for category, amount in expenses_dict.items():
-        total += amount
-        expenses.append({
-            "category": category,
-            "amount": amount
-        })
+    for row in vasdom_rows:
+        category = row['category']
+        vasdom_amount = float(row['total_amount'])
+        
+        # Исключаем категории
+        if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ']:
+            continue
+        
+        # Специальная логика для Зарплаты
+        if category == 'Зарплата':
+            # Вычитаем УФИЦ зарплату и ФОТ управляющие
+            ufic_salary = ufic_dict.get('Зарплата', 0)
+            ufic_fot = ufic_dict.get('ФОТ управляющие персонал', 0)
+            consolidated_amount = vasdom_amount - ufic_salary - ufic_fot
+            
+            if consolidated_amount > 0:
+                total += consolidated_amount
+                expenses.append({
+                    "category": category,
+                    "amount": consolidated_amount
+                })
+        else:
+            # Для остальных категорий: только ВАШ ДОМ ФАКТ ("так же")
+            total += vasdom_amount
+            expenses.append({
+                "category": category,
+                "amount": vasdom_amount
+            })
     
     # Сортируем по убыванию
     expenses.sort(key=lambda x: x['amount'], reverse=True)
