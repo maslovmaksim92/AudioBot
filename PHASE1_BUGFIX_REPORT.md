@@ -270,6 +270,6 @@ period.dates.forEach(date => {
 
 ---
 
-**Preview URL:** https://vasdom-finance.preview.emergentagent.com
+**Preview URL:** https://expense-tracker-1176.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:42 UTC

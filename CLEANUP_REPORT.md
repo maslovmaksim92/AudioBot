@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://vasdom-finance.preview.emergentagent.com**
+Приложение доступно: **https://expense-tracker-1176.preview.emergentagent.com**
 
 ---
 
