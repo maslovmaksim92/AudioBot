@@ -41,6 +41,33 @@ def is_internal_transfer(text):
             'перевод средств между счетами' in text_lower or
             'перевод между счетами' in text_lower)
 
+def extract_counterparty(text):
+    """Извлекает название контрагента из назначения платежа"""
+    if not text or pd.isna(text):
+        return None
+    
+    text = str(text)
+    
+    # Ищем паттерны с названиями организаций
+    patterns = [
+        r'(?:ООО|АО|ПАО|ИП|ЗАО)\s*["\']?([^"\']+?)["\']?(?:\s+по\s+|$|\s+от\s+)',
+        r'(?:ООО|АО|ПАО|ИП|ЗАО)\s+([А-Яа-я\s"]+?)(?:\s+по\s+|\s+от\s+|$)',
+        r'Для\s+([А-Яа-я\s"№]+?)(?:\s+по\s+|$)',
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            counterparty = match.group(1).strip()
+            # Очищаем от лишних символов
+            counterparty = re.sub(r'\s+', ' ', counterparty)
+            if len(counterparty) > 5:
+                return counterparty[:255]
+    
+    # Если не нашли паттерн, берем первые 100 символов назначения
+    words = text.split()[:5]
+    return ' '.join(words) if words else None
+
 async def import_statements():
     db_url = os.environ.get('DATABASE_URL')
     conn = await asyncpg.connect(db_url)
