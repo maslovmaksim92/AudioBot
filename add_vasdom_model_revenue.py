@@ -7,6 +7,7 @@
 import asyncio
 import asyncpg
 import os
+import uuid
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения
@@ -58,12 +59,13 @@ async def add_revenue():
         """)
         print("✅ Старые записи удалены")
         
-        # Добавляем новые записи
+        # Добавляем новые записи с UUID
         for month, revenue in REVENUE_DATA.items():
+            record_id = str(uuid.uuid4())
             await conn.execute("""
-                INSERT INTO monthly_revenue (month, revenue, company)
-                VALUES ($1, $2, $3)
-            """, month, revenue, 'ВАШ ДОМ модель')
+                INSERT INTO monthly_revenue (id, month, revenue, company)
+                VALUES ($1, $2, $3, $4)
+            """, record_id, month, revenue, 'ВАШ ДОМ модель')
             print(f"   ✅ {month}: {revenue:,.0f} ₽")
         
         print(f"\n✅ Добавлено {len(REVENUE_DATA)} записей выручки")
