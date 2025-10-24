@@ -1059,7 +1059,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     - Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
     - Зарплата: ВАШ ДОМ ФАКТ - УФИЦ Зарплата (ТОЛЬКО Зарплата, без ФОТ) помесячно
     - Налоги: 5% от выручки каждого месяца
-    - Аутсорсинг персонала: Выручка УФИЦ модель помесячно
+    - Аутсорсинг персонала: из транзакций ВАШ ДОМ модель
     - Исключить: Кредиты, Швеи, Юридические услуги, Продукты питания
     """
     # Получаем выручку для расчета налогов
@@ -1080,25 +1080,25 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     
     revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
     
-    # Получаем выручку УФИЦ модель ПОМЕСЯЧНО для Аутсорсинга персонала
+    # Получаем Аутсорсинг персонала из транзакций ВАШ ДОМ модель
     if month:
-        ufic_revenue_query = """
-            SELECT project as month, SUM(amount) as amount
+        outsourcing_query = """
+            SELECT SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'income' AND company = 'УФИЦ модель' AND project = $1
-            GROUP BY project
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ модель' 
+              AND category = 'Аутсорсинг персонала' AND project = $1
         """
-        ufic_revenue_rows = await conn.fetch(ufic_revenue_query, month)
+        outsourcing_row = await conn.fetchrow(outsourcing_query, month)
     else:
-        ufic_revenue_query = """
-            SELECT project as month, SUM(amount) as amount
+        outsourcing_query = """
+            SELECT SUM(amount) as total_amount
             FROM financial_transactions
-            WHERE type = 'income' AND company = 'УФИЦ модель'
-            GROUP BY project
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ модель'
+              AND category = 'Аутсорсинг персонала'
         """
-        ufic_revenue_rows = await conn.fetch(ufic_revenue_query)
+        outsourcing_row = await conn.fetchrow(outsourcing_query)
     
-    ufic_revenue_by_month = {row['month']: float(row['amount']) for row in ufic_revenue_rows}
+    outsourcing_total = float(outsourcing_row['total_amount']) if outsourcing_row and outsourcing_row['total_amount'] else 0
     
     # Получаем расходы ВАШ ДОМ ФАКТ
     if month:
@@ -1151,7 +1151,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         category = row['category']
         vasdom_amount = float(row['total_amount'])
         
-        # Исключаем категории (но НЕ "Аутсорсинг персонала с Ю/ЦЛ")
+        # Исключаем категории
         if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
             continue
         
@@ -1173,13 +1173,12 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
                 "amount": vasdom_amount
             })
     
-    # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель ПОМЕСЯЧНО (суммируем)
-    ufic_revenue_total = sum(ufic_revenue_by_month.values())
-    if ufic_revenue_total > 0:
-        total += ufic_revenue_total
+    # Добавляем Аутсорсинг персонала из транзакций ВАШ ДОМ модель
+    if outsourcing_total > 0:
+        total += outsourcing_total
         expenses.append({
             "category": "Аутсорсинг персонала",
-            "amount": ufic_revenue_total
+            "amount": outsourcing_total
         })
     
     # Добавляем Налоги: 5% от выручки
