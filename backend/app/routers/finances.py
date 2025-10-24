@@ -832,6 +832,121 @@ async def get_revenue_details(month: Optional[str] = None, company: Optional[str
         finally:
             await conn.close()
     except Exception as e:
+
+
+async def get_consolidated_profit_loss(conn):
+    """
+    Консолидированный расчет: ООО ВАШ ДОМ - УФИЦ
+    """
+    # Выручка из модели (помесячно)
+    consolidated_revenue = {
+        'Январь 2025': 4712459,
+        'Февраль 2025': 4425900,
+        'Март 2025': 4402000,
+        'Апрель 2025': 5245890,
+        'Май 2025': 5127353,
+        'Июнь 2025': 4418148,
+        'Июль 2025': 4597926,
+        'Август 2025': 5899305,
+        'Сентябрь 2025': 5325049
+    }
+    
+    # Получаем расходы ВАШ ДОМ по месяцам и категориям
+    vasdom_expenses = await conn.fetch("""
+        SELECT 
+            project as month,
+            category,
+            SUM(amount) as amount
+        FROM financial_transactions
+        WHERE type = 'expense' AND company = 'ООО ВАШ ДОМ'
+        GROUP BY project, category
+    """)
+    
+    # Получаем расходы УФИЦ по месяцам и категориям
+    ufic_expenses = await conn.fetch("""
+        SELECT 
+            project as month,
+            category,
+            SUM(amount) as amount
+        FROM financial_transactions
+        WHERE type = 'expense' AND company = 'УФИЦ'
+        GROUP BY project, category
+    """)
+    
+    # Группируем по месяцам
+    vasdom_by_month = {}
+    for row in vasdom_expenses:
+        month = row['month']
+        if month not in vasdom_by_month:
+            vasdom_by_month[month] = {}
+        vasdom_by_month[month][row['category']] = float(row['amount'])
+    
+    ufic_by_month = {}
+    for row in ufic_expenses:
+        month = row['month']
+        if month not in ufic_by_month:
+            ufic_by_month[month] = {}
+        ufic_by_month[month][row['category']] = float(row['amount'])
+    
+    # Вычисляем консолидированные данные
+    profit_loss = []
+    total_revenue = 0
+    total_expenses = 0
+    
+    for month in sorted(consolidated_revenue.keys()):
+        revenue = consolidated_revenue[month]
+        
+        # Вычисляем расходы: ВАШ ДОМ - УФИЦ (по категориям)
+        vasdom_exp = vasdom_by_month.get(month, {})
+        ufic_exp = ufic_by_month.get(month, {})
+        
+        month_expenses = 0
+        
+        # Проходим по всем категориям ВАШ ДОМ
+        for category, amount in vasdom_exp.items():
+            # Пропускаем Кредиты в консолидации
+            if 'кредит' in category.lower():
+                continue
+            
+            # Вычитаем соответствующую категорию УФИЦ
+            ufic_amount = 0
+            if category == 'Зарплата':
+                ufic_amount = ufic_exp.get('Зарплата', 0) + ufic_exp.get('ФОТ управляющие персонал', 0)
+            elif category == 'Налоги':
+                ufic_amount = ufic_exp.get('Налоги', 0) + ufic_exp.get('НДФЛ', 0)
+            else:
+                ufic_amount = ufic_exp.get(category, 0)
+            
+            month_expenses += (amount - ufic_amount)
+        
+        profit = revenue - month_expenses
+        margin = (profit / revenue * 100) if revenue > 0 else 0
+        
+        profit_loss.append({
+            "period": month,
+            "revenue": revenue,
+            "expenses": month_expenses,
+            "profit": profit,
+            "margin": round(margin, 2),
+            "manual_revenue": True
+        })
+        
+        total_revenue += revenue
+        total_expenses += month_expenses
+    
+    total_profit = total_revenue - total_expenses
+    total_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        "profit_loss": profit_loss,
+        "summary": {
+            "total_revenue": total_revenue,
+            "total_expenses": total_expenses,
+            "total_profit": total_profit,
+            "margin": round(total_margin, 2)
+        }
+    }
+
         logger.error(f"Error fetching revenue details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
