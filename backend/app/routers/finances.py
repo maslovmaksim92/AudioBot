@@ -929,20 +929,35 @@ async def get_consolidated_revenue(conn, month: Optional[str] = None):
 
 async def get_consolidated_profit_loss(conn):
     """
-    Консолидированный расчет: ООО ВАШ ДОМ - УФИЦ
+    Консолидированный расчет: ООО ВАШ ДОМ + УФИЦ
+    Выручка: ООО ВАШ ДОМ минус "Швеи" и "Аутсорсинг"
+    Расходы: ООО ВАШ ДОМ + УФИЦ минус "Кредиты", "Аутсорсинг персонала с Ю/ЦЛ", "Швеи"
     """
-    # Выручка из модели (помесячно)
-    consolidated_revenue = {
-        'Январь 2025': 4712459,
-        'Февраль 2025': 4425900,
-        'Март 2025': 4402000,
-        'Апрель 2025': 5245890,
-        'Май 2025': 5127353,
-        'Июнь 2025': 4418148,
-        'Июль 2025': 4597926,
-        'Август 2025': 5899305,
-        'Сентябрь 2025': 5325049
-    }
+    # Получаем выручку ООО ВАШ ДОМ по месяцам и категориям
+    revenue_rows = await conn.fetch("""
+        SELECT 
+            project as month,
+            category,
+            SUM(amount) as amount
+        FROM financial_transactions
+        WHERE type = 'income' AND company = 'ООО ВАШ ДОМ'
+        GROUP BY project, category
+    """)
+    
+    # Группируем выручку по месяцам, исключая Швеи и Аутсорсинг
+    revenue_by_month = {}
+    for row in revenue_rows:
+        month = row['month']
+        category = row['category']
+        amount = float(row['amount'])
+        
+        # Пропускаем Швеи и Аутсорсинг
+        if category in ['Швеи', 'Аутсорсинг']:
+            continue
+        
+        if month not in revenue_by_month:
+            revenue_by_month[month] = 0
+        revenue_by_month[month] += amount
     
     # Получаем расходы ВАШ ДОМ по месяцам и категориям
     vasdom_expenses = await conn.fetch("""
@@ -966,66 +981,61 @@ async def get_consolidated_profit_loss(conn):
         GROUP BY project, category
     """)
     
-    # Группируем по месяцам
-    vasdom_by_month = {}
+    # Группируем расходы по месяцам
+    expenses_by_month = {}
+    
+    # Добавляем расходы ВАШ ДОМ (исключая категории)
     for row in vasdom_expenses:
         month = row['month']
-        if month not in vasdom_by_month:
-            vasdom_by_month[month] = {}
-        vasdom_by_month[month][row['category']] = float(row['amount'])
+        category = row['category']
+        amount = float(row['amount'])
+        
+        # Пропускаем исключаемые категории
+        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
+            continue
+        
+        if month not in expenses_by_month:
+            expenses_by_month[month] = 0
+        expenses_by_month[month] += amount
     
-    ufic_by_month = {}
+    # Добавляем расходы УФИЦ (исключая категории)
     for row in ufic_expenses:
         month = row['month']
-        if month not in ufic_by_month:
-            ufic_by_month[month] = {}
-        ufic_by_month[month][row['category']] = float(row['amount'])
+        category = row['category']
+        amount = float(row['amount'])
+        
+        # Пропускаем исключаемые категории
+        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
+            continue
+        
+        if month not in expenses_by_month:
+            expenses_by_month[month] = 0
+        expenses_by_month[month] += amount
+    
+    # Получаем все уникальные месяцы
+    all_months = sorted(set(list(revenue_by_month.keys()) + list(expenses_by_month.keys())))
     
     # Вычисляем консолидированные данные
     profit_loss = []
     total_revenue = 0
     total_expenses = 0
     
-    for month in sorted(consolidated_revenue.keys()):
-        revenue = consolidated_revenue[month]
-        
-        # Вычисляем расходы: ВАШ ДОМ - УФИЦ (по категориям)
-        vasdom_exp = vasdom_by_month.get(month, {})
-        ufic_exp = ufic_by_month.get(month, {})
-        
-        month_expenses = 0
-        
-        # Проходим по всем категориям ВАШ ДОМ
-        for category, amount in vasdom_exp.items():
-            # Пропускаем Кредиты в консолидации
-            if 'кредит' in category.lower():
-                continue
-            
-            # Вычитаем соответствующую категорию УФИЦ
-            ufic_amount = 0
-            if category == 'Зарплата':
-                ufic_amount = ufic_exp.get('Зарплата', 0) + ufic_exp.get('ФОТ управляющие персонал', 0)
-            elif category == 'Налоги':
-                ufic_amount = ufic_exp.get('Налоги', 0) + ufic_exp.get('НДФЛ', 0)
-            else:
-                ufic_amount = ufic_exp.get(category, 0)
-            
-            month_expenses += (amount - ufic_amount)
-        
-        profit = revenue - month_expenses
+    for month in all_months:
+        revenue = revenue_by_month.get(month, 0)
+        expenses = expenses_by_month.get(month, 0)
+        profit = revenue - expenses
         margin = (profit / revenue * 100) if revenue > 0 else 0
         
         profit_loss.append({
             "period": month,
             "revenue": revenue,
-            "expenses": month_expenses,
+            "expenses": expenses,
             "profit": profit,
-            "margin": round(margin, 2),
-            "manual_revenue": True
+            "margin": round(margin, 2)
         })
         
         total_revenue += revenue
-        total_expenses += month_expenses
+        total_expenses += expenses
     
     total_profit = total_revenue - total_expenses
     total_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
@@ -1035,6 +1045,10 @@ async def get_consolidated_profit_loss(conn):
         "summary": {
             "total_revenue": total_revenue,
             "total_expenses": total_expenses,
+            "total_profit": total_profit,
+            "margin": round(total_margin, 2)
+        }
+    }
 
 
 async def get_consolidated_expenses(conn, month: Optional[str] = None):
