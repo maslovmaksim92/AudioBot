@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, Package, Calendar } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
@@ -8,15 +9,17 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 function OverviewAnalysis() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedCompany]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`);
+      const params = { company: selectedCompany };
+      const response = await axios.get(`${BACKEND_URL}/api/finances/profit-loss`, { params });
       setData(response.data);
     } catch (error) {
       console.error('Error loading financial data:', error);
