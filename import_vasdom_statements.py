@@ -180,9 +180,9 @@ async def import_statements():
                         if is_alpha:
                             # Для Альфа-банка фиксированный контрагент
                             counterparty = 'ООО УК "Ваш Уют"'
-                        else:
-                            # Для Сбербанка - из колонки
-                            counterparty_raw = str(row[counterparty_col]) if counterparty_col and pd.notna(row[counterparty_col]) else ""
+                        elif is_sber and sber_counterparty_idx is not None:
+                            # Для Сбербанка - из колонки 4 по индексу
+                            counterparty_raw = str(row.iloc[sber_counterparty_idx]) if pd.notna(row.iloc[sber_counterparty_idx]) else ""
                             
                             if is_internal_transfer(counterparty_raw):
                                 skipped += 1
@@ -204,6 +204,8 @@ async def import_statements():
                                     counterparty = lines[-1].strip() if lines else counterparty_raw[:255]
                             else:
                                 counterparty = "Контрагент не указан"
+                        else:
+                            counterparty = "Контрагент не указан"
                         
                         # Определяем категорию из назначения платежа
                         purpose_lower = purpose.lower()
