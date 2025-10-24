@@ -11,7 +11,7 @@ function RevenueAnalysis() {
   const [detailsData, setDetailsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
+  const [selectedCompany, setSelectedCompany] = useState('ВАШ ДОМ ФАКТ');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [availableMonths, setAvailableMonths] = useState([]);
 
