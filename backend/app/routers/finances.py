@@ -139,11 +139,14 @@ async def get_cash_flow(
 
 @router.get("/finances/profit-loss")
 async def get_profit_loss(
-    period: Optional[str] = "year"
+    period: Optional[str] = "year",
+    company: Optional[str] = "ООО ВАШ ДОМ"
 ):
     """
     Получить отчёт о прибылях и убытках
     Использует ручную выручку из monthly_revenue если она есть
+    Параметры:
+    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
     """
     try:
         conn = await get_db_connection()
