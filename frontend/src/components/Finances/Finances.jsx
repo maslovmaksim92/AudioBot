@@ -67,27 +67,6 @@ function Finances() {
               <span className="inline">Анализ</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="transactions" 
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-indigo-600 data-[state=active]:text-white px-2 md:px-3 whitespace-nowrap flex-shrink-0"
-            >
-              <List className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="inline">Транзакции</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="cash-flow" 
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white px-2 md:px-3 whitespace-nowrap flex-shrink-0"
-            >
-              <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="inline">Движение</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="balance"
-              className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white px-2 md:px-3 whitespace-nowrap flex-shrink-0"
-            >
-              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="inline">Баланс</span>
-            </TabsTrigger>
-            <TabsTrigger 
               value="revenue"
               className="flex items-center gap-1 md:gap-2 text-xs md:text-sm data-[state=active]:bg-green-600 data-[state=active]:text-white px-2 md:px-3 whitespace-nowrap flex-shrink-0"
             >
