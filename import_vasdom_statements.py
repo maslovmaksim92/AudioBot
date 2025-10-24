@@ -157,6 +157,10 @@ async def import_statements():
                             skipped += 1
                             continue
                         
+                        # Извлекаем контрагента из назначения платежа если его нет
+                        if not counterparty or counterparty == "":
+                            counterparty = extract_counterparty(purpose)
+                        
                         # Определяем категорию из назначения платежа
                         purpose_lower = purpose.lower()
                         if 'уборк' in purpose_lower or 'моп' in purpose_lower:
