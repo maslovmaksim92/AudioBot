@@ -1042,9 +1042,9 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     
     Логика:
     - Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
-    - Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал) помесячно
+    - Зарплата: ВАШ ДОМ ФАКТ - УФИЦ Зарплата (ТОЛЬКО Зарплата, без ФОТ) помесячно
     - Налоги: 5% от выручки каждого месяца
-    - Аутсорсинг персонала: Выручка УФИЦ модель (уборщицы)
+    - Аутсорсинг персонала: Выручка УФИЦ модель помесячно
     - Исключить: Кредиты, Швеи, Юридические услуги, Продукты питания
     """
     # Получаем выручку для расчета налогов
@@ -1065,23 +1065,25 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     
     revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
     
-    # Получаем выручку УФИЦ модель для Аутсорсинга персонала
+    # Получаем выручку УФИЦ модель ПОМЕСЯЧНО для Аутсорсинга персонала
     if month:
         ufic_revenue_query = """
-            SELECT SUM(amount) as total_amount
+            SELECT project as month, SUM(amount) as amount
             FROM financial_transactions
             WHERE type = 'income' AND company = 'УФИЦ модель' AND project = $1
+            GROUP BY project
         """
-        ufic_revenue_row = await conn.fetchrow(ufic_revenue_query, month)
+        ufic_revenue_rows = await conn.fetch(ufic_revenue_query, month)
     else:
         ufic_revenue_query = """
-            SELECT SUM(amount) as total_amount
+            SELECT project as month, SUM(amount) as amount
             FROM financial_transactions
             WHERE type = 'income' AND company = 'УФИЦ модель'
+            GROUP BY project
         """
-        ufic_revenue_row = await conn.fetchrow(ufic_revenue_query)
+        ufic_revenue_rows = await conn.fetch(ufic_revenue_query)
     
-    ufic_revenue_total = float(ufic_revenue_row['total_amount']) if ufic_revenue_row and ufic_revenue_row['total_amount'] else 0
+    ufic_revenue_by_month = {row['month']: float(row['amount']) for row in ufic_revenue_rows}
     
     # Получаем расходы ВАШ ДОМ ФАКТ
     if month:
@@ -1093,11 +1095,12 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         """
         vasdom_rows = await conn.fetch(vasdom_query, month)
         
+        # Получаем ТОЛЬКО Зарплату УФИЦ (без ФОТ)
         ufic_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
             WHERE type = 'expense' AND project = $1 AND company = 'УФИЦ модель'
-              AND category IN ('Зарплата', 'ФОТ управляющие персонал')
+              AND category = 'Зарплата'
             GROUP BY category
         """
         ufic_rows = await conn.fetch(ufic_query, month)
@@ -1110,19 +1113,20 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         """
         vasdom_rows = await conn.fetch(vasdom_query)
         
+        # Получаем ТОЛЬКО Зарплату УФИЦ (без ФОТ)
         ufic_query = """
             SELECT category, SUM(amount) as total_amount
             FROM financial_transactions
             WHERE type = 'expense' AND company = 'УФИЦ модель'
-              AND category IN ('Зарплата', 'ФОТ управляющие персонал')
+              AND category = 'Зарплата'
             GROUP BY category
         """
         ufic_rows = await conn.fetch(ufic_query)
     
-    # Группируем УФИЦ по категориям
-    ufic_dict = {}
+    # Группируем УФИЦ Зарплату
+    ufic_salary = 0
     for row in ufic_rows:
-        ufic_dict[row['category']] = float(row['total_amount'])
+        ufic_salary = float(row['total_amount'])
     
     # Формируем консолидированные расходы
     expenses = []
@@ -1136,18 +1140,15 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
             continue
         
-        # Специальная логика для Зарплаты
+        # Специальная логика для Зарплаты: ВАШ ДОМ ФАКТ - УФИЦ Зарплата (без ФОТ)
         if category == 'Зарплата':
-            # Вычитаем УФИЦ зарплату и ФОТ управляющие
-            ufic_salary = ufic_dict.get('Зарплата', 0)
-            ufic_fot = ufic_dict.get('ФОТ управляющие персонал', 0)
-            consolidated_amount = vasdom_amount - ufic_salary - ufic_fot
+            consolidated_salary = vasdom_amount - ufic_salary
             
-            if consolidated_amount > 0:
-                total += consolidated_amount
+            if consolidated_salary > 0:
+                total += consolidated_salary
                 expenses.append({
                     "category": category,
-                    "amount": consolidated_amount
+                    "amount": consolidated_salary
                 })
         else:
             # Для остальных категорий: только ВАШ ДОМ ФАКТ ("так же")
@@ -1157,7 +1158,8 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
                 "amount": vasdom_amount
             })
     
-    # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель (уборщицы)
+    # Добавляем Аутсорсинг персонала = Выручка УФИЦ модель ПОМЕСЯЧНО (суммируем)
+    ufic_revenue_total = sum(ufic_revenue_by_month.values())
     if ufic_revenue_total > 0:
         total += ufic_revenue_total
         expenses.append({
