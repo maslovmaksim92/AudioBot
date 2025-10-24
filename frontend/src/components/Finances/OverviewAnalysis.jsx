@@ -55,6 +55,7 @@ function OverviewAnalysis() {
           <SelectContent>
             <SelectItem value="ООО ВАШ ДОМ">ООО ВАШ ДОМ</SelectItem>
             <SelectItem value="УФИЦ">УФИЦ</SelectItem>
+            <SelectItem value="Консолидированный">Консолидированный</SelectItem>
           </SelectContent>
         </Select>
       </div>
