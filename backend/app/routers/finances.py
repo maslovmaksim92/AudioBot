@@ -1032,9 +1032,28 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
     
     Логика:
     - Большинство категорий ("так же"): только ВАШ ДОМ ФАКТ
-    - Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал)
-    - Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ
+    - Зарплата: ВАШ ДОМ ФАКТ - (УФИЦ Зарплата + УФИЦ ФОТ управляющие персонал) помесячно
+    - Налоги: 5% от выручки каждого месяца
+    - Исключить: Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ, Юридические услуги, Продукты питания
     """
+    # Получаем выручку для расчета налогов
+    if month:
+        revenue_query = """
+            SELECT month, revenue
+            FROM monthly_revenue
+            WHERE company = 'ВАШ ДОМ модель' AND month = $1
+        """
+        revenue_rows = await conn.fetch(revenue_query, month)
+    else:
+        revenue_query = """
+            SELECT month, revenue
+            FROM monthly_revenue
+            WHERE company = 'ВАШ ДОМ модель'
+        """
+        revenue_rows = await conn.fetch(revenue_query)
+    
+    revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
+    
     # Получаем расходы ВАШ ДОМ ФАКТ
     if month:
         vasdom_query = """
@@ -1085,7 +1104,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         vasdom_amount = float(row['total_amount'])
         
         # Исключаем категории
-        if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ']:
+        if category in ['Кредиты', 'Швеи', 'Аутсорсинг персонала с Ю/ЦЛ', 'Юридические услуги', 'Продукты питания', 'Налоги']:
             continue
         
         # Специальная логика для Зарплаты
@@ -1108,6 +1127,16 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
                 "category": category,
                 "amount": vasdom_amount
             })
+    
+    # Добавляем Налоги: 5% от выручки
+    total_revenue = sum(revenue_by_month.values())
+    if total_revenue > 0:
+        taxes = total_revenue * 0.05
+        total += taxes
+        expenses.append({
+            "category": "Налоги",
+            "amount": taxes
+        })
     
     # Сортируем по убыванию
     expenses.sort(key=lambda x: x['amount'], reverse=True)
