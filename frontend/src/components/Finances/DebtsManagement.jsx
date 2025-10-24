@@ -31,14 +31,8 @@ function DebtsManagement() {
     const fetchDebts = async () => {
       try {
         setLoading(true);
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          setData(JSON.parse(stored));
-        } else {
-          const response = await axios.get(`${BACKEND_URL}/api/finances/debts`);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(response.data));
-          setData(response.data);
-        }
+        const response = await axios.get(`${BACKEND_URL}/api/finances/debts`);
+        setData(response.data);
       } catch (error) {
         console.error('Error:', error);
       } finally {
