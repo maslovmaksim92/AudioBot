@@ -8,7 +8,9 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 function RevenueAnalysis() {
   const [data, setData] = useState(null);
+  const [detailsData, setDetailsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [availableMonths, setAvailableMonths] = useState([]);
@@ -19,6 +21,7 @@ function RevenueAnalysis() {
 
   useEffect(() => {
     fetchRevenue();
+    fetchRevenueDetails();
   }, [selectedCompany, selectedMonth]);
 
   const fetchAvailableMonths = async () => {
@@ -45,6 +48,24 @@ function RevenueAnalysis() {
       console.error('Error fetching revenue:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRevenueDetails = async () => {
+    try {
+      setLoadingDetails(true);
+      const params = {
+        company: selectedCompany
+      };
+      if (selectedMonth !== 'all') {
+        params.month = selectedMonth;
+      }
+      const response = await axios.get(`${BACKEND_URL}/api/finances/revenue-details`, { params });
+      setDetailsData(response.data);
+    } catch (error) {
+      console.error('Error fetching revenue details:', error);
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
