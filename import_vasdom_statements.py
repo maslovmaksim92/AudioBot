@@ -35,7 +35,11 @@ def is_internal_transfer(text):
     if not text or pd.isna(text):
         return False
     text_lower = str(text).lower()
-    return 'ваш дом' in text_lower or 'ооо "ваш дом"' in text_lower or 'ооо ваш дом' in text_lower
+    return ('ваш дом' in text_lower or 
+            'ооо "ваш дом"' in text_lower or 
+            'ооо ваш дом' in text_lower or
+            'перевод средств между счетами' in text_lower or
+            'перевод между счетами' in text_lower)
 
 async def import_statements():
     db_url = os.environ.get('DATABASE_URL')
