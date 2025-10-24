@@ -1053,7 +1053,8 @@ async def get_consolidated_profit_loss(conn):
 
 async def get_consolidated_expenses(conn, month: Optional[str] = None):
     """
-    Консолидированные расходы: ВАШ ДОМ - УФИЦ
+    Консолидированные расходы: ВАШ ДОМ + УФИЦ
+    Исключаем: "Кредиты", "Аутсорсинг персонала с Ю/ЦЛ", "Швеи"
     """
     # Получаем расходы ВАШ ДОМ
     if month:
@@ -1089,40 +1090,45 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         """
         ufic_rows = await conn.fetch(ufic_query)
     
-    # Группируем УФИЦ по категориям
-    ufic_dict = {}
-    for row in ufic_rows:
-        ufic_dict[row['category']] = float(row['total_amount'])
+    # Группируем по категориям (ВАШ ДОМ + УФИЦ)
+    expenses_dict = {}
     
-    # Вычисляем консолидированные расходы
+    # Добавляем расходы ВАШ ДОМ
+    for row in vasdom_rows:
+        category = row['category']
+        amount = float(row['total_amount'])
+        
+        # Пропускаем исключаемые категории
+        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
+            continue
+        
+        if category not in expenses_dict:
+            expenses_dict[category] = 0
+        expenses_dict[category] += amount
+    
+    # Добавляем расходы УФИЦ
+    for row in ufic_rows:
+        category = row['category']
+        amount = float(row['total_amount'])
+        
+        # Пропускаем исключаемые категории
+        if category in ['Кредиты', 'Аутсорсинг персонала с Ю/ЦЛ', 'Швеи']:
+            continue
+        
+        if category not in expenses_dict:
+            expenses_dict[category] = 0
+        expenses_dict[category] += amount
+    
+    # Формируем результат
     expenses = []
     total = 0
     
-    for row in vasdom_rows:
-        category = row['category']
-        vasdom_amount = float(row['total_amount'])
-        
-        # Пропускаем Кредиты в консолидации
-        if 'кредит' in category.lower():
-            continue
-        
-        # Вычитаем УФИЦ
-        ufic_amount = 0
-        if category == 'Зарплата':
-            ufic_amount = ufic_dict.get('Зарплата', 0) + ufic_dict.get('ФОТ управляющие персонал', 0)
-        elif category == 'Налоги':
-            ufic_amount = ufic_dict.get('Налоги', 0) + ufic_dict.get('НДФЛ', 0)
-        else:
-            ufic_amount = ufic_dict.get(category, 0)
-        
-        consolidated_amount = vasdom_amount - ufic_amount
-        
-        if consolidated_amount > 0:
-            total += consolidated_amount
-            expenses.append({
-                "category": category,
-                "amount": consolidated_amount
-            })
+    for category, amount in expenses_dict.items():
+        total += amount
+        expenses.append({
+            "category": category,
+            "amount": amount
+        })
     
     # Сортируем по убыванию
     expenses.sort(key=lambda x: x['amount'], reverse=True)
