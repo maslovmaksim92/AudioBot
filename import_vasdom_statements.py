@@ -172,7 +172,13 @@ async def import_statements():
                         
                         # Извлекаем контрагента из назначения платежа если его нет
                         if not counterparty or counterparty == "":
-                            counterparty = extract_counterparty(purpose)
+                            extracted = extract_counterparty(purpose)
+                            if extracted:
+                                counterparty = extracted
+                            else:
+                                # Если не нашли ООО, берем первые значимые слова из назначения
+                                words = purpose.split()[:10]
+                                counterparty = ' '.join(words) if words else "Неизвестный контрагент"
                         
                         # Определяем категорию из назначения платежа
                         purpose_lower = purpose.lower()
