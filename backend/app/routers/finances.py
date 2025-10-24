@@ -165,7 +165,8 @@ async def get_profit_loss(
                 manual_rows = await conn.fetch("""
                     SELECT month, revenue
                     FROM monthly_revenue
-                """)
+                    WHERE company = $1
+                """, company)
                 manual_revenue = {row['month']: float(row['revenue']) for row in manual_rows}
             
             # Группируем данные по месяцам из даты
