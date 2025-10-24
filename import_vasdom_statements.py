@@ -171,22 +171,40 @@ async def import_statements():
                         
                         # Получаем назначение и контрагента
                         purpose = str(row[purpose_col]) if purpose_col and pd.notna(row[purpose_col]) else ""
-                        counterparty = str(row[counterparty_col]) if counterparty_col and pd.notna(row[counterparty_col]) else ""
                         
                         # Пропускаем операции между своими счетами
-                        if is_internal_transfer(purpose) or is_internal_transfer(counterparty):
+                        if is_internal_transfer(purpose):
                             skipped += 1
                             continue
                         
-                        # Извлекаем контрагента из назначения платежа если его нет
-                        if not counterparty or counterparty == "":
-                            extracted = extract_counterparty(purpose)
-                            if extracted:
-                                counterparty = extracted
+                        # Получаем контрагента
+                        if is_alpha:
+                            # Для Альфа-банка фиксированный контрагент
+                            counterparty = 'ООО УК "Ваш Уют"'
+                        else:
+                            # Для Сбербанка - из колонки
+                            counterparty_raw = str(row[counterparty_col]) if counterparty_col and pd.notna(row[counterparty_col]) else ""
+                            
+                            if is_internal_transfer(counterparty_raw):
+                                skipped += 1
+                                continue
+                            
+                            # Извлекаем название ООО из многострочного значения
+                            if counterparty_raw and len(counterparty_raw) > 5:
+                                # Ищем строку с ООО/АО и т.д.
+                                lines = counterparty_raw.split('\n')
+                                counterparty = None
+                                for line in lines:
+                                    line = line.strip()
+                                    if any(org_type in line.upper() for org_type in ['ООО', 'АО', 'ПАО', 'ИП', 'ЗАО']):
+                                        counterparty = line
+                                        break
+                                
+                                if not counterparty:
+                                    # Берем последнюю строку если не нашли ООО
+                                    counterparty = lines[-1].strip() if lines else counterparty_raw[:255]
                             else:
-                                # Если не нашли ООО, берем первые значимые слова из назначения
-                                words = purpose.split()[:10]
-                                counterparty = ' '.join(words) if words else "Неизвестный контрагент"
+                                counterparty = "Контрагент не указан"
                         
                         # Определяем категорию из назначения платежа
                         purpose_lower = purpose.lower()
