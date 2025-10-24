@@ -9,7 +9,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'
 function OverviewAnalysis() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
+  const [selectedCompany, setSelectedCompany] = useState('ВАШ ДОМ ФАКТ');
 
   useEffect(() => {
     loadData();
