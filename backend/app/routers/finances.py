@@ -684,4 +684,70 @@ async def get_expense_details(month: str, company: Optional[str] = "ООО ВА�
             await conn.close()
     except Exception as e:
         logger.error(f"Error fetching expense details: {e}")
+
+
+@router.get("/finances/revenue-analysis")
+async def get_revenue_analysis(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
+    """
+    Анализ выручки по категориям
+    Параметры:
+    - month: Опциональный фильтр по месяцу (например, "Январь 2025")
+    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Получаем реальные данные из БД
+            if month:
+                query = """
+                    SELECT category, SUM(amount) as total_amount
+                    FROM financial_transactions
+                    WHERE type = 'income' AND project = $1 AND company = $2
+                    GROUP BY category
+                    ORDER BY total_amount DESC
+                """
+                rows = await conn.fetch(query, month, company)
+            else:
+                query = """
+                    SELECT category, SUM(amount) as total_amount
+                    FROM financial_transactions
+                    WHERE type = 'income' AND company = $1
+                    GROUP BY category
+                    ORDER BY total_amount DESC
+                """
+                rows = await conn.fetch(query, company)
+            
+            if not rows:
+                # Если данных нет, возвращаем пустой результат
+                return {
+                    "revenue": [],
+                    "total": 0,
+                    "month": month
+                }
+            
+            # Вычисляем общую сумму
+            total = sum(float(row['total_amount']) for row in rows)
+            
+            # Формируем результат с процентами
+            revenue = []
+            for row in rows:
+                amount = float(row['total_amount'])
+                percentage = (amount / total * 100) if total > 0 else 0
+                revenue.append({
+                    "category": row['category'],
+                    "amount": amount,
+                    "percentage": round(percentage, 2)
+                })
+            
+            return {
+                "revenue": revenue,
+                "total": total,
+                "month": month
+            }
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error fetching revenue analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
         raise HTTPException(status_code=500, detail=str(e))
