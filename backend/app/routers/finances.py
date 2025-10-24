@@ -950,6 +950,94 @@ async def get_consolidated_profit_loss(conn):
         "summary": {
             "total_revenue": total_revenue,
             "total_expenses": total_expenses,
+
+
+async def get_consolidated_expenses(conn, month: Optional[str] = None):
+    """
+    Консолидированные расходы: ВАШ ДОМ - УФИЦ
+    """
+    # Получаем расходы ВАШ ДОМ
+    if month:
+        vasdom_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND project = $1 AND company = 'ООО ВАШ ДОМ'
+            GROUP BY category
+        """
+        vasdom_rows = await conn.fetch(vasdom_query, month)
+        
+        ufic_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND project = $1 AND company = 'УФИЦ'
+            GROUP BY category
+        """
+        ufic_rows = await conn.fetch(ufic_query, month)
+    else:
+        vasdom_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'ООО ВАШ ДОМ'
+            GROUP BY category
+        """
+        vasdom_rows = await conn.fetch(vasdom_query)
+        
+        ufic_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'УФИЦ'
+            GROUP BY category
+        """
+        ufic_rows = await conn.fetch(ufic_query)
+    
+    # Группируем УФИЦ по категориям
+    ufic_dict = {}
+    for row in ufic_rows:
+        ufic_dict[row['category']] = float(row['total_amount'])
+    
+    # Вычисляем консолидированные расходы
+    expenses = []
+    total = 0
+    
+    for row in vasdom_rows:
+        category = row['category']
+        vasdom_amount = float(row['total_amount'])
+        
+        # Пропускаем Кредиты в консолидации
+        if 'кредит' in category.lower():
+            continue
+        
+        # Вычитаем УФИЦ
+        ufic_amount = 0
+        if category == 'Зарплата':
+            ufic_amount = ufic_dict.get('Зарплата', 0) + ufic_dict.get('ФОТ управляющие персонал', 0)
+        elif category == 'Налоги':
+            ufic_amount = ufic_dict.get('Налоги', 0) + ufic_dict.get('НДФЛ', 0)
+        else:
+            ufic_amount = ufic_dict.get(category, 0)
+        
+        consolidated_amount = vasdom_amount - ufic_amount
+        
+        if consolidated_amount > 0:
+            total += consolidated_amount
+            expenses.append({
+                "category": category,
+                "amount": consolidated_amount
+            })
+    
+    # Сортируем по убыванию
+    expenses.sort(key=lambda x: x['amount'], reverse=True)
+    
+    # Добавляем проценты
+    for expense in expenses:
+        expense['percentage'] = round((expense['amount'] / total * 100), 2) if total > 0 else 0
+    
+    return {
+        "expenses": expenses,
+        "total": total,
+        "month": month
+    }
+
             "total_profit": total_profit,
             "margin": round(total_margin, 2)
         }
