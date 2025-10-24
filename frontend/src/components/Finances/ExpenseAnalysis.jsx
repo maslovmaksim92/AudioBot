@@ -15,7 +15,7 @@ function ExpenseAnalysis() {
   const [loading, setLoading] = useState(true);
   const [availableMonths, setAvailableMonths] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState('all');
-  const [selectedCompany, setSelectedCompany] = useState('ООО ВАШ ДОМ');
+  const [selectedCompany, setSelectedCompany] = useState('ВАШ ДОМ ФАКТ');
 
   useEffect(() => {
     fetchAvailableMonths();
