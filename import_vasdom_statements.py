@@ -129,9 +129,8 @@ async def import_statements():
                     if 'контрагент' in col_str or 'название платежа' in col_str:
                         counterparty_col = col
                 
-                # Для Сбербанка контрагент в колонке 4 (E)
-                if is_sber:
-                    counterparty_col = df.columns[4]
+                # Для Сбербанка контрагент в колонке 4 (E) - используем индекс
+                sber_counterparty_idx = 4 if is_sber else None
                 
                 print(f"Найденные колонки:")
                 print(f"  Дата: {date_col}")
