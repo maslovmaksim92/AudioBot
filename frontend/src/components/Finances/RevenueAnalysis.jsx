@@ -98,9 +98,9 @@ function RevenueAnalysis() {
                   <SelectValue placeholder="Компания" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ООО ВАШ ДОМ">ООО ВАШ ДОМ</SelectItem>
-                  <SelectItem value="УФИЦ">УФИЦ</SelectItem>
-                  <SelectItem value="ООО ВАШ ДОМ + УФИЦ">ООО ВАШ ДОМ + УФИЦ</SelectItem>
+                  <SelectItem value="ВАШ ДОМ ФАКТ">ВАШ ДОМ ФАКТ</SelectItem>
+                  <SelectItem value="УФИЦ модель">УФИЦ модель</SelectItem>
+                  <SelectItem value="ВАШ ДОМ модель">ВАШ ДОМ модель</SelectItem>
                 </SelectContent>
               </Select>
               
