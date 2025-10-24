@@ -779,12 +779,12 @@ async def get_revenue_analysis(month: Optional[str] = None, company: Optional[st
 
 
 @router.get("/finances/revenue-details")
-async def get_revenue_details(month: Optional[str] = None, company: Optional[str] = "ООО ВАШ ДОМ"):
+async def get_revenue_details(month: Optional[str] = None, company: Optional[str] = "ВАШ ДОМ ФАКТ"):
     """
     Получить детальные транзакции доходов
     Параметры:
     - month: Опциональный фильтр по месяцу (например, "Январь 2025")
-    - company: Фильтр по компании (по умолчанию "ООО ВАШ ДОМ")
+    - company: Фильтр по компании (по умолчанию "ВАШ ДОМ ФАКТ")
     """
     try:
         conn = await get_db_connection()
