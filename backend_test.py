@@ -1582,7 +1582,7 @@ async def test_ufic_forecast_endpoint():
                 if forecast:
                     print(f"📋 Прогноз {scenario} (2026-2030):")
                     for f in forecast:
-                        print(f"   {f['year']}: выручка {f['revenue']:,.0f}, расходы {f['expenses']:,.0f}, прибыль {f['profit']:,.0f}, маржа {f['margin']:.1f}%, уборщиц {f.get('cleaners_count', 'N/A')}")
+                        print(f"   {f['year']}: выручка {f['revenue']:,.0f}, расходы {f['expenses']:,.0f}, прибыль {f['profit']:,.0f}, маржа {f['margin']:.1f}%")
                 
                 print("")  # Empty line for readability
             
