@@ -1313,9 +1313,214 @@ async def test_database_connection():
         print(f"❌ Ошибка проверки БД: {str(e)}")
         return False
 
+async def test_ufic_forecast_endpoint():
+    """Test УФИЦ модель forecast endpoint with all three scenarios"""
+    print("\n=== ТЕСТ ПРОГНОЗА УФИЦ МОДЕЛЬ (2026-2030) ===\n")
+    
+    results = TestResults()
+    scenarios = ["pessimistic", "realistic", "optimistic"]
+    company = "УФИЦ модель"
+    
+    # Expected cleaners count by scenario
+    expected_cleaners = {
+        "pessimistic": 60,
+        "realistic": 65,
+        "optimistic": 70
+    }
+    
+    # Expected base year data (2025)
+    expected_base_revenue = 27325025  # ~27,325,025
+    expected_base_expenses = 19944709  # ~19,944,709
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем прогноз для компании: {company}")
+            print("📋 Проверяемые критерии:")
+            print("   1. Все три сценария возвращают 200 статус")
+            print("   2. Базовый год 2025 содержит: revenue ~27,325,025, expenses ~19,944,709")
+            print("   3. Количество уборщиц по сценариям: pessimistic=60, realistic=65, optimistic=70")
+            print("   4. Индексация 6% ежегодно (каждый следующий год на 6% больше)")
+            print("   5. Структура ответа содержит все необходимые поля")
+            print("   6. Маржа остается стабильной (~27%)")
+            print("")
+            
+            scenario_results = {}
+            
+            for scenario in scenarios:
+                print(f"🔍 Тестируем сценарий: {scenario}")
+                
+                # Test the forecast endpoint
+                response = await client.get(
+                    f"{API_BASE}/finances/forecast",
+                    params={"company": company, "scenario": scenario}
+                )
+                
+                print(f"📡 Ответ сервера для {scenario}: {response.status_code}")
+                
+                # Criterion 1: Check 200 status
+                if response.status_code != 200:
+                    error_msg = f"❌ Сценарий {scenario}: ошибка {response.status_code} - {response.text}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                data = response.json()
+                scenario_results[scenario] = data
+                print(f"✅ Сценарий {scenario}: 200 статус получен")
+                
+                # Validate response structure (Criterion 5)
+                required_fields = ['company', 'scenario', 'base_year', 'base_data', 'forecast', 'investor_metrics', 'scenario_info']
+                for field in required_fields:
+                    if field not in data:
+                        error_msg = f"❌ Сценарий {scenario}: отсутствует поле '{field}'"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Criterion 2: Check base year 2025 data
+                base_data = data.get('base_data', {})
+                base_revenue = base_data.get('revenue', 0)
+                base_expenses = base_data.get('expenses', 0)
+                
+                print(f"📊 Базовые данные 2025:")
+                print(f"   - Выручка: {base_revenue:,.2f} (ожидалось ~{expected_base_revenue:,})")
+                print(f"   - Расходы: {base_expenses:,.2f} (ожидалось ~{expected_base_expenses:,})")
+                
+                # Allow 10% tolerance for base data
+                revenue_tolerance = abs(base_revenue - expected_base_revenue) / expected_base_revenue
+                expenses_tolerance = abs(base_expenses - expected_base_expenses) / expected_base_expenses
+                
+                if revenue_tolerance > 0.1:
+                    error_msg = f"❌ Сценарий {scenario}: выручка 2025 отклоняется более чем на 10%: {base_revenue:,.2f} vs {expected_base_revenue:,}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Выручка 2025 в пределах допуска")
+                
+                if expenses_tolerance > 0.1:
+                    error_msg = f"❌ Сценарий {scenario}: расходы 2025 отклоняются более чем на 10%: {base_expenses:,.2f} vs {expected_base_expenses:,}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Расходы 2025 в пределах допуска")
+                
+                # Criterion 3: Check cleaners count
+                forecast = data.get('forecast', [])
+                if forecast:
+                    cleaners_count = forecast[0].get('cleaners_count', 0)
+                    expected_count = expected_cleaners[scenario]
+                    
+                    print(f"👥 Количество уборщиц: {cleaners_count} (ожидалось {expected_count})")
+                    
+                    if cleaners_count != expected_count:
+                        error_msg = f"❌ Сценарий {scenario}: неверное количество уборщиц: {cleaners_count} vs {expected_count}"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ Количество уборщиц корректно")
+                
+                # Criterion 4: Check 6% annual indexation
+                if len(forecast) >= 2:
+                    print(f"📈 Проверяем индексацию 6% ежегодно:")
+                    
+                    for i in range(1, len(forecast)):
+                        prev_year = forecast[i-1]
+                        curr_year = forecast[i]
+                        
+                        prev_revenue = prev_year['revenue']
+                        curr_revenue = curr_year['revenue']
+                        prev_expenses = prev_year['expenses']
+                        curr_expenses = curr_year['expenses']
+                        
+                        # Calculate growth rates
+                        revenue_growth = (curr_revenue / prev_revenue - 1) * 100 if prev_revenue > 0 else 0
+                        expenses_growth = (curr_expenses / prev_expenses - 1) * 100 if prev_expenses > 0 else 0
+                        
+                        print(f"   {prev_year['year']} → {curr_year['year']}: выручка +{revenue_growth:.2f}%, расходы +{expenses_growth:.2f}%")
+                        
+                        # Check if growth is approximately 6% (allow 0.5% tolerance)
+                        if abs(revenue_growth - 6.0) > 0.5:
+                            error_msg = f"❌ Сценарий {scenario}: неверная индексация выручки {prev_year['year']}→{curr_year['year']}: {revenue_growth:.2f}% vs 6%"
+                            results.errors.append(error_msg)
+                            print(f"   ❌ Выручка: ожидалось 6%, получено {revenue_growth:.2f}%")
+                        else:
+                            print(f"   ✅ Выручка: индексация 6% корректна")
+                        
+                        if abs(expenses_growth - 6.0) > 0.5:
+                            error_msg = f"❌ Сценарий {scenario}: неверная индексация расходов {prev_year['year']}→{curr_year['year']}: {expenses_growth:.2f}% vs 6%"
+                            results.errors.append(error_msg)
+                            print(f"   ❌ Расходы: ожидалось 6%, получено {expenses_growth:.2f}%")
+                        else:
+                            print(f"   ✅ Расходы: индексация 6% корректна")
+                
+                # Criterion 6: Check margin stability (~27%)
+                if forecast:
+                    margins = [f.get('margin', 0) for f in forecast]
+                    avg_margin = sum(margins) / len(margins) if margins else 0
+                    
+                    print(f"📊 Маржа по годам: {[f'{m:.1f}%' for m in margins]}")
+                    print(f"📊 Средняя маржа: {avg_margin:.2f}% (ожидалось ~27%)")
+                    
+                    # Check if average margin is around 27% (allow 5% tolerance)
+                    if abs(avg_margin - 27.0) > 5.0:
+                        error_msg = f"❌ Сценарий {scenario}: маржа отклоняется от ожидаемой: {avg_margin:.2f}% vs ~27%"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ Маржа стабильна и близка к ожидаемой")
+                
+                # Show forecast summary
+                if forecast:
+                    print(f"📋 Прогноз {scenario} (2026-2030):")
+                    for f in forecast:
+                        print(f"   {f['year']}: выручка {f['revenue']:,.0f}, расходы {f['expenses']:,.0f}, прибыль {f['profit']:,.0f}, маржа {f['margin']:.1f}%, уборщиц {f.get('cleaners_count', 'N/A')}")
+                
+                print("")  # Empty line for readability
+            
+            # Summary of all scenarios
+            print("📊 ИТОГОВАЯ СВОДКА ПО ВСЕМ СЦЕНАРИЯМ:")
+            print("=" * 60)
+            
+            successful_scenarios = []
+            failed_scenarios = []
+            
+            for scenario in scenarios:
+                if scenario in scenario_results:
+                    successful_scenarios.append(scenario)
+                    data = scenario_results[scenario]
+                    forecast = data.get('forecast', [])
+                    if forecast:
+                        first_year = forecast[0]
+                        last_year = forecast[-1]
+                        cleaners = first_year.get('cleaners_count', 'N/A')
+                        avg_margin = sum(f.get('margin', 0) for f in forecast) / len(forecast)
+                        
+                        print(f"✅ {scenario.upper()}: {cleaners} мест, маржа {avg_margin:.1f}%")
+                        print(f"   2026: {first_year['revenue']:,.0f} / {first_year['expenses']:,.0f}")
+                        print(f"   2030: {last_year['revenue']:,.0f} / {last_year['expenses']:,.0f}")
+                else:
+                    failed_scenarios.append(scenario)
+                    print(f"❌ {scenario.upper()}: ОШИБКА")
+            
+            print("")
+            print(f"✅ Успешных сценариев: {len(successful_scenarios)}/3")
+            if failed_scenarios:
+                print(f"❌ Неуспешных сценариев: {len(failed_scenarios)}/3 - {failed_scenarios}")
+            
+            # Store results
+            results.finance_endpoints['ufic_forecast'] = scenario_results
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании прогноза УФИЦ: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
     """Main test function"""
-    print("🚀 Запуск тестирования VasDom AudioBot - Финансовый модуль")
+    print("🚀 Запуск тестирования VasDom AudioBot - УФИЦ Прогноз")
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
     print("=" * 80)
