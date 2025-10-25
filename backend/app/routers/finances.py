@@ -1201,8 +1201,9 @@ async def get_forecast(
             base_profit = result_2025["summary"]["total_profit"]
             
             # Годовые коэффициенты роста (умножаем месячные на 12 для годового)
-            annual_revenue_growth = 1 + (revenue_growth_rate * 12)
-            annual_expense_growth = 1 + (expense_growth_rate * 12)
+            # Применяем множители сценария
+            annual_revenue_growth = 1 + (revenue_growth_rate * 12 * scenario_config["revenue_multiplier"])
+            annual_expense_growth = 1 + (expense_growth_rate * 12 * scenario_config["expense_multiplier"])
             
             # Генерируем прогноз на 2026-2030
             forecast = []
