@@ -1362,12 +1362,14 @@ async def get_forecast(
             
             # Получаем данные прибылей/убытков за 2025 год
             expense_breakdown_2025 = {}  # Инициализируем для всех случаев
+            total_expenses_2025 = 0  # Инициализируем для всех случаев
             
             if company == "ВАШ ДОМ модель":
                 result_2025 = await get_consolidated_profit_loss(conn)
                 # Для ВАШ ДОМ модель используем упрощенную детализацию
+                total_expenses_2025 = result_2025["summary"]["total_expenses"]
                 expense_breakdown_2025 = {
-                    "operating_expenses": result_2025["summary"]["total_expenses"]
+                    "operating_expenses": total_expenses_2025
                 }
             else:
                 # Для ВАШ ДОМ ФАКТ используем специальную логику с тремя сценариями
