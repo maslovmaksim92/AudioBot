@@ -95,7 +95,9 @@ function ForecastView() {
               <p className="text-sm text-gray-600">{scenario_info?.description || 'Прогноз на основе текущих данных'}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          
+          {/* Показатели роста */}
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
             <div>
               <span className="text-gray-600">Рост выручки (год):</span>
               <span className="ml-2 font-bold text-green-600">+{scenario_info?.revenue_growth_rate?.toFixed(1) || 0}%</span>
@@ -105,10 +107,52 @@ function ForecastView() {
               <span className="ml-2 font-bold text-red-600">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
             </div>
           </div>
+
+          {/* Расширенное описание сценария */}
+          {scenario_info?.detailed_description && (
+            <div className="mt-4 space-y-3">
+              {scenario_info.detailed_description.summary && (
+                <div className="p-3 bg-white rounded-lg border-l-4 border-blue-500">
+                  <p className="text-sm font-semibold text-blue-800">
+                    💡 {scenario_info.detailed_description.summary}
+                  </p>
+                </div>
+              )}
+              
+              {scenario_info.detailed_description.revenue_factors && scenario_info.detailed_description.revenue_factors.length > 0 && (
+                <div className="p-3 bg-white rounded-lg">
+                  <p className="text-sm font-bold text-green-700 mb-2">📈 За счет чего рост выручки:</p>
+                  <ul className="space-y-1">
+                    {scenario_info.detailed_description.revenue_factors.map((factor, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 flex items-start">
+                        <span className="text-green-600 mr-2">•</span>
+                        <span>{factor}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {scenario_info.detailed_description.expense_factors && scenario_info.detailed_description.expense_factors.length > 0 && (
+                <div className="p-3 bg-white rounded-lg">
+                  <p className="text-sm font-bold text-red-700 mb-2">📊 Структура расходов:</p>
+                  <ul className="space-y-1">
+                    {scenario_info.detailed_description.expense_factors.map((factor, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span>{factor}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {scenario_info?.cleaners_info && (
-            <div className="mt-4 p-3 bg-white rounded-lg border-l-4 border-blue-500">
-              <p className="text-sm font-semibold text-blue-800">
-                📋 {scenario_info.cleaners_info}
+            <div className="mt-4 p-3 bg-white rounded-lg border-l-4 border-purple-500">
+              <p className="text-sm font-semibold text-purple-800">
+                👥 {scenario_info.cleaners_info}
               </p>
             </div>
           )}
