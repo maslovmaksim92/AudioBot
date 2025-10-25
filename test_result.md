@@ -297,12 +297,8 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "ВАШ ДОМ ФАКТ forecast endpoint - critical errors"
-    - "ВАШ ДОМ модель forecast endpoint - critical errors"
-  stuck_tasks:
-    - "ВАШ ДОМ ФАКТ forecast endpoint - critical errors"
-    - "ВАШ ДОМ модель forecast endpoint - critical errors"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
