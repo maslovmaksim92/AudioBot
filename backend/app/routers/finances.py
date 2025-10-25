@@ -1262,6 +1262,7 @@ async def get_forecast(
             
             return {
                 "company": company,
+                "scenario": scenario,
                 "base_year": 2025,
                 "base_data": {
                     "revenue": round(base_revenue, 2),
@@ -1270,7 +1271,13 @@ async def get_forecast(
                     "margin": result_2025["summary"]["margin"]
                 },
                 "forecast": forecast,
-                "investor_metrics": investor_metrics
+                "investor_metrics": investor_metrics,
+                "scenario_info": {
+                    "name": scenario,
+                    "description": scenario_config["description"],
+                    "revenue_growth_rate": round(annual_revenue_growth * 100 - 100, 2),
+                    "expense_growth_rate": round(annual_expense_growth * 100 - 100, 2)
+                }
             }
             
         finally:
