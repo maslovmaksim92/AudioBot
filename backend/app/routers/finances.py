@@ -1095,11 +1095,7 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
 
 @router.get("/finances/forecast")
 async def get_forecast(company: Optional[str] = "ВАШ ДОМ ФАКТ"):
-    """
-    Получить прогноз на 2026-2030 годы на основе данных 2025
-    Параметры:
-    - company: Компания для прогноза (по умолчанию ВАШ ДОМ ФАКТ)
-    """
+    """Get forecast for 2026-2030 based on 2025 data"""
     try:
         conn = await get_db_connection()
         try:
