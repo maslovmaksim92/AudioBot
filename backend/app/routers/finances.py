@@ -1361,8 +1361,14 @@ async def get_forecast(
                 }
             
             # Получаем данные прибылей/убытков за 2025 год
+            expense_breakdown_2025 = {}  # Инициализируем для всех случаев
+            
             if company == "ВАШ ДОМ модель":
                 result_2025 = await get_consolidated_profit_loss(conn)
+                # Для ВАШ ДОМ модель используем упрощенную детализацию
+                expense_breakdown_2025 = {
+                    "operating_expenses": result_2025["summary"]["total_expenses"]
+                }
             else:
                 # Получаем выручку
                 revenue_rows = await conn.fetch("""
