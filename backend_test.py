@@ -1625,14 +1625,7 @@ async def test_vasdom_fact_forecast_endpoint():
         results.errors.append(error_msg)
         print(error_msg)
     
-    return resultss:,.0f}, получено {expenses:,.0f}"
-                            results.errors.append(error_msg)
-                            print(error_msg)
-                        else:
-                            margin = (revenue - expenses) / revenue * 100
-                            print(f"✅ {year}: маржа 20% корректна ({margin:.1f}%)")
-                
-                elif scenario == "realistic":
+    return results
                     # Check 40% growth for 2026, then x1.40 annually; 30% expense growth for 2026, then x1.30 annually
                     for i, year_data in enumerate(forecast):
                         year = year_data.get('year')
