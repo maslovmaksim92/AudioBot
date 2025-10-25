@@ -1129,17 +1129,16 @@ async def get_forecast(
             
             scenario_config = scenario_coefficients.get(scenario, scenario_coefficients["realistic"])
             
-            # Для УФИЦ модель используем данные расчета на основе фактических данных 2025
+            # Для УФИЦ модель используем данные расчета на основе фактических данных 2025 по категориям
             if company == "УФИЦ модель":
-                # Получаем фактические данные УФИЦ за 2025
-                ufic_revenue_query = """
-                    SELECT SUM(revenue) as total_revenue
-                    FROM monthly_revenue
-                    WHERE company = 'УФИЦ модель'
-                """
-                ufic_revenue_result = await conn.fetchrow(ufic_revenue_query)
-                ufic_revenue_2025 = float(ufic_revenue_result['total_revenue']) if ufic_revenue_result['total_revenue'] else 27104525
+                # Получаем фактические данные УФИЦ за 2025 по категориям
+                # Выручка по категориям (из данных пользователя)
+                ufic_revenue_sewing = 3219125  # Швеи УФИЦ
+                ufic_revenue_cleaning = 23811900  # Уборщицы УФИЦ
+                ufic_revenue_outsourcing = 73500  # Аутсорсинг УФИЦ
+                ufic_revenue_2025 = ufic_revenue_sewing + ufic_revenue_cleaning + ufic_revenue_outsourcing  # 27,104,525
                 
+                # Расходы получаем из БД
                 ufic_expenses_query = """
                     SELECT SUM(amount) as total_expenses
                     FROM financial_transactions
@@ -1148,25 +1147,39 @@ async def get_forecast(
                 ufic_expenses_result = await conn.fetchrow(ufic_expenses_query)
                 ufic_expenses_2025 = float(ufic_expenses_result['total_expenses']) if ufic_expenses_result['total_expenses'] else 19944709
                 
-                # Среднее количество рабочих мест в 2025 году (из Excel данных)
-                avg_places_2025 = 47.0
+                # Среднее количество рабочих мест в 2025 году по категориям (из Excel - реалистичный сценарий)
+                avg_sewing_2025 = 42.83  # Швеи
+                avg_cleaning_2025 = 43.25  # Уборщицы
+                avg_outsourcing_2025 = 1.33  # Аутсорсинг
                 
-                # Метрики на 1 рабочее место
-                revenue_per_place = ufic_revenue_2025 / avg_places_2025
-                expenses_per_place = ufic_expenses_2025 / avg_places_2025
+                # Метрики на 1 рабочее место по категориям
+                revenue_per_sewing = ufic_revenue_sewing / avg_sewing_2025
+                revenue_per_cleaning = ufic_revenue_cleaning / avg_cleaning_2025
+                revenue_per_outsourcing = ufic_revenue_outsourcing / avg_outsourcing_2025 if avg_outsourcing_2025 > 0 else 0
                 
-                # Количество мест по сценариям на 2026
+                # Расходы распределяем пропорционально выручке
+                expenses_per_sewing = ufic_expenses_2025 * (ufic_revenue_sewing / ufic_revenue_2025)
+                expenses_per_cleaning = ufic_expenses_2025 * (ufic_revenue_cleaning / ufic_revenue_2025)
+                expenses_per_outsourcing = ufic_expenses_2025 * (ufic_revenue_outsourcing / ufic_revenue_2025)
+                
+                # Количество мест по сценариям на Feb 2026 для каждой категории
                 places_by_scenario = {
-                    "pessimistic": 60,
-                    "realistic": 65,
-                    "optimistic": 70
+                    "pessimistic": {
+                        "sewing": 60,  # Швеи
+                        "cleaning": 60,  # Уборщицы
+                        "outsourcing": 14  # Аутсорсинг
+                    },
+                    "realistic": {
+                        "sewing": 41,  # Швеи
+                        "cleaning": 40,  # Уборщицы
+                        "outsourcing": 5  # Аутсорсинг
+                    },
+                    "optimistic": {
+                        "sewing": 65,  # Швеи
+                        "cleaning": 70,  # Уборщицы
+                        "outsourcing": 20  # Аутсорсинг
+                    }
                 }
-                
-                places_2026 = places_by_scenario.get(scenario, 65)
-                
-                # Базовые значения на Feb 2026 (пересчет на новое количество мест)
-                base_revenue_2026 = revenue_per_place * places_2026
-                base_expenses_2026 = expenses_per_place * places_2026
                 
                 # Генерируем прогноз с годовой индексацией 6%
                 indexation_rate = 1.06
@@ -1176,27 +1189,34 @@ async def get_forecast(
                         "years": [],
                         "base_revenue": ufic_revenue_2025,
                         "base_expenses": ufic_expenses_2025,
-                        "description": f"Консервативный прогноз: {places_by_scenario['pessimistic']} рабочих мест. Индексация 6% ежегодно."
+                        "description": f"Консервативный прогноз: Швеи {places_by_scenario['pessimistic']['sewing']}, Уборщицы {places_by_scenario['pessimistic']['cleaning']}, Аутсорсинг {places_by_scenario['pessimistic']['outsourcing']}. Индексация 6% ежегодно."
                     },
                     "realistic": {
                         "years": [],
                         "base_revenue": ufic_revenue_2025,
                         "base_expenses": ufic_expenses_2025,
-                        "description": f"Реалистичный прогноз: {places_by_scenario['realistic']} рабочих мест. Индексация 6% ежегодно."
+                        "description": f"Реалистичный прогноз: Швеи {places_by_scenario['realistic']['sewing']}, Уборщицы {places_by_scenario['realistic']['cleaning']}, Аутсорсинг {places_by_scenario['realistic']['outsourcing']}. Индексация 6% ежегодно."
                     },
                     "optimistic": {
                         "years": [],
                         "base_revenue": ufic_revenue_2025,
                         "base_expenses": ufic_expenses_2025,
-                        "description": f"Оптимистичный прогноз: {places_by_scenario['optimistic']} рабочих мест. Индексация 6% ежегодно."
+                        "description": f"Оптимистичный прогноз: Швеи {places_by_scenario['optimistic']['sewing']}, Уборщицы {places_by_scenario['optimistic']['cleaning']}, Аутсорсинг {places_by_scenario['optimistic']['outsourcing']}. Индексация 6% ежегодно."
                     }
                 }
                 
                 # Заполняем данные для всех сценариев
-                for scen_name, places_count in places_by_scenario.items():
-                    # Базовые значения на Feb 2026 для этого сценария
-                    scen_base_revenue = revenue_per_place * places_count
-                    scen_base_expenses = expenses_per_place * places_count
+                for scen_name, places_counts in places_by_scenario.items():
+                    # Базовая выручка на Feb 2026 для этого сценария (пересчет по категориям)
+                    base_revenue_sewing = (ufic_revenue_sewing / avg_sewing_2025) * places_counts["sewing"]
+                    base_revenue_cleaning = (ufic_revenue_cleaning / avg_cleaning_2025) * places_counts["cleaning"]
+                    base_revenue_outsourcing = (ufic_revenue_outsourcing / avg_outsourcing_2025) * places_counts["outsourcing"] if avg_outsourcing_2025 > 0 else 0
+                    scen_base_revenue = base_revenue_sewing + base_revenue_cleaning + base_revenue_outsourcing
+                    
+                    # Базовые расходы на Feb 2026 пропорционально выручке
+                    scen_base_expenses = ufic_expenses_2025 * (scen_base_revenue / ufic_revenue_2025)
+                    
+                    total_places = places_counts["sewing"] + places_counts["cleaning"] + places_counts["outsourcing"]
                     
                     for year in range(2026, 2031):
                         years_passed = year - 2026
@@ -1209,7 +1229,7 @@ async def get_forecast(
                             "revenue": round(indexed_revenue, 2),
                             "expenses": round(indexed_expenses, 2),
                             "profit": round(indexed_profit, 2),
-                            "cleaners": places_count  # Фиксированное количество мест
+                            "cleaners": total_places  # Общее количество мест
                         })
                     
                     ufic_data[scen_name]["base_revenue"] = ufic_revenue_2025
