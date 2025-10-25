@@ -1394,6 +1394,7 @@ async def get_forecast(
                     "scenario_info": {
                         "name": scenario,
                         "description": ufic_scenario["description"],
+                        "detailed_description": ufic_excel_data[scenario].get("detailed_description", {}),
                         "revenue_growth_rate": round(revenue_growth, 2),
                         "expense_growth_rate": round(expense_growth, 2),
                         "cleaners_info": f"Количество уборщиц: {forecast[0]['cleaners_count']} (2026) → {forecast[-1]['cleaners_count']} (2030)"
