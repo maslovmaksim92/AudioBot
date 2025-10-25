@@ -2379,63 +2379,185 @@ async def test_forecast_updates_after_changes():
     
     return results
 
+async def test_forecast_endpoints_after_bugfix():
+    """Test specific forecast endpoints after bug fix as requested in review"""
+    print("\n=== БЫСТРАЯ ПРОВЕРКА ПРОГНОЗОВ ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ ===\n")
+    
+    results = TestResults()
+    
+    # Endpoints to test as specified in the review request
+    test_endpoints = [
+        ("УФИЦ модель", "realistic"),
+        ("ВАШ ДОМ ФАКТ", "realistic"),
+        ("ВАШ ДОМ модель", "realistic")
+    ]
+    
+    print("🎯 Цель тестирования:")
+    print("   - Все три endpoint возвращают 200 статус")
+    print("   - Нет ошибок 'cannot access local variable 'expense_breakdown_2025''")
+    print("   - Данные прогноза присутствуют для всех компаний")
+    print("   - Детализация (revenue_breakdown, expense_breakdown) присутствует где нужно")
+    print("")
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for i, (company, scenario) in enumerate(test_endpoints, 1):
+                print(f"🔍 {i}. Тестируем GET /api/finances/forecast?company={company}&scenario={scenario}")
+                
+                # Test the forecast endpoint
+                response = await client.get(
+                    f"{API_BASE}/finances/forecast",
+                    params={"company": company, "scenario": scenario}
+                )
+                
+                print(f"📡 Ответ сервера: {response.status_code}")
+                
+                # Check 200 status
+                if response.status_code != 200:
+                    error_msg = f"❌ {company}: ошибка {response.status_code} - {response.text}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    
+                    # Check for specific error mentioned in review
+                    if "cannot access local variable 'expense_breakdown_2025'" in response.text:
+                        results.errors.append(f"❌ {company}: найдена ошибка 'expense_breakdown_2025'")
+                        print("❌ Найдена критическая ошибка с неинициализированной переменной!")
+                    
+                    continue
+                
+                print(f"✅ {company}: 200 статус получен")
+                
+                try:
+                    data = response.json()
+                    results.finance_endpoints[f'forecast_{company}_{scenario}'] = data
+                    
+                    # Check if forecast data is present
+                    if 'forecast' not in data:
+                        error_msg = f"❌ {company}: отсутствуют данные прогноза (поле 'forecast')"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                        continue
+                    
+                    forecast_data = data.get('forecast', [])
+                    if not forecast_data:
+                        error_msg = f"❌ {company}: пустые данные прогноза"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                        continue
+                    
+                    print(f"✅ {company}: данные прогноза присутствуют ({len(forecast_data)} лет)")
+                    
+                    # Check for detailed breakdown (revenue_breakdown, expense_breakdown)
+                    has_revenue_breakdown = False
+                    has_expense_breakdown = False
+                    
+                    for year_data in forecast_data:
+                        if 'revenue_breakdown' in year_data:
+                            has_revenue_breakdown = True
+                        if 'expense_breakdown' in year_data:
+                            has_expense_breakdown = True
+                    
+                    if has_revenue_breakdown:
+                        print(f"✅ {company}: детализация доходов (revenue_breakdown) присутствует")
+                    else:
+                        print(f"⚠️ {company}: детализация доходов (revenue_breakdown) отсутствует")
+                    
+                    if has_expense_breakdown:
+                        print(f"✅ {company}: детализация расходов (expense_breakdown) присутствует")
+                    else:
+                        print(f"⚠️ {company}: детализация расходов (expense_breakdown) отсутствует")
+                    
+                    # Show basic forecast info
+                    if forecast_data:
+                        first_year = forecast_data[0]
+                        print(f"📊 {company}: первый год прогноза - {first_year.get('year')}")
+                        print(f"   - Выручка: {first_year.get('revenue', 0):,.0f}")
+                        print(f"   - Расходы: {first_year.get('expenses', 0):,.0f}")
+                        print(f"   - Прибыль: {first_year.get('profit', 0):,.0f}")
+                    
+                    # Validate basic structure
+                    required_fields = ['company', 'scenario', 'forecast']
+                    for field in required_fields:
+                        if field not in data:
+                            error_msg = f"❌ {company}: отсутствует поле '{field}'"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {company}: поле '{field}' присутствует")
+                    
+                except json.JSONDecodeError as e:
+                    error_msg = f"❌ {company}: ошибка парсинга JSON - {str(e)}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                except Exception as e:
+                    error_msg = f"❌ {company}: ошибка обработки ответа - {str(e)}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                
+                print("")  # Empty line for readability
+            
+            # Summary of the quick check
+            print("📋 ИТОГИ БЫСТРОЙ ПРОВЕРКИ:")
+            
+            total_endpoints = len(test_endpoints)
+            successful_endpoints = total_endpoints - len([e for e in results.errors if "ошибка" in e and ("200" not in e)])
+            
+            print(f"   - Всего endpoint'ов: {total_endpoints}")
+            print(f"   - Успешных (200 статус): {successful_endpoints}")
+            print(f"   - Неудачных: {total_endpoints - successful_endpoints}")
+            
+            # Check specific error
+            expense_breakdown_errors = [e for e in results.errors if "expense_breakdown_2025" in e]
+            if expense_breakdown_errors:
+                print(f"   - ❌ Найдены ошибки с expense_breakdown_2025: {len(expense_breakdown_errors)}")
+            else:
+                print(f"   - ✅ Ошибки 'expense_breakdown_2025' не найдены")
+            
+            # Overall success criteria
+            if not results.errors:
+                print("\n🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ:")
+                print("   ✅ Все endpoint возвращают 200 статус")
+                print("   ✅ Нет ошибок 'cannot access local variable 'expense_breakdown_2025''")
+                print("   ✅ Данные прогноза присутствуют для всех компаний")
+                print("   ✅ Детализация присутствует где нужно")
+            else:
+                print(f"\n⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ ({len(results.errors)} ошибок)")
+                for error in results.errors:
+                    print(f"   {error}")
+    
+    except Exception as e:
+        error_msg = f"❌ Критическая ошибка при тестировании прогнозов: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
-    """Main test function - focused on review request"""
-    print("🚀 ТЕСТИРОВАНИЕ ОБНОВЛЕНИЙ ПРОГНОЗОВ ПОСЛЕ ВСЕХ ИЗМЕНЕНИЙ")
+    """Main test execution"""
+    print("🚀 ЗАПУСК БЫСТРОЙ ПРОВЕРКИ ПРОГНОЗОВ ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ")
+    print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
     print("=" * 80)
     
-    # Test the specific forecast updates as requested in review
-    forecast_results = await test_forecast_updates_after_changes()
+    # Execute the specific forecast test as requested in the review
+    result = await test_forecast_endpoints_after_bugfix()
     
-    # Final summary
     print("\n" + "=" * 80)
-    print("📋 ИТОГОВЫЙ ОТЧЁТ ТЕСТИРОВАНИЯ:")
+    print("📋 ИТОГОВЫЙ ОТЧЁТ")
     print("=" * 80)
     
-    success_count = 0
-    total_tests = 3
-    
-    # Check each criterion
-    criteria_results = [
-        ("УФИЦ оптимистичный: детализация с 10% работает", 
-         'ufic_optimistic' in forecast_results.finance_endpoints and 
-         not any("УФИЦ" in str(error) and "10%" in str(error) for error in forecast_results.errors)),
-        
-        ("ВАШ ДОМ ФАКТ: рост 30% + детализация работает", 
-         'vasdom_fact_realistic' in forecast_results.finance_endpoints and 
-         not any("ВАШ ДОМ ФАКТ" in str(error) and "30%" in str(error) for error in forecast_results.errors)),
-        
-        ("ВАШ ДОМ модель: расходы загружаются", 
-         'vasdom_model_expenses' in forecast_results.finance_endpoints and 
-         not any("ВАШ ДОМ модель" in str(error) for error in forecast_results.errors))
-    ]
-    
-    for criterion, is_met in criteria_results:
-        status = "✅" if is_met else "❌"
-        print(f"{status} {criterion}")
-        if is_met:
-            success_count += 1
-    
-    print(f"\n📊 СТАТИСТИКА:")
-    print(f"   - Успешных тестов: {success_count}/{total_tests}")
-    print(f"   - Общее количество ошибок: {len(forecast_results.errors)}")
-    
-    if len(forecast_results.errors) == 0:
-        print(f"\n🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
-        print(f"✅ Все обновления прогнозов работают корректно")
+    if not result.errors:
+        print("🎉 БЫСТРАЯ ПРОВЕРКА ЗАВЕРШЕНА УСПЕШНО!")
+        print("✅ Все прогнозы работают корректно после исправления ошибки")
     else:
-        print(f"\n⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ:")
-        for i, error in enumerate(forecast_results.errors, 1):
+        print(f"⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ: {len(result.errors)} ошибок")
+        for i, error in enumerate(result.errors, 1):
             print(f"   {i}. {error}")
     
-    print("\n" + "=" * 80)
-    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
-    print("=" * 80)
+    print("\n🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     
-    # Return success/failure
-    return len(forecast_results.errors) == 0
+    return [("Forecast Endpoints After Bugfix", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
