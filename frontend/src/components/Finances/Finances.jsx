@@ -12,7 +12,8 @@ import RevenueAnalysis from './RevenueAnalysis';
 import DebtsManagement from './DebtsManagement';
 import PaymentCalendar from './PaymentCalendar';
 import TransactionForm from './TransactionForm';
-import { TrendingUp, DollarSign, PieChart, CreditCard, BarChart3, Plus, Upload, Activity, List, Calendar } from 'lucide-react';
+import ForecastView from './ForecastView';
+import { TrendingUp, DollarSign, PieChart, CreditCard, BarChart3, Plus, Upload, Activity, List, Calendar, LineChart } from 'lucide-react';
 
 function Finances() {
   const [activeTab, setActiveTab] = useState('overview');
