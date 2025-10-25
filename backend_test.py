@@ -1509,32 +1509,6 @@ async def test_ufic_forecast_endpoint():
                         error_msg = f"❌ Сценарий {scenario}: не найдены данные 2026 года для проверки индексации"
                         results.errors.append(error_msg)
                         print(error_msg)
-                        
-                        prev_revenue = prev_year['revenue']
-                        curr_revenue = curr_year['revenue']
-                        prev_expenses = prev_year['expenses']
-                        curr_expenses = curr_year['expenses']
-                        
-                        # Calculate growth rates
-                        revenue_growth = (curr_revenue / prev_revenue - 1) * 100 if prev_revenue > 0 else 0
-                        expenses_growth = (curr_expenses / prev_expenses - 1) * 100 if prev_expenses > 0 else 0
-                        
-                        print(f"   {prev_year['year']} → {curr_year['year']}: выручка +{revenue_growth:.2f}%, расходы +{expenses_growth:.2f}%")
-                        
-                        # Check if growth is approximately 6% (allow 0.5% tolerance)
-                        if abs(revenue_growth - 6.0) > 0.5:
-                            error_msg = f"❌ Сценарий {scenario}: неверная индексация выручки {prev_year['year']}→{curr_year['year']}: {revenue_growth:.2f}% vs 6%"
-                            results.errors.append(error_msg)
-                            print(f"   ❌ Выручка: ожидалось 6%, получено {revenue_growth:.2f}%")
-                        else:
-                            print(f"   ✅ Выручка: индексация 6% корректна")
-                        
-                        if abs(expenses_growth - 6.0) > 0.5:
-                            error_msg = f"❌ Сценарий {scenario}: неверная индексация расходов {prev_year['year']}→{curr_year['year']}: {expenses_growth:.2f}% vs 6%"
-                            results.errors.append(error_msg)
-                            print(f"   ❌ Расходы: ожидалось 6%, получено {expenses_growth:.2f}%")
-                        else:
-                            print(f"   ✅ Расходы: индексация 6% корректна")
                 
                 # Criterion 6: Check margin calculation correctness
                 if forecast:
