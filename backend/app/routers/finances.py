@@ -1129,6 +1129,120 @@ async def get_forecast(
             
             scenario_config = scenario_coefficients.get(scenario, scenario_coefficients["realistic"])
             
+            # Для УФИЦ модель используем данные из Excel файла
+            if company == "УФИЦ модель":
+                ufic_data = {
+                    "pessimistic": {
+                        "years": [
+                            {"year": 2026, "revenue": 45658000, "expenses": 36000000, "profit": 9658000, "cleaners": 23},
+                            {"year": 2027, "revenue": 45689000, "expenses": 36000000, "profit": 9689000, "cleaners": 34},
+                            {"year": 2028, "revenue": 45717000, "expenses": 36000000, "profit": 9717000, "cleaners": 46},
+                            {"year": 2029, "revenue": 45748000, "expenses": 36000000, "profit": 9748000, "cleaners": 55},
+                            {"year": 2030, "revenue": 45778000, "expenses": 36000000, "profit": 9778000, "cleaners": 57}
+                        ],
+                        "base_revenue": 27325025,  # 2025 год
+                        "base_expenses": 23811900,  # 2025 год (Аутсорсинг персонала)
+                        "description": "Низкая загрузка, снижение спроса на услуги. Количество уборщиц растет постепенно с 23 до 57."
+                    },
+                    "realistic": {
+                        "years": [
+                            {"year": 2026, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
+                            {"year": 2027, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
+                            {"year": 2028, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
+                            {"year": 2029, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
+                            {"year": 2030, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60}
+                        ],
+                        "base_revenue": 27325025,
+                        "base_expenses": 23811900,
+                        "description": "Стабильный рост, умеренное привлечение клиентов. Постоянное количество уборщиц: 60."
+                    },
+                    "optimistic": {
+                        "years": [
+                            {"year": 2026, "revenue": 62620000, "expenses": 42290000, "profit": 20330000, "cleaners": 84},
+                            {"year": 2027, "revenue": 64900000, "expenses": 41290000, "profit": 23610000, "cleaners": 201},
+                            {"year": 2028, "revenue": 68000000, "expenses": 40890000, "profit": 27110000, "cleaners": 216},
+                            {"year": 2029, "revenue": 72000000, "expenses": 40490000, "profit": 31510000, "cleaners": 216},
+                            {"year": 2030, "revenue": 72000000, "expenses": 40490000, "profit": 31510000, "cleaners": 216}
+                        ],
+                        "base_revenue": 27325025,
+                        "base_expenses": 23811900,
+                        "description": "Высокая загрузка, активное привлечение клиентов. Резкий рост уборщиц с 84 до 216."
+                    }
+                }
+                
+                ufic_scenario = ufic_data.get(scenario, ufic_data["realistic"])
+                
+                # Используем данные из Excel
+                forecast = []
+                for year_data in ufic_scenario["years"]:
+                    margin = (year_data["profit"] / year_data["revenue"] * 100) if year_data["revenue"] > 0 else 0
+                    forecast.append({
+                        "year": year_data["year"],
+                        "revenue": year_data["revenue"],
+                        "expenses": year_data["expenses"],
+                        "profit": year_data["profit"],
+                        "margin": round(margin, 2),
+                        "cleaners_count": year_data["cleaners"]  # Добавляем количество уборщиц
+                    })
+                
+                # Базовые данные 2025
+                base_revenue = ufic_scenario["base_revenue"]
+                base_expenses = ufic_scenario["base_expenses"]
+                base_profit = base_revenue - base_expenses
+                base_margin = (base_profit / base_revenue * 100) if base_revenue > 0 else 0
+                
+                # Расчеты для инвестора
+                total_forecast_profit = sum(f["profit"] for f in forecast)
+                average_annual_profit = total_forecast_profit / len(forecast)
+                average_margin = sum(f["margin"] for f in forecast) / len(forecast)
+                investment_amount = base_expenses
+                roi_5_years = (total_forecast_profit / investment_amount * 100) if investment_amount > 0 else 0
+                
+                # Срок окупаемости
+                cumulative_profit = 0
+                payback_period = None
+                for i, f in enumerate(forecast):
+                    cumulative_profit += f["profit"]
+                    if cumulative_profit >= investment_amount and payback_period is None:
+                        payback_period = i + 1
+                
+                if payback_period is None:
+                    payback_period = "> 5 лет"
+                
+                # Рост выручки и расходов (из первого и последнего года)
+                revenue_growth = ((forecast[-1]["revenue"] / forecast[0]["revenue"]) ** (1/5) - 1) * 100
+                expense_growth = ((forecast[-1]["expenses"] / forecast[0]["expenses"]) ** (1/5) - 1) * 100
+                
+                return {
+                    "company": company,
+                    "scenario": scenario,
+                    "base_year": 2025,
+                    "base_data": {
+                        "revenue": round(base_revenue, 2),
+                        "expenses": round(base_expenses, 2),
+                        "profit": round(base_profit, 2),
+                        "margin": round(base_margin, 2)
+                    },
+                    "forecast": forecast,
+                    "investor_metrics": {
+                        "investment_amount": round(investment_amount, 2),
+                        "total_profit_5_years": round(total_forecast_profit, 2),
+                        "average_annual_profit": round(average_annual_profit, 2),
+                        "average_margin": round(average_margin, 2),
+                        "roi_5_years": round(roi_5_years, 2),
+                        "payback_period": payback_period,
+                        "revenue_growth_rate": round(revenue_growth, 2),
+                        "expense_growth_rate": round(expense_growth, 2)
+                    },
+                    "scenario_info": {
+                        "name": scenario,
+                        "description": ufic_scenario["description"],
+                        "revenue_growth_rate": round(revenue_growth, 2),
+                        "expense_growth_rate": round(expense_growth, 2),
+                        "cleaners_info": f"Количество уборщиц: {forecast[0]['cleaners_count']} (2026) → {forecast[-1]['cleaners_count']} (2030)"
+                    }
+                }
+            
             # Получаем данные прибылей/убытков за 2025 год
             if company == "ВАШ ДОМ модель":
                 result_2025 = await get_consolidated_profit_loss(conn)
