@@ -1832,7 +1832,7 @@ async def test_ufic_forecast_detailed_breakdown():
 
 async def main():
     """Main test function"""
-    print("🚀 Запуск тестирования VasDom AudioBot - УФИЦ Прогноз")
+    print("🚀 Запуск тестирования VasDom AudioBot - УФИЦ Прогноз с Детализацией")
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
     print("=" * 80)
@@ -1845,14 +1845,14 @@ async def main():
     if not db_working:
         all_errors.append("❌ База данных недоступна")
     
-    # ===== УФИЦ FORECAST TESTING =====
-    print("\n🏢 ТЕСТИРОВАНИЕ ПРОГНОЗА УФИЦ МОДЕЛЬ")
+    # ===== УФИЦ FORECAST DETAILED BREAKDOWN TESTING =====
+    print("\n🏢 ТЕСТИРОВАНИЕ ДЕТАЛИЗИРОВАННОГО ПРОГНОЗА УФИЦ МОДЕЛЬ")
     print("=" * 80)
     
-    # Test УФИЦ forecast endpoint with all three scenarios
-    ufic_forecast_results = await test_ufic_forecast_endpoint()
-    all_errors.extend(ufic_forecast_results.errors)
-    finance_results['ufic_forecast'] = ufic_forecast_results
+    # Test УФИЦ forecast endpoint with detailed breakdown
+    ufic_detailed_results = await test_ufic_forecast_detailed_breakdown()
+    all_errors.extend(ufic_detailed_results.errors)
+    finance_results['ufic_detailed_forecast'] = ufic_detailed_results
     
     # Final summary
     print("\n" + "=" * 80)
