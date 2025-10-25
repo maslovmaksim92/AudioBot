@@ -1395,32 +1395,33 @@ async def test_ufic_forecast_endpoint():
                     else:
                         print(f"✅ Поле '{field}' присутствует")
                 
-                # Criterion 2: Check base year 2025 data
+                # Criterion 2: Check base year 2025 data from Excel
                 base_data = data.get('base_data', {})
                 base_revenue = base_data.get('revenue', 0)
                 base_expenses = base_data.get('expenses', 0)
                 
-                print(f"📊 Базовые данные 2025:")
-                print(f"   - Выручка: {base_revenue:,.2f} (ожидалось ~{expected_base_revenue:,})")
-                print(f"   - Расходы: {base_expenses:,.2f} (ожидалось ~{expected_base_expenses:,})")
+                expected_scenario_data = expected_data[scenario]
+                expected_revenue_2025 = expected_scenario_data["revenue_2025"]
+                expected_expenses_2025 = expected_scenario_data["expenses_2025"]
                 
-                # Allow 10% tolerance for base data
-                revenue_tolerance = abs(base_revenue - expected_base_revenue) / expected_base_revenue
-                expenses_tolerance = abs(base_expenses - expected_base_expenses) / expected_base_expenses
+                print(f"📊 Базовые данные 2025 (из Excel):")
+                print(f"   - Выручка: {base_revenue:,.0f} (ожидалось {expected_revenue_2025:,})")
+                print(f"   - Расходы: {base_expenses:,.0f} (ожидалось {expected_expenses_2025:,})")
                 
-                if revenue_tolerance > 0.1:
-                    error_msg = f"❌ Сценарий {scenario}: выручка 2025 отклоняется более чем на 10%: {base_revenue:,.2f} vs {expected_base_revenue:,}"
+                # Check exact values from Excel (allow small rounding differences)
+                if abs(base_revenue - expected_revenue_2025) > 1:
+                    error_msg = f"❌ Сценарий {scenario}: выручка 2025 не соответствует Excel: {base_revenue:,.0f} vs {expected_revenue_2025:,}"
                     results.errors.append(error_msg)
                     print(error_msg)
                 else:
-                    print(f"✅ Выручка 2025 в пределах допуска")
+                    print(f"✅ Выручка 2025 соответствует Excel данным")
                 
-                if expenses_tolerance > 0.1:
-                    error_msg = f"❌ Сценарий {scenario}: расходы 2025 отклоняются более чем на 10%: {base_expenses:,.2f} vs {expected_base_expenses:,}"
+                if abs(base_expenses - expected_expenses_2025) > 1:
+                    error_msg = f"❌ Сценарий {scenario}: расходы 2025 не соответствуют Excel: {base_expenses:,.0f} vs {expected_expenses_2025:,}"
                     results.errors.append(error_msg)
                     print(error_msg)
                 else:
-                    print(f"✅ Расходы 2025 в пределах допуска")
+                    print(f"✅ Расходы 2025 соответствуют Excel данным")
                 
                 # Criterion 3: Check cleaners count
                 forecast = data.get('forecast', [])
