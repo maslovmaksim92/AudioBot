@@ -1269,14 +1269,20 @@ async def get_forecast(
                 forecast = []
                 for year_data in ufic_scenario["years"]:
                     margin = (year_data["profit"] / year_data["revenue"] * 100) if year_data["revenue"] > 0 else 0
-                    forecast.append({
+                    forecast_item = {
                         "year": year_data["year"],
                         "revenue": year_data["revenue"],
                         "expenses": year_data["expenses"],
                         "profit": year_data["profit"],
                         "margin": round(margin, 2),
                         "cleaners_count": year_data["cleaners"]  # Добавляем количество уборщиц
-                    })
+                    }
+                    # Добавляем детализацию доходов и расходов если есть
+                    if "revenue_breakdown" in year_data:
+                        forecast_item["revenue_breakdown"] = year_data["revenue_breakdown"]
+                    if "expense_breakdown" in year_data:
+                        forecast_item["expense_breakdown"] = year_data["expense_breakdown"]
+                    forecast.append(forecast_item)
                 
                 # Базовые данные 2025
                 base_revenue = ufic_scenario["base_revenue"]
