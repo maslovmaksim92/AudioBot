@@ -1423,20 +1423,44 @@ async def test_ufic_forecast_endpoint():
                 else:
                     print(f"✅ Расходы 2025 соответствуют Excel данным")
                 
-                # Criterion 3: Check cleaners count
+                # Criterion 3: Check 2026 data from Excel
                 forecast = data.get('forecast', [])
                 if forecast:
-                    cleaners_count = forecast[0].get('cleaners_count', 0)
-                    expected_count = expected_cleaners[scenario]
+                    # Find 2026 data
+                    year_2026_data = None
+                    for year_data in forecast:
+                        if year_data.get('year') == 2026:
+                            year_2026_data = year_data
+                            break
                     
-                    print(f"👥 Количество уборщиц: {cleaners_count} (ожидалось {expected_count})")
-                    
-                    if cleaners_count != expected_count:
-                        error_msg = f"❌ Сценарий {scenario}: неверное количество уборщиц: {cleaners_count} vs {expected_count}"
+                    if year_2026_data:
+                        revenue_2026 = year_2026_data.get('revenue', 0)
+                        expenses_2026 = year_2026_data.get('expenses', 0)
+                        expected_revenue_2026 = expected_scenario_data["revenue_2026"]
+                        expected_expenses_2026 = expected_scenario_data["expenses_2026"]
+                        
+                        print(f"📊 Данные 2026 года (из Excel):")
+                        print(f"   - Выручка: {revenue_2026:,.0f} (ожидалось {expected_revenue_2026:,})")
+                        print(f"   - Расходы: {expenses_2026:,.0f} (ожидалось {expected_expenses_2026:,})")
+                        
+                        # Check 2026 values from Excel
+                        if abs(revenue_2026 - expected_revenue_2026) > 1:
+                            error_msg = f"❌ Сценарий {scenario}: выручка 2026 не соответствует Excel: {revenue_2026:,.0f} vs {expected_revenue_2026:,}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ Выручка 2026 соответствует Excel данным")
+                        
+                        if abs(expenses_2026 - expected_expenses_2026) > 1:
+                            error_msg = f"❌ Сценарий {scenario}: расходы 2026 не соответствуют Excel: {expenses_2026:,.0f} vs {expected_expenses_2026:,}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ Расходы 2026 соответствуют Excel данным")
+                    else:
+                        error_msg = f"❌ Сценарий {scenario}: данные за 2026 год не найдены в прогнозе"
                         results.errors.append(error_msg)
                         print(error_msg)
-                    else:
-                        print(f"✅ Количество уборщиц корректно")
                 
                 # Criterion 4: Check 6% annual indexation
                 if len(forecast) >= 2:
