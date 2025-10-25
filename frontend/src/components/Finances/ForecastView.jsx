@@ -160,6 +160,9 @@ function ForecastView() {
                   <th className="text-right p-3 font-bold">Расходы</th>
                   <th className="text-right p-3 font-bold">Прибыль</th>
                   <th className="text-right p-3 font-bold">Маржа</th>
+                  {selectedCompany === 'УФИЦ модель' && forecast[0]?.cleaners_count && (
+                    <th className="text-right p-3 font-bold">Уборщиц</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -174,6 +177,9 @@ function ForecastView() {
                         {formatCurrency(year.profit)}
                       </td>
                       <td className="text-right p-3 font-semibold">{year.margin}%</td>
+                      {selectedCompany === 'УФИЦ модель' && year.cleaners_count && (
+                        <td className="text-right p-3 font-bold text-purple-600">{year.cleaners_count}</td>
+                      )}
                     </tr>
                   );
                 })}
@@ -193,6 +199,11 @@ function ForecastView() {
                   <td className="text-right p-3">
                     {(forecast.reduce((sum, y) => sum + y.margin, 0) / forecast.length).toFixed(1)}%
                   </td>
+                  {selectedCompany === 'УФИЦ модель' && forecast[0]?.cleaners_count && (
+                    <td className="text-right p-3 text-purple-700">
+                      Ср: {Math.round(forecast.reduce((sum, y) => sum + (y.cleaners_count || 0), 0) / forecast.length)}
+                    </td>
+                  )}
                 </tr>
               </tfoot>
             </table>
