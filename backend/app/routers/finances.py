@@ -1487,19 +1487,15 @@ async def get_forecast(
             forecast = []
             
             # 2026 год - первый год прогноза
-            revenue_2026 = base_revenue * current_scenario["revenue_growth"]
-            
-            # Расходы 2026 рассчитываем в зависимости от сценария
-            if current_scenario["target_margin"] is not None:
-                # Для пессимистичного: расходы = выручка * (1 - маржа)
-                expenses_2026 = revenue_2026 * (1 - current_scenario["target_margin"])
+            if "revenue_2026" in current_scenario:
+                # Пессимистичный: фиксированная выручка
+                revenue_2026 = current_scenario["revenue_2026"]
             else:
-                # Для реалистичного и оптимистичного: расходы растут пропорционально выручке, но медленнее
-                if scenario == "realistic":
-                    expenses_growth = 1.30  # Расходы растут на 30%
-                else:  # optimistic
-                    expenses_growth = 1.40  # Расходы растут на 40%
-                expenses_2026 = base_expenses * expenses_growth
+                # Реалистичный и оптимистичный: рост от базы
+                revenue_2026 = base_revenue * current_scenario["revenue_growth"]
+            
+            # Расходы 2026 рассчитываем по росту расходов
+            expenses_2026 = base_expenses * current_scenario["expense_growth"]
             
             # Детализация расходов на 2026
             expense_breakdown_2026 = {}
@@ -1527,24 +1523,15 @@ async def get_forecast(
                 "expense_breakdown": expense_breakdown_2026
             })
             
-            # Для 2027-2030 применяем ту же индексацию
+            # Для 2027-2030 применяем индексацию
             for year in range(2027, 2031):
                 years_from_2026 = year - 2026
                 
-                # Выручка растет по тому же коэффициенту
+                # Выручка растет по коэффициенту
                 indexed_revenue = revenue_2026 * (current_scenario["revenue_growth"] ** years_from_2026)
                 
-                # Расходы
-                if current_scenario["target_margin"] is not None:
-                    # Пессимистичный: сохраняем маржу 20%
-                    indexed_expenses = indexed_revenue * (1 - current_scenario["target_margin"])
-                else:
-                    # Реалистичный и оптимистичный: расходы растут медленнее
-                    if scenario == "realistic":
-                        expense_growth_rate = 1.30
-                    else:  # optimistic
-                        expense_growth_rate = 1.40
-                    indexed_expenses = expenses_2026 * (expense_growth_rate ** years_from_2026)
+                # Расходы растут по своему коэффициенту
+                indexed_expenses = expenses_2026 * (current_scenario["expense_growth"] ** years_from_2026)
                 
                 indexed_profit = indexed_revenue - indexed_expenses
                 indexed_margin = (indexed_profit / indexed_revenue * 100) if indexed_revenue > 0 else 0
