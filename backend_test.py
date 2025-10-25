@@ -2058,86 +2058,384 @@ async def test_ufic_forecast_updated_optimistic():
     
     return results
 
+async def test_forecast_updates_after_changes():
+    """Test forecast updates after all changes as specified in review request"""
+    print("\n=== ТЕСТ ОБНОВЛЕНИЙ ПРОГНОЗОВ ПОСЛЕ ВСЕХ ИЗМЕНЕНИЙ ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print("🔍 Тестируем обновления прогнозов согласно техническому заданию:")
+            print("")
+            
+            # Test 1: УФИЦ модель - оптимистичный сценарий с 10% индексацией
+            print("1️⃣ УФИЦ модель - оптимистичный сценарий с 10% индексацией")
+            print("=" * 60)
+            
+            response = await client.get(
+                f"{API_BASE}/finances/forecast",
+                params={"company": "УФИЦ модель", "scenario": "optimistic"}
+            )
+            
+            print(f"📡 GET /api/finances/forecast?company=УФИЦ модель&scenario=optimistic")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ УФИЦ оптимистичный сценарий: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['ufic_optimistic'] = data
+                
+                print("✅ УФИЦ оптимистичный сценарий получен успешно")
+                
+                # Check forecast years 2027-2030 for 10% indexation
+                forecast = data.get('forecast', [])
+                
+                # Find 2026 base data for comparison
+                base_2026 = None
+                for year_data in forecast:
+                    if year_data.get('year') == 2026:
+                        base_2026 = year_data
+                        break
+                
+                if base_2026:
+                    base_revenue_2026 = base_2026.get('revenue', 0)
+                    base_expenses_2026 = base_2026.get('expenses', 0)
+                    
+                    print(f"📊 Базовые данные 2026:")
+                    print(f"   - Выручка: {base_revenue_2026:,.0f}")
+                    print(f"   - Расходы: {base_expenses_2026:,.0f}")
+                    
+                    # Check 10% indexation for years 2027-2030
+                    indexation_years = [2027, 2028, 2029, 2030]
+                    
+                    for i, year in enumerate(indexation_years, 1):
+                        year_data = None
+                        for forecast_year in forecast:
+                            if forecast_year.get('year') == year:
+                                year_data = forecast_year
+                                break
+                        
+                        if year_data:
+                            actual_revenue = year_data.get('revenue', 0)
+                            actual_expenses = year_data.get('expenses', 0)
+                            
+                            # Expected values with 10% indexation
+                            expected_revenue = base_revenue_2026 * (1.10 ** i)
+                            expected_expenses = base_expenses_2026 * (1.10 ** i)
+                            
+                            print(f"📈 {year} год (10% индексация):")
+                            print(f"   - Выручка: {actual_revenue:,.0f} (ожидалось {expected_revenue:,.0f})")
+                            print(f"   - Расходы: {actual_expenses:,.0f} (ожидалось {expected_expenses:,.0f})")
+                            
+                            # Check with 1% tolerance
+                            revenue_diff = abs(actual_revenue - expected_revenue) / expected_revenue
+                            expenses_diff = abs(actual_expenses - expected_expenses) / expected_expenses
+                            
+                            if revenue_diff > 0.01:
+                                error_msg = f"❌ УФИЦ {year}: неверная индексация выручки 10% (отклонение {revenue_diff:.2%})"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ Выручка {year}: индексация 10% корректна")
+                            
+                            if expenses_diff > 0.01:
+                                error_msg = f"❌ УФИЦ {year}: неверная индексация расходов 10% (отклонение {expenses_diff:.2%})"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ Расходы {year}: индексация 10% корректна")
+                        else:
+                            error_msg = f"❌ УФИЦ: отсутствуют данные для {year} года"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                    
+                    # Check revenue_breakdown contains sewing, cleaning, outsourcing
+                    print("\n🔍 Проверяем детализацию доходов (revenue_breakdown):")
+                    
+                    for year_data in forecast:
+                        year = year_data.get('year')
+                        if year >= 2027 and year <= 2030:
+                            revenue_breakdown = year_data.get('revenue_breakdown', {})
+                            
+                            required_categories = ['sewing', 'cleaning', 'outsourcing']
+                            for category in required_categories:
+                                if category not in revenue_breakdown:
+                                    error_msg = f"❌ УФИЦ {year}: отсутствует {category} в revenue_breakdown"
+                                    results.errors.append(error_msg)
+                                    print(error_msg)
+                                else:
+                                    value = revenue_breakdown[category]
+                                    print(f"✅ {year} {category}: {value:,.0f}")
+                else:
+                    error_msg = "❌ УФИЦ: отсутствуют базовые данные 2026 года"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+            
+            print("\n")
+            
+            # Test 2: ВАШ ДОМ ФАКТ - реалистичный сценарий с 30% индексацией
+            print("2️⃣ ВАШ ДОМ ФАКТ - реалистичный сценарий с 30% индексацией")
+            print("=" * 60)
+            
+            response = await client.get(
+                f"{API_BASE}/finances/forecast",
+                params={"company": "ВАШ ДОМ ФАКТ", "scenario": "realistic"}
+            )
+            
+            print(f"📡 GET /api/finances/forecast?company=ВАШ ДОМ ФАКТ&scenario=realistic")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ ВАШ ДОМ ФАКТ реалистичный сценарий: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['vasdom_fact_realistic'] = data
+                
+                print("✅ ВАШ ДОМ ФАКТ реалистичный сценарий получен успешно")
+                
+                # Check forecast years 2027-2030 for 30% indexation
+                forecast = data.get('forecast', [])
+                
+                # Find 2026 base data for comparison
+                base_2026 = None
+                for year_data in forecast:
+                    if year_data.get('year') == 2026:
+                        base_2026 = year_data
+                        break
+                
+                if base_2026:
+                    base_revenue_2026 = base_2026.get('revenue', 0)
+                    base_expenses_2026 = base_2026.get('expenses', 0)
+                    
+                    print(f"📊 Базовые данные 2026:")
+                    print(f"   - Выручка: {base_revenue_2026:,.0f}")
+                    print(f"   - Расходы: {base_expenses_2026:,.0f}")
+                    
+                    # Check 30% indexation for years 2027-2030
+                    indexation_years = [2027, 2028, 2029, 2030]
+                    
+                    for i, year in enumerate(indexation_years, 1):
+                        year_data = None
+                        for forecast_year in forecast:
+                            if forecast_year.get('year') == year:
+                                year_data = forecast_year
+                                break
+                        
+                        if year_data:
+                            actual_revenue = year_data.get('revenue', 0)
+                            actual_expenses = year_data.get('expenses', 0)
+                            
+                            # Expected values with 30% indexation
+                            expected_revenue = base_revenue_2026 * (1.30 ** i)
+                            expected_expenses = base_expenses_2026 * (1.30 ** i)
+                            
+                            print(f"📈 {year} год (30% индексация):")
+                            print(f"   - Выручка: {actual_revenue:,.0f} (ожидалось {expected_revenue:,.0f})")
+                            print(f"   - Расходы: {actual_expenses:,.0f} (ожидалось {expected_expenses:,.0f})")
+                            
+                            # Verify specific calculations
+                            if year == 2027:
+                                expected_2027 = base_revenue_2026 * 1.30
+                                print(f"   - 2027 = 2026 * 1.30 = {base_revenue_2026:,.0f} * 1.30 = {expected_2027:,.0f}")
+                            elif year == 2028:
+                                expected_2028 = base_revenue_2026 * (1.30 ** 2)
+                                print(f"   - 2028 = 2026 * 1.30^2 = {base_revenue_2026:,.0f} * {1.30**2:.4f} = {expected_2028:,.0f}")
+                            elif year == 2029:
+                                expected_2029 = base_revenue_2026 * (1.30 ** 3)
+                                print(f"   - 2029 = 2026 * 1.30^3 = {base_revenue_2026:,.0f} * {1.30**3:.4f} = {expected_2029:,.0f}")
+                            elif year == 2030:
+                                expected_2030 = base_revenue_2026 * (1.30 ** 4)
+                                print(f"   - 2030 = 2026 * 1.30^4 = {base_revenue_2026:,.0f} * {1.30**4:.4f} = {expected_2030:,.0f}")
+                            
+                            # Check with 1% tolerance
+                            revenue_diff = abs(actual_revenue - expected_revenue) / expected_revenue
+                            expenses_diff = abs(actual_expenses - expected_expenses) / expected_expenses
+                            
+                            if revenue_diff > 0.01:
+                                error_msg = f"❌ ВАШ ДОМ ФАКТ {year}: неверная индексация выручки 30% (отклонение {revenue_diff:.2%})"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ Выручка {year}: индексация 30% корректна")
+                            
+                            if expenses_diff > 0.01:
+                                error_msg = f"❌ ВАШ ДОМ ФАКТ {year}: неверная индексация расходов 30% (отклонение {expenses_diff:.2%})"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ Расходы {year}: индексация 30% корректна")
+                        else:
+                            error_msg = f"❌ ВАШ ДОМ ФАКТ: отсутствуют данные для {year} года"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                    
+                    # Check revenue_breakdown and expense_breakdown exist
+                    print("\n🔍 Проверяем детализацию доходов и расходов:")
+                    
+                    for year_data in forecast:
+                        year = year_data.get('year')
+                        if year >= 2027 and year <= 2030:
+                            revenue_breakdown = year_data.get('revenue_breakdown', {})
+                            expense_breakdown = year_data.get('expense_breakdown', {})
+                            
+                            if not revenue_breakdown:
+                                error_msg = f"❌ ВАШ ДОМ ФАКТ {year}: отсутствует revenue_breakdown"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ {year}: revenue_breakdown присутствует ({len(revenue_breakdown)} категорий)")
+                            
+                            if not expense_breakdown:
+                                error_msg = f"❌ ВАШ ДОМ ФАКТ {year}: отсутствует expense_breakdown"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ {year}: expense_breakdown присутствует ({len(expense_breakdown)} категорий)")
+                else:
+                    error_msg = "❌ ВАШ ДОМ ФАКТ: отсутствуют базовые данные 2026 года"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+            
+            print("\n")
+            
+            # Test 3: ВАШ ДОМ модель - расходы endpoint
+            print("3️⃣ ВАШ ДОМ модель - расходы endpoint")
+            print("=" * 60)
+            
+            response = await client.get(
+                f"{API_BASE}/finances/expenses",
+                params={"company": "ВАШ ДОМ модель"}
+            )
+            
+            print(f"📡 GET /api/finances/expenses?company=ВАШ ДОМ модель")
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ ВАШ ДОМ модель расходы: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                data = response.json()
+                results.finance_endpoints['vasdom_model_expenses'] = data
+                
+                print("✅ ВАШ ДОМ модель расходы получены успешно")
+                
+                # Validate basic structure
+                if 'expenses' in data:
+                    expenses = data['expenses']
+                    print(f"📊 Количество категорий расходов: {len(expenses)}")
+                    
+                    if 'total' in data:
+                        total = data['total']
+                        print(f"💰 Общая сумма расходов: {total:,.0f}")
+                    
+                    print("✅ Endpoint возвращает данные без ошибок")
+                else:
+                    error_msg = "❌ ВАШ ДОМ модель: неверная структура ответа (отсутствует поле 'expenses')"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+            
+            print("\n")
+            
+            # Summary of success criteria
+            print("📋 КРИТЕРИИ УСПЕХА:")
+            print("=" * 60)
+            
+            success_criteria = [
+                ("УФИЦ оптимистичный: детализация с 10% работает", 
+                 'ufic_optimistic' in results.finance_endpoints and 
+                 not any("УФИЦ" in error and "10%" in error for error in results.errors)),
+                
+                ("ВАШ ДОМ ФАКТ: рост 30% + детализация работает", 
+                 'vasdom_fact_realistic' in results.finance_endpoints and 
+                 not any("ВАШ ДОМ ФАКТ" in error and "30%" in error for error in results.errors)),
+                
+                ("ВАШ ДОМ модель: расходы загружаются", 
+                 'vasdom_model_expenses' in results.finance_endpoints and 
+                 not any("ВАШ ДОМ модель" in error for error in results.errors))
+            ]
+            
+            for criterion, is_met in success_criteria:
+                status = "✅" if is_met else "❌"
+                print(f"{status} {criterion}")
+            
+            all_criteria_met = all(is_met for _, is_met in success_criteria)
+            
+            if all_criteria_met:
+                print("\n🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
+            else:
+                print(f"\n⚠️ НЕ ВСЕ КРИТЕРИИ ВЫПОЛНЕНЫ")
+                
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании обновлений прогнозов: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
-    """Main test function"""
-    print("🚀 Запуск тестирования VasDom AudioBot - УФИЦ Прогноз с Детализацией")
+    """Main test function - focused on review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ОБНОВЛЕНИЙ ПРОГНОЗОВ ПОСЛЕ ВСЕХ ИЗМЕНЕНИЙ")
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"📡 API Base: {API_BASE}")
     print("=" * 80)
     
-    all_errors = []
-    finance_results = {}
-    
-    # Test database connection first
-    db_working = await test_database_connection()
-    if not db_working:
-        all_errors.append("❌ База данных недоступна")
-    
-    # ===== УФИЦ FORECAST DETAILED BREAKDOWN TESTING =====
-    print("\n🏢 ТЕСТИРОВАНИЕ ДЕТАЛИЗИРОВАННОГО ПРОГНОЗА УФИЦ МОДЕЛЬ")
-    print("=" * 80)
-    
-    # Test УФИЦ forecast endpoint with detailed breakdown
-    ufic_detailed_results = await test_ufic_forecast_detailed_breakdown()
-    all_errors.extend(ufic_detailed_results.errors)
-    finance_results['ufic_detailed_forecast'] = ufic_detailed_results
+    # Test the specific forecast updates as requested in review
+    forecast_results = await test_forecast_updates_after_changes()
     
     # Final summary
     print("\n" + "=" * 80)
-    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ДЕТАЛИЗИРОВАННОГО ПРОГНОЗА УФИЦ МОДЕЛЬ:")
+    print("📋 ИТОГОВЫЙ ОТЧЁТ ТЕСТИРОВАНИЯ:")
     print("=" * 80)
     
-    # Check УФИЦ detailed forecast results
-    ufic_detailed_success = 'ufic_detailed_forecast' in finance_results and not finance_results['ufic_detailed_forecast'].errors
+    success_count = 0
+    total_tests = 3
     
-    if ufic_detailed_success:
-        print(f"✅ УФИЦ ДЕТАЛИЗИРОВАННЫЙ ПРОГНОЗ: ВСЕ КРИТЕРИИ ВЫПОЛНЕНЫ")
-        print("✅ Детализация присутствует для всех годов ✓")
-        print("✅ Числа соответствуют Excel данным ✓")
-        print("✅ Индексация применяется к детализации ✓")
-        print("✅ Суммы детализации = общие показатели ✓")
-    else:
-        print(f"❌ УФИЦ ДЕТАЛИЗИРОВАННЫЙ ПРОГНОЗ: ОБНАРУЖЕНЫ ОШИБКИ")
-        print("❌ Поля revenue_breakdown и expense_breakdown НЕ ВОЗВРАЩАЮТСЯ в ответе API")
+    # Check each criterion
+    criteria_results = [
+        ("УФИЦ оптимистичный: детализация с 10% работает", 
+         'ufic_optimistic' in forecast_results.finance_endpoints and 
+         not any("УФИЦ" in error and "10%" in error for error in forecast_results.errors)),
+        
+        ("ВАШ ДОМ ФАКТ: рост 30% + детализация работает", 
+         'vasdom_fact_realistic' in forecast_results.finance_endpoints and 
+         not any("ВАШ ДОМ ФАКТ" in error and "30%" in error for error in forecast_results.errors)),
+        
+        ("ВАШ ДОМ модель: расходы загружаются", 
+         'vasdom_model_expenses' in forecast_results.finance_endpoints and 
+         not any("ВАШ ДОМ модель" in error for error in forecast_results.errors))
+    ]
     
-    if all_errors:
-        print(f"\n❌ ОБНАРУЖЕННЫЕ ОШИБКИ ({len(all_errors)}):")
-        for i, error in enumerate(all_errors, 1):
-            print(f"   {i}. {error}")
-    else:
-        print(f"\n🎉 ВСЕ КРИТЕРИИ ДЕТАЛИЗАЦИИ ВЫПОЛНЕНЫ!")
+    for criterion, is_met in criteria_results:
+        status = "✅" if is_met else "❌"
+        print(f"{status} {criterion}")
+        if is_met:
+            success_count += 1
     
     print(f"\n📊 СТАТИСТИКА:")
-    print(f"   - Протестированный endpoint: GET /api/finances/forecast?company=УФИЦ модель&scenario=realistic")
-    print(f"   - Детализация работает: {'✅ Да' if ufic_detailed_success else '❌ Нет'}")
-    print(f"   - Общее количество ошибок: {len(all_errors)}")
-    print(f"   - База данных: {'✅ Работает' if db_working else '❌ Недоступна'}")
+    print(f"   - Успешных тестов: {success_count}/{total_tests}")
+    print(f"   - Общее количество ошибок: {len(forecast_results.errors)}")
     
-    # Validation summary
-    print(f"\n✅ ПРОВЕРЕННЫЕ КРИТЕРИИ:")
-    print(f"   1. ✅ Все три сценария возвращают 200 статус")
-    print(f"   2. ✅ Базовый год 2025 содержит корректные данные")
-    print(f"   3. ✅ Количество уборщиц соответствует сценариям")
-    print(f"   4. ✅ Индексация 6% ежегодно применяется правильно")
-    print(f"   5. ✅ Структура ответа содержит все необходимые поля")
-    print(f"   6. ✅ Маржа остается стабильной (~27%)")
-    
-    if ufic_detailed_success:
-        print(f"\n🎉 ПРОГНОЗ УФИЦ МОДЕЛЬ ПОЛНОСТЬЮ ФУНКЦИОНАЛЕН!")
-        print(f"✅ Новая реализация расчета на основе фактических данных 2025 работает корректно")
-        print(f"✅ Логика: данные_2025 / 47_мест × прогнозируемые_места × 1.06^years_passed")
-        print(f"✅ Все три сценария (60/65/70 мест) с индексацией 6% ежегодно")
+    if len(forecast_results.errors) == 0:
+        print(f"\n🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
+        print(f"✅ Все обновления прогнозов работают корректно")
     else:
-        print(f"\n⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ В ПРОГНОЗЕ УФИЦ")
-        print(f"❌ Количество ошибок: {len(all_errors)}")
-        print(f"🔧 Требуется исправление перед использованием")
+        print(f"\n⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ:")
+        for i, error in enumerate(forecast_results.errors, 1):
+            print(f"   {i}. {error}")
     
     print("\n" + "=" * 80)
-    print("🏁 ТЕСТИРОВАНИЕ ПРОГНОЗА УФИЦ ЗАВЕРШЕНО")
+    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     print("=" * 80)
     
     # Return success/failure
-    return len(all_errors) == 0
+    return len(forecast_results.errors) == 0
 
 if __name__ == "__main__":
     success = asyncio.run(main())
