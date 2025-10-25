@@ -1457,63 +1457,101 @@ async def get_forecast(
             
             # Базовые значения 2025
             base_revenue = result_2025["summary"]["total_revenue"]
-            base_expenses = result_2025["summary"]["total_expenses"]
-            base_profit = result_2025["summary"]["total_profit"]
+            base_expenses = total_expenses_2025  # Используем расходы без Ленинск-Кузнецкий
+            base_profit = base_revenue - base_expenses
             
-            # Годовые коэффициенты роста (умножаем месячные на 12 для годового)
-            # Применяем множители сценария
-            annual_revenue_growth = 1 + (revenue_growth_rate * 12 * scenario_config["revenue_multiplier"])
-            annual_expense_growth = 1 + (expense_growth_rate * 12 * scenario_config["expense_multiplier"])
+            # Настройки для разных сценариев ВАШ ДОМ ФАКТ
+            vasdom_scenarios = {
+                "pessimistic": {
+                    "revenue_growth": 1.20,  # 20% годовой рост выручки
+                    "target_margin": 0.20,   # Целевая маржа 20%
+                    "description": "Консервативный прогноз: рост 20%, маржа 20%"
+                },
+                "realistic": {
+                    "revenue_growth": 1.40,  # 40% годовой рост выручки
+                    "target_margin": None,   # Маржа рассчитывается по расходам
+                    "description": "Реалистичный прогноз: рост 40%"
+                },
+                "optimistic": {
+                    "revenue_growth": 1.60,  # 60% годовой рост выручки
+                    "target_margin": None,   # Маржа рассчитывается по расходам
+                    "description": "Оптимистичный прогноз: рост 60%"
+                }
+            }
+            
+            current_scenario = vasdom_scenarios.get(scenario, vasdom_scenarios["realistic"])
             
             # Генерируем прогноз на 2026-2030
             forecast = []
-            years = [2026, 2027, 2028, 2029, 2030]
             
-            # Для первого года (2026) используем текущий расчет на основе тренда
-            current_revenue = base_revenue * annual_revenue_growth
-            current_expenses = base_expenses * annual_expense_growth
+            # 2026 год - первый год прогноза
+            revenue_2026 = base_revenue * current_scenario["revenue_growth"]
             
-            # Детализация на 2026 (пропорционально общему росту)
+            # Расходы 2026 рассчитываем в зависимости от сценария
+            if current_scenario["target_margin"] is not None:
+                # Для пессимистичного: расходы = выручка * (1 - маржа)
+                expenses_2026 = revenue_2026 * (1 - current_scenario["target_margin"])
+            else:
+                # Для реалистичного и оптимистичного: расходы растут пропорционально выручке, но медленнее
+                if scenario == "realistic":
+                    expenses_growth = 1.30  # Расходы растут на 30%
+                else:  # optimistic
+                    expenses_growth = 1.40  # Расходы растут на 40%
+                expenses_2026 = base_expenses * expenses_growth
+            
+            # Детализация расходов на 2026
             expense_breakdown_2026 = {}
-            if expense_breakdown_2025:
-                for category, amount in expense_breakdown_2025.items():
-                    expense_breakdown_2026[category] = round(amount * annual_expense_growth, 2)
+            expenses_multiplier = expenses_2026 / base_expenses if base_expenses > 0 else 1
             
-            # Детализация доходов (упрощенная - основной доход)
+            for category, amount in expense_breakdown_2025.items():
+                expense_breakdown_2026[category] = round(amount * expenses_multiplier, 2)
+            
+            # Детализация доходов (основная выручка)
             revenue_breakdown_2026 = {
-                "main_revenue": round(current_revenue, 2)
+                "main_revenue": round(revenue_2026, 2)
             }
             
             # 2026 год
-            current_profit = current_revenue - current_expenses
-            current_margin = (current_profit / current_revenue * 100) if current_revenue > 0 else 0
+            profit_2026 = revenue_2026 - expenses_2026
+            margin_2026 = (profit_2026 / revenue_2026 * 100) if revenue_2026 > 0 else 0
             
             forecast.append({
                 "year": 2026,
-                "revenue": round(current_revenue, 2),
-                "expenses": round(current_expenses, 2),
-                "profit": round(current_profit, 2),
-                "margin": round(current_margin, 2),
+                "revenue": round(revenue_2026, 2),
+                "expenses": round(expenses_2026, 2),
+                "profit": round(profit_2026, 2),
+                "margin": round(margin_2026, 2),
                 "revenue_breakdown": revenue_breakdown_2026,
                 "expense_breakdown": expense_breakdown_2026
             })
             
-            # Для 2027-2030 применяем фиксированную индексацию 30%
-            indexation_rate = 1.30
-            revenue_2026 = current_revenue
-            expenses_2026 = current_expenses
-            
-            for i, year in enumerate([2027, 2028, 2029, 2030]):
-                years_from_2026 = i + 1
-                indexed_revenue = revenue_2026 * (indexation_rate ** years_from_2026)
-                indexed_expenses = expenses_2026 * (indexation_rate ** years_from_2026)
+            # Для 2027-2030 применяем ту же индексацию
+            for year in range(2027, 2031):
+                years_from_2026 = year - 2026
+                
+                # Выручка растет по тому же коэффициенту
+                indexed_revenue = revenue_2026 * (current_scenario["revenue_growth"] ** years_from_2026)
+                
+                # Расходы
+                if current_scenario["target_margin"] is not None:
+                    # Пессимистичный: сохраняем маржу 20%
+                    indexed_expenses = indexed_revenue * (1 - current_scenario["target_margin"])
+                else:
+                    # Реалистичный и оптимистичный: расходы растут медленнее
+                    if scenario == "realistic":
+                        expense_growth_rate = 1.30
+                    else:  # optimistic
+                        expense_growth_rate = 1.40
+                    indexed_expenses = expenses_2026 * (expense_growth_rate ** years_from_2026)
+                
                 indexed_profit = indexed_revenue - indexed_expenses
                 indexed_margin = (indexed_profit / indexed_revenue * 100) if indexed_revenue > 0 else 0
                 
-                # Индексируем детализацию
+                # Индексируем детализацию расходов
                 indexed_expense_breakdown = {}
+                expenses_multiplier = indexed_expenses / expenses_2026 if expenses_2026 > 0 else 1
                 for category, amount in expense_breakdown_2026.items():
-                    indexed_expense_breakdown[category] = round(amount * (indexation_rate ** years_from_2026), 2)
+                    indexed_expense_breakdown[category] = round(amount * expenses_multiplier, 2)
                 
                 indexed_revenue_breakdown = {
                     "main_revenue": round(indexed_revenue, 2)
