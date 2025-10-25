@@ -1374,7 +1374,36 @@ async def get_forecast(
                 
                 revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
                 
-                # Получаем расходы
+                # Получаем расходы по категориям для детализации
+                expense_by_category = await conn.fetch("""
+                    SELECT 
+                        category,
+                        SUM(amount) as total_amount
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = $1
+                    GROUP BY category
+                    ORDER BY total_amount DESC
+                """, company)
+                
+                # Формируем детализацию расходов (топ-3 категории + остальное)
+                expense_breakdown_2025 = {}
+                total_expenses_2025 = sum(row['total_amount'] for row in expense_by_category)
+                
+                if len(expense_by_category) > 0:
+                    # Берем топ-3 категории
+                    for i, row in enumerate(expense_by_category[:3]):
+                        category_name = row['category'].lower().replace(' ', '_')
+                        expense_breakdown_2025[category_name] = float(row['total_amount'])
+                    
+                    # Остальное
+                    if len(expense_by_category) > 3:
+                        other_expenses = sum(float(row['total_amount']) for row in expense_by_category[3:])
+                        expense_breakdown_2025['other'] = other_expenses
+                else:
+                    # Если нет данных, используем все расходы как одну категорию
+                    expense_breakdown_2025['operating_expenses'] = total_expenses_2025
+                
+                # Получаем расходы общие
                 expense_rows = await conn.fetch("""
                     SELECT 
                         project as month,
