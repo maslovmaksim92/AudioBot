@@ -1138,7 +1138,7 @@ async def get_forecast(
                         "expenses_2025": 27289899.11,
                         "revenue_2026": 51458490.83,
                         "expenses_2026": 34101464.31,
-                        "description": "Консервативный прогноз. Индексация 6% ежегодно с 2027 года.",
+                        "description": "Консервативный прогноз. Швеи: 60, Уборщицы: 60, Аутсорсинг: 14. Индексация 6% ежегодно с 2027 года.",
                         "revenue_breakdown_2026": {
                             "sewing": 17916637.50,
                             "cleaning": 29131853.33,
@@ -1146,6 +1146,11 @@ async def get_forecast(
                         },
                         "expense_breakdown_2026": {
                             "labor": 34101464.31
+                        },
+                        "staff_counts": {
+                            "sewing": 60,
+                            "cleaning": 60,
+                            "outsourcing": 14
                         }
                     },
                     "realistic": {
@@ -1153,7 +1158,7 @@ async def get_forecast(
                         "expenses_2025": 27289900.11,
                         "revenue_2026": 54687415.71,
                         "expenses_2026": 36947205.43,
-                        "description": "Реалистичный прогноз. Индексация 6% ежегодно с 2027 года.",
+                        "description": "Реалистичный прогноз. Швеи: 41, Уборщицы: 40, Аутсорсинг: 5. Индексация 6% ежегодно с 2027 года.",
                         "revenue_breakdown_2026": {
                             "sewing": 15739135.71,
                             "cleaning": 24615780.00,
@@ -1161,6 +1166,11 @@ async def get_forecast(
                         },
                         "expense_breakdown_2026": {
                             "labor": 36947205.43
+                        },
+                        "staff_counts": {
+                            "sewing": 41,
+                            "cleaning": 40,
+                            "outsourcing": 5
                         }
                     },
                     "optimistic": {
@@ -1168,7 +1178,7 @@ async def get_forecast(
                         "expenses_2025": 27396013.49,
                         "revenue_2026": 58491350.00,
                         "expenses_2026": 39840375.56,
-                        "description": "Оптимистичный прогноз. Индексация 6% ежегодно с 2027 года.",
+                        "description": "Оптимистичный прогноз. Швеи: 65, Уборщицы: 70, Аутсорсинг: 20. Индексация 10% ежегодно с 2027 года.",
                         "revenue_breakdown_2026": {
                             "sewing": 16044750.00,
                             "cleaning": 24806600.00,
@@ -1176,6 +1186,11 @@ async def get_forecast(
                         },
                         "expense_breakdown_2026": {
                             "labor": 39840375.56
+                        },
+                        "staff_counts": {
+                            "sewing": 65,
+                            "cleaning": 70,
+                            "outsourcing": 20
                         }
                     }
                 }
