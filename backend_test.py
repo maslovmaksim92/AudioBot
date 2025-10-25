@@ -1314,23 +1314,34 @@ async def test_database_connection():
         return False
 
 async def test_ufic_forecast_endpoint():
-    """Test УФИЦ модель forecast endpoint with all three scenarios"""
-    print("\n=== ТЕСТ ПРОГНОЗА УФИЦ МОДЕЛЬ (2026-2030) ===\n")
+    """Test УФИЦ модель forecast endpoint with exact Excel data"""
+    print("\n=== ТЕСТ ПРОГНОЗА УФИЦ МОДЕЛЬ С ДАННЫМИ ИЗ EXCEL ===\n")
     
     results = TestResults()
     scenarios = ["pessimistic", "realistic", "optimistic"]
     company = "УФИЦ модель"
     
-    # Expected cleaners count by scenario
-    expected_cleaners = {
-        "pessimistic": 60,
-        "realistic": 65,
-        "optimistic": 70
+    # Expected data from Excel file "Модель УФИЦ.xlsx"
+    expected_data = {
+        "pessimistic": {
+            "revenue_2025": 38645410,
+            "expenses_2025": 27289899,
+            "revenue_2026": 51458491,
+            "expenses_2026": 34101464
+        },
+        "realistic": {
+            "revenue_2025": 38645410,
+            "expenses_2025": 27289900,
+            "revenue_2026": 54687416,
+            "expenses_2026": 36947205
+        },
+        "optimistic": {
+            "revenue_2025": 38865910,
+            "expenses_2025": 27396013,
+            "revenue_2026": 58491350,
+            "expenses_2026": 39840376
+        }
     }
-    
-    # Expected base year data (2025)
-    expected_base_revenue = 27325025  # ~27,325,025
-    expected_base_expenses = 19944709  # ~19,944,709
     
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
