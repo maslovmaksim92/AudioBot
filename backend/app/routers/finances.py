@@ -1100,11 +1100,35 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
 
 
 @router.get("/finances/forecast")
-async def get_forecast(company: Optional[str] = "ВАШ ДОМ ФАКТ"):
-    """Get forecast for 2026-2030 based on 2025 data"""
+async def get_forecast(
+    company: Optional[str] = "ВАШ ДОМ ФАКТ",
+    scenario: Optional[str] = "realistic"
+):
+    """Get forecast for 2026-2030 with three scenarios"""
     try:
         conn = await get_db_connection()
         try:
+            # Коэффициенты роста для разных сценариев
+            scenario_coefficients = {
+                "pessimistic": {
+                    "revenue_multiplier": 0.7,  # Снижение роста выручки на 30%
+                    "expense_multiplier": 1.3,  # Увеличение роста расходов на 30%
+                    "description": "Консервативный прогноз: снижение темпов роста выручки, увеличение расходов"
+                },
+                "realistic": {
+                    "revenue_multiplier": 1.0,  # Базовый рост
+                    "expense_multiplier": 1.0,  # Базовый рост
+                    "description": "Базовый прогноз на основе текущих трендов 2025 года"
+                },
+                "optimistic": {
+                    "revenue_multiplier": 1.4,  # Увеличение роста выручки на 40%
+                    "expense_multiplier": 0.8,  # Снижение роста расходов на 20%
+                    "description": "Оптимистичный прогноз: ускоренный рост выручки, оптимизация расходов"
+                }
+            }
+            
+            scenario_config = scenario_coefficients.get(scenario, scenario_coefficients["realistic"])
+            
             # Получаем данные прибылей/убытков за 2025 год
             if company == "ВАШ ДОМ модель":
                 result_2025 = await get_consolidated_profit_loss(conn)
