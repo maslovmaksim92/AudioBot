@@ -1406,7 +1406,7 @@ async def get_forecast(
                     amount = float(row['total_amount'])
                     
                     # Исключаемые категории (суммы идут в зарплату)
-                    if any(keyword in category_lower for keyword in ['кредит', 'аутсорсинг', 'продукт', 'питание']):
+                    if any(keyword in category_lower for keyword in ['кредит', 'аутсорсинг', 'продукт', 'питание', 'юридическ']):
                         excluded_amount += amount
                         continue
                     
