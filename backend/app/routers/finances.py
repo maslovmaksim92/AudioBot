@@ -1223,6 +1223,9 @@ async def get_forecast(
                 for scen_name in ["pessimistic", "realistic", "optimistic"]:
                     scen_excel = ufic_excel_data[scen_name]
                     
+                    # Индексация: 6% для пессимистичного и реалистичного, 10% для оптимистичного
+                    indexation_rate = 1.10 if scen_name == "optimistic" else 1.06
+                    
                     # 2026 год - берем из Excel с детализацией
                     revenue_2026 = scen_excel["revenue_2026"]
                     expenses_2026 = scen_excel["expenses_2026"]
@@ -1247,7 +1250,7 @@ async def get_forecast(
                         }
                     })
                     
-                    # 2027-2030 - применяем индексацию 6% к данным 2026 (включая детализацию)
+                    # 2027-2030 - применяем индексацию к данным 2026 (включая детализацию)
                     for year in range(2027, 2031):
                         years_from_2026 = year - 2026
                         indexed_revenue = revenue_2026 * (indexation_rate ** years_from_2026)
