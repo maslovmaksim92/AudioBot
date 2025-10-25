@@ -298,9 +298,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Monthly expense details component"
-    - "Expense details API endpoint"
-  stuck_tasks: []
+    - "ВАШ ДОМ ФАКТ forecast endpoint - critical errors"
+    - "ВАШ ДОМ модель forecast endpoint - critical errors"
+  stuck_tasks:
+    - "ВАШ ДОМ ФАКТ forecast endpoint - critical errors"
+    - "ВАШ ДОМ модель forecast endpoint - critical errors"
   test_all: false
   test_priority: "high_first"
 
