@@ -2962,9 +2962,137 @@ async def test_vasdom_fact_forecast_critical_fix():
     
     return results
 
+async def test_vasdom_model_forecast_endpoint():
+    """Test ВАШ ДОМ модель forecast endpoint after bugfix"""
+    print("\n=== ТЕСТ ПРОГНОЗА ВАШ ДОМ модель ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ ===\n")
+    
+    results = TestResults()
+    company = "ВАШ ДОМ модель"
+    scenario = "realistic"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем прогноз для компании: {company}")
+            print("📋 Критерии успеха:")
+            print("   1. Endpoint возвращает 200 статус (не 500)")
+            print("   2. Нет ошибки 'cannot access local variable total_expenses_2025'")
+            print("   3. Данные прогноза присутствуют (5 лет)")
+            print("   4. Детализация присутствует")
+            print("")
+            
+            # Test the forecast endpoint
+            response = await client.get(
+                f"{API_BASE}/finances/forecast",
+                params={"company": company, "scenario": scenario}
+            )
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            # Check 200 status (not 500)
+            if response.status_code != 200:
+                error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {company} возвращает {response.status_code} вместо 200"
+                results.errors.append(error_msg)
+                print(error_msg)
+                
+                # Check for specific error
+                if "cannot access local variable" in response.text and "total_expenses_2025" in response.text:
+                    error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: Найдена ошибка 'cannot access local variable total_expenses_2025'"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                
+                print(f"📄 Текст ошибки: {response.text[:500]}...")
+                return results
+            
+            print(f"✅ Критерий 1: Endpoint возвращает 200 статус ✓")
+            
+            data = response.json()
+            
+            # Check no error in response text
+            response_text = response.text
+            if "cannot access local variable" in response_text and "total_expenses_2025" in response_text:
+                error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: Найдена ошибка 'cannot access local variable total_expenses_2025' в ответе"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            print(f"✅ Критерий 2: Нет ошибки 'cannot access local variable total_expenses_2025' ✓")
+            
+            # Validate response structure
+            required_fields = ['company', 'scenario', 'base_year', 'base_data', 'forecast']
+            for field in required_fields:
+                if field not in data:
+                    error_msg = f"❌ Отсутствует поле '{field}' в ответе"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            # Check forecast data for years 2026-2030
+            forecast = data.get('forecast', [])
+            if len(forecast) < 5:
+                error_msg = f"❌ Недостаточно лет в прогнозе: ожидалось 5, получено {len(forecast)}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                print(f"✅ Критерий 3: Данные прогноза присутствуют ({len(forecast)} лет) ✓")
+            
+            # Check for detailed breakdown
+            has_detailed_breakdown = False
+            if forecast:
+                sample_year = forecast[0]
+                if 'revenue_breakdown' in sample_year and 'expense_breakdown' in sample_year:
+                    has_detailed_breakdown = True
+                    print(f"✅ Критерий 4: Детализация присутствует ✓")
+                else:
+                    error_msg = f"❌ Отсутствует детализация (revenue_breakdown, expense_breakdown)"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+            
+            # Show sample data
+            if forecast:
+                sample_year = forecast[0]
+                year = sample_year.get('year')
+                revenue = sample_year.get('revenue', 0)
+                expenses = sample_year.get('expenses', 0)
+                
+                print(f"\n📊 Пример данных прогноза для {year}:")
+                print(f"   - Выручка: {revenue:,.0f} ₽")
+                print(f"   - Расходы: {expenses:,.0f} ₽")
+                print(f"   - Прибыль: {revenue - expenses:,.0f} ₽")
+                
+                if has_detailed_breakdown:
+                    revenue_breakdown = sample_year.get('revenue_breakdown', {})
+                    expense_breakdown = sample_year.get('expense_breakdown', {})
+                    
+                    print(f"   - Детализация доходов: {len(revenue_breakdown)} категорий")
+                    print(f"   - Детализация расходов: {len(expense_breakdown)} категорий")
+            
+            # Get base year data
+            base_data = data.get('base_data', {})
+            base_revenue = base_data.get('revenue', 0)
+            base_expenses = base_data.get('expenses', 0)
+            
+            print(f"\n📊 Базовые данные 2025:")
+            print(f"   - Выручка: {base_revenue:,.0f} ₽")
+            print(f"   - Расходы: {base_expenses:,.0f} ₽")
+            
+            # Summary
+            if not results.errors:
+                print(f"\n🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
+                print(f"✅ Ошибка исправлена")
+                print(f"✅ Прогноз работает")
+                print(f"✅ Данные корректны")
+            
+    except Exception as e:
+        error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА при тестировании {company}: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
-    """Main test execution - focused on ВАШ ДОМ ФАКТ forecast testing"""
-    print("🚀 ПОВТОРНОЕ ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ")
+    """Main test execution - focused on ВАШ ДОМ модель forecast testing as per review request"""
+    print("🚀 БЫСТРАЯ ПРОВЕРКА ПРОГНОЗА ВАШ ДОМ модель ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
@@ -2985,11 +3113,11 @@ async def main():
         return
     
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ")
+    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ модель")
     print("=" * 80)
     
-    # Run the critical forecast test
-    result = await test_vasdom_fact_forecast_critical_fix()
+    # Run the specific test for ВАШ ДОМ модель as requested
+    result = await test_vasdom_model_forecast_endpoint()
     
     # Print summary
     print("\n" + "=" * 80)
@@ -3013,16 +3141,15 @@ async def main():
     else:
         print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
         print("✅ Критические ошибки исправлены")
-        print("✅ Все сценарии работают")
-        print("✅ Рост соответствует требованиям")
-        print("✅ Ленинск-Кузнецкий исключен")
+        print("✅ Прогноз работает")
+        print("✅ Данные корректны")
         print("✅ Детализация присутствует")
     
     print("\n" + "=" * 80)
     print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     print("=" * 80)
     
-    return [("ВАШ ДОМ ФАКТ Forecast Critical Fix", result)]
+    return [("ВАШ ДОМ модель Forecast Test", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
