@@ -1646,6 +1646,7 @@ async def get_forecast(
                 "scenario_info": {
                     "name": scenario,
                     "description": current_scenario.get("description", scenario_config.get("description", "")),
+                    "detailed_description": current_scenario.get("detailed_description", {}),
                     "revenue_growth_rate": round(((forecast[0]["revenue"] / base_revenue) - 1) * 100, 2),
                     "expense_growth_rate": round(((forecast[0]["expenses"] / base_expenses) - 1) * 100, 2)
                 }
