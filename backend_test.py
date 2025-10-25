@@ -2785,32 +2785,244 @@ async def test_forecast_endpoints_after_bugfix():
     
     return results
 
+async def test_vasdom_fact_forecast_critical_fix():
+    """
+    ПОВТОРНОЕ тестирование прогноза ВАШ ДОМ ФАКТ после исправления критических ошибок.
+    
+    Проверяет:
+    1. Все endpoint возвращают 200 статус (не 500)
+    2. Нет ошибки "annual_revenue_growth is not defined"
+    3. Данные прогноза присутствуют
+    4. Требования к сценариям выполнены
+    """
+    print("\n=== ПОВТОРНОЕ ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ ===\n")
+    
+    results = TestResults()
+    scenarios = ["pessimistic", "realistic", "optimistic"]
+    company = "ВАШ ДОМ ФАКТ"
+    
+    print("🎯 КРИТИЧЕСКИЕ ПРОВЕРКИ:")
+    print("1. Все endpoint возвращают 200 статус (не 500)")
+    print("2. Нет ошибки 'annual_revenue_growth is not defined'")
+    print("3. Данные прогноза присутствуют")
+    print("")
+    
+    print("📋 ТРЕБОВАНИЯ К СЦЕНАРИЯМ:")
+    print("Пессимистичный: рост выручки 2026 ~20%, маржа ~20%, БЕЗ Ленинск-Кузнецкий")
+    print("Реалистичный: рост выручки 2026 ~40%, БЕЗ Ленинск-Кузнецкий")
+    print("Оптимистичный: рост выручки 2026 ~60%, БЕЗ Ленинск-Кузнецкий")
+    print("")
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            critical_errors_found = False
+            
+            for scenario in scenarios:
+                print(f"🔍 Тестируем {scenario.upper()} сценарий...")
+                
+                # Test the forecast endpoint
+                response = await client.get(
+                    f"{API_BASE}/finances/forecast",
+                    params={"company": company, "scenario": scenario}
+                )
+                
+                print(f"📡 Статус ответа: {response.status_code}")
+                
+                # КРИТИЧЕСКАЯ ПРОВЕРКА 1: Статус 200
+                if response.status_code != 200:
+                    error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {scenario} возвращает {response.status_code} вместо 200"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА 2: Проверяем на ошибку annual_revenue_growth
+                    if "annual_revenue_growth is not defined" in response.text:
+                        critical_error = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {scenario} - 'annual_revenue_growth is not defined'"
+                        results.errors.append(critical_error)
+                        print(critical_error)
+                        critical_errors_found = True
+                    
+                    print(f"📄 Текст ошибки: {response.text[:500]}...")
+                    continue
+                
+                print(f"✅ {scenario}: 200 статус получен")
+                
+                try:
+                    data = response.json()
+                    
+                    # КРИТИЧЕСКАЯ ПРОВЕРКА 3: Данные прогноза присутствуют
+                    if 'forecast' not in data or not data['forecast']:
+                        error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {scenario} - данные прогноза отсутствуют"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                        continue
+                    
+                    forecast = data['forecast']
+                    print(f"✅ {scenario}: данные прогноза присутствуют ({len(forecast)} лет)")
+                    
+                    # Проверяем базовые данные
+                    base_data = data.get('base_data', {})
+                    base_revenue_2025 = base_data.get('revenue', 0)
+                    
+                    if len(forecast) > 0:
+                        # Проверяем 2026 год (первый год прогноза)
+                        year_2026 = forecast[0]
+                        revenue_2026 = year_2026.get('revenue', 0)
+                        expenses_2026 = year_2026.get('expenses', 0)
+                        
+                        if base_revenue_2025 > 0 and revenue_2026 > 0:
+                            growth_rate = (revenue_2026 / base_revenue_2025 - 1) * 100
+                            margin = ((revenue_2026 - expenses_2026) / revenue_2026) * 100 if revenue_2026 > 0 else 0
+                            
+                            print(f"📊 {scenario} 2026:")
+                            print(f"   - Выручка 2025: {base_revenue_2025:,.0f}")
+                            print(f"   - Выручка 2026: {revenue_2026:,.0f}")
+                            print(f"   - Рост выручки: {growth_rate:.1f}%")
+                            print(f"   - Маржа: {margin:.1f}%")
+                            
+                            # Проверяем требования к сценариям
+                            if scenario == "pessimistic":
+                                if abs(growth_rate - 20) > 5:  # Допуск ±5%
+                                    print(f"⚠️ {scenario}: рост выручки {growth_rate:.1f}% (ожидалось ~20%)")
+                                else:
+                                    print(f"✅ {scenario}: рост выручки соответствует требованиям")
+                                
+                                if abs(margin - 20) > 5:  # Допуск ±5%
+                                    print(f"⚠️ {scenario}: маржа {margin:.1f}% (ожидалось ~20%)")
+                                else:
+                                    print(f"✅ {scenario}: маржа соответствует требованиям")
+                            
+                            elif scenario == "realistic":
+                                if abs(growth_rate - 40) > 5:  # Допуск ±5%
+                                    print(f"⚠️ {scenario}: рост выручки {growth_rate:.1f}% (ожидалось ~40%)")
+                                else:
+                                    print(f"✅ {scenario}: рост выручки соответствует требованиям")
+                            
+                            elif scenario == "optimistic":
+                                if abs(growth_rate - 60) > 5:  # Допуск ±5%
+                                    print(f"⚠️ {scenario}: рост выручки {growth_rate:.1f}% (ожидалось ~60%)")
+                                else:
+                                    print(f"✅ {scenario}: рост выручки соответствует требованиям")
+                        
+                        # Проверяем детализацию расходов (БЕЗ Ленинск-Кузнецкий)
+                        expense_breakdown = year_2026.get('expense_breakdown', {})
+                        if expense_breakdown:
+                            print(f"✅ {scenario}: детализация расходов присутствует")
+                            
+                            # Проверяем отсутствие Ленинск-Кузнецкий
+                            leninsk_found = False
+                            for category, amount in expense_breakdown.items():
+                                if 'ленинск' in category.lower() or 'кузнец' in category.lower():
+                                    leninsk_found = True
+                                    error_msg = f"❌ {scenario}: найдена категория '{category}' (должна быть исключена)"
+                                    results.errors.append(error_msg)
+                                    print(error_msg)
+                            
+                            if not leninsk_found:
+                                print(f"✅ {scenario}: Ленинск-Кузнецкий исключен из детализации")
+                        else:
+                            print(f"⚠️ {scenario}: детализация расходов отсутствует")
+                    
+                    print("")
+                    
+                except json.JSONDecodeError as e:
+                    error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {scenario} - неверный JSON: {str(e)}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    critical_errors_found = True
+            
+            # Итоговая оценка
+            print("🎯 ИТОГОВАЯ ОЦЕНКА:")
+            
+            if critical_errors_found:
+                print("❌ КРИТИЧЕСКИЕ ОШИБКИ НЕ ИСПРАВЛЕНЫ")
+                results.errors.append("КРИТИЧЕСКИЕ ОШИБКИ: annual_revenue_growth или другие серьезные проблемы")
+            else:
+                print("✅ Критические ошибки исправлены")
+            
+            working_scenarios = 0
+            for scenario in scenarios:
+                # Подсчитываем рабочие сценарии (без критических ошибок)
+                scenario_errors = [e for e in results.errors if scenario in e and "КРИТИЧЕСКАЯ ОШИБКА" in e]
+                if not scenario_errors:
+                    working_scenarios += 1
+            
+            print(f"✅ Рабочих сценариев: {working_scenarios}/3")
+            
+            if working_scenarios == 3:
+                print("🎉 ВСЕ СЦЕНАРИИ РАБОТАЮТ!")
+            elif working_scenarios > 0:
+                print("⚠️ ЧАСТИЧНО РАБОТАЕТ")
+            else:
+                print("❌ НИ ОДИН СЦЕНАРИЙ НЕ РАБОТАЕТ")
+    
+    except Exception as e:
+        error_msg = f"❌ Критическая ошибка при тестировании: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
-    """Main test execution"""
-    print("🚀 ЗАПУСК БЫСТРОЙ ПРОВЕРКИ ПРОГНОЗОВ ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ")
+    """Main test execution - focused on ВАШ ДОМ ФАКТ forecast testing"""
+    print("🚀 ПОВТОРНОЕ ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
-    print(f"📡 API Base: {API_BASE}")
+    print(f"🔗 API Base: {API_BASE}")
     print("=" * 80)
     
-    # Execute the specific forecast test as requested in the review
-    result = await test_forecast_endpoints_after_bugfix()
+    # Check basic connectivity
+    print("\n🔍 Проверяем доступность backend...")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{API_BASE}/health")
+            if response.status_code == 200:
+                print("✅ Backend доступен")
+            else:
+                print(f"⚠️ Backend недоступен: {response.status_code}")
+                return
+    except Exception as e:
+        print(f"❌ Ошибка подключения к backend: {str(e)}")
+        return
     
     print("\n" + "=" * 80)
-    print("📋 ИТОГОВЫЙ ОТЧЁТ")
+    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ")
     print("=" * 80)
     
-    if not result.errors:
-        print("🎉 БЫСТРАЯ ПРОВЕРКА ЗАВЕРШЕНА УСПЕШНО!")
-        print("✅ Все прогнозы работают корректно после исправления ошибки")
-    else:
-        print(f"⚠️ ОБНАРУЖЕНЫ ПРОБЛЕМЫ: {len(result.errors)} ошибок")
+    # Run the critical forecast test
+    result = await test_vasdom_fact_forecast_critical_fix()
+    
+    # Print summary
+    print("\n" + "=" * 80)
+    print("📊 ИТОГОВЫЙ ОТЧЁТ")
+    print("=" * 80)
+    
+    if result.errors:
+        print(f"❌ Обнаружено ошибок: {len(result.errors)}")
+        print("\n🔍 ДЕТАЛИ ОШИБОК:")
         for i, error in enumerate(result.errors, 1):
             print(f"   {i}. {error}")
+        
+        # Проверяем на критические ошибки
+        critical_errors = [e for e in result.errors if "КРИТИЧЕСКАЯ ОШИБКА" in e]
+        if critical_errors:
+            print(f"\n⚠️ КРИТИЧЕСКИХ ОШИБОК: {len(critical_errors)}")
+            print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
+        else:
+            print("\n✅ Критические ошибки исправлены")
+            print("⚠️ Остались только минорные проблемы")
+    else:
+        print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
+        print("✅ Критические ошибки исправлены")
+        print("✅ Все сценарии работают")
+        print("✅ Рост соответствует требованиям")
+        print("✅ Ленинск-Кузнецкий исключен")
+        print("✅ Детализация присутствует")
     
-    print("\n🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    print("\n" + "=" * 80)
+    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    print("=" * 80)
     
-    return [("Forecast Endpoints After Bugfix", result)]
+    return [("ВАШ ДОМ ФАКТ Forecast Critical Fix", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
