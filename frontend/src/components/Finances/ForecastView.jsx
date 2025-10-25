@@ -211,6 +211,118 @@ function ForecastView() {
         </CardContent>
       </Card>
 
+      {/* Детализация доходов и расходов для УФИЦ модель */}
+      {selectedCompany === 'УФИЦ модель' && forecast[0]?.revenue_breakdown && (
+        <Card className={`border-2 border-${scenarioConfig.color}-200`}>
+          <CardHeader className={`bg-${scenarioConfig.color}-50`}>
+            <CardTitle className="flex items-center gap-2">
+              📊 Детализация доходов и расходов по годам
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              {/* Доходы */}
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-green-700">Структура доходов</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 bg-green-50">
+                        <th className="text-left p-3 font-bold">Год</th>
+                        <th className="text-right p-3 font-bold">Швеи</th>
+                        <th className="text-right p-3 font-bold">Уборщицы</th>
+                        <th className="text-right p-3 font-bold">Аутсорсинг</th>
+                        <th className="text-right p-3 font-bold">Всего</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forecast.map((year, index) => {
+                        const breakdown = year.revenue_breakdown || {};
+                        const total = (breakdown.sewing || 0) + (breakdown.cleaning || 0) + (breakdown.outsourcing || 0);
+                        return (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 font-bold">{year.year}</td>
+                            <td className="text-right p-3 text-emerald-600">{formatCurrency(breakdown.sewing || 0)}</td>
+                            <td className="text-right p-3 text-teal-600">{formatCurrency(breakdown.cleaning || 0)}</td>
+                            <td className="text-right p-3 text-cyan-600">{formatCurrency(breakdown.outsourcing || 0)}</td>
+                            <td className="text-right p-3 font-bold text-green-700">{formatCurrency(total)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-green-100">
+                        <td className="p-3">ИТОГО 5 лет</td>
+                        <td className="text-right p-3 text-emerald-700">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + (y.revenue_breakdown?.sewing || 0), 0))}
+                        </td>
+                        <td className="text-right p-3 text-teal-700">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + (y.revenue_breakdown?.cleaning || 0), 0))}
+                        </td>
+                        <td className="text-right p-3 text-cyan-700">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + (y.revenue_breakdown?.outsourcing || 0), 0))}
+                        </td>
+                        <td className="text-right p-3 text-green-800">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + y.revenue, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* Расходы */}
+              <div>
+                <h3 className="text-lg font-bold mb-4 text-red-700">Структура расходов</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 bg-red-50">
+                        <th className="text-left p-3 font-bold">Год</th>
+                        <th className="text-right p-3 font-bold">ФОТ (Фонд оплаты труда)</th>
+                        <th className="text-right p-3 font-bold">Всего</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forecast.map((year, index) => {
+                        const breakdown = year.expense_breakdown || {};
+                        return (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 font-bold">{year.year}</td>
+                            <td className="text-right p-3 text-red-600">{formatCurrency(breakdown.labor || 0)}</td>
+                            <td className="text-right p-3 font-bold text-red-700">{formatCurrency(year.expenses)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-red-100">
+                        <td className="p-3">ИТОГО 5 лет</td>
+                        <td className="text-right p-3 text-red-700">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + (y.expense_breakdown?.labor || 0), 0))}
+                        </td>
+                        <td className="text-right p-3 text-red-800">
+                          {formatCurrency(forecast.reduce((sum, y) => sum + y.expenses, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* Пояснение */}
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Примечание:</strong> Детализация показывает структуру доходов и расходов по категориям. 
+                  Доходы: швеи, уборщицы и аутсорсинг. Расходы: в основном ФОТ (фонд оплаты труда). 
+                  Все показатели индексируются на 6% ежегодно с 2027 года.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Расчеты для инвестора */}
       <Card className="border-2 border-green-200 bg-green-50">
         <CardHeader className="bg-green-100">
