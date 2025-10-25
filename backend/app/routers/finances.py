@@ -1473,6 +1473,17 @@ async def get_forecast(
             current_revenue = base_revenue * annual_revenue_growth
             current_expenses = base_expenses * annual_expense_growth
             
+            # Детализация на 2026 (пропорционально общему росту)
+            expense_breakdown_2026 = {}
+            if expense_breakdown_2025:
+                for category, amount in expense_breakdown_2025.items():
+                    expense_breakdown_2026[category] = round(amount * annual_expense_growth, 2)
+            
+            # Детализация доходов (упрощенная - основной доход)
+            revenue_breakdown_2026 = {
+                "main_revenue": round(current_revenue, 2)
+            }
+            
             # 2026 год
             current_profit = current_revenue - current_expenses
             current_margin = (current_profit / current_revenue * 100) if current_revenue > 0 else 0
@@ -1482,7 +1493,9 @@ async def get_forecast(
                 "revenue": round(current_revenue, 2),
                 "expenses": round(current_expenses, 2),
                 "profit": round(current_profit, 2),
-                "margin": round(current_margin, 2)
+                "margin": round(current_margin, 2),
+                "revenue_breakdown": revenue_breakdown_2026,
+                "expense_breakdown": expense_breakdown_2026
             })
             
             # Для 2027-2030 применяем фиксированную индексацию 30%
@@ -1497,12 +1510,23 @@ async def get_forecast(
                 indexed_profit = indexed_revenue - indexed_expenses
                 indexed_margin = (indexed_profit / indexed_revenue * 100) if indexed_revenue > 0 else 0
                 
+                # Индексируем детализацию
+                indexed_expense_breakdown = {}
+                for category, amount in expense_breakdown_2026.items():
+                    indexed_expense_breakdown[category] = round(amount * (indexation_rate ** years_from_2026), 2)
+                
+                indexed_revenue_breakdown = {
+                    "main_revenue": round(indexed_revenue, 2)
+                }
+                
                 forecast.append({
                     "year": year,
                     "revenue": round(indexed_revenue, 2),
                     "expenses": round(indexed_expenses, 2),
                     "profit": round(indexed_profit, 2),
-                    "margin": round(indexed_margin, 2)
+                    "margin": round(indexed_margin, 2),
+                    "revenue_breakdown": indexed_revenue_breakdown,
+                    "expense_breakdown": indexed_expense_breakdown
                 })
             
             # Расчеты для инвестора
