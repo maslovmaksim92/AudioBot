@@ -1254,12 +1254,6 @@ async def get_forecast(company: Optional[str] = "ВАШ ДОМ ФАКТ"):
         logger.error(f"Error calculating forecast: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-            SELECT SUM(amount) as total_amount
-            FROM financial_transactions
-            WHERE type = 'expense' AND company = 'ВАШ ДОМ модель'
-              AND category = 'Аутсорсинг персонала'
-        """
-        outsourcing_row = await conn.fetchrow(outsourcing_query)
     
     outsourcing_total = float(outsourcing_row['total_amount']) if outsourcing_row and outsourcing_row['total_amount'] else 0
     
