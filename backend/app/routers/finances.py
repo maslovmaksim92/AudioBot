@@ -1440,22 +1440,40 @@ async def get_forecast(
             forecast = []
             years = [2026, 2027, 2028, 2029, 2030]
             
-            current_revenue = base_revenue
-            current_expenses = base_expenses
+            # Для первого года (2026) используем текущий расчет на основе тренда
+            current_revenue = base_revenue * annual_revenue_growth
+            current_expenses = base_expenses * annual_expense_growth
             
-            for year in years:
-                # Применяем рост
-                current_revenue *= annual_revenue_growth
-                current_expenses *= annual_expense_growth
-                current_profit = current_revenue - current_expenses
-                current_margin = (current_profit / current_revenue * 100) if current_revenue > 0 else 0
+            # 2026 год
+            current_profit = current_revenue - current_expenses
+            current_margin = (current_profit / current_revenue * 100) if current_revenue > 0 else 0
+            
+            forecast.append({
+                "year": 2026,
+                "revenue": round(current_revenue, 2),
+                "expenses": round(current_expenses, 2),
+                "profit": round(current_profit, 2),
+                "margin": round(current_margin, 2)
+            })
+            
+            # Для 2027-2030 применяем фиксированную индексацию 30%
+            indexation_rate = 1.30
+            revenue_2026 = current_revenue
+            expenses_2026 = current_expenses
+            
+            for i, year in enumerate([2027, 2028, 2029, 2030]):
+                years_from_2026 = i + 1
+                indexed_revenue = revenue_2026 * (indexation_rate ** years_from_2026)
+                indexed_expenses = expenses_2026 * (indexation_rate ** years_from_2026)
+                indexed_profit = indexed_revenue - indexed_expenses
+                indexed_margin = (indexed_profit / indexed_revenue * 100) if indexed_revenue > 0 else 0
                 
                 forecast.append({
                     "year": year,
-                    "revenue": round(current_revenue, 2),
-                    "expenses": round(current_expenses, 2),
-                    "profit": round(current_profit, 2),
-                    "margin": round(current_margin, 2)
+                    "revenue": round(indexed_revenue, 2),
+                    "expenses": round(indexed_expenses, 2),
+                    "profit": round(indexed_profit, 2),
+                    "margin": round(indexed_margin, 2)
                 })
             
             # Расчеты для инвестора
