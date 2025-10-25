@@ -1091,6 +1091,12 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         outsourcing_row = await conn.fetchrow(outsourcing_query, month)
     else:
         outsourcing_query = """
+            SELECT SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ модель'
+              AND category = 'Аутсорсинг персонала'
+        """
+        outsourcing_row = await conn.fetchrow(outsourcing_query)
 
 
 @router.get("/finances/forecast")
