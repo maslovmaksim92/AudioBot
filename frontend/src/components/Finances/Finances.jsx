@@ -123,6 +123,10 @@ function Finances() {
           <TabsContent value="payment-calendar" className="space-y-4">
             <PaymentCalendar />
           </TabsContent>
+
+          <TabsContent value="forecast" className="space-y-4">
+            <ForecastView />
+          </TabsContent>
         </Tabs>
 
         {/* Transaction Form Modal */}
