@@ -1462,9 +1462,53 @@ async def test_ufic_forecast_endpoint():
                         results.errors.append(error_msg)
                         print(error_msg)
                 
-                # Criterion 4: Check 6% annual indexation
+                # Criterion 4: Check 6% annual indexation for 2027-2030 based on 2026 data
                 if len(forecast) >= 2:
-                    print(f"📈 Проверяем индексацию 6% ежегодно:")
+                    print(f"📈 Проверяем индексацию 6% ежегодно с 2027 года (к данным 2026):")
+                    
+                    # Find 2026 as base for indexation
+                    base_2026_data = None
+                    for year_data in forecast:
+                        if year_data.get('year') == 2026:
+                            base_2026_data = year_data
+                            break
+                    
+                    if base_2026_data:
+                        base_revenue_2026 = base_2026_data.get('revenue', 0)
+                        base_expenses_2026 = base_2026_data.get('expenses', 0)
+                        
+                        # Check indexation for years 2027-2030
+                        for year_data in forecast:
+                            year = year_data.get('year', 0)
+                            if year >= 2027 and year <= 2030:
+                                years_from_2026 = year - 2026
+                                expected_revenue = base_revenue_2026 * (1.06 ** years_from_2026)
+                                expected_expenses = base_expenses_2026 * (1.06 ** years_from_2026)
+                                
+                                actual_revenue = year_data.get('revenue', 0)
+                                actual_expenses = year_data.get('expenses', 0)
+                                
+                                print(f"   {year}: выручка {actual_revenue:,.0f} (ожидалось {expected_revenue:,.0f})")
+                                print(f"        расходы {actual_expenses:,.0f} (ожидалось {expected_expenses:,.0f})")
+                                
+                                # Allow small rounding differences
+                                if abs(actual_revenue - expected_revenue) > 100:
+                                    error_msg = f"❌ Сценарий {scenario}: неверная индексация выручки {year}: {actual_revenue:,.0f} vs {expected_revenue:,.0f}"
+                                    results.errors.append(error_msg)
+                                    print(f"        ❌ Выручка не соответствует индексации 6%")
+                                else:
+                                    print(f"        ✅ Выручка соответствует индексации 6%")
+                                
+                                if abs(actual_expenses - expected_expenses) > 100:
+                                    error_msg = f"❌ Сценарий {scenario}: неверная индексация расходов {year}: {actual_expenses:,.0f} vs {expected_expenses:,.0f}"
+                                    results.errors.append(error_msg)
+                                    print(f"        ❌ Расходы не соответствуют индексации 6%")
+                                else:
+                                    print(f"        ✅ Расходы соответствуют индексации 6%")
+                    else:
+                        error_msg = f"❌ Сценарий {scenario}: не найдены данные 2026 года для проверки индексации"
+                        results.errors.append(error_msg)
+                        print(error_msg)но:")
                     
                     for i in range(1, len(forecast)):
                         prev_year = forecast[i-1]
