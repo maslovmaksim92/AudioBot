@@ -491,6 +491,21 @@ frontend:
           agent: "testing"
           comment: "✅ ФИНАЛЬНОЕ ТЕСТИРОВАНИЕ с точными данными из Excel файла 'Модель УФИЦ.xlsx' завершено успешно. Все критерии выполнены: 1) ✅ Все три сценария возвращают 200 статус, 2) ✅ Базовый год 2025 содержит точные данные из Excel: Пессимистичный (revenue 38,645,410₽, expenses 27,289,899₽), Реалистичный (revenue 38,645,410₽, expenses 27,289,900₽), Оптимистичный (revenue 38,865,910₽, expenses 27,396,013₽), 3) ✅ Для 2026 года данные соответствуют Excel: Пессимистичный (revenue 51,458,491₽, expenses 34,101,464₽), Реалистичный (revenue 54,687,416₽, expenses 36,947,205₽), Оптимистичный (revenue 58,491,350₽, expenses 39,840,376₽), 4) ✅ Индексация 6% ежегодно применяется корректно к данным 2026 для лет 2027-2030, 5) ✅ Структура ответа содержит все необходимые поля, 6) ✅ Маржа рассчитывается корректно: пессимистичный 33.73%, реалистичный 32.44%, оптимистичный 31.89%. Endpoint полностью соответствует финальной версии с точными данными из предоставленного Excel файла."
 
+  - task: "УФИЦ модель forecast endpoint - detailed breakdown"
+    implemented: false
+    working: false
+    file: "/app/backend/app/routers/finances.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "user"
+          comment: "Протестировать endpoint GET /api/finances/forecast для УФИЦ модель с детализацией доходов и расходов. Проверить: 1) Endpoint возвращает 200 статус, 2) Каждый год в массиве forecast содержит revenue_breakdown с полями sewing, cleaning, outsourcing и expense_breakdown с полем labor, 3) Детализация на 2026 год: sewing ~15,739,136, cleaning ~24,615,780, outsourcing ~14,332,500, labor ~36,947,205, 4) Индексация 6% ежегодно применяется к детализации для 2027-2030, 5) Суммы детализации совпадают с общими показателями revenue и expenses."
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ПРОБЛЕМА: Детализация доходов и расходов отсутствует в endpoint GET /api/finances/forecast. Обнаружено 24 ошибки: 1) ❌ Все годы (2026-2030) не содержат поля revenue_breakdown и expense_breakdown, 2) ❌ Детализация 2026 года полностью отсутствует (все значения = 0), 3) ❌ Суммы детализации не совпадают с общими показателями (0 vs фактические суммы). Endpoint возвращает 200 статус и корректные общие показатели (revenue, expenses), но НЕ СОДЕРЖИТ требуемую детализацию по категориям. Требуется добавить в ответ поля revenue_breakdown: {sewing, cleaning, outsourcing} и expense_breakdown: {labor} для каждого года прогноза с применением индексации 6% ежегодно."
+
 test_plan:
   current_focus: []
   stuck_tasks: []
