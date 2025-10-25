@@ -1091,6 +1091,167 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
         outsourcing_row = await conn.fetchrow(outsourcing_query, month)
     else:
         outsourcing_query = """
+
+
+@router.get("/finances/forecast")
+async def get_forecast(company: Optional[str] = "ВАШ ДОМ ФАКТ"):
+    """
+    Получить прогноз на 2026-2030 годы на основе данных 2025
+    Параметры:
+    - company: Компания для прогноза (по умолчанию "ВАШ ДОМ ФАКТ")
+    """
+    try:
+        conn = await get_db_connection()
+        try:
+            # Получаем данные прибылей/убытков за 2025 год
+            if company == "ВАШ ДОМ модель":
+                result_2025 = await get_consolidated_profit_loss(conn)
+            else:
+                # Получаем выручку
+                revenue_rows = await conn.fetch("""
+                    SELECT month, revenue
+                    FROM monthly_revenue
+                    WHERE company = $1
+                    ORDER BY month
+                """, company)
+                
+                revenue_by_month = {row['month']: float(row['revenue']) for row in revenue_rows}
+                
+                # Получаем расходы
+                expense_rows = await conn.fetch("""
+                    SELECT 
+                        project as month,
+                        SUM(amount) as amount
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = $1
+                    GROUP BY project
+                """, company)
+                
+                expenses_by_month = {row['month']: float(row['amount']) for row in expense_rows}
+                
+                # Формируем данные 2025
+                result_2025 = {
+                    "profit_loss": [],
+                    "summary": {
+                        "total_revenue": sum(revenue_by_month.values()),
+                        "total_expenses": sum(expenses_by_month.values()),
+                        "total_profit": sum(revenue_by_month.values()) - sum(expenses_by_month.values()),
+                        "margin": 0
+                    }
+                }
+                
+                if result_2025["summary"]["total_revenue"] > 0:
+                    result_2025["summary"]["margin"] = round(
+                        (result_2025["summary"]["total_profit"] / result_2025["summary"]["total_revenue"] * 100), 2
+                    )
+            
+            # Вычисляем средний месячный рост на основе данных 2025
+            monthly_data = result_2025.get("profit_loss", [])
+            
+            # Если есть помесячные данные, вычисляем тренд
+            if len(monthly_data) >= 2:
+                # Простая линейная регрессия для определения тренда
+                revenues = [m["revenue"] for m in monthly_data if m.get("revenue")]
+                expenses = [m["expenses"] for m in monthly_data if m.get("expenses")]
+                
+                # Средний рост = (последний - первый) / первый / количество периодов
+                if len(revenues) >= 2 and revenues[0] > 0:
+                    revenue_growth_rate = ((revenues[-1] - revenues[0]) / revenues[0]) / len(revenues)
+                else:
+                    revenue_growth_rate = 0.05  # По умолчанию 5% рост
+                
+                if len(expenses) >= 2 and expenses[0] > 0:
+                    expense_growth_rate = ((expenses[-1] - expenses[0]) / expenses[0]) / len(expenses)
+                else:
+                    expense_growth_rate = 0.03  # По умолчанию 3% рост
+            else:
+                # Если нет помесячных данных, используем консервативные оценки
+                revenue_growth_rate = 0.05  # 5% годовой рост
+                expense_growth_rate = 0.03  # 3% годовой рост
+            
+            # Базовые значения 2025
+            base_revenue = result_2025["summary"]["total_revenue"]
+            base_expenses = result_2025["summary"]["total_expenses"]
+            base_profit = result_2025["summary"]["total_profit"]
+            
+            # Годовые коэффициенты роста (умножаем месячные на 12 для годового)
+            annual_revenue_growth = 1 + (revenue_growth_rate * 12)
+            annual_expense_growth = 1 + (expense_growth_rate * 12)
+            
+            # Генерируем прогноз на 2026-2030
+            forecast = []
+            years = [2026, 2027, 2028, 2029, 2030]
+            
+            current_revenue = base_revenue
+            current_expenses = base_expenses
+            
+            for year in years:
+                # Применяем рост
+                current_revenue *= annual_revenue_growth
+                current_expenses *= annual_expense_growth
+                current_profit = current_revenue - current_expenses
+                current_margin = (current_profit / current_revenue * 100) if current_revenue > 0 else 0
+                
+                forecast.append({
+                    "year": year,
+                    "revenue": round(current_revenue, 2),
+                    "expenses": round(current_expenses, 2),
+                    "profit": round(current_profit, 2),
+                    "margin": round(current_margin, 2)
+                })
+            
+            # Расчеты для инвестора
+            total_forecast_profit = sum(f["profit"] for f in forecast)
+            average_annual_profit = total_forecast_profit / len(forecast)
+            
+            # Средняя рентабельность
+            average_margin = sum(f["margin"] for f in forecast) / len(forecast)
+            
+            # ROI за 5 лет (если инвестор вкладывает сумму = годовым расходам 2025)
+            investment_amount = base_expenses
+            roi_5_years = (total_forecast_profit / investment_amount * 100) if investment_amount > 0 else 0
+            
+            # Срок окупаемости (в годах)
+            cumulative_profit = 0
+            payback_period = None
+            for i, f in enumerate(forecast):
+                cumulative_profit += f["profit"]
+                if cumulative_profit >= investment_amount and payback_period is None:
+                    payback_period = i + 1
+            
+            if payback_period is None:
+                payback_period = "> 5 лет"
+            
+            investor_metrics = {
+                "investment_amount": round(investment_amount, 2),
+                "total_profit_5_years": round(total_forecast_profit, 2),
+                "average_annual_profit": round(average_annual_profit, 2),
+                "average_margin": round(average_margin, 2),
+                "roi_5_years": round(roi_5_years, 2),
+                "payback_period": payback_period,
+                "revenue_growth_rate": round(annual_revenue_growth * 100 - 100, 2),
+                "expense_growth_rate": round(annual_expense_growth * 100 - 100, 2)
+            }
+            
+            return {
+                "company": company,
+                "base_year": 2025,
+                "base_data": {
+                    "revenue": round(base_revenue, 2),
+                    "expenses": round(base_expenses, 2),
+                    "profit": round(base_profit, 2),
+                    "margin": result_2025["summary"]["margin"]
+                },
+                "forecast": forecast,
+                "investor_metrics": investor_metrics
+            }
+            
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Error calculating forecast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
             SELECT SUM(amount) as total_amount
             FROM financial_transactions
             WHERE type = 'expense' AND company = 'ВАШ ДОМ модель'
