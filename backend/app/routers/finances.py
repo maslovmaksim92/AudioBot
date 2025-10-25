@@ -1431,30 +1431,6 @@ async def get_forecast(
                         (result_2025["summary"]["total_profit"] / result_2025["summary"]["total_revenue"] * 100), 2
                     )
             
-            # Вычисляем средний месячный рост на основе данных 2025
-            monthly_data = result_2025.get("profit_loss", [])
-            
-            # Если есть помесячные данные, вычисляем тренд
-            if len(monthly_data) >= 2:
-                # Простая линейная регрессия для определения тренда
-                revenues = [m["revenue"] for m in monthly_data if m.get("revenue")]
-                expenses = [m["expenses"] for m in monthly_data if m.get("expenses")]
-                
-                # Средний рост = (последний - первый) / первый / количество периодов
-                if len(revenues) >= 2 and revenues[0] > 0:
-                    revenue_growth_rate = ((revenues[-1] - revenues[0]) / revenues[0]) / len(revenues)
-                else:
-                    revenue_growth_rate = 0.05  # По умолчанию 5% рост
-                
-                if len(expenses) >= 2 and expenses[0] > 0:
-                    expense_growth_rate = ((expenses[-1] - expenses[0]) / expenses[0]) / len(expenses)
-                else:
-                    expense_growth_rate = 0.03  # По умолчанию 3% рост
-            else:
-                # Если нет помесячных данных, используем консервативные оценки
-                revenue_growth_rate = 0.05  # 5% годовой рост
-                expense_growth_rate = 0.03  # 3% годовой рост
-            
             # Базовые значения 2025
             base_revenue = result_2025["summary"]["total_revenue"]
             base_expenses = total_expenses_2025  # Используем расходы без Ленинск-Кузнецкий
