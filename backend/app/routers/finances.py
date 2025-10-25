@@ -1396,13 +1396,36 @@ async def get_forecast(
                     ORDER BY total_amount DESC
                 """, company)
                 
-                # Формируем детализацию расходов по категориям
+                # Формируем детализацию расходов по категориям с перераспределением
                 expense_breakdown_2025 = {}
-                for row in expense_by_category:
-                    category_name = row['category'].lower().replace(' ', '_').replace('-', '_')
-                    expense_breakdown_2025[category_name] = float(row['total_amount'])
+                excluded_amount = 0  # Сумма для перераспределения в зарплату
                 
-                # Общие расходы
+                for row in expense_by_category:
+                    category = row['category']
+                    category_lower = category.lower()
+                    amount = float(row['total_amount'])
+                    
+                    # Исключаемые категории (суммы идут в зарплату)
+                    if any(keyword in category_lower for keyword in ['кредит', 'аутсорсинг', 'продукт', 'питание']):
+                        excluded_amount += amount
+                        continue
+                    
+                    # Текущий ремонт: берем только 30%, остальные 70% в зарплату
+                    if 'текущий' in category_lower and 'ремонт' in category_lower:
+                        excluded_amount += amount * 0.7
+                        amount = amount * 0.3
+                    
+                    category_name = category.lower().replace(' ', '_').replace('-', '_')
+                    expense_breakdown_2025[category_name] = amount
+                
+                # Добавляем исключенные суммы к зарплате
+                if 'зарплата' in expense_breakdown_2025:
+                    expense_breakdown_2025['зарплата'] += excluded_amount
+                else:
+                    # Если зарплаты нет как отдельной категории, создаем
+                    expense_breakdown_2025['зарплата'] = excluded_amount
+                
+                # Общие расходы после перераспределения
                 total_expenses_2025 = sum(expense_breakdown_2025.values())
                 
                 # Получаем расходы общие
