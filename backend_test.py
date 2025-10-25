@@ -1508,11 +1508,7 @@ async def test_ufic_forecast_endpoint():
                     else:
                         error_msg = f"❌ Сценарий {scenario}: не найдены данные 2026 года для проверки индексации"
                         results.errors.append(error_msg)
-                        print(error_msg)но:")
-                    
-                    for i in range(1, len(forecast)):
-                        prev_year = forecast[i-1]
-                        curr_year = forecast[i]
+                        print(error_msg)
                         
                         prev_revenue = prev_year['revenue']
                         curr_revenue = curr_year['revenue']
