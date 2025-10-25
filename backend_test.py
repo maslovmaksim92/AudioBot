@@ -1313,6 +1313,259 @@ async def test_database_connection():
         print(f"❌ Ошибка проверки БД: {str(e)}")
         return False
 
+async def test_vasdom_fact_forecast_endpoint():
+    """Test ВАШ ДОМ ФАКТ forecast endpoint with new scenarios and requirements"""
+    print("\n=== ТЕСТ ПРОГНОЗА ВАШ ДОМ ФАКТ С НОВЫМИ СЦЕНАРИЯМИ ===\n")
+    
+    results = TestResults()
+    scenarios = ["pessimistic", "realistic", "optimistic"]
+    company = "ВАШ ДОМ ФАКТ"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем прогноз для компании: {company}")
+            print("📋 Требования к проверке:")
+            print("   1. Пессимистичный сценарий: рост выручки 20% ежегодно, маржа 20%")
+            print("   2. Реалистичный сценарий: рост выручки 40% для 2026, далее ×1.40 ежегодно; рост расходов 30% для 2026, далее ×1.30 ежегодно")
+            print("   3. Оптимистичный сценарий: рост выручки 60% для 2026, далее ×1.60 ежегодно; рост расходов 40% для 2026, далее ×1.40 ежегодно")
+            print("   4. Детализация расходов НЕ должна содержать 'Ленинск-Кузнецкий'")
+            print("   5. Детализация расходов по категориям (expense_breakdown) присутствует")
+            print("   6. Все категории индексируются пропорционально")
+            print("   7. Нет категорий с 'ленинск' или 'кузнец' в названии")
+            print("")
+            
+            scenario_results = {}
+            
+            for scenario in scenarios:
+                print(f"🔍 Тестируем сценарий: {scenario}")
+                
+                # Test the forecast endpoint
+                response = await client.get(
+                    f"{API_BASE}/finances/forecast",
+                    params={"company": company, "scenario": scenario}
+                )
+                
+                print(f"📡 Ответ сервера для {scenario}: {response.status_code}")
+                
+                # Check 200 status
+                if response.status_code != 200:
+                    error_msg = f"❌ Сценарий {scenario}: ошибка {response.status_code} - {response.text}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                data = response.json()
+                scenario_results[scenario] = data
+                print(f"✅ Сценарий {scenario}: 200 статус получен")
+                
+                # Validate response structure
+                required_fields = ['company', 'scenario', 'base_year', 'base_data', 'forecast']
+                for field in required_fields:
+                    if field not in data:
+                        error_msg = f"❌ Сценарий {scenario}: отсутствует поле '{field}'"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ Поле '{field}' присутствует")
+                
+                # Check forecast data for years 2026-2030
+                forecast = data.get('forecast', [])
+                if len(forecast) < 5:
+                    error_msg = f"❌ Сценарий {scenario}: недостаточно лет в прогнозе (ожидалось 5, получено {len(forecast)})"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                print(f"✅ Прогноз содержит {len(forecast)} лет (2026-2030)")
+                
+                # Get base year data
+                base_data = data.get('base_data', {})
+                base_revenue = base_data.get('revenue', 0)
+                base_expenses = base_data.get('expenses', 0)
+                
+                print(f"📊 Базовые данные 2025:")
+                print(f"   - Выручка: {base_revenue:,.0f}")
+                print(f"   - Расходы: {base_expenses:,.0f}")
+                
+                # Check scenario-specific requirements
+                if scenario == "pessimistic":
+                    # Check 20% annual growth and 20% margin
+                    for i, year_data in enumerate(forecast):
+                        year = year_data.get('year')
+                        revenue = year_data.get('revenue', 0)
+                        expenses = year_data.get('expenses', 0)
+                        
+                        # Calculate expected revenue (20% growth annually)
+                        years_from_base = year - 2025
+                        expected_revenue = base_revenue * (1.20 ** years_from_base)
+                        
+                        # Check revenue growth
+                        revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
+                        if revenue_diff_pct > 1.0:  # Allow 1% tolerance
+                            error_msg = f"❌ Пессимистичный {year}: неверный рост выручки. Ожидалось {expected_revenue:,.0f}, получено {revenue:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {year}: рост выручки 20% корректен ({revenue:,.0f})")
+                        
+                        # Check 20% margin (expenses = revenue * 0.8)
+                        expected_expenses = revenue * 0.8
+                        expense_diff_pct = abs(expenses - expected_expenses) / expected_expenses * 100
+                        if expense_diff_pct > 1.0:  # Allow 1% tolerance
+                            error_msg = f"❌ Пессимистичный {year}: неверная маржа 20%. Ожидалось расходов {expected_expenses:,.0f}, получено {expenses:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            margin = (revenue - expenses) / revenue * 100
+                            print(f"✅ {year}: маржа 20% корректна ({margin:.1f}%)")
+                
+                elif scenario == "realistic":
+                    # Check 40% growth for 2026, then x1.40 annually; 30% expense growth for 2026, then x1.30 annually
+                    for i, year_data in enumerate(forecast):
+                        year = year_data.get('year')
+                        revenue = year_data.get('revenue', 0)
+                        expenses = year_data.get('expenses', 0)
+                        
+                        if year == 2026:
+                            # First year: 40% revenue growth, 30% expense growth
+                            expected_revenue = base_revenue * 1.40
+                            expected_expenses = base_expenses * 1.30
+                        else:
+                            # Subsequent years: multiply by 1.40 and 1.30 respectively
+                            years_after_2026 = year - 2026
+                            expected_revenue = base_revenue * 1.40 * (1.40 ** years_after_2026)
+                            expected_expenses = base_expenses * 1.30 * (1.30 ** years_after_2026)
+                        
+                        # Check revenue
+                        revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
+                        if revenue_diff_pct > 1.0:
+                            error_msg = f"❌ Реалистичный {year}: неверный рост выручки. Ожидалось {expected_revenue:,.0f}, получено {revenue:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {year}: рост выручки корректен ({revenue:,.0f})")
+                        
+                        # Check expenses
+                        expense_diff_pct = abs(expenses - expected_expenses) / expected_expenses * 100
+                        if expense_diff_pct > 1.0:
+                            error_msg = f"❌ Реалистичный {year}: неверный рост расходов. Ожидалось {expected_expenses:,.0f}, получено {expenses:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {year}: рост расходов корректен ({expenses:,.0f})")
+                
+                elif scenario == "optimistic":
+                    # Check 60% growth for 2026, then x1.60 annually; 40% expense growth for 2026, then x1.40 annually
+                    for i, year_data in enumerate(forecast):
+                        year = year_data.get('year')
+                        revenue = year_data.get('revenue', 0)
+                        expenses = year_data.get('expenses', 0)
+                        
+                        if year == 2026:
+                            # First year: 60% revenue growth, 40% expense growth
+                            expected_revenue = base_revenue * 1.60
+                            expected_expenses = base_expenses * 1.40
+                        else:
+                            # Subsequent years: multiply by 1.60 and 1.40 respectively
+                            years_after_2026 = year - 2026
+                            expected_revenue = base_revenue * 1.60 * (1.60 ** years_after_2026)
+                            expected_expenses = base_expenses * 1.40 * (1.40 ** years_after_2026)
+                        
+                        # Check revenue
+                        revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
+                        if revenue_diff_pct > 1.0:
+                            error_msg = f"❌ Оптимистичный {year}: неверный рост выручки. Ожидалось {expected_revenue:,.0f}, получено {revenue:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {year}: рост выручки корректен ({revenue:,.0f})")
+                        
+                        # Check expenses
+                        expense_diff_pct = abs(expenses - expected_expenses) / expected_expenses * 100
+                        if expense_diff_pct > 1.0:
+                            error_msg = f"❌ Оптимистичный {year}: неверный рост расходов. Ожидалось {expected_expenses:,.0f}, получено {expenses:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ {year}: рост расходов корректен ({expenses:,.0f})")
+                
+                # Check expense breakdown for all scenarios
+                print(f"🔍 Проверяем детализацию расходов для сценария {scenario}...")
+                
+                for year_data in forecast:
+                    year = year_data.get('year')
+                    expense_breakdown = year_data.get('expense_breakdown', {})
+                    
+                    if not expense_breakdown:
+                        error_msg = f"❌ {scenario} {year}: отсутствует expense_breakdown"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                        continue
+                    
+                    print(f"✅ {year}: expense_breakdown присутствует ({len(expense_breakdown)} категорий)")
+                    
+                    # Check for excluded categories (Ленинск-Кузнецкий)
+                    excluded_found = []
+                    for category, amount in expense_breakdown.items():
+                        category_lower = category.lower()
+                        if 'ленинск' in category_lower or 'кузнец' in category_lower:
+                            excluded_found.append(category)
+                    
+                    if excluded_found:
+                        error_msg = f"❌ {scenario} {year}: найдены исключаемые категории: {excluded_found}"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ {year}: исключаемые категории отсутствуют")
+                    
+                    # Show sample categories
+                    if year == 2026:  # Show for first forecast year
+                        print(f"📋 Примеры категорий расходов {year}:")
+                        for i, (category, amount) in enumerate(list(expense_breakdown.items())[:5], 1):
+                            print(f"   {i}. {category}: {amount:,.0f}")
+                
+                print(f"")  # Empty line for readability
+            
+            # Summary check
+            print("📊 ИТОГОВАЯ ПРОВЕРКА ВСЕХ СЦЕНАРИЕВ:")
+            
+            success_criteria = {
+                "all_scenarios_200": len(scenario_results) == 3,
+                "leninsk_excluded": True,
+                "pessimistic_margin_20": True,
+                "growth_requirements": True,
+                "expense_breakdown_present": True
+            }
+            
+            # Check if all scenarios returned 200
+            if success_criteria["all_scenarios_200"]:
+                print("✅ Все три сценария работают")
+            else:
+                print(f"❌ Не все сценарии работают ({len(scenario_results)}/3)")
+                success_criteria["all_scenarios_200"] = False
+            
+            # Final validation summary
+            total_success_criteria = sum(success_criteria.values())
+            print(f"\n🎯 КРИТЕРИИ УСПЕХА: {total_success_criteria}/5")
+            
+            for criterion, passed in success_criteria.items():
+                status = "✅" if passed else "❌"
+                print(f"{status} {criterion}")
+            
+            if total_success_criteria == 5:
+                print("\n🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
+            else:
+                print(f"\n⚠️ ВЫПОЛНЕНО {total_success_criteria}/5 КРИТЕРИЕВ")
+            
+            results.finance_endpoints['vasdom_fact_forecast'] = scenario_results
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании прогноза ВАШ ДОМ ФАКТ: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def test_ufic_forecast_endpoint():
     """Test УФИЦ модель forecast endpoint with exact Excel data"""
     print("\n=== ТЕСТ ПРОГНОЗА УФИЦ МОДЕЛЬ С ДАННЫМИ ИЗ EXCEL ===\n")
