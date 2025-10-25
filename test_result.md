@@ -528,11 +528,11 @@ frontend:
 
   - task: "Forecast endpoints quick check after bugfix"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/app/routers/finances.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "user"
@@ -540,6 +540,24 @@ frontend:
         - working: true
           agent: "testing"
           comment: "✅ БЫСТРАЯ ПРОВЕРКА ПРОГНОЗОВ ЗАВЕРШЕНА УСПЕШНО: Все критерии успеха выполнены: 1) ✅ Все три endpoint возвращают 200 статус: УФИЦ модель (200), ВАШ ДОМ ФАКТ (200), ВАШ ДОМ модель (200), 2) ✅ Ошибки 'cannot access local variable expense_breakdown_2025' не найдены ни в одном из ответов, 3) ✅ Данные прогноза присутствуют для всех компаний: УФИЦ модель (5 лет прогноза), ВАШ ДОМ ФАКТ (5 лет прогноза), ВАШ ДОМ модель (5 лет прогноза), 4) ✅ Детализация присутствует во всех endpoint: revenue_breakdown и expense_breakdown корректно возвращаются для каждого года прогноза. Примеры данных: УФИЦ модель 2026 (выручка 54,687,416₽, расходы 36,947,205₽), ВАШ ДОМ ФАКТ 2026 (выручка 75,385,840₽, расходы 58,901,434₽), ВАШ ДОМ модель 2026 (выручка 51,807,025₽, расходы 60,276,799₽). Все структуры ответов содержат необходимые поля: company, scenario, forecast. Критическая ошибка с неинициализированной переменной успешно исправлена."
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКИЕ ОШИБКИ В ПРОГНОЗАХ ОБНАРУЖЕНЫ: Тестирование показало серьезные проблемы: 1) ❌ ВАШ ДОМ ФАКТ: все сценарии (pessimistic, realistic, optimistic) возвращают 500 ошибку 'name annual_revenue_growth is not defined', 2) ❌ ВАШ ДОМ модель: возвращает 500 ошибку 'cannot access local variable total_expenses_2025 where it is not associated with a value', 3) ✅ УФИЦ модель: работает корректно (200 статус, детализация присутствует). Логи backend показывают повторяющиеся ошибки в /app/backend/app/routers/finances.py. Требуется срочное исправление переменных annual_revenue_growth и total_expenses_2025 в коде прогнозов. Предыдущий отчет о успешном тестировании был неточным - проблемы остались."
+
+  - task: "ВАШ ДОМ ФАКТ forecast endpoint with new scenarios"
+    implemented: true
+    working: false
+    file: "/app/backend/app/routers/finances.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "user"
+          comment: "Протестировать обновленный прогноз ВАШ ДОМ ФАКТ с новыми сценариями и требованиями. Endpoint для тестирования: 1. GET /api/finances/forecast?company=ВАШ ДОМ ФАКТ&scenario=pessimistic, 2. GET /api/finances/forecast?company=ВАШ ДОМ ФАКТ&scenario=realistic, 3. GET /api/finances/forecast?company=ВАШ ДОМ ФАКТ&scenario=optimistic. Требования: Пессимистичный сценарий (рост выручки 20% ежегодно, маржа 20%), Реалистичный сценарий (рост выручки 40% для 2026 далее ×1.40 ежегодно, рост расходов 30% для 2026 далее ×1.30 ежегодно), Оптимистичный сценарий (рост выручки 60% для 2026 далее ×1.60 ежегодно, рост расходов 40% для 2026 далее ×1.40 ежегодно). Для всех сценариев: детализация расходов НЕ должна содержать Ленинск-Кузнецкий, expense_breakdown присутствует, все категории индексируются пропорционально."
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ОШИБКА: ВАШ ДОМ ФАКТ прогноз полностью не работает. Все три сценария (pessimistic, realistic, optimistic) возвращают 500 Internal Server Error с ошибкой 'name annual_revenue_growth is not defined'. Backend логи показывают повторяющиеся ошибки в finances.py. Ни один из требуемых критериев не может быть проверен из-за критической ошибки в коде. Требуется срочное исправление переменной annual_revenue_growth в функции расчета прогноза для компании ВАШ ДОМ ФАКТ. Endpoint недоступен для тестирования до исправления ошибки."
 
 test_plan:
   current_focus: []
