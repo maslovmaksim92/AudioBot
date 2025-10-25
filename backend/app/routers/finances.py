@@ -1208,32 +1208,56 @@ async def get_forecast(
                 for scen_name in ["pessimistic", "realistic", "optimistic"]:
                     scen_excel = ufic_excel_data[scen_name]
                     
-                    # 2026 год - берем из Excel
+                    # 2026 год - берем из Excel с детализацией
                     revenue_2026 = scen_excel["revenue_2026"]
                     expenses_2026 = scen_excel["expenses_2026"]
                     profit_2026 = revenue_2026 - expenses_2026
+                    
+                    revenue_breakdown_2026 = scen_excel["revenue_breakdown_2026"]
+                    expense_breakdown_2026 = scen_excel["expense_breakdown_2026"]
                     
                     ufic_data[scen_name]["years"].append({
                         "year": 2026,
                         "revenue": round(revenue_2026, 2),
                         "expenses": round(expenses_2026, 2),
                         "profit": round(profit_2026, 2),
-                        "cleaners": 0  # Для совместимости
+                        "cleaners": 0,  # Для совместимости
+                        "revenue_breakdown": {
+                            "sewing": round(revenue_breakdown_2026["sewing"], 2),
+                            "cleaning": round(revenue_breakdown_2026["cleaning"], 2),
+                            "outsourcing": round(revenue_breakdown_2026["outsourcing"], 2)
+                        },
+                        "expense_breakdown": {
+                            "labor": round(expense_breakdown_2026["labor"], 2)
+                        }
                     })
                     
-                    # 2027-2030 - применяем индексацию 6% к данным 2026
+                    # 2027-2030 - применяем индексацию 6% к данным 2026 (включая детализацию)
                     for year in range(2027, 2031):
                         years_from_2026 = year - 2026
                         indexed_revenue = revenue_2026 * (indexation_rate ** years_from_2026)
                         indexed_expenses = expenses_2026 * (indexation_rate ** years_from_2026)
                         indexed_profit = indexed_revenue - indexed_expenses
                         
+                        # Индексируем детализацию
+                        indexed_revenue_breakdown = {
+                            "sewing": round(revenue_breakdown_2026["sewing"] * (indexation_rate ** years_from_2026), 2),
+                            "cleaning": round(revenue_breakdown_2026["cleaning"] * (indexation_rate ** years_from_2026), 2),
+                            "outsourcing": round(revenue_breakdown_2026["outsourcing"] * (indexation_rate ** years_from_2026), 2)
+                        }
+                        
+                        indexed_expense_breakdown = {
+                            "labor": round(expense_breakdown_2026["labor"] * (indexation_rate ** years_from_2026), 2)
+                        }
+                        
                         ufic_data[scen_name]["years"].append({
                             "year": year,
                             "revenue": round(indexed_revenue, 2),
                             "expenses": round(indexed_expenses, 2),
                             "profit": round(indexed_profit, 2),
-                            "cleaners": 0  # Для совместимости
+                            "cleaners": 0,  # Для совместимости
+                            "revenue_breakdown": indexed_revenue_breakdown,
+                            "expense_breakdown": indexed_expense_breakdown
                         })
                     
                     ufic_data[scen_name]["base_revenue"] = scen_excel["revenue_2025"]
