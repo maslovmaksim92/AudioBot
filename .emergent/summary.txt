@@ -1,54 +1,61 @@
 <analysis>
-The AI engineer's work involved enhancing the VasDom application. Initially, it successfully integrated a Finances module from a separate branch, facing significant challenges with PostgreSQL's read-only permissions, leading to a temporary shift to  for financial data, before user insistence prompted a renewed attempt at a production-ready database solution (MongoDB was considered but not fully implemented, and the agent fell back to attempting PostgreSQL with existing tables). Concurrently, the engineer addressed issues with call summaries to Telegram and expanded Novofon integration by correctly configuring API keys and updating the . A critical UI issue concerning address search in the Works section was resolved by refining Bitrix24 service logic. Later, the user requested a fully editable financial system, prompting the creation of new CRUD backend routes and frontend management components, including VAT calculation and Adesk.ru-inspired formulas. The Plannerka module was updated to use OpenAI Realtime API. The work ended with the agent addressing a UI error in the Analysis tab and beginning to implement Payment Calendar and Budgets/Plan-Fact Analysis components.
+The AI engineer's work primarily focused on enhancing the Finances module of the VasDom application, transitioning it into a comprehensive management report. The initial phase involved resolving critical backend and frontend issues, then iteratively building out complex financial reporting features. A significant portion of the work revolved around developing a consolidated financial view, which underwent multiple iterations of refinement based on precise user feedback regarding calculation logic and category exclusions. This included dynamic company renaming and the introduction of a new forecasting module with multiple scenarios. The process demonstrated an iterative development cycle, with the AI engineer meticulously debugging syntax errors, adjusting complex financial calculations, and updating both backend API endpoints and frontend UI components in response to user clarifications and data inconsistencies.
 </analysis>
 
 <product_requirements>
-The VasDom application is an AI Assistant for cleaning operations, integrating Bitrix24 and Telegram with a PostgreSQL, FastAPI, and React stack.
-**Core Features:**
-- **Works**: Manages houses and cleanings, including Telegram photo uploads with AI captions, act signed functionality, and KPI tracking. Enhanced with CSV reports, Telegram photo history, and fixed monthly KPI calculations. Address search now works across all houses, not just the first page.
-- **Tasks**: Includes manual, Bitrix, and AI-proposed tasks. The Plannerka (Meetings) module features dictaphone recording, real-time transcription (now using OpenAI Whisper Realtime API), AI summarization, and task extraction.
-- **Telegram Bot**: Lists houses, handles photo uploads with AI captions, forwards photos/captions, and shows dynamic house listings.
-- **Authentication**: Initially Telegram login, replaced by standard login/password with user management and Moscow timezone support. Later, a user requested to bypass login and directly access the dashboard.
-- **Call Summaries**: Automatic summarization of Novofon/Bitrix24 calls, sent to Telegram. Enhanced to use Novofon API for all numbers, with a corrected .
-- **Financial Analysis**: A newly integrated module designed to be a management report with real data and manual editing/deletion/creation capabilities for all articles and categories (including debts and inventory). It aims to provide comprehensive financial information with daily detail, including VAT (initially 5%), Payment Calendar, and Budgets/Plan-Fact Analysis, inspired by Adesk.ru.
+The VasDom application required an advanced Financial Analysis module for management reporting. Key requirements and their evolution included:
+1.  **Consolidated Financial View (ВАШ ДОМ модель)**: Combine data from ВАШ ДОМ ФАКТ and УФИЦ модель with complex, category-specific adjustments. This involved renaming ООО ВАШ ДОМ to ВАШ ДОМ ФАКТ, УФИЦ to УФИЦ модель, and ООО ВАШ ДОМ + УФИЦ to ВАШ ДОМ модель. Initial logic was simple addition/subtraction, evolving to ВАШ ДОМ ФАКТ only for most categories, ВАШ ДОМ ФАКТ minus УФИЦ модель Зарплата for Зарплата, 5% of monthly revenue for Налоги, and excluding Кредиты, Швеи, Аутсорсинг персонала с Ю/ЦЛ, Юридические услуги, and Продукты питания. Аутсорсинг персонала was later added, derived from specific monthly payments for cleaners.
+2.  **Monthly Expense & Revenue Details**: Provide detailed breakdowns for company-specific and consolidated views.
+3.  **Debt Management**: Populate with real debt data, removing  reliance.
+4.  **UI Refinements**: Remove redundant tabs and integrate company/model selectors.
+5.  **Forecasting Module**: Implement a Прогноз 26-30 section with annual projections (2026-2030) using simple extrapolation. This evolved into a dedicated tab with model selection (ВАШ ДОМ ФАКТ, УФИЦ модель, ВАШ ДОМ модель) and three scenarios (Pessimistic, Realistic, Optimistic), including Расчеты для инвестора.
+6.  **UFIC Model from Excel**: Integrate УФИЦ модель forecast data (including cleaner counts) directly from a provided Excel file, with specific calculation logic based on current per-job-place metrics and forecasted job places.
 </product_requirements>
 
 <key_technical_concepts>
-- **FastAPI**: Backend APIs.
-- **React**: Frontend UI.
-- **PostgreSQL**: Primary database (with persistent read-only issues).
-- **OpenAI (Whisper, Realtime API)**: Speech-to-text, AI summaries.
-- **WebSockets**: Real-time audio streaming.
-- **Bitrix24**: CRM integration (houses, tasks, calls).
-- **Telegram Bot API**: Bot interactions, notifications.
-- **APScheduler**: Backend task scheduling (call summary agent).
-- **Novofon API**: Call data retrieval.
-- ****: Client-side data persistence for financial module (temporary).
+-   **FastAPI**: Backend framework for API endpoints.
+-   **React**: Frontend library for UI.
+-   **PostgreSQL**: Database for financial data.
+-   ****: Asynchronous PostgreSQL driver.
+-   **Pandas**: Used for Excel data parsing.
+-   **Data Migration Scripts**: Custom Python scripts for DB updates and data imports.
+-   **Environment Variables**: , .
+-   **Kubernetes Ingress**:  prefix for backend routing.
 </key_technical_concepts>
 
 <code_architecture>
 The application uses a monorepo structure with  (FastAPI) and  (React).
 
-backend/server.pyfinancesfinance_articlesfinance_transactionsrevenuedebtsinventoryopenai_realtimebackend/.envNOVOFON_API_KEYNOVOFON_API_SECRETTELEGRAM_TARGET_CHAT_ID-1002964910466backend/app/config/database.pybackend/app/routers/cleaning.pybackend/app/routers/finances.pybackend/app/routers/finance_articles.pybackend/app/routers/finance_transactions.pybackend/app/routers/revenue.pybackend/app/routers/debts.pybackend/app/routers/inventory.pybackend/app/routers/openai_realtime.pybackend/app/services/bitrix24_service.pyaddress_match_scorelimitbackend/app/services/novofon_service.pybackend/app/tasks/call_summary_agent.pynovofon_service.pybackend/app/migrations/run_migrations.pybackend/app/migrations/create_financial_transactions_table.sqlbackend/app/migrations/create_debts_inventory_tables.sqlfrontend/src/App.js/finances/finances/revenue/finances/articles/finances/debts-management/finances/inventory-managementfrontend/src/components/Works/Works.jsfrontend/src/components/Plannerka/Plannerka.jsfrontend/src/components/Finances/frontend/src/components/Finances/Finances.jsxfrontend/src/components/Finances/DebtsManagement.jsxfrontend/src/components/Finances/InventoryManagement.jsxfrontend/src/components/Finances/OverviewAnalysis.jsxfrontend/src/components/Finances/TransactionsManager.jsxfrontend/src/components/Finances/PaymentCalendar.jsxfrontend/src/components/Layout/Layout.jsfrontend/src/utils/financeStorage.jslocalStoragedebts.filter is not a function
+
+-   ****: Central financial API.
+    -   **Importance**: Contains all financial logic, API endpoints for expenses, revenue, profit/loss, debts, and the newly added  endpoint.
+    -   **Changes**: Extensive modifications for consolidated logic (, , ), company renaming (from Консолидированный to ВАШ ДОМ модель), and the new forecast calculation with scenario support for ВАШ ДОМ ФАКТ, УФИЦ модель, and ВАШ ДОМ модель. Resolved several syntax and indentation errors.
+-   ****: Main financial dashboard.
+    -   **Importance**: Orchestrates the financial tabs and overall layout.
+    -   **Changes**: Updated company options from ООО ВАШ ДОМ, УФИЦ to ВАШ ДОМ ФАКТ, УФИЦ модель, and ВАШ ДОМ модель. Added a new tab for Прогноз 26-30.
+-   ****, ****, ****: Financial reporting components.
+    -   **Importance**: Display specific financial reports.
+    -   **Changes**: Updated company selectors to reflect new names.  initially housed the forecast, which was later removed.
+-   ** (NEW)**: Component for displaying financial forecasts.
+    -   **Importance**: Dedicated UI for the Прогноз 26-30 tab, including model and scenario selectors, and investor calculations.
+-   ** (NEW)**: Script to update company names in the database.
+    -   **Importance**: Facilitated the renaming of company identifiers across existing data.
+-   ** (NEW)**: Script to add specific revenue entries for the ВАШ ДОМ модель.
+    -   **Importance**: Populated necessary baseline data for the new consolidated model's revenue calculations.
+-   ** (NEW)**: Script to add specific Аутсорсинг персонала transactions for ВАШ ДОМ модель.
+    -   **Importance**: Provided precise monthly data for a key expense category in the consolidated view.
 </code_architecture>
 
 <pending_tasks>
-- Fully implement Budgets and Plan-Fact Analysis components and integrate them into the financial system.
-- Resolve the underlying PostgreSQL read-only issue for the financial module to move from  to persistent database storage.
-- Verify the Novofon API integration and  functionality after  and  were added to  (the last reported check failed to load keys, and a restart was performed but not explicitly re-tested).
+-   Refine the УФИЦ модель forecast calculation to accurately reflect the user's latest specific logic: dividing current УФИЦ факт 2025 metrics by current job places, then multiplying by forecasted job places (60 pessimistic, 65 realistic, 70 optimistic), fixing these numbers for Feb 2026, and applying annual indexing to revenue and expenses.
+-   Verify the Novofon API integration and  functionality (from initial , deprioritized).
+-   Further development/integration for Budgets and Plan-Fact Analysis components (from initial , potentially deprioritized or removed).
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was focused on enhancing the Finances module based on user feedback. The user reported that the Analysis tab was not working and reiterated the need to re-check formulas (referencing Adesk.ru) and add Payment Calendar, Budgets, and Plan-Fact Analysis functionalities.
-
-The AI engineer's most recent actions were:
-1.  Diagnosing and fixing an error in  related to  returning an incorrect data structure.
-2.  Creating the  component.
-3.  Starting the creation of the  component (simplified due to length constraints in the trajectory).
-
-The trajectory ends at the point of starting the  component, indicating that the immediate task is to continue building out these new financial analysis features and ensuring their correct integration and functionality. The Analysis tab bug was being addressed concurrently with the addition of these new components.
+Immediately before this summary, the AI engineer was engaged in accurately implementing the УФИЦ модель forecast based on user-provided Excel data and specific calculation rules. The user had highlighted that the previously implemented УФИЦ модель forecast numbers were not matching the provided Excel file. The user clarified the precise logic: take УФИЦ факт 2025 data, divide by the current number of job places to get a per-job-place metric, and then multiply by the *forecasted* number of job places (60 for pessimistic, 65 for realistic, 70 for optimistic) for Feb 2026 onwards, applying an annual indexing rate (e.g., 6%) to revenue and expenses thereafter. The AI engineer had just finished reading the latest screenshot containing the clarified job count figures and was in the process of creating a script or modifying existing code ( was created as a planning artifact) to implement this new, precise forecasting logic.
 </current_work>
 
 <optional_next_step>
-Create and integrate the Budgets and Plan-Fact Analysis component into the frontend.
+Read the latest screenshot from the user to finalize the УФИЦ модель forecast logic.
 </optional_next_step>
