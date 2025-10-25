@@ -2350,15 +2350,15 @@ async def test_forecast_updates_after_changes():
             success_criteria = [
                 ("УФИЦ оптимистичный: детализация с 10% работает", 
                  'ufic_optimistic' in results.finance_endpoints and 
-                 not any("УФИЦ" in error and "10%" in error for error in results.errors)),
+                 not any("УФИЦ" in str(error) and "10%" in str(error) for error in results.errors)),
                 
                 ("ВАШ ДОМ ФАКТ: рост 30% + детализация работает", 
                  'vasdom_fact_realistic' in results.finance_endpoints and 
-                 not any("ВАШ ДОМ ФАКТ" in error and "30%" in error for error in results.errors)),
+                 not any("ВАШ ДОМ ФАКТ" in str(error) and "30%" in str(error) for error in results.errors)),
                 
                 ("ВАШ ДОМ модель: расходы загружаются", 
                  'vasdom_model_expenses' in results.finance_endpoints and 
-                 not any("ВАШ ДОМ модель" in error for error in results.errors))
+                 not any("ВАШ ДОМ модель" in str(error) for error in results.errors))
             ]
             
             for criterion, is_met in success_criteria:
