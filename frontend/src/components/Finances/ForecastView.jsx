@@ -105,6 +105,13 @@ function ForecastView() {
               <span className="ml-2 font-bold text-red-600">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
             </div>
           </div>
+          {scenario_info?.cleaners_info && (
+            <div className="mt-4 p-3 bg-white rounded-lg border-l-4 border-blue-500">
+              <p className="text-sm font-semibold text-blue-800">
+                📋 {scenario_info.cleaners_info}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
