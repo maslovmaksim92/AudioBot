@@ -546,11 +546,11 @@ frontend:
 
   - task: "ВАШ ДОМ ФАКТ forecast endpoint with new scenarios"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/app/routers/finances.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "user"
@@ -558,6 +558,9 @@ frontend:
         - working: false
           agent: "testing"
           comment: "❌ КРИТИЧЕСКАЯ ОШИБКА: ВАШ ДОМ ФАКТ прогноз полностью не работает. Все три сценария (pessimistic, realistic, optimistic) возвращают 500 Internal Server Error с ошибкой 'name annual_revenue_growth is not defined'. Backend логи показывают повторяющиеся ошибки в finances.py. Ни один из требуемых критериев не может быть проверен из-за критической ошибки в коде. Требуется срочное исправление переменной annual_revenue_growth в функции расчета прогноза для компании ВАШ ДОМ ФАКТ. Endpoint недоступен для тестирования до исправления ошибки."
+        - working: true
+          agent: "testing"
+          comment: "✅ ПОВТОРНОЕ ТЕСТИРОВАНИЕ УСПЕШНО ЗАВЕРШЕНО: Все критические ошибки исправлены! Все критерии успеха выполнены: 1) ✅ Все три сценария (pessimistic, realistic, optimistic) возвращают 200 статус вместо 500, 2) ✅ Ошибка 'annual_revenue_growth is not defined' полностью исправлена - не найдена ни в одном ответе, 3) ✅ Данные прогноза присутствуют для всех сценариев (по 5 лет прогноза каждый), 4) ✅ Требования к сценариям выполнены: Пессимистичный (рост выручки 20.0%, маржа 20.0%), Реалистичный (рост выручки 40.0%, маржа 26.5%), Оптимистичный (рост выручки 60.0%, маржа 30.7%), 5) ✅ Детализация расходов (expense_breakdown) присутствует во всех сценариях, 6) ✅ Ленинск-Кузнецкий исключен из детализации во всех сценариях - категории с 'ленинск' или 'кузнец' не найдены. Базовые данные 2025: выручка 47,116,150₽. Все endpoint работают корректно, структура ответов правильная, расчеты точные."
 
 test_plan:
   current_focus: []
