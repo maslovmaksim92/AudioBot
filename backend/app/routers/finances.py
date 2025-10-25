@@ -1572,8 +1572,8 @@ async def get_forecast(
                 "average_margin": round(average_margin, 2),
                 "roi_5_years": round(roi_5_years, 2),
                 "payback_period": payback_period,
-                "revenue_growth_rate": round(annual_revenue_growth * 100 - 100, 2),
-                "expense_growth_rate": round(annual_expense_growth * 100 - 100, 2)
+                "revenue_growth_rate": round(((forecast[0]["revenue"] / base_revenue) - 1) * 100, 2),
+                "expense_growth_rate": round(((forecast[0]["expenses"] / base_expenses) - 1) * 100, 2)
             }
             
             return {
@@ -1590,9 +1590,9 @@ async def get_forecast(
                 "investor_metrics": investor_metrics,
                 "scenario_info": {
                     "name": scenario,
-                    "description": scenario_config["description"],
-                    "revenue_growth_rate": round(annual_revenue_growth * 100 - 100, 2),
-                    "expense_growth_rate": round(annual_expense_growth * 100 - 100, 2)
+                    "description": current_scenario.get("description", scenario_config.get("description", "")),
+                    "revenue_growth_rate": round(((forecast[0]["revenue"] / base_revenue) - 1) * 100, 2),
+                    "expense_growth_rate": round(((forecast[0]["expenses"] / base_expenses) - 1) * 100, 2)
                 }
             }
             
