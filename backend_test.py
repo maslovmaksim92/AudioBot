@@ -1533,85 +1533,14 @@ async def main():
     if not db_working:
         all_errors.append("❌ База данных недоступна")
     
-    # ===== FINANCE MODULE TESTING =====
-    print("\n🏦 ТЕСТИРОВАНИЕ ФИНАНСОВОГО МОДУЛЯ")
+    # ===== УФИЦ FORECAST TESTING =====
+    print("\n🏢 ТЕСТИРОВАНИЕ ПРОГНОЗА УФИЦ МОДЕЛЬ")
     print("=" * 80)
     
-    # Test main finance endpoints (high priority)
-    print("\n📊 Тестирование основных финансовых endpoints...")
-    
-    # 1. Cash Flow
-    cash_flow_results = await test_finance_cash_flow()
-    all_errors.extend(cash_flow_results.errors)
-    finance_results['cash_flow'] = cash_flow_results
-    
-    # 2. Profit Loss
-    profit_loss_results = await test_finance_profit_loss()
-    all_errors.extend(profit_loss_results.errors)
-    finance_results['profit_loss'] = profit_loss_results
-    
-    # 3. Expense Analysis
-    expense_analysis_results = await test_finance_expense_analysis()
-    all_errors.extend(expense_analysis_results.errors)
-    finance_results['expense_analysis'] = expense_analysis_results
-    
-    # 4. Available Months
-    available_months_results = await test_finance_available_months()
-    all_errors.extend(available_months_results.errors)
-    finance_results['available_months'] = available_months_results
-    
-    # 5. Dashboard (aggregates all data)
-    dashboard_results = await test_finance_dashboard()
-    all_errors.extend(dashboard_results.errors)
-    finance_results['dashboard'] = dashboard_results
-    
-    # Test secondary endpoints (mock data)
-    print("\n📋 Тестирование дополнительных endpoints...")
-    
-    # 6. Balance Sheet (mock)
-    balance_sheet_results = await test_finance_balance_sheet()
-    all_errors.extend(balance_sheet_results.errors)
-    finance_results['balance_sheet'] = balance_sheet_results
-    
-    # 7. Debts (mock)
-    debts_results = await test_finance_debts()
-    all_errors.extend(debts_results.errors)
-    finance_results['debts'] = debts_results
-    
-    # 8. Inventory (mock)
-    inventory_results = await test_finance_inventory()
-    all_errors.extend(inventory_results.errors)
-    finance_results['inventory'] = inventory_results
-    
-    # Test CRUD operations
-    print("\n💼 Тестирование CRUD операций...")
-    
-    # 9. Transactions List
-    transactions_list_results = await test_finance_transactions_list()
-    all_errors.extend(transactions_list_results.errors)
-    finance_results['transactions_list'] = transactions_list_results
-    
-    # 10. Create Transaction
-    create_transaction_results = await test_finance_create_transaction()
-    all_errors.extend(create_transaction_results.errors)
-    finance_results['create_transaction'] = create_transaction_results
-    
-    # 11. Revenue Monthly
-    revenue_monthly_results = await test_finance_revenue_monthly()
-    all_errors.extend(revenue_monthly_results.errors)
-    finance_results['revenue_monthly'] = revenue_monthly_results
-    
-    # 12. NEW: Expense Details (Monthly breakdown)
-    print("\n💸 Тестирование нового функционала детализации расходов...")
-    expense_details_results = await test_finance_expense_details()
-    all_errors.extend(expense_details_results.errors)
-    finance_results['expense_details'] = expense_details_results
-    
-    # 13. NEW: Consolidated Financial Model (HIGH PRIORITY)
-    print("\n🏢 Тестирование консолидированной финансовой модели...")
-    consolidated_results = await test_consolidated_financial_model()
-    all_errors.extend(consolidated_results.errors)
-    finance_results['consolidated_model'] = consolidated_results
+    # Test УФИЦ forecast endpoint with all three scenarios
+    ufic_forecast_results = await test_ufic_forecast_endpoint()
+    all_errors.extend(ufic_forecast_results.errors)
+    finance_results['ufic_forecast'] = ufic_forecast_results
     
     # Final summary
     print("\n" + "=" * 80)
