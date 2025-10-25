@@ -1856,46 +1856,32 @@ async def main():
     
     # Final summary
     print("\n" + "=" * 80)
-    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ПРОГНОЗА УФИЦ МОДЕЛЬ:")
+    print("📋 ИТОГОВЫЙ ОТЧЕТ ТЕСТИРОВАНИЯ ДЕТАЛИЗИРОВАННОГО ПРОГНОЗА УФИЦ МОДЕЛЬ:")
     print("=" * 80)
     
-    # Check УФИЦ forecast results
-    ufic_success = 'ufic_forecast' in finance_results and not finance_results['ufic_forecast'].errors
+    # Check УФИЦ detailed forecast results
+    ufic_detailed_success = 'ufic_detailed_forecast' in finance_results and not finance_results['ufic_detailed_forecast'].errors
     
-    if ufic_success:
-        print(f"✅ УФИЦ ПРОГНОЗ: ВСЕ СЦЕНАРИИ РАБОТАЮТ КОРРЕКТНО")
-        
-        # Show detailed results if available
-        ufic_data = finance_results['ufic_forecast'].finance_endpoints.get('ufic_forecast', {})
-        if ufic_data:
-            print(f"\n📊 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
-            for scenario in ['pessimistic', 'realistic', 'optimistic']:
-                if scenario in ufic_data:
-                    data = ufic_data[scenario]
-                    base_data = data.get('base_data', {})
-                    forecast = data.get('forecast', [])
-                    
-                    print(f"\n🔍 Сценарий {scenario.upper()}:")
-                    print(f"   - Базовый год 2025: выручка {base_data.get('revenue', 0):,.0f}, расходы {base_data.get('expenses', 0):,.0f}")
-                    if forecast:
-                        cleaners = forecast[0].get('cleaners_count', 'N/A')
-                        avg_margin = sum(f.get('margin', 0) for f in forecast) / len(forecast)
-                        print(f"   - Количество мест: {cleaners}")
-                        print(f"   - Средняя маржа: {avg_margin:.1f}%")
-                        print(f"   - Прогноз 2026-2030: от {forecast[0]['revenue']:,.0f} до {forecast[-1]['revenue']:,.0f} выручки")
+    if ufic_detailed_success:
+        print(f"✅ УФИЦ ДЕТАЛИЗИРОВАННЫЙ ПРОГНОЗ: ВСЕ КРИТЕРИИ ВЫПОЛНЕНЫ")
+        print("✅ Детализация присутствует для всех годов ✓")
+        print("✅ Числа соответствуют Excel данным ✓")
+        print("✅ Индексация применяется к детализации ✓")
+        print("✅ Суммы детализации = общие показатели ✓")
     else:
-        print(f"❌ УФИЦ ПРОГНОЗ: ОБНАРУЖЕНЫ ОШИБКИ")
+        print(f"❌ УФИЦ ДЕТАЛИЗИРОВАННЫЙ ПРОГНОЗ: ОБНАРУЖЕНЫ ОШИБКИ")
+        print("❌ Поля revenue_breakdown и expense_breakdown НЕ ВОЗВРАЩАЮТСЯ в ответе API")
     
     if all_errors:
         print(f"\n❌ ОБНАРУЖЕННЫЕ ОШИБКИ ({len(all_errors)}):")
         for i, error in enumerate(all_errors, 1):
             print(f"   {i}. {error}")
     else:
-        print(f"\n🎉 ВСЕ КРИТЕРИИ ТЕСТИРОВАНИЯ ВЫПОЛНЕНЫ!")
+        print(f"\n🎉 ВСЕ КРИТЕРИИ ДЕТАЛИЗАЦИИ ВЫПОЛНЕНЫ!")
     
     print(f"\n📊 СТАТИСТИКА:")
-    print(f"   - Протестированных сценариев: 3 (pessimistic, realistic, optimistic)")
-    print(f"   - Успешных сценариев: {3 if ufic_success else 0}")
+    print(f"   - Протестированный endpoint: GET /api/finances/forecast?company=УФИЦ модель&scenario=realistic")
+    print(f"   - Детализация работает: {'✅ Да' if ufic_detailed_success else '❌ Нет'}")
     print(f"   - Общее количество ошибок: {len(all_errors)}")
     print(f"   - База данных: {'✅ Работает' if db_working else '❌ Недоступна'}")
     
