@@ -1129,46 +1129,91 @@ async def get_forecast(
             
             scenario_config = scenario_coefficients.get(scenario, scenario_coefficients["realistic"])
             
-            # Для УФИЦ модель используем данные из Excel файла
+            # Для УФИЦ модель используем данные расчета на основе фактических данных 2025
             if company == "УФИЦ модель":
+                # Получаем фактические данные УФИЦ за 2025
+                ufic_revenue_query = """
+                    SELECT SUM(revenue) as total_revenue
+                    FROM monthly_revenue
+                    WHERE company = 'УФИЦ модель'
+                """
+                ufic_revenue_result = await conn.fetchrow(ufic_revenue_query)
+                ufic_revenue_2025 = float(ufic_revenue_result['total_revenue']) if ufic_revenue_result['total_revenue'] else 27104525
+                
+                ufic_expenses_query = """
+                    SELECT SUM(amount) as total_expenses
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = 'УФИЦ модель'
+                """
+                ufic_expenses_result = await conn.fetchrow(ufic_expenses_query)
+                ufic_expenses_2025 = float(ufic_expenses_result['total_expenses']) if ufic_expenses_result['total_expenses'] else 19944709
+                
+                # Среднее количество рабочих мест в 2025 году (из Excel данных)
+                avg_places_2025 = 47.0
+                
+                # Метрики на 1 рабочее место
+                revenue_per_place = ufic_revenue_2025 / avg_places_2025
+                expenses_per_place = ufic_expenses_2025 / avg_places_2025
+                
+                # Количество мест по сценариям на 2026
+                places_by_scenario = {
+                    "pessimistic": 60,
+                    "realistic": 65,
+                    "optimistic": 70
+                }
+                
+                places_2026 = places_by_scenario.get(scenario, 65)
+                
+                # Базовые значения на Feb 2026 (пересчет на новое количество мест)
+                base_revenue_2026 = revenue_per_place * places_2026
+                base_expenses_2026 = expenses_per_place * places_2026
+                
+                # Генерируем прогноз с годовой индексацией 6%
+                indexation_rate = 1.06
+                
                 ufic_data = {
                     "pessimistic": {
-                        "years": [
-                            {"year": 2026, "revenue": 45658000, "expenses": 36000000, "profit": 9658000, "cleaners": 23},
-                            {"year": 2027, "revenue": 45689000, "expenses": 36000000, "profit": 9689000, "cleaners": 34},
-                            {"year": 2028, "revenue": 45717000, "expenses": 36000000, "profit": 9717000, "cleaners": 46},
-                            {"year": 2029, "revenue": 45748000, "expenses": 36000000, "profit": 9748000, "cleaners": 55},
-                            {"year": 2030, "revenue": 45778000, "expenses": 36000000, "profit": 9778000, "cleaners": 57}
-                        ],
-                        "base_revenue": 27325025,  # 2025 год
-                        "base_expenses": 23811900,  # 2025 год (Аутсорсинг персонала)
-                        "description": "Низкая загрузка, снижение спроса на услуги. Количество уборщиц растет постепенно с 23 до 57."
+                        "years": [],
+                        "base_revenue": ufic_revenue_2025,
+                        "base_expenses": ufic_expenses_2025,
+                        "description": f"Консервативный прогноз: {places_by_scenario['pessimistic']} рабочих мест. Индексация 6% ежегодно."
                     },
                     "realistic": {
-                        "years": [
-                            {"year": 2026, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
-                            {"year": 2027, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
-                            {"year": 2028, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
-                            {"year": 2029, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60},
-                            {"year": 2030, "revenue": 50175592, "expenses": 44600000, "profit": 5575592, "cleaners": 60}
-                        ],
-                        "base_revenue": 27325025,
-                        "base_expenses": 23811900,
-                        "description": "Стабильный рост, умеренное привлечение клиентов. Постоянное количество уборщиц: 60."
+                        "years": [],
+                        "base_revenue": ufic_revenue_2025,
+                        "base_expenses": ufic_expenses_2025,
+                        "description": f"Реалистичный прогноз: {places_by_scenario['realistic']} рабочих мест. Индексация 6% ежегодно."
                     },
                     "optimistic": {
-                        "years": [
-                            {"year": 2026, "revenue": 62620000, "expenses": 42290000, "profit": 20330000, "cleaners": 84},
-                            {"year": 2027, "revenue": 64900000, "expenses": 41290000, "profit": 23610000, "cleaners": 201},
-                            {"year": 2028, "revenue": 68000000, "expenses": 40890000, "profit": 27110000, "cleaners": 216},
-                            {"year": 2029, "revenue": 72000000, "expenses": 40490000, "profit": 31510000, "cleaners": 216},
-                            {"year": 2030, "revenue": 72000000, "expenses": 40490000, "profit": 31510000, "cleaners": 216}
-                        ],
-                        "base_revenue": 27325025,
-                        "base_expenses": 23811900,
-                        "description": "Высокая загрузка, активное привлечение клиентов. Резкий рост уборщиц с 84 до 216."
+                        "years": [],
+                        "base_revenue": ufic_revenue_2025,
+                        "base_expenses": ufic_expenses_2025,
+                        "description": f"Оптимистичный прогноз: {places_by_scenario['optimistic']} рабочих мест. Индексация 6% ежегодно."
                     }
                 }
+                
+                # Заполняем данные для всех сценариев
+                for scen_name, places_count in places_by_scenario.items():
+                    # Базовые значения на Feb 2026 для этого сценария
+                    scen_base_revenue = revenue_per_place * places_count
+                    scen_base_expenses = expenses_per_place * places_count
+                    
+                    for year in range(2026, 2031):
+                        years_passed = year - 2026
+                        indexed_revenue = scen_base_revenue * (indexation_rate ** years_passed)
+                        indexed_expenses = scen_base_expenses * (indexation_rate ** years_passed)
+                        indexed_profit = indexed_revenue - indexed_expenses
+                        
+                        ufic_data[scen_name]["years"].append({
+                            "year": year,
+                            "revenue": round(indexed_revenue, 2),
+                            "expenses": round(indexed_expenses, 2),
+                            "profit": round(indexed_profit, 2),
+                            "cleaners": places_count  # Фиксированное количество мест
+                        })
+                    
+                    ufic_data[scen_name]["base_revenue"] = ufic_revenue_2025
+                    ufic_data[scen_name]["base_expenses"] = ufic_expenses_2025
                 
                 ufic_scenario = ufic_data.get(scenario, ufic_data["realistic"])
                 
