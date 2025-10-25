@@ -3304,8 +3304,8 @@ async def test_vasdom_model_forecast_endpoint():
     return results
 
 async def main():
-    """Main test execution - focused on ВАШ ДОМ модель forecast testing as per review request"""
-    print("🚀 БЫСТРАЯ ПРОВЕРКА ПРОГНОЗА ВАШ ДОМ модель ПОСЛЕ ИСПРАВЛЕНИЯ ОШИБКИ")
+    """Main test execution - focused on ВАШ ДОМ ФАКТ forecast testing as per review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ОБНОВЛЕННОГО ПРОГНОЗА ВАШ ДОМ ФАКТ С НОВЫМИ ТРЕБОВАНИЯМИ")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
@@ -3326,11 +3326,11 @@ async def main():
         return
     
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ модель")
+    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ ФАКТ")
     print("=" * 80)
     
-    # Run the specific test for ВАШ ДОМ модель as requested
-    result = await test_vasdom_model_forecast_endpoint()
+    # Run the specific test for ВАШ ДОМ ФАКТ as requested
+    result = await test_vasdom_fact_forecast_endpoint()
     
     # Print summary
     print("\n" + "=" * 80)
@@ -3344,7 +3344,7 @@ async def main():
             print(f"   {i}. {error}")
         
         # Проверяем на критические ошибки
-        critical_errors = [e for e in result.errors if "КРИТИЧЕСКАЯ ОШИБКА" in e]
+        critical_errors = [e for e in result.errors if "КРИТИЧЕСКАЯ ОШИБКА" in e or "500" in e]
         if critical_errors:
             print(f"\n⚠️ КРИТИЧЕСКИХ ОШИБОК: {len(critical_errors)}")
             print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
@@ -3353,16 +3353,17 @@ async def main():
             print("⚠️ Остались только минорные проблемы")
     else:
         print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
-        print("✅ Критические ошибки исправлены")
-        print("✅ Прогноз работает")
-        print("✅ Данные корректны")
-        print("✅ Детализация присутствует")
+        print("✅ Все три сценария работают")
+        print("✅ Рост выручки соответствует требованиям")
+        print("✅ Рост расходов соответствует требованиям")
+        print("✅ Исключенные категории отсутствуют")
+        print("✅ Перераспределение в зарплату выполнено")
     
     print("\n" + "=" * 80)
     print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     print("=" * 80)
     
-    return [("ВАШ ДОМ модель Forecast Test", result)]
+    return [("ВАШ ДОМ ФАКТ Forecast Test", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
