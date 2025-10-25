@@ -2309,11 +2309,11 @@ async def test_forecast_updates_after_changes():
             print("=" * 60)
             
             response = await client.get(
-                f"{API_BASE}/finances/expenses",
+                f"{API_BASE}/finances/expense-analysis",
                 params={"company": "ВАШ ДОМ модель"}
             )
             
-            print(f"📡 GET /api/finances/expenses?company=ВАШ ДОМ модель")
+            print(f"📡 GET /api/finances/expense-analysis?company=ВАШ ДОМ модель")
             print(f"📡 Ответ сервера: {response.status_code}")
             
             if response.status_code != 200:
