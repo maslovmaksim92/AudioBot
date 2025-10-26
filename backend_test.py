@@ -1653,8 +1653,8 @@ async def test_ufic_model_forecast_expense_breakdown():
     return results
 
 async def main():
-    """Main test execution - focused on ВАШ ДОМ модель forecast testing per review request"""
-    print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ (REVIEW REQUEST)")
+    """Main test execution - focused on УФИЦ модель forecast testing per review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА УФИЦ МОДЕЛЬ (REVIEW REQUEST)")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
@@ -1675,11 +1675,11 @@ async def main():
         return
     
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ")
+    print("🧪 ТЕСТИРОВАНИЕ СТРУКТУРЫ EXPENSE_BREAKDOWN УФИЦ МОДЕЛЬ")
     print("=" * 80)
     
-    # Run the specific test for ВАШ ДОМ модель forecast as requested
-    result = await test_vasdom_model_forecast_endpoint()
+    # Run the specific test for УФИЦ модель forecast as requested
+    result = await test_ufic_model_forecast_expense_breakdown()
     
     # Print summary
     print("\n" + "=" * 80)
