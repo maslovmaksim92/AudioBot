@@ -1475,9 +1475,7 @@ async def test_vasdom_model_forecast_endpoint():
                         else:
                             print(f"✅ Расчет выручки корректен: {vasdom:,.0f} + {ufic_sewing:,.0f} + {ufic_outsourcing:,.0f} = {total:,.0f}")
                 
-                print("")  # Empty line for readabilityta.get('revenue', 0)
-                        
-                        expected_revenue = prev_revenue * 1.10
+                print("")  # Empty line for readability
                         revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
                         
                         if revenue_diff_pct > 1.0:
