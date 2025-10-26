@@ -314,9 +314,6 @@ function ForecastView() {
                         {formatCurrency(year.profit)}
                       </td>
                       <td className="text-right p-3 font-semibold">{year.margin}%</td>
-                      {selectedCompany === 'УФИЦ модель' && year.cleaners_count && (
-                        <td className="text-right p-3 font-bold text-purple-600">{year.cleaners_count}</td>
-                      )}
                     </tr>
                   );
                 })}
