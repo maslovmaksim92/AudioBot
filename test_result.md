@@ -246,11 +246,11 @@ backend:
 
   - task: "ВАШ ДОМ модель forecast - integrate cleaners data"
     implemented: true
-    working: false
+    working: "NA"
     file: "/app/backend/app/routers/finances.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -258,6 +258,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "❌ КРИТИЧЕСКАЯ ОШИБКА: Все три сценария (pessimistic, realistic, optimistic) возвращают 500 Internal Server Error с ошибкой 'NoneType' object has no attribute 'get'. Backend логи показывают повторяющиеся ошибки 'Error calculating forecast' в /app/backend/app/routers/finances.py. Проблема в коде прогноза - где-то происходит обращение к методу .get() на None объекте. Требуется исправление кода перед повторным тестированием. Ни один из 6 критериев успеха не может быть проверен из-за критической ошибки сервера."
+        - working: "NA"
+          agent: "main"
+          comment: "Исправлена ошибка 'NoneType' object has no attribute 'get': добавлена проверка на None для consolidated_expenses перед вызовом метода get(). Если consolidated_expenses None или не содержит 'expenses', используется fallback expense_breakdown_2025 = {'operating_expenses': total_expenses_2025}. Backend перезапущен успешно. Требуется повторное тестирование."
 
   - task: "Plannerka list endpoint"
     implemented: true
