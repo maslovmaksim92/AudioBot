@@ -1353,7 +1353,8 @@ async def get_forecast(
                         }
                         
                         indexed_expense_breakdown = {
-                            "labor": round(expense_breakdown_2026["labor"] * (indexation_rate ** years_from_2026), 2)
+                            category: round(amount * (indexation_rate ** years_from_2026), 2) 
+                            for category, amount in expense_breakdown_2026.items()
                         }
                         
                         ufic_data[scen_name]["years"].append({
