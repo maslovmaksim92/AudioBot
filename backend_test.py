@@ -1398,29 +1398,84 @@ async def test_vasdom_model_forecast_endpoint():
                 print(f"   - Выручка: {base_revenue:,.0f} ₽")
                 print(f"   - Расходы: {base_expenses:,.0f} ₽")
                 
-                # Check scenario-specific requirements
-                if scenario == "pessimistic":
-                    print(f"\n📊 Проверяем ПЕССИМИСТИЧНЫЙ сценарий:")
+                # Check expense_breakdown for аутсорсинг_персонала category
+                print(f"\n📊 Проверяем сценарий {scenario.upper()}:")
+                
+                # Expected values for аутсорсинг_персонала by scenario and year
+                expected_outsourcing = {
+                    "pessimistic": {2026: 34347600, 2027: 35996285, 2028: 37724106, 2029: 39534864, 2030: 41432537},
+                    "realistic": {2026: 24615780, 2027: 25797337, 2028: 27035610, 2029: 28333319, 2030: 29693318},
+                    "optimistic": {2026: 16028880, 2027: 17134873, 2028: 18317179, 2029: 19581064, 2030: 20932158}
+                }
+                
+                scenario_expected = expected_outsourcing.get(scenario, {})
+                
+                # Check each year (2026-2030)
+                for year_data in forecast:
+                    year = year_data.get('year')
+                    if year not in range(2026, 2031):
+                        continue
                     
-                    # Check 2026 specific revenue requirement
-                    year_2026 = next((y for y in forecast if y.get('year') == 2026), None)
-                    if year_2026:
-                        revenue_2026 = year_2026.get('revenue', 0)
-                        expected_2026_revenue = 56539380
-                        
-                        revenue_diff_pct = abs(revenue_2026 - expected_2026_revenue) / expected_2026_revenue * 100
-                        if revenue_diff_pct > 1.0:  # Allow 1% tolerance
-                            error_msg = f"❌ Пессимистичный 2026: неверная выручка. Ожидалось {expected_2026_revenue:,.0f} ₽, получено {revenue_2026:,.0f} ₽"
+                    expense_breakdown = year_data.get('expense_breakdown', {})
+                    
+                    # Check if аутсорсинг_персонала category exists
+                    outsourcing_amount = expense_breakdown.get('аутсорсинг_персонала', 0)
+                    expected_amount = scenario_expected.get(year, 0)
+                    
+                    if 'аутсорсинг_персонала' not in expense_breakdown:
+                        error_msg = f"❌ {scenario} {year}: отсутствует категория 'аутсорсинг_персонала' в expense_breakdown"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                        continue
+                    
+                    # Check if amount matches expected (allow 1% tolerance)
+                    if expected_amount > 0:
+                        diff_pct = abs(outsourcing_amount - expected_amount) / expected_amount * 100
+                        if diff_pct > 1.0:
+                            error_msg = f"❌ {scenario} {year}: неверная сумма аутсорсинга. Ожидалось {expected_amount:,.0f}, получено {outsourcing_amount:,.0f} (отклонение {diff_pct:.2f}%)"
                             results.errors.append(error_msg)
                             print(error_msg)
                         else:
-                            print(f"✅ 2026: выручка корректна ({revenue_2026:,.0f} ₽)")
+                            print(f"✅ {year}: аутсорсинг_персонала = {outsourcing_amount:,.0f} ₽ (ожидалось {expected_amount:,.0f})")
+                    else:
+                        print(f"⚠️ {year}: нет ожидаемого значения для {scenario}")
+                
+                # Check revenue_breakdown structure
+                print(f"\n💰 Проверяем структуру выручки для {scenario}:")
+                
+                # Check first year as example
+                if forecast:
+                    first_year = forecast[0]
+                    revenue_breakdown = first_year.get('revenue_breakdown', {})
                     
-                    # Check 10% annual revenue growth for 2027-2030
-                    prev_revenue = year_2026.get('revenue', 0) if year_2026 else 0
-                    for year_data in forecast[1:]:  # Skip 2026, check 2027-2030
-                        year = year_data.get('year')
-                        revenue = year_data.get('revenue', 0)
+                    required_revenue_fields = ['vasdom_revenue', 'ufic_sewing', 'ufic_outsourcing', 'total']
+                    
+                    for field in required_revenue_fields:
+                        if field not in revenue_breakdown:
+                            error_msg = f"❌ {scenario}: отсутствует поле '{field}' в revenue_breakdown"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            value = revenue_breakdown[field]
+                            print(f"✅ {field}: {value:,.0f} ₽")
+                    
+                    # Check revenue calculation: vasdom_revenue + ufic_sewing + ufic_outsourcing = total
+                    if all(field in revenue_breakdown for field in required_revenue_fields):
+                        vasdom = revenue_breakdown['vasdom_revenue']
+                        ufic_sewing = revenue_breakdown['ufic_sewing']
+                        ufic_outsourcing = revenue_breakdown['ufic_outsourcing']
+                        total = revenue_breakdown['total']
+                        
+                        calculated_total = vasdom + ufic_sewing + ufic_outsourcing
+                        
+                        if abs(calculated_total - total) > 1.0:  # Allow small rounding differences
+                            error_msg = f"❌ {scenario}: неверный расчет total. {vasdom:,.0f} + {ufic_sewing:,.0f} + {ufic_outsourcing:,.0f} = {calculated_total:,.0f}, но total = {total:,.0f}"
+                            results.errors.append(error_msg)
+                            print(error_msg)
+                        else:
+                            print(f"✅ Расчет выручки корректен: {vasdom:,.0f} + {ufic_sewing:,.0f} + {ufic_outsourcing:,.0f} = {total:,.0f}")
+                
+                print("")  # Empty line for readabilityta.get('revenue', 0)
                         
                         expected_revenue = prev_revenue * 1.10
                         revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
