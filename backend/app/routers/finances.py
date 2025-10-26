@@ -1635,77 +1635,39 @@ async def get_forecast(
             
             current_scenario = vasdom_scenarios.get(scenario, vasdom_scenarios["realistic"])
             
-            # Генерируем прогноз на 2026-2030
+            # Генерируем прогноз на 2026-2030 с точными данными из Excel
             forecast = []
             
-            # 2026 год - первый год прогноза
-            if "revenue_2026" in current_scenario:
-                # Пессимистичный: фиксированная выручка
-                revenue_2026 = current_scenario["revenue_2026"]
-            else:
-                # Реалистичный и оптимистичный: рост от базы
-                revenue_2026 = base_revenue * current_scenario["revenue_growth"]
-            
-            # Расходы 2026 рассчитываем по росту расходов
-            expenses_2026 = base_expenses * current_scenario["expense_growth"]
-            
-            # Детализация расходов на 2026
-            expense_breakdown_2026 = {}
-            expenses_multiplier = expenses_2026 / base_expenses if base_expenses > 0 else 1
-            
-            for category, amount in expense_breakdown_2025.items():
-                expense_breakdown_2026[category] = round(amount * expenses_multiplier, 2)
-            
-            # Детализация доходов (основная выручка)
-            revenue_breakdown_2026 = {
-                "main_revenue": round(revenue_2026, 2)
-            }
-            
-            # 2026 год
-            profit_2026 = revenue_2026 - expenses_2026
-            margin_2026 = (profit_2026 / revenue_2026 * 100) if revenue_2026 > 0 else 0
-            
-            forecast.append({
-                "year": 2026,
-                "revenue": round(revenue_2026, 2),
-                "expenses": round(expenses_2026, 2),
-                "profit": round(profit_2026, 2),
-                "margin": round(margin_2026, 2),
-                "revenue_breakdown": revenue_breakdown_2026,
-                "expense_breakdown": expense_breakdown_2026
-            })
-            
-            # Для 2027-2030 применяем индексацию
-            for year in range(2027, 2031):
-                years_from_2026 = year - 2026
+            # Используем точные данные по годам
+            for year_data in current_scenario["years_data"]:
+                year = year_data["year"]
+                revenue = year_data["revenue"]
+                expenses = year_data["expenses"]
+                profit = revenue - expenses
+                margin = (profit / revenue * 100) if revenue > 0 else 0
                 
-                # Выручка растет по коэффициенту
-                indexed_revenue = revenue_2026 * (current_scenario["revenue_growth"] ** years_from_2026)
+                # Детализация расходов - пропорционально от базовых расходов 2025
+                expense_breakdown_year = {}
+                if base_expenses > 0:
+                    expenses_multiplier = expenses / base_expenses
+                    for category, amount in expense_breakdown_2025.items():
+                        expense_breakdown_year[category] = round(amount * expenses_multiplier, 2)
+                else:
+                    expense_breakdown_year = {"operating_expenses": expenses}
                 
-                # Расходы растут по своему коэффициенту
-                indexed_expenses = expenses_2026 * (current_scenario["expense_growth"] ** years_from_2026)
-                
-                indexed_profit = indexed_revenue - indexed_expenses
-                indexed_margin = (indexed_profit / indexed_revenue * 100) if indexed_revenue > 0 else 0
-                
-                # Индексируем детализацию расходов
-                indexed_expense_breakdown = {}
-                expenses_multiplier = indexed_expenses / expenses_2026 if expenses_2026 > 0 else 1
-                for category, amount in expense_breakdown_2026.items():
-                    indexed_expense_breakdown[category] = round(amount * expenses_multiplier, 2)
-                
-                indexed_revenue_breakdown = {
-                    "main_revenue": round(indexed_revenue, 2)
+                # Детализация доходов
+                revenue_breakdown_year = {
+                    "main_revenue": round(revenue, 2)
                 }
                 
                 forecast.append({
                     "year": year,
-                    "revenue": round(indexed_revenue, 2),
-                    "expenses": round(indexed_expenses, 2),
-                    "profit": round(indexed_profit, 2),
-                    "margin": round(indexed_margin, 2),
-                    "revenue_breakdown": indexed_revenue_breakdown,
-                    "expense_breakdown": indexed_expense_breakdown
+                    "revenue": round(revenue, 2),
+                    "expenses": round(expenses, 2),
+                    "profit": round(profit, 2),
+                    "margin": round(margin, 2),
+                    "revenue_breakdown": revenue_breakdown_year,
+                    "expense_breakdown": expense_breakdown_year
                 })
             
             # Расчеты для инвестора
