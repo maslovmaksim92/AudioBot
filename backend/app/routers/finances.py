@@ -1279,6 +1279,25 @@ async def get_forecast(
                     }
                 }
                 
+                # Получаем детализацию расходов УФИЦ за 2025 из БД
+                ufic_expense_categories = await conn.fetch("""
+                    SELECT 
+                        category,
+                        SUM(amount) as total_amount
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = 'УФИЦ модель'
+                    GROUP BY category
+                    ORDER BY total_amount DESC
+                """)
+                
+                # Формируем структуру расходов 2025
+                ufic_expenses_2025_breakdown = {}
+                for row in ufic_expense_categories:
+                    category_name = row['category'].lower().replace(' ', '_').replace('-', '_')
+                    ufic_expenses_2025_breakdown[category_name] = float(row['total_amount'])
+                
+                total_ufic_expenses_2025 = sum(ufic_expenses_2025_breakdown.values())
+                
                 # Заполняем данные для всех сценариев
                 for scen_name in ["pessimistic", "realistic", "optimistic"]:
                     scen_excel = ufic_excel_data[scen_name]
@@ -1292,7 +1311,16 @@ async def get_forecast(
                     profit_2026 = revenue_2026 - expenses_2026
                     
                     revenue_breakdown_2026 = scen_excel["revenue_breakdown_2026"]
-                    expense_breakdown_2026 = scen_excel["expense_breakdown_2026"]
+                    
+                    # Детализация расходов 2026 - пропорционально от 2025
+                    expense_breakdown_2026 = {}
+                    if total_ufic_expenses_2025 > 0:
+                        expenses_multiplier = expenses_2026 / total_ufic_expenses_2025
+                        for category, amount_2025 in ufic_expenses_2025_breakdown.items():
+                            expense_breakdown_2026[category] = round(amount_2025 * expenses_multiplier, 2)
+                    else:
+                        # Если нет данных, используем только labor
+                        expense_breakdown_2026 = {"labor": expenses_2026}
                     
                     ufic_data[scen_name]["years"].append({
                         "year": 2026,
