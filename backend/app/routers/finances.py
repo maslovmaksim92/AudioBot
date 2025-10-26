@@ -1681,8 +1681,8 @@ async def get_forecast(
             # Средняя рентабельность
             average_margin = sum(f["margin"] for f in forecast) / len(forecast)
             
-            # ROI за 5 лет (если инвестор вкладывает сумму = годовым расходам 2025)
-            investment_amount = base_expenses
+            # ROI за 5 лет (инвестиции = 40 млн для ВАШ ДОМ+УФИЦ)
+            investment_amount = 40000000  # 40 млн рублей
             roi_5_years = (total_forecast_profit / investment_amount * 100) if investment_amount > 0 else 0
             
             # Срок окупаемости (в годах)
