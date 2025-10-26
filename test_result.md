@@ -244,6 +244,18 @@ backend:
           agent: "testing"
           comment: "✅ Endpoint POST /api/plannerka/analyze/{id} теперь работает корректно. Успешно выполняет AI-анализ с GPT-4o, извлекает задачи (3 задачи из тестовой транскрипции), генерирует саммари. API ключ OpenAI исправлен и функционирует. Возвращает правильную структуру: {success: true, summary: '...', tasks: [...], tasks_count: 3}."
 
+  - task: "ВАШ ДОМ модель forecast - integrate cleaners data"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/app/routers/finances.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Добавлена интеграция данных 'Уборщицы' из УФИЦ модель в прогноз ВАШ ДОМ модель. Для каждого сценария (пессимистичный, реалистичный, оптимистичный) и года (2026-2030) добавляются расходы 'Аутсорсинг персонала' с суммами уборщиц и уменьшается ФОТ/Зарплата на эту же сумму. Детализированы расходы ВАШ ДОМ модель вместо упрощенной структуры. Требуется тестирование endpoint /api/finances/forecast?company=ВАШ ДОМ модель&scenario=[pessimistic|realistic|optimistic] для всех трех сценариев."
+
   - task: "Plannerka list endpoint"
     implemented: true
     working: true
