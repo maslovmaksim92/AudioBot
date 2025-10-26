@@ -13,7 +13,7 @@ const SCENARIOS = {
 };
 
 function ForecastView() {
-  const [selectedCompany, setSelectedCompany] = useState('ВАШ ДОМ модель');
+  const [selectedCompany, setSelectedCompany] = useState('ВАШ ДОМ ФАКТ');
   const [selectedScenario, setSelectedScenario] = useState('realistic');
   const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(true);
