@@ -1486,8 +1486,8 @@ async def test_vasdom_model_forecast_endpoint():
         print(error_msg)
     
     return results
-                    
-                    # Check 9.7% annual expense growth
+
+async def main():
                     prev_expenses = year_2026.get('expenses', 0) if year_2026 else 0
                     for year_data in forecast:
                         year = year_data.get('year')
