@@ -1476,16 +1476,16 @@ async def test_vasdom_model_forecast_endpoint():
                             print(f"✅ Расчет выручки корректен: {vasdom:,.0f} + {ufic_sewing:,.0f} + {ufic_outsourcing:,.0f} = {total:,.0f}")
                 
                 print("")  # Empty line for readability
-                        revenue_diff_pct = abs(revenue - expected_revenue) / expected_revenue * 100
-                        
-                        if revenue_diff_pct > 1.0:
-                            error_msg = f"❌ Пессимистичный {year}: неверный рост выручки +10%. Ожидалось {expected_revenue:,.0f} ₽, получено {revenue:,.0f} ₽"
-                            results.errors.append(error_msg)
-                            print(error_msg)
-                        else:
-                            print(f"✅ {year}: рост выручки +10% корректен ({revenue:,.0f} ₽)")
-                        
-                        prev_revenue = revenue
+            
+            # Store results for this scenario
+            results.finance_endpoints[f'{company}_{scenario}_forecast'] = data
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании прогноза ВАШ ДОМ модель: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
                     
                     # Check 9.7% annual expense growth
                     prev_expenses = year_2026.get('expenses', 0) if year_2026 else 0
