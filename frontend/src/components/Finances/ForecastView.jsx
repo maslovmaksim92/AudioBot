@@ -333,11 +333,6 @@ function ForecastView() {
                   <td className="text-right p-3">
                     {(forecast.reduce((sum, y) => sum + y.margin, 0) / forecast.length).toFixed(1)}%
                   </td>
-                  {selectedCompany === 'УФИЦ модель' && forecast[0]?.cleaners_count && (
-                    <td className="text-right p-3 text-purple-700">
-                      Ср: {Math.round(forecast.reduce((sum, y) => sum + (y.cleaners_count || 0), 0) / forecast.length)}
-                    </td>
-                  )}
                 </tr>
               </tfoot>
             </table>
