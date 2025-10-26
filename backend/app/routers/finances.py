@@ -1610,7 +1610,7 @@ async def get_forecast(
                     2027: {"sewing": 12611174, "outsourcing": 19411056},
                     2028: {"sewing": 13216510, "outsourcing": 20342787},
                     2029: {"sewing": 13850902, "outsourcing": 21319240},
-                    2028: {"sewing": 14515745, "outsourcing": 22342563}
+                    2030: {"sewing": 14515745, "outsourcing": 22342563}
                 },
                 "optimistic": {
                     # Швеи + Аутсорсинг для оптимистичного (индексация 6.9%)
