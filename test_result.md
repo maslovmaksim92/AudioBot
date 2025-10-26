@@ -321,7 +321,6 @@ metadata:
 
 test_plan:
   current_focus:
-    - "ВАШ ДОМ модель forecast - integrate cleaners data"
     - "Forecast View - rename ВАШ ДОМ ФАКТ to ВАШ ДОМ+УФИЦ"
   stuck_tasks: []
   test_all: false
