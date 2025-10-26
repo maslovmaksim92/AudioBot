@@ -1456,11 +1456,22 @@ async def get_forecast(
             
             if company == "ВАШ ДОМ модель":
                 result_2025 = await get_consolidated_profit_loss(conn)
-                # Для ВАШ ДОМ модель используем упрощенную детализацию
                 total_expenses_2025 = result_2025["summary"]["total_expenses"]
-                expense_breakdown_2025 = {
-                    "operating_expenses": total_expenses_2025
-                }
+                
+                # Получаем детализацию расходов из consolidated_expenses
+                consolidated_expenses = await get_consolidated_expenses(conn)
+                
+                # Формируем детализацию расходов 2025
+                expense_breakdown_2025 = {}
+                
+                # Проходим по всем категориям расходов
+                for item in consolidated_expenses.get("expenses", []):
+                    category = item["category"]
+                    amount = item["amount"]
+                    
+                    # Нормализуем название категории
+                    category_name = category.lower().replace(' ', '_').replace('-', '_')
+                    expense_breakdown_2025[category_name] = amount
             else:
                 # Для ВАШ ДОМ ФАКТ используем специальную логику с тремя сценариями
                 # Получаем выручку
