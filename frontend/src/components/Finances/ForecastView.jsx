@@ -134,11 +134,11 @@ function ForecastView() {
               
               {scenario_info.detailed_description.expense_factors && scenario_info.detailed_description.expense_factors.length > 0 && (
                 <div className="p-3 bg-white rounded-lg">
-                  <p className="text-sm font-bold text-red-700 mb-2">📊 Структура расходов:</p>
+                  <p className="text-sm font-bold text-purple-700 mb-2">💰 Юнит-экономика на 1 сотрудника (2026):</p>
                   <ul className="space-y-1">
                     {scenario_info.detailed_description.expense_factors.map((factor, idx) => (
                       <li key={idx} className="text-sm text-gray-700 flex items-start">
-                        <span className="text-red-600 mr-2">•</span>
+                        <span className="text-purple-600 mr-2">•</span>
                         <span>{factor}</span>
                       </li>
                     ))}
