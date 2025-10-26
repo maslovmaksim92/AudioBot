@@ -1319,9 +1319,28 @@ async def get_forecast(
                 
                 # Формируем структуру расходов 2025
                 ufic_expenses_2025_breakdown = {}
+                
+                # Переменные для объединения категорий
+                repair_training_total = 0
+                
                 for row in ufic_expense_categories:
-                    category_name = row['category'].lower().replace(' ', '_').replace('-', '_')
-                    ufic_expenses_2025_breakdown[category_name] = float(row['total_amount'])
+                    category = row['category']
+                    amount = float(row['total_amount'])
+                    category_name = category.lower().replace(' ', '_').replace('-', '_')
+                    
+                    # Пропускаем НДФЛ - не включаем в структуру
+                    if 'ндфл' in category_name or 'ndfl' in category_name:
+                        continue
+                    
+                    # Объединяем категории в "Текущий ремонт, обучение"
+                    if any(keyword in category.lower() for keyword in ['газпром', 'первый газовый', 'водоканал', 'крэо', 'вдпо', 'прикамский институт']):
+                        repair_training_total += amount
+                    else:
+                        ufic_expenses_2025_breakdown[category_name] = amount
+                
+                # Добавляем объединенную категорию
+                if repair_training_total > 0:
+                    ufic_expenses_2025_breakdown['текущий_ремонт_обучение'] = repair_training_total
                 
                 total_ufic_expenses_2025 = sum(ufic_expenses_2025_breakdown.values())
                 
