@@ -1464,14 +1464,20 @@ async def get_forecast(
                 # Формируем детализацию расходов 2025
                 expense_breakdown_2025 = {}
                 
-                # Проходим по всем категориям расходов
-                for item in consolidated_expenses.get("expenses", []):
-                    category = item["category"]
-                    amount = item["amount"]
-                    
-                    # Нормализуем название категории
-                    category_name = category.lower().replace(' ', '_').replace('-', '_')
-                    expense_breakdown_2025[category_name] = amount
+                # Проверяем, что consolidated_expenses не None и содержит данные
+                if consolidated_expenses and "expenses" in consolidated_expenses:
+                    # Проходим по всем категориям расходов
+                    for item in consolidated_expenses["expenses"]:
+                        category = item["category"]
+                        amount = item["amount"]
+                        
+                        # Нормализуем название категории
+                        category_name = category.lower().replace(' ', '_').replace('-', '_')
+                        expense_breakdown_2025[category_name] = amount
+                
+                # Если нет детализации, используем общие расходы
+                if not expense_breakdown_2025:
+                    expense_breakdown_2025 = {"operating_expenses": total_expenses_2025}
             else:
                 # Для ВАШ ДОМ ФАКТ используем специальную логику с тремя сценариями
                 # Получаем выручку
