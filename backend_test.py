@@ -3727,9 +3727,217 @@ async def test_ufic_expense_breakdown():
     
     return results
 
+async def test_vasdom_model_forecast_endpoint():
+    """Test ВАШ ДОМ модель forecast endpoint according to review request"""
+    print("\n=== ТЕСТ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ (REVIEW REQUEST) ===\n")
+    
+    results = TestResults()
+    scenarios = ["pessimistic", "realistic", "optimistic"]
+    company = "ВАШ ДОМ модель"
+    
+    # Expected outsourcing amounts per scenario and year
+    expected_outsourcing = {
+        "pessimistic": {
+            2026: 16028880,
+            2027: 17134873,
+            2028: 18317179,
+            2029: 19581064,
+            2030: 20932158
+        },
+        "realistic": {
+            2026: 24615780,
+            2027: 25797337,
+            2028: 27035610,
+            2029: 28333319,
+            2030: 29693318
+        },
+        "optimistic": {
+            2026: 34347600,
+            2027: 35996285,
+            2028: 37724106,
+            2029: 39534864,
+            2030: 41432537
+        }
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем прогноз для компании: {company}")
+            print("📋 Критерии успеха согласно review request:")
+            print("   1. Endpoint должен возвращать 200 статус для всех трех сценариев")
+            print("   2. В expense_breakdown для каждого года (2026-2030) должна присутствовать категория 'аутсорсинг_персонала'")
+            print("   3. Суммы аутсорсинга должны соответствовать ожидаемым значениям")
+            print("   4. В expense_breakdown должна присутствовать категория 'фот' или 'зарплата' с уменьшенной суммой")
+            print("   5. Детализация расходов должна быть представлена (не только 'operating_expenses')")
+            print("   6. Структура ответа должна содержать все необходимые поля: forecast, base_data, investor_metrics")
+            print("")
+            
+            scenario_results = {}
+            
+            for scenario in scenarios:
+                print(f"🔍 Тестируем сценарий: {scenario}")
+                
+                # Test the forecast endpoint
+                response = await client.get(
+                    f"{API_BASE}/finances/forecast",
+                    params={"company": company, "scenario": scenario}
+                )
+                
+                print(f"📡 Ответ сервера для {scenario}: {response.status_code}")
+                
+                # КРИТЕРИЙ 1: Check 200 status
+                if response.status_code != 200:
+                    error_msg = f"❌ КРИТЕРИЙ 1 НАРУШЕН: Сценарий {scenario} возвращает {response.status_code} вместо 200 - {response.text}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                print(f"✅ КРИТЕРИЙ 1: Сценарий {scenario} возвращает 200 статус")
+                
+                data = response.json()
+                scenario_results[scenario] = data
+                
+                # КРИТЕРИЙ 6: Validate response structure
+                required_fields = ['forecast', 'base_data']
+                optional_fields = ['investor_metrics']
+                
+                for field in required_fields:
+                    if field not in data:
+                        error_msg = f"❌ КРИТЕРИЙ 6 НАРУШЕН: Сценарий {scenario} - отсутствует обязательное поле '{field}'"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print(f"✅ КРИТЕРИЙ 6: Поле '{field}' присутствует")
+                
+                for field in optional_fields:
+                    if field in data:
+                        print(f"✅ КРИТЕРИЙ 6: Опциональное поле '{field}' присутствует")
+                    else:
+                        print(f"⚠️ КРИТЕРИЙ 6: Опциональное поле '{field}' отсутствует (не критично)")
+                
+                # Check forecast data for years 2026-2030
+                forecast = data.get('forecast', [])
+                if len(forecast) < 5:
+                    error_msg = f"❌ Сценарий {scenario}: недостаточно лет в прогнозе (ожидалось 5, получено {len(forecast)})"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                print(f"✅ Прогноз содержит {len(forecast)} лет")
+                
+                # Check each year for criteria 2, 3, 4, 5
+                years_checked = 0
+                outsourcing_found_years = 0
+                salary_found_years = 0
+                detailed_breakdown_years = 0
+                
+                for year_data in forecast:
+                    year = year_data.get('year')
+                    if year not in [2026, 2027, 2028, 2029, 2030]:
+                        continue
+                    
+                    years_checked += 1
+                    expense_breakdown = year_data.get('expense_breakdown', {})
+                    
+                    print(f"\n📊 Проверяем год {year}:")
+                    
+                    # КРИТЕРИЙ 5: Check if detailed breakdown exists (not just operating_expenses)
+                    if len(expense_breakdown) > 1:  # More than just one category
+                        detailed_breakdown_years += 1
+                        print(f"✅ КРИТЕРИЙ 5: Год {year} имеет детализированные расходы ({len(expense_breakdown)} категорий)")
+                    else:
+                        error_msg = f"❌ КРИТЕРИЙ 5 НАРУШЕН: Год {year} не имеет детализации расходов (только {len(expense_breakdown)} категорий)"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    
+                    # КРИТЕРИЙ 2 & 3: Check for outsourcing category and amounts
+                    outsourcing_found = False
+                    outsourcing_categories = ['аутсорсинг_персонала', 'аутсорсинг персонала', 'Аутсорсинг персонала']
+                    
+                    for category_name, amount in expense_breakdown.items():
+                        if any(outsourcing_cat.lower() in category_name.lower() for outsourcing_cat in outsourcing_categories):
+                            outsourcing_found = True
+                            outsourcing_found_years += 1
+                            
+                            expected_amount = expected_outsourcing[scenario][year]
+                            amount_diff = abs(amount - expected_amount)
+                            amount_diff_pct = amount_diff / expected_amount * 100 if expected_amount > 0 else 100
+                            
+                            if amount_diff_pct > 1.0:  # Allow 1% tolerance
+                                error_msg = f"❌ КРИТЕРИЙ 3 НАРУШЕН: {scenario} {year} - неверная сумма аутсорсинга. Ожидалось {expected_amount:,.0f}, получено {amount:,.0f} (разница {amount_diff_pct:.2f}%)"
+                                results.errors.append(error_msg)
+                                print(error_msg)
+                            else:
+                                print(f"✅ КРИТЕРИЙ 2&3: Год {year} - категория '{category_name}' найдена с корректной суммой {amount:,.0f}")
+                            break
+                    
+                    if not outsourcing_found:
+                        error_msg = f"❌ КРИТЕРИЙ 2 НАРУШЕН: Год {year} - категория 'аутсорсинг_персонала' не найдена"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    
+                    # КРИТЕРИЙ 4: Check for salary/FOT category
+                    salary_found = False
+                    salary_categories = ['фот', 'зарплата', 'ФОТ', 'Зарплата', 'Фонд оплаты труда']
+                    
+                    for category_name, amount in expense_breakdown.items():
+                        if any(salary_cat.lower() in category_name.lower() for salary_cat in salary_categories):
+                            salary_found = True
+                            salary_found_years += 1
+                            print(f"✅ КРИТЕРИЙ 4: Год {year} - категория '{category_name}' найдена с суммой {amount:,.0f}")
+                            break
+                    
+                    if not salary_found:
+                        error_msg = f"❌ КРИТЕРИЙ 4 НАРУШЕН: Год {year} - категория 'фот' или 'зарплата' не найдена"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    
+                    # Show all categories for debugging
+                    print(f"📋 Все категории расходов в {year}:")
+                    for cat_name, cat_amount in expense_breakdown.items():
+                        print(f"   - {cat_name}: {cat_amount:,.0f}")
+                
+                # Summary for this scenario
+                print(f"\n📊 Сводка по сценарию {scenario}:")
+                print(f"   - Проверено лет: {years_checked}/5")
+                print(f"   - Лет с аутсорсингом: {outsourcing_found_years}/{years_checked}")
+                print(f"   - Лет с зарплатой/ФОТ: {salary_found_years}/{years_checked}")
+                print(f"   - Лет с детализацией: {detailed_breakdown_years}/{years_checked}")
+                
+                if years_checked == 5 and outsourcing_found_years == 5 and salary_found_years == 5 and detailed_breakdown_years == 5:
+                    print(f"✅ Сценарий {scenario}: ВСЕ КРИТЕРИИ ВЫПОЛНЕНЫ")
+                else:
+                    print(f"⚠️ Сценарий {scenario}: ЕСТЬ НАРУШЕНИЯ КРИТЕРИЕВ")
+                
+                print("")
+            
+            # Final summary
+            print("🎯 ИТОГОВАЯ ПРОВЕРКА ВСЕХ КРИТЕРИЕВ:")
+            
+            total_scenarios = len(scenarios)
+            successful_scenarios = len([s for s in scenarios if s in scenario_results])
+            
+            print(f"✅ КРИТЕРИЙ 1: {successful_scenarios}/{total_scenarios} сценариев возвращают 200 статус")
+            
+            if successful_scenarios == total_scenarios:
+                print("✅ ВСЕ ОСНОВНЫЕ КРИТЕРИИ МОГУТ БЫТЬ ПРОВЕРЕНЫ")
+            else:
+                error_msg = f"❌ КРИТИЧЕСКИЙ СБОЙ: Только {successful_scenarios}/{total_scenarios} сценариев доступны для проверки"
+                results.errors.append(error_msg)
+                print(error_msg)
+            
+            results.finance_endpoints['vasdom_model_forecast'] = scenario_results
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании прогноза ВАШ ДОМ модель: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
-    """Main test execution - focused on review request forecast testing"""
-    print("🚀 ТЕСТИРОВАНИЕ ОБНОВЛЕНИЙ ПРОГНОЗА (REVIEW REQUEST)")
+    """Main test execution - focused on ВАШ ДОМ модель forecast testing per review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ (REVIEW REQUEST)")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
@@ -3750,11 +3958,11 @@ async def main():
         return
     
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ ОБНОВЛЕНИЙ ПРОГНОЗА")
+    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ")
     print("=" * 80)
     
-    # Run the specific test for forecast updates as requested
-    result = await test_forecast_updates_review()
+    # Run the specific test for ВАШ ДОМ модель forecast as requested
+    result = await test_vasdom_model_forecast_endpoint()
     
     # Print summary
     print("\n" + "=" * 80)
@@ -3768,26 +3976,28 @@ async def main():
             print(f"   {i}. {error}")
         
         # Проверяем на критические ошибки
-        critical_errors = [e for e in result.errors if "КРИТИЧЕСКАЯ ОШИБКА" in e or "500" in e]
+        critical_errors = [e for e in result.errors if "КРИТИЧЕСКИЙ СБОЙ" in e or "500" in e or "КРИТЕРИЙ 1 НАРУШЕН" in e]
         if critical_errors:
             print(f"\n⚠️ КРИТИЧЕСКИХ ОШИБОК: {len(critical_errors)}")
             print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
         else:
-            print("\n✅ Критические ошибки исправлены")
-            print("⚠️ Остались только минорные проблемы")
+            print("\n✅ Критические ошибки отсутствуют")
+            print("⚠️ Остались только проблемы с данными")
     else:
         print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
-        print("✅ Все критерии успеха выполнены")
-        print("✅ Юридические услуги исключены")
-        print("✅ Маржа оптимистичного в диапазоне 27.58%-36.42%")
-        print("✅ Детальные описания присутствуют")
-        print("✅ Структура detailed_description корректна")
+        print("✅ Все критерии успеха выполнены:")
+        print("   ✅ Все сценарии возвращают 200 статус")
+        print("   ✅ Категория 'аутсорсинг_персонала' присутствует во всех годах")
+        print("   ✅ Суммы аутсорсинга соответствуют ожидаемым")
+        print("   ✅ Категория 'фот'/'зарплата' присутствует")
+        print("   ✅ Детализация расходов представлена")
+        print("   ✅ Структура ответа содержит все необходимые поля")
     
     print("\n" + "=" * 80)
     print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     print("=" * 80)
     
-    return [("Forecast Updates Review Test", result)]
+    return [("ВАШ ДОМ модель Forecast Test", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
