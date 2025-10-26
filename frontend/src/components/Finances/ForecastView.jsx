@@ -68,7 +68,6 @@ function ForecastView() {
             <SelectContent>
               <SelectItem value="ВАШ ДОМ ФАКТ">ВАШ ДОМ+УФИЦ</SelectItem>
               <SelectItem value="УФИЦ модель">УФИЦ модель</SelectItem>
-              <SelectItem value="ВАШ ДОМ модель">ВАШ ДОМ модель</SelectItem>
             </SelectContent>
           </Select>
 
