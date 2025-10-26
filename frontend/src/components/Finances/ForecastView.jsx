@@ -56,13 +56,13 @@ function ForecastView() {
   const ScenarioIcon = scenarioConfig.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Заголовок и селекторы */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">Прогноз 2026-2030</h2>
-        <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
+        <h2 className="text-xl md:text-3xl font-bold">Прогноз 2026-2030</h2>
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 w-full md:w-auto">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="w-[250px]">
+            <SelectTrigger className="w-full sm:w-[200px] md:w-[250px]">
               <SelectValue placeholder="Выберите модель" />
             </SelectTrigger>
             <SelectContent>
@@ -72,7 +72,7 @@ function ForecastView() {
           </Select>
 
           <Select value={selectedScenario} onValueChange={setSelectedScenario}>
-            <SelectTrigger className="w-[250px]">
+            <SelectTrigger className="w-full sm:w-[200px] md:w-[250px]">
               <SelectValue placeholder="Выберите сценарий" />
             </SelectTrigger>
             <SelectContent>
