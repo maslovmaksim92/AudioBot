@@ -300,9 +300,6 @@ function ForecastView() {
                   <th className="text-right p-3 font-bold">Расходы</th>
                   <th className="text-right p-3 font-bold">Прибыль</th>
                   <th className="text-right p-3 font-bold">Маржа</th>
-                  {selectedCompany === 'УФИЦ модель' && forecast[0]?.cleaners_count && (
-                    <th className="text-right p-3 font-bold">Уборщиц</th>
-                  )}
                 </tr>
               </thead>
               <tbody>
