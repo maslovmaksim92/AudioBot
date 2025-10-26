@@ -145,6 +145,34 @@ function ForecastView() {
                   </ul>
                 </div>
               )}
+              
+              {scenario_info.detailed_description.advantages && scenario_info.detailed_description.advantages.length > 0 && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm font-bold text-green-800 mb-2">✅ Преимущества сценария:</p>
+                  <ul className="space-y-1">
+                    {scenario_info.detailed_description.advantages.map((advantage, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 flex items-start">
+                        <span className="text-green-600 mr-2">•</span>
+                        <span>{advantage}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {scenario_info.detailed_description.disadvantages && scenario_info.detailed_description.disadvantages.length > 0 && (
+                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-sm font-bold text-red-800 mb-2">⚠️ Недостатки и риски:</p>
+                  <ul className="space-y-1">
+                    {scenario_info.detailed_description.disadvantages.map((disadvantage, idx) => (
+                      <li key={idx} className="text-sm text-gray-700 flex items-start">
+                        <span className="text-red-600 mr-2">•</span>
+                        <span>{disadvantage}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
