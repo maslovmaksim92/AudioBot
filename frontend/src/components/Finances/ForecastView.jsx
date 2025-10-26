@@ -134,15 +134,51 @@ function ForecastView() {
               
               {scenario_info.detailed_description.expense_factors && scenario_info.detailed_description.expense_factors.length > 0 && (
                 <div className="p-3 bg-white rounded-lg">
-                  <p className="text-sm font-bold text-purple-700 mb-2">💰 Юнит-экономика на 1 сотрудника (2026):</p>
+                  <p className="text-sm font-bold text-red-700 mb-2">📊 Структура расходов:</p>
                   <ul className="space-y-1">
                     {scenario_info.detailed_description.expense_factors.map((factor, idx) => (
                       <li key={idx} className="text-sm text-gray-700 flex items-start">
-                        <span className="text-purple-600 mr-2">•</span>
+                        <span className="text-red-600 mr-2">•</span>
                         <span>{factor}</span>
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              
+              {/* Юнит-экономика с таблицей по годам */}
+              {scenario_info.detailed_description.unit_economics && selectedCompany === 'УФИЦ модель' && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm font-bold text-purple-800 mb-3">💰 Юнит-экономика на 1 сотрудника (2026-2030):</p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-purple-300">
+                          <th className="text-left py-2 px-2 text-purple-700">Год</th>
+                          <th className="text-right py-2 px-2 text-green-700">Выручка</th>
+                          <th className="text-right py-2 px-2 text-red-700">Расходы</th>
+                          <th className="text-right py-2 px-2 text-blue-700">Прибыль</th>
+                          <th className="text-right py-2 px-2 text-gray-700">Сотрудников</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {forecast && forecast.map((year, idx) => {
+                          const unitRevenue = year.revenue / scenario_info.detailed_description.unit_economics.total_employees;
+                          const unitExpense = year.expenses / scenario_info.detailed_description.unit_economics.total_employees;
+                          const unitProfit = unitRevenue - unitExpense;
+                          return (
+                            <tr key={idx} className="border-b border-purple-100">
+                              <td className="py-2 px-2 font-semibold">{year.year}</td>
+                              <td className="text-right py-2 px-2 text-green-600">{Math.round(unitRevenue).toLocaleString('ru-RU')} ₽</td>
+                              <td className="text-right py-2 px-2 text-red-600">{Math.round(unitExpense).toLocaleString('ru-RU')} ₽</td>
+                              <td className="text-right py-2 px-2 text-blue-600">{Math.round(unitProfit).toLocaleString('ru-RU')} ₽</td>
+                              <td className="text-right py-2 px-2 text-gray-600">{scenario_info.detailed_description.unit_economics.total_employees}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
               
