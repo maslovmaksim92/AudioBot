@@ -37,22 +37,22 @@ function Finances() {
               Минимизируйте ручную работу с отчетами и получайте данные о финансовом состоянии компании в один клик
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => window.location.href = '/finances/revenue'} variant="outline" className="bg-green-600 hover:bg-green-700 text-white">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Ввод выручки
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => window.location.href = '/finances/revenue'} variant="outline" className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm px-2 md:px-4">
+              <BarChart3 className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Ввод выручки</span>
             </Button>
-            <Button onClick={() => window.location.href = '/finances/articles'} variant="outline" className="bg-blue-600 hover:bg-blue-700 text-white">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Управление статьями
+            <Button onClick={() => window.location.href = '/finances/articles'} variant="outline" className="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm px-2 md:px-4">
+              <BarChart3 className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Управление статьями</span>
             </Button>
-            <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить транзакцию
+            <Button onClick={() => setShowAddForm(true)} className="bg-green-600 hover:bg-green-700 text-xs md:text-sm px-2 md:px-4">
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Добавить транзакцию</span>
             </Button>
-            <Button variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              Импорт CSV
+            <Button variant="outline" className="text-xs md:text-sm px-2 md:px-4">
+              <Upload className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Импорт CSV</span>
             </Button>
           </div>
         </div>
