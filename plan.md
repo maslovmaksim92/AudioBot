@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://finreport-dashboard.preview.emergentagent.com
+**Preview URL**: https://vasdom-finance-1.preview.emergentagent.com
 
 ---
 

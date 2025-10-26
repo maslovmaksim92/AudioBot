@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 # Backend URL from environment
-BACKEND_URL = "https://finreport-dashboard.preview.emergentagent.com"
+BACKEND_URL = "https://vasdom-finance-1.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class TestResults:

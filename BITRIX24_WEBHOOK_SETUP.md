@@ -32,7 +32,7 @@
    - **Событие:** `ONVOXIMPLANTCALLEND` (завершение звонка)
    - **Обработчик (URL):** 
      ```
-     https://finreport-dashboard.preview.emergentagent.com/api/bitrix-webhook/call-finished
+     https://vasdom-finance-1.preview.emergentagent.com/api/bitrix-webhook/call-finished
      ```
      *(замените на ваш production URL на Render)*
 
@@ -63,7 +63,7 @@ OPENAI_API_KEY=ваш_ключ
 
 ### Тест 1: Проверка endpoint
 ```bash
-curl https://finreport-dashboard.preview.emergentagent.com/api/bitrix-webhook/test
+curl https://vasdom-finance-1.preview.emergentagent.com/api/bitrix-webhook/test
 ```
 
 Ожидаемый результат:

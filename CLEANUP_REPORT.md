@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://finreport-dashboard.preview.emergentagent.com**
+Приложение доступно: **https://vasdom-finance-1.preview.emergentagent.com**
 
 ---
 
