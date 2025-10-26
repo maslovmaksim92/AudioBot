@@ -1313,13 +1313,13 @@ async def test_database_connection():
         print(f"❌ Ошибка проверки БД: {str(e)}")
         return False
 
-async def test_vasdom_fact_forecast_endpoint():
-    """Test ВАШ ДОМ ФАКТ forecast endpoint with updated requirements from review request"""
-    print("\n=== ТЕСТ ОБНОВЛЕННОГО ПРОГНОЗА ВАШ ДОМ ФАКТ ===\n")
+async def test_vasdom_model_forecast_endpoint():
+    """Test ВАШ ДОМ модель forecast endpoint with cleaners integration from review request"""
+    print("\n=== КРИТИЧЕСКОЕ ПОВТОРНОЕ ТЕСТИРОВАНИЕ ВАШ ДОМ МОДЕЛЬ ===\n")
     
     results = TestResults()
     scenarios = ["pessimistic", "realistic", "optimistic"]
-    company = "ВАШ ДОМ ФАКТ"
+    company = "ВАШ ДОМ модель"
     
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
