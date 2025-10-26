@@ -1334,7 +1334,7 @@ async def get_forecast(
                             "outsourcing": round(revenue_breakdown_2026["outsourcing"], 2)
                         },
                         "expense_breakdown": {
-                            "labor": round(expense_breakdown_2026["labor"], 2)
+                            category: round(amount, 2) for category, amount in expense_breakdown_2026.items()
                         }
                     })
                     
