@@ -246,11 +246,11 @@ backend:
 
   - task: "ВАШ ДОМ модель forecast - integrate cleaners data"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/backend/app/routers/finances.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -264,6 +264,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ ПОВТОРНОЕ ТЕСТИРОВАНИЕ УСПЕШНО ЗАВЕРШЕНО: Протестирован endpoint GET /api/finances/forecast?company=ВАШ ДОМ модель&scenario={scenario} для всех трех сценариев согласно review request. ВСЕ ОСНОВНЫЕ КРИТЕРИИ ВЫПОЛНЕНЫ: 1) ✅ Все три сценария (pessimistic, realistic, optimistic) возвращают 200 статус, 2) ✅ В expense_breakdown для каждого года (2026-2030) присутствует категория 'аутсорсинг_персонала' с точными суммами: Pessimistic (16,028,880-20,932,158₽), Realistic (24,615,780-29,693,318₽), Optimistic (34,347,600-41,432,537₽), 3) ✅ Суммы аутсорсинга точно соответствуют ожидаемым значениям (отклонение <1%), 4) ✅ Детализация расходов представлена (2 категории: operating_expenses + аутсорсинг_персонала), 5) ✅ Структура ответа содержит все необходимые поля (forecast, base_data, investor_metrics). Minor: ФОТ/зарплата включена в operating_expenses, а не выделена отдельно, но логика уменьшения на сумму аутсорсинга реализована корректно. Критическая ошибка 'NoneType' полностью исправлена, endpoint полностью функционален."
+        - working: "NA"
+          agent: "main"
+          comment: "КРИТИЧЕСКАЯ ОШИБКА ОТ ПОЛЬЗОВАТЕЛЯ: Сценарии перепутаны! Pessimistic должен быть 34,347,600₽ (САМЫЙ БОЛЬШОЙ cleaning), а Optimistic 16,028,880₽ (САМЫЙ МАЛЕНЬКИЙ). Исправлены данные ufic_cleaners_data: pessimistic теперь использует данные с cleaning=34,347,600 из УФИЦ, optimistic - 16,028,880. Добавлена детализация выручки: из общей выручки ВАШ ДОМ модель вычитаются 'Швеи' и 'Аутсорсинг' из УФИЦ модель (ufic_sewing_outsourcing_data). Теперь revenue_breakdown содержит: vasdom_revenue (чистая выручка ВАШ ДОМ), ufic_sewing, ufic_outsourcing, total. Требуется повторное тестирование с проверкой правильности сценариев и детализации выручки."
 
   - task: "Plannerka list endpoint"
     implemented: true
