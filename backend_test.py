@@ -1488,26 +1488,67 @@ async def test_vasdom_model_forecast_endpoint():
     return results
 
 async def main():
-                    prev_expenses = year_2026.get('expenses', 0) if year_2026 else 0
-                    for year_data in forecast:
-                        year = year_data.get('year')
-                        expenses = year_data.get('expenses', 0)
-                        
-                        if year == 2026:
-                            prev_expenses = expenses
-                            continue
-                            
-                        expected_expenses = prev_expenses * 1.097
-                        expense_diff_pct = abs(expenses - expected_expenses) / expected_expenses * 100
-                        
-                        if expense_diff_pct > 1.0:
-                            error_msg = f"❌ Пессимистичный {year}: неверный рост расходов +9.7%. Ожидалось {expected_expenses:,.0f} ₽, получено {expenses:,.0f} ₽"
-                            results.errors.append(error_msg)
-                            print(error_msg)
-                        else:
-                            print(f"✅ {year}: рост расходов +9.7% корректен ({expenses:,.0f} ₽)")
-                        
-                        prev_expenses = expenses
+    """Main test execution - focused on ВАШ ДОМ модель forecast testing per review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ (REVIEW REQUEST)")
+    print("=" * 80)
+    print(f"🌐 Backend URL: {BACKEND_URL}")
+    print(f"🔗 API Base: {API_BASE}")
+    print("=" * 80)
+    
+    # Check basic connectivity
+    print("\n🔍 Проверяем доступность backend...")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{API_BASE}/health")
+            if response.status_code == 200:
+                print("✅ Backend доступен")
+            else:
+                print(f"⚠️ Backend недоступен: {response.status_code}")
+                return
+    except Exception as e:
+        print(f"❌ Ошибка подключения к backend: {str(e)}")
+        return
+    
+    print("\n" + "=" * 80)
+    print("🧪 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ")
+    print("=" * 80)
+    
+    # Run the specific test for ВАШ ДОМ модель forecast as requested
+    result = await test_vasdom_model_forecast_endpoint()
+    
+    # Print summary
+    print("\n" + "=" * 80)
+    print("📊 ИТОГОВЫЙ ОТЧЁТ")
+    print("=" * 80)
+    
+    if result.errors:
+        print(f"❌ Обнаружено ошибок: {len(result.errors)}")
+        print("\n🔍 ДЕТАЛИ ОШИБОК:")
+        for i, error in enumerate(result.errors, 1):
+            print(f"   {i}. {error}")
+        
+        # Проверяем на критические ошибки
+        critical_errors = [e for e in result.errors if "КРИТИЧЕСКИЙ СБОЙ" in e or "500" in e or "КРИТЕРИЙ 1 НАРУШЕН" in e]
+        if critical_errors:
+            print(f"\n⚠️ КРИТИЧЕСКИХ ОШИБОК: {len(critical_errors)}")
+            print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
+        else:
+            print("\n✅ Критические ошибки отсутствуют")
+            print("⚠️ Остались только проблемы с данными")
+    else:
+        print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
+        print("✅ Все критерии успеха выполнены:")
+        print("   ✅ Все сценарии возвращают 200 статус")
+        print("   ✅ Категория 'аутсорсинг_персонала' присутствует во всех годах")
+        print("   ✅ Суммы аутсорсинга соответствуют ожидаемым")
+        print("   ✅ Структура revenue_breakdown корректна")
+        print("   ✅ Расчет выручки vasdom_revenue + ufic_sewing + ufic_outsourcing = total")
+    
+    print("\n" + "=" * 80)
+    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    print("=" * 80)
+    
+    return [("ВАШ ДОМ модель Forecast Test", result)]
                 
                 elif scenario == "realistic":
                     print(f"\n📊 Проверяем РЕАЛИСТИЧНЫЙ сценарий:")
