@@ -201,10 +201,44 @@ function ExpenseAnalysis() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Детальная информация по расходам {selectedMonth !== 'all' && `- ${selectedMonth}`}</CardTitle>
+          <CardTitle className="text-base md:text-lg">Детальная информация по расходам {selectedMonth !== 'all' && `- ${selectedMonth}`}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {/* Mobile view - cards */}
+          <div className="md:hidden space-y-3">
+            {data.expenses.map((item, index) => (
+              <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 font-medium text-sm">
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <span className="break-words">{item.category}</span>
+                  </div>
+                  <div className="text-orange-600 font-semibold text-xs whitespace-nowrap ml-2">
+                    {item.percentage}%
+                  </div>
+                </div>
+                <div className="text-right font-semibold text-sm">
+                  {formatCurrency(item.amount)}
+                </div>
+                <div className="bg-gray-200 rounded-full h-2 w-full mt-2">
+                  <div 
+                    className="bg-orange-600 h-2 rounded-full"
+                    style={{ width: `${item.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+            <div className="border-t-2 pt-3 flex justify-between font-bold">
+              <span>Итого</span>
+              <span>{formatCurrency(data.total)}</span>
+            </div>
+          </div>
+
+          {/* Desktop view - table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
