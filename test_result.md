@@ -246,11 +246,11 @@ backend:
 
   - task: "ВАШ ДОМ модель forecast - integrate cleaners data"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/app/routers/finances.py"
     stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
