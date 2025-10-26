@@ -277,13 +277,75 @@ function ForecastView() {
       {/* Прогноз на 2026-2030 */}
       <Card className={`border-2 border-${scenarioConfig.color}-200`}>
         <CardHeader className={`bg-${scenarioConfig.color}-100`}>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className={`h-6 w-6 text-${scenarioConfig.color}-600`} />
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <TrendingUp className={`h-5 w-5 md:h-6 md:w-6 text-${scenarioConfig.color}-600`} />
             Прогноз 2026-2030
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="overflow-x-auto">
+        <CardContent className="pt-4 md:pt-6">
+          {/* Mobile view - cards */}
+          <div className="md:hidden space-y-3">
+            {forecast.map((year, index) => {
+              const isProfit = year.profit >= 0;
+              return (
+                <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                  <div className="font-bold text-lg mb-2 text-center">{year.year}</div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <div className="text-gray-600">Выручка</div>
+                      <div className="text-green-600 font-semibold">{formatCurrency(year.revenue)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600">Расходы</div>
+                      <div className="text-red-600 font-semibold">{formatCurrency(year.expenses)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600">Прибыль</div>
+                      <div className={`font-bold ${isProfit ? 'text-blue-600' : 'text-orange-600'}`}>
+                        {formatCurrency(year.profit)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600">Маржа</div>
+                      <div className="font-semibold">{year.margin}%</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="border-t-2 pt-3 mt-3 bg-gray-100 rounded-lg p-3">
+              <div className="font-bold text-center mb-2">ИТОГО 5 лет</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <div className="text-gray-600">Выручка</div>
+                  <div className="text-green-700 font-bold">
+                    {formatCurrency(forecast.reduce((sum, y) => sum + y.revenue, 0))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Расходы</div>
+                  <div className="text-red-700 font-bold">
+                    {formatCurrency(forecast.reduce((sum, y) => sum + y.expenses, 0))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Прибыль</div>
+                  <div className="text-blue-700 font-bold">
+                    {formatCurrency(forecast.reduce((sum, y) => sum + y.profit, 0))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Маржа</div>
+                  <div className="font-bold">
+                    {(forecast.reduce((sum, y) => sum + y.margin, 0) / forecast.length).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop view - table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className={`border-b-2 bg-${scenarioConfig.color}-50`}>
