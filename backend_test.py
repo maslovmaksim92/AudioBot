@@ -1487,6 +1487,171 @@ async def test_vasdom_model_forecast_endpoint():
     
     return results
 
+async def test_ufic_model_forecast_expense_breakdown():
+    """Test УФИЦ модель forecast endpoint expense_breakdown structure according to review request"""
+    print("\n=== ТЕСТ СТРУКТУРЫ EXPENSE_BREAKDOWN УФИЦ МОДЕЛЬ ===\n")
+    
+    results = TestResults()
+    company = "УФИЦ модель"
+    scenario = "realistic"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print(f"🏢 Тестируем endpoint: GET /api/finances/forecast?company={company}&scenario={scenario}")
+            print("📋 КРИТЕРИИ УСПЕХА из review request:")
+            print("   1. В expense_breakdown НЕ должно быть ключа 'ндфл' или 'ndfl'")
+            print("   2. В expense_breakdown ДОЛЖЕН быть ключ 'текущий_ремонт_обучение'")
+            print("   3. В expense_breakdown НЕ должно быть отдельных ключей:")
+            print("      'газпром', 'первый_газовый', 'водоканал', 'крэо', 'вдпо', 'прикамский_институт'")
+            print("   4. Вывести содержимое expense_breakdown для 2026 года для проверки")
+            print("")
+            
+            # Test the forecast endpoint
+            response = await client.get(
+                f"{API_BASE}/finances/forecast",
+                params={"company": company, "scenario": scenario}
+            )
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_msg = f"❌ Ошибка получения прогноза: {response.status_code} - {response.text}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            data = response.json()
+            print(f"✅ Прогноз получен успешно")
+            
+            # Validate response structure
+            required_fields = ['company', 'scenario', 'forecast']
+            for field in required_fields:
+                if field not in data:
+                    error_msg = f"❌ Отсутствует поле '{field}' в ответе"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Поле '{field}' присутствует")
+            
+            # Check forecast data
+            forecast = data.get('forecast', [])
+            if len(forecast) < 5:
+                error_msg = f"❌ Недостаточно лет в прогнозе (ожидалось 5, получено {len(forecast)})"
+                results.errors.append(error_msg)
+                print(error_msg)
+                return results
+            
+            print(f"✅ Прогноз содержит {len(forecast)} лет")
+            
+            # Check expense_breakdown for each year (2026-2030)
+            forbidden_keys = ["ндфл", "ndfl", "газпром", "первый_газовый", "водоканал", "крэо", "вдпо", "прикамский_институт"]
+            required_keys = ["текущий_ремонт_обучение"]
+            
+            expense_breakdown_2026 = None
+            
+            for year_data in forecast:
+                year = year_data.get('year')
+                if year not in range(2026, 2031):
+                    continue
+                
+                expense_breakdown = year_data.get('expense_breakdown', {})
+                
+                if year == 2026:
+                    expense_breakdown_2026 = expense_breakdown
+                
+                print(f"\n📊 Проверяем expense_breakdown для {year} года:")
+                print(f"   - Категорий в expense_breakdown: {len(expense_breakdown)}")
+                
+                # Check for forbidden keys
+                found_forbidden = []
+                for key in expense_breakdown.keys():
+                    key_lower = key.lower()
+                    for forbidden in forbidden_keys:
+                        if forbidden.lower() in key_lower:
+                            found_forbidden.append(key)
+                
+                if found_forbidden:
+                    error_msg = f"❌ Год {year}: найдены запрещенные ключи в expense_breakdown: {found_forbidden}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Год {year}: запрещенные ключи отсутствуют")
+                
+                # Check for required keys
+                found_required = []
+                for key in expense_breakdown.keys():
+                    key_lower = key.lower()
+                    for required in required_keys:
+                        if required.lower() in key_lower:
+                            found_required.append(key)
+                
+                if not found_required:
+                    error_msg = f"❌ Год {year}: не найден обязательный ключ 'текущий_ремонт_обучение' в expense_breakdown"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ Год {year}: найден обязательный ключ: {found_required}")
+                
+                # Show all keys for debugging
+                print(f"   - Все ключи expense_breakdown: {list(expense_breakdown.keys())}")
+            
+            # Output expense_breakdown for 2026 as requested
+            print(f"\n📋 СОДЕРЖИМОЕ EXPENSE_BREAKDOWN ДЛЯ 2026 ГОДА:")
+            print("=" * 60)
+            
+            if expense_breakdown_2026:
+                for key, value in expense_breakdown_2026.items():
+                    print(f"   {key}: {value:,.0f} ₽")
+                
+                print(f"\n📊 Итого категорий: {len(expense_breakdown_2026)}")
+                total_amount = sum(expense_breakdown_2026.values())
+                print(f"💰 Общая сумма: {total_amount:,.0f} ₽")
+            else:
+                error_msg = "❌ Не удалось получить expense_breakdown для 2026 года"
+                results.errors.append(error_msg)
+                print(error_msg)
+            
+            print("=" * 60)
+            
+            # Summary of test results
+            print(f"\n📈 ИТОГИ ТЕСТИРОВАНИЯ:")
+            
+            # Count forbidden keys across all years
+            total_forbidden_found = sum(1 for error in results.errors if "запрещенные ключи" in error)
+            if total_forbidden_found == 0:
+                print("✅ Критерий 1: Запрещенные ключи ('ндфл', 'ndfl', 'газпром', и др.) отсутствуют во всех годах")
+            else:
+                print(f"❌ Критерий 1: Найдены запрещенные ключи в {total_forbidden_found} годах")
+            
+            # Count missing required keys
+            total_missing_required = sum(1 for error in results.errors if "обязательный ключ" in error)
+            if total_missing_required == 0:
+                print("✅ Критерий 2: Обязательный ключ 'текущий_ремонт_обучение' присутствует во всех годах")
+            else:
+                print(f"❌ Критерий 2: Отсутствует обязательный ключ в {total_missing_required} годах")
+            
+            # Check if individual forbidden keys are absent
+            individual_forbidden_absent = True
+            if expense_breakdown_2026:
+                for forbidden in ["газпром", "первый_газовый", "водоканал", "крэо", "вдпо", "прикамский_институт"]:
+                    if any(forbidden.lower() in key.lower() for key in expense_breakdown_2026.keys()):
+                        individual_forbidden_absent = False
+                        break
+            
+            if individual_forbidden_absent:
+                print("✅ Критерий 3: Отдельные запрещенные ключи отсутствуют")
+            else:
+                print("❌ Критерий 3: Найдены отдельные запрещенные ключи")
+            
+            print("✅ Критерий 4: Содержимое expense_breakdown для 2026 года выведено выше")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании УФИЦ модель forecast: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def main():
     """Main test execution - focused on ВАШ ДОМ модель forecast testing per review request"""
     print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА ВАШ ДОМ МОДЕЛЬ (REVIEW REQUEST)")
