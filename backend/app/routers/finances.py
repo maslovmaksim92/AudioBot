@@ -1097,6 +1097,95 @@ async def get_consolidated_expenses(conn, month: Optional[str] = None):
               AND category = 'Аутсорсинг персонала'
         """
         outsourcing_row = await conn.fetchrow(outsourcing_query)
+    
+    outsourcing_amount = float(outsourcing_row['total_amount']) if outsourcing_row and outsourcing_row['total_amount'] else 0
+    
+    # Получаем расходы ВАШ ДОМ ФАКТ (исключая определенные категории)
+    exclude_categories = ['Кредиты', 'Швеи', 'Юридические услуги', 'Продукты питания']
+    
+    if month:
+        vasdom_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ ФАКТ' 
+              AND project = $1
+              AND category NOT IN ('Кредиты', 'Швеи', 'Юридические услуги', 'Продукты питания')
+            GROUP BY category
+        """
+        vasdom_rows = await conn.fetch(vasdom_query, month)
+    else:
+        vasdom_query = """
+            SELECT category, SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'ВАШ ДОМ ФАКТ'
+              AND category NOT IN ('Кредиты', 'Швеи', 'Юридические услуги', 'Продукты питания')
+            GROUP BY category
+        """
+        vasdom_rows = await conn.fetch(vasdom_query)
+    
+    # Получаем зарплату УФИЦ для вычитания
+    if month:
+        ufic_salary_query = """
+            SELECT SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'УФИЦ модель' 
+              AND category = 'Зарплата' AND project = $1
+        """
+        ufic_salary_row = await conn.fetchrow(ufic_salary_query, month)
+    else:
+        ufic_salary_query = """
+            SELECT SUM(amount) as total_amount
+            FROM financial_transactions
+            WHERE type = 'expense' AND company = 'УФИЦ модель'
+              AND category = 'Зарплата'
+        """
+        ufic_salary_row = await conn.fetchrow(ufic_salary_query)
+    
+    ufic_salary = float(ufic_salary_row['total_amount']) if ufic_salary_row and ufic_salary_row['total_amount'] else 0
+    
+    # Формируем результат
+    expenses_dict = {}
+    
+    # Добавляем расходы ВАШ ДОМ ФАКТ
+    for row in vasdom_rows:
+        category = row['category']
+        amount = float(row['total_amount'])
+        
+        # Зарплата: вычитаем УФИЦ зарплату
+        if category == 'Зарплата':
+            amount = amount - ufic_salary
+            if amount < 0:
+                amount = 0
+        
+        expenses_dict[category] = expenses_dict.get(category, 0) + amount
+    
+    # Добавляем аутсорсинг персонала
+    if outsourcing_amount > 0:
+        expenses_dict['Аутсорсинг персонала'] = outsourcing_amount
+    
+    # Добавляем налоги (5% от выручки)
+    total_revenue = sum(revenue_by_month.values())
+    if total_revenue > 0:
+        taxes = total_revenue * 0.05
+        expenses_dict['Налоги'] = taxes
+    
+    # Вычисляем общую сумму и проценты
+    total = sum(expenses_dict.values())
+    
+    expenses = []
+    for category, amount in sorted(expenses_dict.items(), key=lambda x: x[1], reverse=True):
+        percentage = (amount / total * 100) if total > 0 else 0
+        expenses.append({
+            "category": category,
+            "amount": amount,
+            "percentage": round(percentage, 2)
+        })
+    
+    return {
+        "expenses": expenses,
+        "total": total,
+        "month": month
+    }
 
 
 @router.get("/finances/forecast")
