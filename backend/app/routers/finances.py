@@ -1759,6 +1759,22 @@ async def get_forecast(
                     "main_revenue": round(revenue, 2)
                 }
                 
+                # ДЛЯ "ВАШ ДОМ модель": вычитаем "Швеи" и "Аутсорсинг" из УФИЦ модель
+                if company == "ВАШ ДОМ модель":
+                    ufic_data_year = ufic_sewing_outsourcing_data.get(scenario, {}).get(year, {})
+                    sewing_amount = ufic_data_year.get("sewing", 0)
+                    outsourcing_amount = ufic_data_year.get("outsourcing", 0)
+                    
+                    # Вычитаем из общей выручки
+                    net_revenue = revenue - sewing_amount - outsourcing_amount
+                    
+                    revenue_breakdown_year = {
+                        "vasdom_revenue": round(net_revenue, 2),
+                        "ufic_sewing": round(sewing_amount, 2),
+                        "ufic_outsourcing": round(outsourcing_amount, 2),
+                        "total": round(revenue, 2)
+                    }
+                
                 forecast.append({
                     "year": year,
                     "revenue": round(revenue, 2),
