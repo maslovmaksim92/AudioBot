@@ -156,6 +156,39 @@ function ForecastView() {
               </p>
             </div>
           )}
+
+          {/* Юнит-экономика */}
+          {scenario_info?.detailed_description?.unit_economics && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border-2 border-indigo-200">
+              <p className="text-sm font-bold text-indigo-800 mb-3">💰 Юнит-экономика на 1 сотрудника (2026):</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-white p-3 rounded-lg shadow-sm">
+                  <p className="text-xs text-gray-600 mb-1">Выручка</p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatCurrency(scenario_info.detailed_description.unit_economics.revenue_per_employee)}
+                  </p>
+                </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm">
+                  <p className="text-xs text-gray-600 mb-1">Расходы</p>
+                  <p className="text-lg font-bold text-red-600">
+                    {formatCurrency(scenario_info.detailed_description.unit_economics.expense_per_employee)}
+                  </p>
+                </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm">
+                  <p className="text-xs text-gray-600 mb-1">Прибыль</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {formatCurrency(scenario_info.detailed_description.unit_economics.profit_per_employee)}
+                  </p>
+                </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm">
+                  <p className="text-xs text-gray-600 mb-1">Всего сотрудников</p>
+                  <p className="text-lg font-bold text-purple-600">
+                    {scenario_info.detailed_description.unit_economics.total_employees}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
