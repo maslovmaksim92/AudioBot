@@ -212,14 +212,6 @@ function ForecastView() {
             </div>
           )}
 
-          {scenario_info?.cleaners_info && (
-            <div className="mt-4 p-3 bg-white rounded-lg border-l-4 border-purple-500">
-              <p className="text-sm font-semibold text-purple-800">
-                👥 {scenario_info.cleaners_info}
-              </p>
-            </div>
-          )}
-
           {/* Юнит-экономика */}
           {scenario_info?.detailed_description?.unit_economics && (
             <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border-2 border-indigo-200">
