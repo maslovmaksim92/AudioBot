@@ -66,7 +66,7 @@ function ForecastView() {
               <SelectValue placeholder="Выберите модель" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ВАШ ДОМ ФАКТ">ВАШ ДОМ ФАКТ</SelectItem>
+              <SelectItem value="ВАШ ДОМ ФАКТ">ВАШ ДОМ+УФИЦ</SelectItem>
               <SelectItem value="УФИЦ модель">УФИЦ модель</SelectItem>
               <SelectItem value="ВАШ ДОМ модель">ВАШ ДОМ модель</SelectItem>
             </SelectContent>
