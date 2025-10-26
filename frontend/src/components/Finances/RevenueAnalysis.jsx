@@ -151,44 +151,67 @@ function RevenueAnalysis() {
             {loadingDetails ? (
               <div className="text-center p-4">Загрузка...</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left p-3">Дата</th>
-                      <th className="text-left p-3">Контрагент</th>
-                      <th className="text-right p-3">Сумма</th>
-                      <th className="text-left p-3">Назначение платежа</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detailsData.transactions.map((transaction, index) => (
-                      <tr key={transaction.id || index} className="border-b hover:bg-gray-50">
-                        <td className="p-3 whitespace-nowrap">{transaction.date}</td>
-                        <td className="p-3 font-medium">{transaction.counterparty}</td>
-                        <td className="text-right p-3 font-bold text-green-600 whitespace-nowrap">
-                          {formatCurrency(transaction.amount)}
-                        </td>
-                        <td className="p-3 text-sm text-gray-600 max-w-md">
-                          {transaction.description || '—'}
-                        </td>
+              <>
+                {/* Mobile view - cards */}
+                <div className="md:hidden space-y-3">
+                  {detailsData.transactions.map((transaction, index) => (
+                    <div key={transaction.id || index} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="text-sm text-gray-600">{transaction.date}</div>
+                        <div className="text-green-600 font-bold">{formatCurrency(transaction.amount)}</div>
+                      </div>
+                      <div className="font-medium mb-1">{transaction.counterparty}</div>
+                      <div className="text-sm text-gray-600">{transaction.description || '—'}</div>
+                    </div>
+                  ))}
+                  <div className="border-t-2 pt-3 bg-gray-100 rounded-lg p-3">
+                    <div className="flex justify-between font-bold">
+                      <span>ИТОГО ({detailsData.count})</span>
+                      <span className="text-green-700">{formatCurrency(detailsData.total)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop view - table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3">Дата</th>
+                        <th className="text-left p-3">Контрагент</th>
+                        <th className="text-right p-3">Сумма</th>
+                        <th className="text-left p-3">Назначение платежа</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 font-bold bg-gray-100">
-                      <td className="p-3">ИТОГО</td>
-                      <td className="p-3 text-gray-600">
-                        {detailsData.count} {detailsData.count === 1 ? 'транзакция' : detailsData.count < 5 ? 'транзакции' : 'транзакций'}
-                      </td>
-                      <td className="text-right p-3 text-green-700">
-                        {formatCurrency(detailsData.total)}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {detailsData.transactions.map((transaction, index) => (
+                        <tr key={transaction.id || index} className="border-b hover:bg-gray-50">
+                          <td className="p-3 whitespace-nowrap">{transaction.date}</td>
+                          <td className="p-3 font-medium">{transaction.counterparty}</td>
+                          <td className="text-right p-3 font-bold text-green-600 whitespace-nowrap">
+                            {formatCurrency(transaction.amount)}
+                          </td>
+                          <td className="p-3 text-sm text-gray-600 max-w-md">
+                            {transaction.description || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-gray-100">
+                        <td className="p-3">ИТОГО</td>
+                        <td className="p-3 text-gray-600">
+                          {detailsData.count} {detailsData.count === 1 ? 'транзакция' : detailsData.count < 5 ? 'транзакции' : 'транзакций'}
+                        </td>
+                        <td className="text-right p-3 text-green-700">
+                          {formatCurrency(detailsData.total)}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
