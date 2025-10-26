@@ -246,15 +246,18 @@ backend:
 
   - task: "ВАШ ДОМ модель forecast - integrate cleaners data"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/app/routers/finances.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
           comment: "Добавлена интеграция данных 'Уборщицы' из УФИЦ модель в прогноз ВАШ ДОМ модель. Для каждого сценария (пессимистичный, реалистичный, оптимистичный) и года (2026-2030) добавляются расходы 'Аутсорсинг персонала' с суммами уборщиц и уменьшается ФОТ/Зарплата на эту же сумму. Детализированы расходы ВАШ ДОМ модель вместо упрощенной структуры. Требуется тестирование endpoint /api/finances/forecast?company=ВАШ ДОМ модель&scenario=[pessimistic|realistic|optimistic] для всех трех сценариев."
+        - working: false
+          agent: "testing"
+          comment: "❌ КРИТИЧЕСКАЯ ОШИБКА: Все три сценария (pessimistic, realistic, optimistic) возвращают 500 Internal Server Error с ошибкой 'NoneType' object has no attribute 'get'. Backend логи показывают повторяющиеся ошибки 'Error calculating forecast' в /app/backend/app/routers/finances.py. Проблема в коде прогноза - где-то происходит обращение к методу .get() на None объекте. Требуется исправление кода перед повторным тестированием. Ни один из 6 критериев успеха не может быть проверен из-за критической ошибки сервера."
 
   - task: "Plannerka list endpoint"
     implemented: true
