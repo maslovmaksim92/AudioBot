@@ -1695,6 +1695,30 @@ async def get_forecast(
                 else:
                     expense_breakdown_year = {"operating_expenses": expenses}
                 
+                # ДЛЯ "ВАШ ДОМ модель": интегрируем данные "Уборщицы" из УФИЦ модель
+                if company == "ВАШ ДОМ модель":
+                    cleaners_amount = ufic_cleaners_data.get(scenario, {}).get(year, 0)
+                    
+                    # Добавляем "Аутсорсинг персонала" с данными уборщиц
+                    if "аутсорсинг_персонала" in expense_breakdown_year:
+                        expense_breakdown_year["аутсорсинг_персонала"] += cleaners_amount
+                    else:
+                        expense_breakdown_year["аутсорсинг_персонала"] = cleaners_amount
+                    
+                    # Уменьшаем ФОТ или Зарплату на сумму уборщиц
+                    # Ищем категорию ФОТ или Зарплата
+                    fot_key = None
+                    for key in expense_breakdown_year.keys():
+                        if "фот" in key.lower() or "зарплата" in key.lower():
+                            fot_key = key
+                            break
+                    
+                    if fot_key and expense_breakdown_year[fot_key] > cleaners_amount:
+                        expense_breakdown_year[fot_key] -= cleaners_amount
+                    elif fot_key:
+                        # Если ФОТ меньше чем сумма уборщиц, обнуляем
+                        expense_breakdown_year[fot_key] = 0
+                
                 # Детализация доходов
                 revenue_breakdown_year = {
                     "main_revenue": round(revenue, 2)
