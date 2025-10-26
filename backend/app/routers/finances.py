@@ -1283,8 +1283,8 @@ async def get_forecast(
                 for scen_name in ["pessimistic", "realistic", "optimistic"]:
                     scen_excel = ufic_excel_data[scen_name]
                     
-                    # Индексация: 6% для пессимистичного и реалистичного, 10% для оптимистичного
-                    indexation_rate = 1.10 if scen_name == "optimistic" else 1.06
+                    # Индексация: 4.8% для пессимистичного и реалистичного, 6.9% для оптимистичного
+                    indexation_rate = 1.069 if scen_name == "optimistic" else 1.048
                     
                     # 2026 год - берем из Excel с детализацией
                     revenue_2026 = scen_excel["revenue_2026"]
