@@ -1428,7 +1428,7 @@ async def get_forecast(
                 total_forecast_profit = sum(f["profit"] for f in forecast)
                 average_annual_profit = total_forecast_profit / len(forecast)
                 average_margin = sum(f["margin"] for f in forecast) / len(forecast)
-                investment_amount = base_expenses
+                investment_amount = 40000000  # 40 млн рублей для всех моделей
                 roi_5_years = (total_forecast_profit / investment_amount * 100) if investment_amount > 0 else 0
                 
                 # Срок окупаемости
