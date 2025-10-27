@@ -658,7 +658,8 @@ frontend:
           comment: "✅ ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ: Протестирован endpoint GET /api/finances/forecast?company=УФИЦ модель&scenario=realistic согласно review request. Результаты тестирования: 1) ✅ Endpoint возвращает 200 статус, 2) ✅ В expense_breakdown отсутствуют запрещенные ключи 'ндфл' и 'ndfl' во всех годах (2026-2030), 3) ✅ В expense_breakdown присутствует обязательный ключ 'текущий_ремонт_обучение' во всех годах, 4) ✅ Отсутствуют отдельные запрещенные ключи ('газпром', 'первый_газовый', 'водоканал', 'крэо', 'вдпо', 'прикамский_институт'), 5) ✅ Содержимое expense_breakdown для 2026 года: зарплата (23,135,177₽), налоги (6,798,449₽), фот_управляющие_персонал (5,590,040₽), текущий_ремонт_обучение (1,470,968₽). Общая сумма: 36,994,634₽. Структура expense_breakdown корректна и соответствует всем требованиям."
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Export functionality in Finances section"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
