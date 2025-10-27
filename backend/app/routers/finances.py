@@ -2110,8 +2110,8 @@ async def get_forecast(
 async def export_all_financial_data():
     """
     Экспорт всех финансовых данных в один XLSX файл с несколькими листами:
-    - Выручка
-    - Расходы
+    - Анализ - Выручка
+    - Анализ - Расходы
     - Прогноз (все модели и сценарии)
     """
     try:
@@ -2125,24 +2125,28 @@ async def export_all_financial_data():
         conn = await get_db_connection()
         
         try:
+            companies = ["ВАШ ДОМ ФАКТ", "УФИЦ модель", "ВАШ ДОМ модель"]
+            
             # === ЛИСТ 1: ВЫРУЧКА ===
-            ws_revenue = wb.create_sheet("Выручка")
+            ws_revenue = wb.create_sheet("Анализ - Выручка")
             ws_revenue.append(["Анализ выручки по компаниям"])
+            ws_revenue.merge_cells('A1:D1')
+            ws_revenue['A1'].font = Font(bold=True, size=14)
+            ws_revenue['A1'].alignment = Alignment(horizontal="center")
             ws_revenue.append([])
             
             # Заголовки
-            header = ["Компания", "Месяц", "Сумма (₽)"]
+            header = ["Компания", "Месяц", "Сумма (₽)", ""]
             ws_revenue.append(header)
             
             # Стилизация заголовков
-            for cell in ws_revenue[3]:
-                cell.font = Font(bold=True, color="FFFFFF")
-                cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-                cell.alignment = Alignment(horizontal="center")
+            for i, cell in enumerate(ws_revenue[3], 1):
+                if i <= 3:  # Только первые 3 колонки
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="2ECC71", end_color="2ECC71", fill_type="solid")
+                    cell.alignment = Alignment(horizontal="center")
             
             # Данные по компаниям
-            companies = ["ВАШ ДОМ ФАКТ", "УФИЦ модель", "ВАШ ДОМ модель"]
-            
             for company in companies:
                 # Получаем данные выручки
                 query = """
@@ -2161,14 +2165,15 @@ async def export_all_financial_data():
                     month = row['month'].strip()
                     amount = float(row['total'])
                     total_company += amount
-                    ws_revenue.append([company, month, amount])
+                    ws_revenue.append([company, month, amount, ""])
                 
                 # Итого по компании
-                ws_revenue.append([company, "ИТОГО", total_company])
+                ws_revenue.append([company, "ИТОГО", total_company, ""])
                 last_row = ws_revenue.max_row
                 ws_revenue.cell(last_row, 1).font = Font(bold=True)
                 ws_revenue.cell(last_row, 2).font = Font(bold=True)
                 ws_revenue.cell(last_row, 3).font = Font(bold=True)
+                ws_revenue.cell(last_row, 3).fill = PatternFill(start_color="D5F4E6", end_color="D5F4E6", fill_type="solid")
                 ws_revenue.append([])  # Пустая строка
             
             # Автоширина колонок
@@ -2177,19 +2182,23 @@ async def export_all_financial_data():
             
             
             # === ЛИСТ 2: РАСХОДЫ ===
-            ws_expense = wb.create_sheet("Расходы")
+            ws_expense = wb.create_sheet("Анализ - Расходы")
             ws_expense.append(["Анализ расходов по компаниям"])
+            ws_expense.merge_cells('A1:E1')
+            ws_expense['A1'].font = Font(bold=True, size=14)
+            ws_expense['A1'].alignment = Alignment(horizontal="center")
             ws_expense.append([])
             
             # Заголовки
-            header = ["Компания", "Категория", "Сумма (₽)", "Процент (%)"]
+            header = ["Компания", "Категория", "Сумма (₽)", "Процент (%)", ""]
             ws_expense.append(header)
             
             # Стилизация заголовков
-            for cell in ws_expense[3]:
-                cell.font = Font(bold=True, color="FFFFFF")
-                cell.fill = PatternFill(start_color="E74C3C", end_color="E74C3C", fill_type="solid")
-                cell.alignment = Alignment(horizontal="center")
+            for i, cell in enumerate(ws_expense[3], 1):
+                if i <= 4:  # Только первые 4 колонки
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="E74C3C", end_color="E74C3C", fill_type="solid")
+                    cell.alignment = Alignment(horizontal="center")
             
             for company in companies:
                 # Получаем данные расходов
@@ -2210,13 +2219,14 @@ async def export_all_financial_data():
                     category = row['category']
                     amount = float(row['total'])
                     percentage = round((amount / total_company * 100), 2) if total_company > 0 else 0
-                    ws_expense.append([company, category, amount, percentage])
+                    ws_expense.append([company, category, amount, percentage, ""])
                 
                 # Итого по компании
-                ws_expense.append([company, "ИТОГО", total_company, 100.0])
+                ws_expense.append([company, "ИТОГО", total_company, 100.0, ""])
                 last_row = ws_expense.max_row
                 for col in range(1, 5):
                     ws_expense.cell(last_row, col).font = Font(bold=True)
+                    ws_expense.cell(last_row, col).fill = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
                 ws_expense.append([])  # Пустая строка
             
             # Автоширина колонок
@@ -2231,42 +2241,55 @@ async def export_all_financial_data():
                 {"name": "ВАШ ДОМ модель", "display": "ВАШ ДОМ модель"}
             ]
             scenarios = [
-                {"key": "pessimistic", "name": "Пессимистичный"},
-                {"key": "realistic", "name": "Реалистичный"},
-                {"key": "optimistic", "name": "Оптимистичный"}
+                {"key": "pessimistic", "name": "Песс"},
+                {"key": "realistic", "name": "Реал"},
+                {"key": "optimistic", "name": "Опт"}
             ]
             
             for fc in forecast_companies:
                 for scenario in scenarios:
-                    # Получаем данные прогноза
-                    forecast_data = await calculate_forecast(conn, fc["name"], scenario["key"])
+                    # Получаем данные прогноза вызовом существующего endpoint
+                    forecast_data = await get_forecast(company=fc["name"], scenario=scenario["key"])
                     
                     if not forecast_data or 'forecast' not in forecast_data:
                         continue
                     
-                    sheet_name = f"{fc['display'][:20]} {scenario['name'][:10]}"
+                    sheet_name = f"{fc['display'][:15]}-{scenario['name']}"
                     ws_forecast = wb.create_sheet(sheet_name)
                     
                     # Заголовок листа
-                    ws_forecast.append([f"Прогноз: {fc['display']} - {scenario['name']} сценарий"])
+                    title = f"Прогноз: {fc['display']} - {scenario['name']}"
+                    ws_forecast.append([title])
+                    ws_forecast.merge_cells('A1:E1')
+                    ws_forecast['A1'].font = Font(bold=True, size=14)
+                    ws_forecast['A1'].alignment = Alignment(horizontal="center")
                     ws_forecast.append([])
                     
                     # Базовый год 2025
                     ws_forecast.append(["БАЗОВЫЙ ГОД 2025"])
-                    ws_forecast.append(["Выручка", forecast_data['base_data']['revenue']])
-                    ws_forecast.append(["Расходы", forecast_data['base_data']['expenses']])
-                    ws_forecast.append(["Прибыль", forecast_data['base_data']['profit']])
-                    ws_forecast.append(["Маржа (%)", forecast_data['base_data']['margin']])
+                    ws_forecast.merge_cells(f'A{ws_forecast.max_row}:B{ws_forecast.max_row}')
+                    ws_forecast[f'A{ws_forecast.max_row}'].font = Font(bold=True, size=12)
+                    ws_forecast[f'A{ws_forecast.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+                    
+                    ws_forecast.append(["Выручка", forecast_data['base_data']['revenue'], "", "", ""])
+                    ws_forecast.append(["Расходы", forecast_data['base_data']['expenses'], "", "", ""])
+                    ws_forecast.append(["Прибыль", forecast_data['base_data']['profit'], "", "", ""])
+                    ws_forecast.append(["Маржа (%)", forecast_data['base_data']['margin'], "", "", ""])
                     ws_forecast.append([])
                     
                     # Прогноз 2026-2030
                     ws_forecast.append(["ПРОГНОЗ 2026-2030"])
+                    ws_forecast.merge_cells(f'A{ws_forecast.max_row}:E{ws_forecast.max_row}')
+                    ws_forecast[f'A{ws_forecast.max_row}'].font = Font(bold=True, size=12)
+                    ws_forecast[f'A{ws_forecast.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+                    
                     header = ["Год", "Выручка (₽)", "Расходы (₽)", "Прибыль (₽)", "Маржа (%)"]
                     ws_forecast.append(header)
                     
                     # Стилизация заголовков
                     header_row = ws_forecast.max_row
-                    for col_idx, cell in enumerate(ws_forecast[header_row], 1):
+                    for col_idx in range(1, 6):
+                        cell = ws_forecast.cell(header_row, col_idx)
                         cell.font = Font(bold=True, color="FFFFFF")
                         cell.fill = PatternFill(start_color="9B59B6", end_color="9B59B6", fill_type="solid")
                         cell.alignment = Alignment(horizontal="center")
@@ -2291,29 +2314,32 @@ async def export_all_financial_data():
                     
                     # Итого за 5 лет
                     ws_forecast.append([])
-                    ws_forecast.append(["ИТОГО 5 лет", total_revenue, total_expenses, total_profit, 
-                                      round(total_profit / total_revenue * 100, 2) if total_revenue > 0 else 0])
+                    avg_margin = round(total_profit / total_revenue * 100, 2) if total_revenue > 0 else 0
+                    ws_forecast.append(["ИТОГО 5 лет", total_revenue, total_expenses, total_profit, avg_margin])
                     last_row = ws_forecast.max_row
                     for col in range(1, 6):
                         ws_forecast.cell(last_row, col).font = Font(bold=True)
+                        ws_forecast.cell(last_row, col).fill = PatternFill(start_color="E8DAEF", end_color="E8DAEF", fill_type="solid")
                     
                     # Метрики для инвестора
                     if 'investor_metrics' in forecast_data:
                         ws_forecast.append([])
                         ws_forecast.append(["РАСЧЕТЫ ДЛЯ ИНВЕСТОРА"])
+                        ws_forecast.merge_cells(f'A{ws_forecast.max_row}:E{ws_forecast.max_row}')
+                        ws_forecast[f'A{ws_forecast.max_row}'].font = Font(bold=True, size=12)
+                        ws_forecast[f'A{ws_forecast.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+                        
                         metrics = forecast_data['investor_metrics']
-                        ws_forecast.append(["Инвестиции", metrics.get('investment_amount', 0)])
-                        ws_forecast.append(["Прибыль за 5 лет", metrics.get('total_profit_5_years', 0)])
-                        ws_forecast.append(["Средняя прибыль/год", metrics.get('average_annual_profit', 0)])
-                        ws_forecast.append(["Средняя маржа (%)", metrics.get('average_margin', 0)])
-                        ws_forecast.append(["ROI за 5 лет (%)", metrics.get('roi_5_years', 0)])
-                        ws_forecast.append(["Срок окупаемости", str(metrics.get('payback_period', 'N/A'))])
+                        ws_forecast.append(["Инвестиции", metrics.get('investment_amount', 0), "", "", ""])
+                        ws_forecast.append(["Прибыль за 5 лет", metrics.get('total_profit_5_years', 0), "", "", ""])
+                        ws_forecast.append(["Средняя прибыль/год", metrics.get('average_annual_profit', 0), "", "", ""])
+                        ws_forecast.append(["Средняя маржа (%)", round(metrics.get('average_margin', 0), 2), "", "", ""])
+                        ws_forecast.append(["ROI за 5 лет (%)", round(metrics.get('roi_5_years', 0), 2), "", "", ""])
+                        ws_forecast.append(["Срок окупаемости", str(metrics.get('payback_period', 'N/A')), "", "", ""])
                     
                     # Автоширина колонок
                     for col in range(1, 6):
                         ws_forecast.column_dimensions[get_column_letter(col)].width = 20
-            
-            await conn.close()
             
             # Сохраняем в BytesIO
             output = io.BytesIO()
