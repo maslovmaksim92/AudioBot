@@ -284,13 +284,13 @@ function ForecastView() {
         </CardHeader>
         <CardContent className="pt-4 md:pt-6">
           {/* Mobile view - cards */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2">
             {forecast.map((year, index) => {
               const isProfit = year.profit >= 0;
               return (
-                <div key={index} className="border rounded-lg p-3 bg-gray-50">
-                  <div className="font-bold text-lg mb-2 text-center">{year.year}</div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                <div key={index} className="border rounded-lg p-2 bg-gray-50">
+                  <div className="font-bold text-base mb-1.5 text-center">{year.year}</div>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
                     <div>
                       <div className="text-gray-600">Выручка</div>
                       <div className="text-green-600 font-semibold">{formatCurrency(year.revenue)}</div>
@@ -313,9 +313,9 @@ function ForecastView() {
                 </div>
               );
             })}
-            <div className="border-t-2 pt-3 mt-3 bg-gray-100 rounded-lg p-3">
-              <div className="font-bold text-center mb-2">ИТОГО 5 лет</div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="border-t-2 pt-2 mt-2 bg-gray-100 rounded-lg p-2">
+              <div className="font-bold text-center mb-1.5 text-sm">ИТОГО 5 лет</div>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
                 <div>
                   <div className="text-gray-600">Выручка</div>
                   <div className="text-green-700 font-bold">
