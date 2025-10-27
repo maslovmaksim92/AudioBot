@@ -44,8 +44,20 @@ function Finances() {
 
       switch(activeTab) {
         case 'overview':
-          alert('Экспорт обзора пока не реализован');
-          return;
+          // Экспорт анализа (обзорная информация)
+          const overviewRes = await fetch(`${backendUrl}/api/finances/profit-loss`);
+          const overviewData = await overviewRes.json();
+          csvContent = 'Показатель,Значение\n';
+          csvContent += `Общая выручка,${overviewData.summary?.total_revenue || 0}\n`;
+          csvContent += `Общие расходы,${overviewData.summary?.total_expenses || 0}\n`;
+          csvContent += `Общая прибыль,${overviewData.summary?.total_profit || 0}\n`;
+          csvContent += `Средняя маржа,${overviewData.summary?.average_margin || 0}%\n`;
+          csvContent += '\n\nПомесячный анализ\n';
+          csvContent += 'Месяц,Выручка,Расходы,Прибыль,Маржа %\n';
+          overviewData.months?.forEach(m => {
+            csvContent += `${m.month},${m.revenue},${m.expenses},${m.profit},${m.margin}\n`;
+          });
+          break;
 
         case 'revenue':
           const revRes = await fetch(`${backendUrl}/api/finances/revenue-analysis`);
@@ -76,7 +88,8 @@ function Finances() {
           return;
 
         case 'forecast':
-          alert('Экспорт прогноза пока не реализован');
+          // Экспорт прогноза - нужно получить данные из ForecastView
+          alert('Для экспорта прогноза выберите компанию и сценарий, затем нажмите кнопку экспорта внутри раздела прогноза');
           return;
 
         default:
