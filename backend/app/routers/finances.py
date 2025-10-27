@@ -1794,11 +1794,11 @@ async def get_forecast(
                 },
                 "realistic": {
                     "years_data": [
-                        {"year": 2026, "revenue": 71393318.00, "expenses": 55686788.04},
-                        {"year": 2027, "revenue": 80674449.34, "expenses": 60505837.01},
-                        {"year": 2028, "revenue": 91162127.75, "expenses": 65636731.98},
-                        {"year": 2029, "revenue": 103013204.40, "expenses": 70048978.99},
-                        {"year": 2030, "revenue": 116404920.90, "expenses": 73335100.17},
+                        {"year": 2026, "revenue": 71393318.00, "expenses": 55686788.04},  # маржа ~22%
+                        {"year": 2027, "revenue": 80674449.34, "expenses": 60505837.01},  # маржа ~25%
+                        {"year": 2028, "revenue": 91162127.75, "expenses": 65636731.98},  # маржа ~28%
+                        {"year": 2029, "revenue": 103013204.40, "expenses": 69808683.00},  # маржа ~32%
+                        {"year": 2030, "revenue": 116404920.90, "expenses": 75663198.59},  # маржа ~35%
                     ],
                     "description": "Реалистичный прогноз: стабильный уверенный рост, маржа растет с 22% до 35%",
                     "detailed_description": {
