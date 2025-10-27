@@ -2104,3 +2104,236 @@ async def get_forecast(
         "month": month
     }
 
+
+
+@router.get("/finances/export-all")
+async def export_all_financial_data():
+    """
+    Экспорт всех финансовых данных в один XLSX файл с несколькими листами:
+    - Выручка
+    - Расходы
+    - Прогноз (все модели и сценарии)
+    """
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.utils import get_column_letter
+        
+        wb = Workbook()
+        wb.remove(wb.active)  # Удаляем дефолтный лист
+        
+        conn = await get_db_connection()
+        
+        try:
+            # === ЛИСТ 1: ВЫРУЧКА ===
+            ws_revenue = wb.create_sheet("Выручка")
+            ws_revenue.append(["Анализ выручки по компаниям"])
+            ws_revenue.append([])
+            
+            # Заголовки
+            header = ["Компания", "Месяц", "Сумма (₽)"]
+            ws_revenue.append(header)
+            
+            # Стилизация заголовков
+            for cell in ws_revenue[3]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+                cell.alignment = Alignment(horizontal="center")
+            
+            # Данные по компаниям
+            companies = ["ВАШ ДОМ ФАКТ", "УФИЦ модель", "ВАШ ДОМ модель"]
+            
+            for company in companies:
+                # Получаем данные выручки
+                query = """
+                    SELECT 
+                        TO_CHAR(date, 'TMMonth YYYY') as month,
+                        SUM(amount) as total
+                    FROM financial_transactions
+                    WHERE type = 'income' AND company = $1
+                    GROUP BY TO_CHAR(date, 'TMMonth YYYY'), DATE_TRUNC('month', date)
+                    ORDER BY DATE_TRUNC('month', date)
+                """
+                rows = await conn.fetch(query, company)
+                
+                total_company = 0
+                for row in rows:
+                    month = row['month'].strip()
+                    amount = float(row['total'])
+                    total_company += amount
+                    ws_revenue.append([company, month, amount])
+                
+                # Итого по компании
+                ws_revenue.append([company, "ИТОГО", total_company])
+                last_row = ws_revenue.max_row
+                ws_revenue.cell(last_row, 1).font = Font(bold=True)
+                ws_revenue.cell(last_row, 2).font = Font(bold=True)
+                ws_revenue.cell(last_row, 3).font = Font(bold=True)
+                ws_revenue.append([])  # Пустая строка
+            
+            # Автоширина колонок
+            for col in range(1, 4):
+                ws_revenue.column_dimensions[get_column_letter(col)].width = 25
+            
+            
+            # === ЛИСТ 2: РАСХОДЫ ===
+            ws_expense = wb.create_sheet("Расходы")
+            ws_expense.append(["Анализ расходов по компаниям"])
+            ws_expense.append([])
+            
+            # Заголовки
+            header = ["Компания", "Категория", "Сумма (₽)", "Процент (%)"]
+            ws_expense.append(header)
+            
+            # Стилизация заголовков
+            for cell in ws_expense[3]:
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="E74C3C", end_color="E74C3C", fill_type="solid")
+                cell.alignment = Alignment(horizontal="center")
+            
+            for company in companies:
+                # Получаем данные расходов
+                query = """
+                    SELECT 
+                        category,
+                        SUM(amount) as total
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = $1
+                    GROUP BY category
+                    ORDER BY total DESC
+                """
+                rows = await conn.fetch(query, company)
+                
+                total_company = sum(float(row['total']) for row in rows)
+                
+                for row in rows:
+                    category = row['category']
+                    amount = float(row['total'])
+                    percentage = round((amount / total_company * 100), 2) if total_company > 0 else 0
+                    ws_expense.append([company, category, amount, percentage])
+                
+                # Итого по компании
+                ws_expense.append([company, "ИТОГО", total_company, 100.0])
+                last_row = ws_expense.max_row
+                for col in range(1, 5):
+                    ws_expense.cell(last_row, col).font = Font(bold=True)
+                ws_expense.append([])  # Пустая строка
+            
+            # Автоширина колонок
+            for col in range(1, 5):
+                ws_expense.column_dimensions[get_column_letter(col)].width = 25
+            
+            
+            # === ЛИСТЫ 3-11: ПРОГНОЗЫ ===
+            forecast_companies = [
+                {"name": "ВАШ ДОМ ФАКТ", "display": "ВАШ ДОМ+УФИЦ"},
+                {"name": "УФИЦ модель", "display": "УФИЦ модель"},
+                {"name": "ВАШ ДОМ модель", "display": "ВАШ ДОМ модель"}
+            ]
+            scenarios = [
+                {"key": "pessimistic", "name": "Пессимистичный"},
+                {"key": "realistic", "name": "Реалистичный"},
+                {"key": "optimistic", "name": "Оптимистичный"}
+            ]
+            
+            for fc in forecast_companies:
+                for scenario in scenarios:
+                    # Получаем данные прогноза
+                    forecast_data = await calculate_forecast(conn, fc["name"], scenario["key"])
+                    
+                    if not forecast_data or 'forecast' not in forecast_data:
+                        continue
+                    
+                    sheet_name = f"{fc['display'][:20]} {scenario['name'][:10]}"
+                    ws_forecast = wb.create_sheet(sheet_name)
+                    
+                    # Заголовок листа
+                    ws_forecast.append([f"Прогноз: {fc['display']} - {scenario['name']} сценарий"])
+                    ws_forecast.append([])
+                    
+                    # Базовый год 2025
+                    ws_forecast.append(["БАЗОВЫЙ ГОД 2025"])
+                    ws_forecast.append(["Выручка", forecast_data['base_data']['revenue']])
+                    ws_forecast.append(["Расходы", forecast_data['base_data']['expenses']])
+                    ws_forecast.append(["Прибыль", forecast_data['base_data']['profit']])
+                    ws_forecast.append(["Маржа (%)", forecast_data['base_data']['margin']])
+                    ws_forecast.append([])
+                    
+                    # Прогноз 2026-2030
+                    ws_forecast.append(["ПРОГНОЗ 2026-2030"])
+                    header = ["Год", "Выручка (₽)", "Расходы (₽)", "Прибыль (₽)", "Маржа (%)"]
+                    ws_forecast.append(header)
+                    
+                    # Стилизация заголовков
+                    header_row = ws_forecast.max_row
+                    for col_idx, cell in enumerate(ws_forecast[header_row], 1):
+                        cell.font = Font(bold=True, color="FFFFFF")
+                        cell.fill = PatternFill(start_color="9B59B6", end_color="9B59B6", fill_type="solid")
+                        cell.alignment = Alignment(horizontal="center")
+                    
+                    # Данные прогноза
+                    total_revenue = 0
+                    total_expenses = 0
+                    total_profit = 0
+                    
+                    for year_data in forecast_data['forecast']:
+                        year = year_data['year']
+                        revenue = year_data['revenue']
+                        expenses = year_data['expenses']
+                        profit = year_data['profit']
+                        margin = year_data['margin']
+                        
+                        ws_forecast.append([year, revenue, expenses, profit, margin])
+                        
+                        total_revenue += revenue
+                        total_expenses += expenses
+                        total_profit += profit
+                    
+                    # Итого за 5 лет
+                    ws_forecast.append([])
+                    ws_forecast.append(["ИТОГО 5 лет", total_revenue, total_expenses, total_profit, 
+                                      round(total_profit / total_revenue * 100, 2) if total_revenue > 0 else 0])
+                    last_row = ws_forecast.max_row
+                    for col in range(1, 6):
+                        ws_forecast.cell(last_row, col).font = Font(bold=True)
+                    
+                    # Метрики для инвестора
+                    if 'investor_metrics' in forecast_data:
+                        ws_forecast.append([])
+                        ws_forecast.append(["РАСЧЕТЫ ДЛЯ ИНВЕСТОРА"])
+                        metrics = forecast_data['investor_metrics']
+                        ws_forecast.append(["Инвестиции", metrics.get('investment_amount', 0)])
+                        ws_forecast.append(["Прибыль за 5 лет", metrics.get('total_profit_5_years', 0)])
+                        ws_forecast.append(["Средняя прибыль/год", metrics.get('average_annual_profit', 0)])
+                        ws_forecast.append(["Средняя маржа (%)", metrics.get('average_margin', 0)])
+                        ws_forecast.append(["ROI за 5 лет (%)", metrics.get('roi_5_years', 0)])
+                        ws_forecast.append(["Срок окупаемости", str(metrics.get('payback_period', 'N/A'))])
+                    
+                    # Автоширина колонок
+                    for col in range(1, 6):
+                        ws_forecast.column_dimensions[get_column_letter(col)].width = 20
+            
+            await conn.close()
+            
+            # Сохраняем в BytesIO
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            # Формируем имя файла
+            filename = f"financial_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            
+            return StreamingResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+            
+        finally:
+            if conn:
+                await conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error exporting all financial data: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
