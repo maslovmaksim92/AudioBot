@@ -86,33 +86,33 @@ function ForecastView() {
 
       {/* Информация о сценарии */}
       <Card className={`border-2 border-${scenarioConfig.color}-300 bg-${scenarioConfig.color}-50`}>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-3 mb-4">
-            <ScenarioIcon className={`h-8 w-8 text-${scenarioConfig.color}-600`} />
+        <CardContent className="pt-3 md:pt-6 p-3 md:p-6">
+          <div className="flex items-center gap-2 mb-2 md:mb-4">
+            <ScenarioIcon className={`h-5 w-5 md:h-8 md:w-8 text-${scenarioConfig.color}-600`} />
             <div>
-              <h3 className="text-xl font-bold">{scenarioConfig.name} сценарий</h3>
-              <p className="text-sm text-gray-600">{scenario_info?.description || 'Прогноз на основе текущих данных'}</p>
+              <h3 className="text-base md:text-xl font-bold">{scenarioConfig.name} сценарий</h3>
+              <p className="text-xs md:text-sm text-gray-600">{scenario_info?.description || 'Прогноз на основе текущих данных'}</p>
             </div>
           </div>
           
           {/* Показатели роста */}
-          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+          <div className="grid grid-cols-2 gap-2 text-xs md:text-sm mb-2 md:mb-4">
             <div>
               <span className="text-gray-600">Рост выручки (год):</span>
-              <span className="ml-2 font-bold text-green-600">+{scenario_info?.revenue_growth_rate?.toFixed(1) || 0}%</span>
+              <span className="ml-1 font-bold text-green-600">+{scenario_info?.revenue_growth_rate?.toFixed(1) || 0}%</span>
             </div>
             <div>
               <span className="text-gray-600">Рост расходов (год):</span>
-              <span className="ml-2 font-bold text-red-600">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
+              <span className="ml-1 font-bold text-red-600">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
             </div>
           </div>
 
           {/* Расширенное описание сценария */}
           {scenario_info?.detailed_description && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-2 md:mt-4 space-y-2 md:space-y-3">
               {scenario_info.detailed_description.summary && (
-                <div className="p-3 bg-white rounded-lg border-l-4 border-blue-500">
-                  <p className="text-sm font-semibold text-blue-800">
+                <div className="p-2 md:p-3 bg-white rounded-lg border-l-4 border-blue-500">
+                  <p className="text-xs md:text-sm font-semibold text-blue-800">
                     💡 {scenario_info.detailed_description.summary}
                   </p>
                 </div>
