@@ -104,6 +104,10 @@ function Finances() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button onClick={handleExport} variant="outline" className="bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm px-2 md:px-4">
+              <Download className="h-4 w-4 md:mr-2" />
+              <span className="hidden sm:inline">Экспорт</span>
+            </Button>
             <Button onClick={() => window.location.href = '/finances/revenue'} variant="outline" className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm px-2 md:px-4">
               <BarChart3 className="h-4 w-4 md:mr-2" />
               <span className="hidden sm:inline">Ввод выручки</span>
