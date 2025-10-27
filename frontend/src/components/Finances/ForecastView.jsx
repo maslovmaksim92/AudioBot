@@ -170,67 +170,6 @@ function ForecastView() {
                   </div>
                 </div>
               )}
-              
-              {scenario_info.detailed_description.advantages && scenario_info.detailed_description.advantages.length > 0 && (
-                <div className="p-2 md:p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs md:text-sm font-bold text-green-800 mb-1 md:mb-2">✅ Преимущества:</p>
-                  <ul className="space-y-0.5 md:space-y-1">
-                    {scenario_info.detailed_description.advantages.map((advantage, idx) => (
-                      <li key={idx} className="text-xs md:text-sm text-gray-700 flex items-start">
-                        <span className="text-green-600 mr-1">•</span>
-                        <span>{advantage}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {scenario_info.detailed_description.disadvantages && scenario_info.detailed_description.disadvantages.length > 0 && (
-                <div className="p-2 md:p-3 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-xs md:text-sm font-bold text-red-800 mb-1 md:mb-2">⚠️ Недостатки:</p>
-                  <ul className="space-y-0.5 md:space-y-1">
-                    {scenario_info.detailed_description.disadvantages.map((disadvantage, idx) => (
-                      <li key={idx} className="text-xs md:text-sm text-gray-700 flex items-start">
-                        <span className="text-red-600 mr-1">•</span>
-                        <span>{disadvantage}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Юнит-экономика */}
-          {scenario_info?.detailed_description?.unit_economics && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border-2 border-indigo-200">
-              <p className="text-sm font-bold text-indigo-800 mb-3">💰 Юнит-экономика на 1 сотрудника (2026):</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <p className="text-xs text-gray-600 mb-1">Выручка</p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatCurrency(scenario_info.detailed_description.unit_economics.revenue_per_employee)}
-                  </p>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <p className="text-xs text-gray-600 mb-1">Расходы</p>
-                  <p className="text-lg font-bold text-red-600">
-                    {formatCurrency(scenario_info.detailed_description.unit_economics.expense_per_employee)}
-                  </p>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <p className="text-xs text-gray-600 mb-1">Прибыль</p>
-                  <p className="text-lg font-bold text-blue-600">
-                    {formatCurrency(scenario_info.detailed_description.unit_economics.profit_per_employee)}
-                  </p>
-                </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <p className="text-xs text-gray-600 mb-1">Всего сотрудников</p>
-                  <p className="text-lg font-bold text-purple-600">
-                    {scenario_info.detailed_description.unit_economics.total_employees}
-                  </p>
-                </div>
-              </div>
             </div>
           )}
         </CardContent>
