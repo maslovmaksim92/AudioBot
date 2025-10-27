@@ -27,13 +27,11 @@ function Finances() {
   const handleExport = async () => {
     try {
       const tabNames = {
-        'overview': 'Обзор',
-        'cashflow': 'Движение денег',
-        'profitloss': 'Прибыли и убытки',
-        'balance': 'Баланс',
-        'expenses': 'Анализ расходов',
-        'revenue': 'Анализ выручки',
+        'overview': 'Анализ',
+        'revenue': 'Выручка',
+        'expenses': 'Расходы',
         'debts': 'Задолженности',
+        'payment-calendar': 'Календарь платежей',
         'forecast': 'Прогноз 26-30'
       };
 
