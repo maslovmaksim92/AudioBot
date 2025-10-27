@@ -751,6 +751,148 @@ async def test_finance_expense_details():
     
     return results
 
+async def test_export_all_endpoint():
+    """Test new export-all endpoint for XLSX export"""
+    print("\n=== ТЕСТ ЭКСПОРТА ВСЕХ ФИНАНСОВЫХ ДАННЫХ В XLSX ===\n")
+    
+    results = TestResults()
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            print("📊 Тестируем GET /api/finances/export-all...")
+            print("🎯 КРИТЕРИИ УСПЕХА:")
+            print("   1. ✅ Endpoint возвращает 200 статус")
+            print("   2. ✅ Content-Type заголовок = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'")
+            print("   3. ✅ Content-Disposition заголовок содержит filename с расширением .xlsx")
+            print("   4. ✅ Ответ представляет собой binary data (XLSX файл)")
+            print("   5. ✅ Размер файла > 10KB (содержит данные)")
+            print("")
+            
+            # Test the export-all endpoint
+            response = await client.get(f"{API_BASE}/finances/export-all")
+            
+            print(f"📡 Ответ сервера: {response.status_code}")
+            
+            # 1. Check 200 status
+            if response.status_code != 200:
+                error_msg = f"❌ КРИТЕРИЙ 1 НЕ ВЫПОЛНЕН: Ожидался статус 200, получен {response.status_code}"
+                results.errors.append(error_msg)
+                print(error_msg)
+                if response.text:
+                    print(f"   Текст ошибки: {response.text[:500]}")
+                return results
+            
+            print("✅ КРИТЕРИЙ 1 ВЫПОЛНЕН: Endpoint возвращает 200 статус")
+            
+            # 2. Check Content-Type header
+            content_type = response.headers.get('content-type', '').lower()
+            expected_content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            
+            if content_type != expected_content_type:
+                error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Content-Type = '{content_type}', ожидался '{expected_content_type}'"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                print(f"✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Content-Type = '{content_type}'")
+            
+            # 3. Check Content-Disposition header
+            content_disposition = response.headers.get('content-disposition', '')
+            
+            if not content_disposition:
+                error_msg = "❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Отсутствует заголовок Content-Disposition"
+                results.errors.append(error_msg)
+                print(error_msg)
+            elif not content_disposition.lower().endswith('.xlsx'):
+                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Content-Disposition не содержит .xlsx: '{content_disposition}'"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                print(f"✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Content-Disposition = '{content_disposition}'")
+                
+                # Extract filename for validation
+                if 'filename=' in content_disposition:
+                    filename_part = content_disposition.split('filename=')[1].strip('"')
+                    print(f"   📁 Имя файла: {filename_part}")
+                    
+                    # Check filename format (should be like "financial_data_YYYYMMDD_HHMMSS.xlsx")
+                    if filename_part.startswith('financial_data_') and filename_part.endswith('.xlsx'):
+                        print("✅ Формат имени файла корректен")
+                    else:
+                        print(f"⚠️ Неожиданный формат имени файла: {filename_part}")
+            
+            # 4. Check binary data (XLSX file)
+            content = response.content
+            
+            if not content:
+                error_msg = "❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Ответ не содержит данных"
+                results.errors.append(error_msg)
+                print(error_msg)
+            elif not isinstance(content, bytes):
+                error_msg = "❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Ответ не является binary data"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                print("✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Ответ представляет собой binary data")
+                
+                # Check XLSX file signature (first few bytes should be PK for ZIP format)
+                if content.startswith(b'PK'):
+                    print("✅ Файл имеет корректную XLSX сигнатуру (ZIP-based)")
+                else:
+                    print(f"⚠️ Неожиданная сигнатура файла: {content[:10]}")
+            
+            # 5. Check file size > 10KB
+            file_size = len(content)
+            min_size = 10 * 1024  # 10KB
+            
+            if file_size < min_size:
+                error_msg = f"❌ КРИТЕРИЙ 5 НЕ ВЫПОЛНЕН: Размер файла {file_size} байт < {min_size} байт (10KB)"
+                results.errors.append(error_msg)
+                print(error_msg)
+            else:
+                print(f"✅ КРИТЕРИЙ 5 ВЫПОЛНЕН: Размер файла {file_size:,} байт > {min_size:,} байт (10KB)")
+                
+                # Show file size in human-readable format
+                if file_size > 1024 * 1024:
+                    size_str = f"{file_size / (1024 * 1024):.1f} MB"
+                elif file_size > 1024:
+                    size_str = f"{file_size / 1024:.1f} KB"
+                else:
+                    size_str = f"{file_size} bytes"
+                
+                print(f"   📊 Размер файла: {size_str}")
+            
+            # Additional validation: Check all headers
+            print(f"\n📋 Все заголовки ответа:")
+            for header_name, header_value in response.headers.items():
+                print(f"   {header_name}: {header_value}")
+            
+            # Store results
+            results.finance_endpoints['export_all'] = {
+                'status_code': response.status_code,
+                'content_type': content_type,
+                'content_disposition': content_disposition,
+                'file_size': file_size,
+                'headers': dict(response.headers)
+            }
+            
+            # Summary
+            print(f"\n📊 ИТОГОВАЯ СВОДКА:")
+            success_count = 5 - len([e for e in results.errors if 'КРИТЕРИЙ' in e])
+            print(f"   ✅ Выполнено критериев: {success_count}/5")
+            print(f"   ❌ Не выполнено критериев: {len([e for e in results.errors if 'КРИТЕРИЙ' in e])}/5")
+            
+            if not [e for e in results.errors if 'КРИТЕРИЙ' in e]:
+                print("🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
+            else:
+                print("⚠️ Есть невыполненные критерии - см. детали выше")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании export-all: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
 async def test_consolidated_financial_model():
     """Test consolidated financial model for ООО ВАШ ДОМ + УФИЦ"""
     print("\n=== ТЕСТ КОНСОЛИДИРОВАННОЙ ФИНАНСОВОЙ МОДЕЛИ ООО ВАШ ДОМ + УФИЦ ===\n")
