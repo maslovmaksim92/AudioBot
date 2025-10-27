@@ -87,7 +87,7 @@ function ForecastView() {
       {/* Информация о сценарии */}
       <Card className={`border-2 border-${scenarioConfig.color}-300 bg-${scenarioConfig.color}-50`}>
         <CardContent className="pt-3 md:pt-6 p-3 md:p-6">
-          <div className="flex items-center gap-2 mb-2 md:mb-4">
+          <div className="flex items-center gap-2 mb-3 md:mb-4">
             <ScenarioIcon className={`h-5 w-5 md:h-8 md:w-8 text-${scenarioConfig.color}-600`} />
             <div>
               <h3 className="text-base md:text-xl font-bold">{scenarioConfig.name} сценарий</h3>
@@ -95,21 +95,24 @@ function ForecastView() {
             </div>
           </div>
           
-          {/* Показатели роста */}
-          <div className="grid grid-cols-2 gap-2 text-xs md:text-sm mb-2 md:mb-4">
-            <div>
-              <span className="text-gray-600">Рост выручки (год):</span>
-              <span className="ml-1 font-bold text-green-600">+{scenario_info?.revenue_growth_rate?.toFixed(1) || 0}%</span>
+          {/* Показатели роста - СНАЧАЛА ВЫРУЧКА, потом расходы */}
+          <div className="grid grid-cols-1 gap-2 mb-3 md:mb-4">
+            {/* Рост выручки - главный показатель, крупно */}
+            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-2 md:p-3">
+              <span className="text-xs md:text-sm text-gray-700">Рост выручки (год):</span>
+              <span className="ml-2 font-bold text-lg md:text-2xl text-green-600">+{scenario_info?.revenue_growth_rate?.toFixed(1) || 0}%</span>
             </div>
-            <div>
-              <span className="text-gray-600">Рост расходов (год):</span>
-              <span className="ml-1 font-bold text-red-600">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
+            
+            {/* Рост расходов - менее ярко, ниже */}
+            <div className="bg-gray-50 border border-gray-300 rounded-lg p-2 md:p-3">
+              <span className="text-xs md:text-sm text-gray-600">Рост расходов (год):</span>
+              <span className="ml-2 font-semibold text-base md:text-lg text-gray-700">+{scenario_info?.expense_growth_rate?.toFixed(1) || 0}%</span>
             </div>
           </div>
 
-          {/* Расширенное описание сценария */}
+          {/* Расширенное описание сценария - только самое важное */}
           {scenario_info?.detailed_description && (
-            <div className="mt-2 md:mt-4 space-y-2 md:space-y-3">
+            <div className="mt-2 md:mt-3 space-y-2">
               {scenario_info.detailed_description.summary && (
                 <div className="p-2 md:p-3 bg-white rounded-lg border-l-4 border-blue-500">
                   <p className="text-xs md:text-sm font-semibold text-blue-800">
@@ -119,9 +122,9 @@ function ForecastView() {
               )}
               
               {scenario_info.detailed_description.revenue_factors && scenario_info.detailed_description.revenue_factors.length > 0 && (
-                <div className="p-2 md:p-3 bg-white rounded-lg">
+                <div className="p-2 md:p-3 bg-white rounded-lg border-l-4 border-green-500">
                   <p className="text-xs md:text-sm font-bold text-green-700 mb-1 md:mb-2">📈 За счет чего рост выручки:</p>
-                  <ul className="space-y-0.5 md:space-y-1">
+                  <ul className="space-y-0.5">
                     {scenario_info.detailed_description.revenue_factors.map((factor, idx) => (
                       <li key={idx} className="text-xs md:text-sm text-gray-700 flex items-start">
                         <span className="text-green-600 mr-1">•</span>
