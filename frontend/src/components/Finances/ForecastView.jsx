@@ -249,26 +249,26 @@ function ForecastView() {
 
       {/* Базовый год */}
       <Card>
-        <CardHeader className="bg-gray-100">
-          <CardTitle>Базовый год 2025</CardTitle>
+        <CardHeader className="bg-gray-100 py-2 md:py-4">
+          <CardTitle className="text-sm md:text-base">Базовый год 2025</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-4 gap-6">
-            <div className="p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Выручка</div>
-              <div className="text-xl font-bold text-green-600">{formatCurrency(base_data.revenue)}</div>
+        <CardContent className="pt-3 md:pt-6 p-2 md:p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6">
+            <div className="p-2 md:p-4 bg-green-50 rounded-lg">
+              <div className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">Выручка</div>
+              <div className="text-sm md:text-xl font-bold text-green-600">{formatCurrency(base_data.revenue)}</div>
             </div>
-            <div className="p-4 bg-red-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Расходы</div>
-              <div className="text-xl font-bold text-red-600">{formatCurrency(base_data.expenses)}</div>
+            <div className="p-2 md:p-4 bg-red-50 rounded-lg">
+              <div className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">Расходы</div>
+              <div className="text-sm md:text-xl font-bold text-red-600">{formatCurrency(base_data.expenses)}</div>
             </div>
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Прибыль</div>
-              <div className="text-xl font-bold text-blue-600">{formatCurrency(base_data.profit)}</div>
+            <div className="p-2 md:p-4 bg-blue-50 rounded-lg">
+              <div className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">Прибыль</div>
+              <div className="text-sm md:text-xl font-bold text-blue-600">{formatCurrency(base_data.profit)}</div>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1">Маржа</div>
-              <div className="text-xl font-bold text-purple-600">{base_data.margin}%</div>
+            <div className="p-2 md:p-4 bg-purple-50 rounded-lg">
+              <div className="text-xs md:text-sm text-gray-600 mb-0.5 md:mb-1">Маржа</div>
+              <div className="text-sm md:text-xl font-bold text-purple-600">{base_data.margin}%</div>
             </div>
           </div>
         </CardContent>
