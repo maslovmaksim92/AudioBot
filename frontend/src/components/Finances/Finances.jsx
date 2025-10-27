@@ -13,7 +13,7 @@ import DebtsManagement from './DebtsManagement';
 import PaymentCalendar from './PaymentCalendar';
 import TransactionForm from './TransactionForm';
 import ForecastView from './ForecastView';
-import { TrendingUp, DollarSign, PieChart, CreditCard, BarChart3, Plus, Upload, Activity, List, Calendar, LineChart } from 'lucide-react';
+import { TrendingUp, DollarSign, PieChart, CreditCard, BarChart3, Plus, Upload, Activity, List, Calendar, LineChart, Download } from 'lucide-react';
 
 function Finances() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -22,6 +22,72 @@ function Finances() {
 
   const handleTransactionAdded = () => {
     setRefreshKey(prev => prev + 1);
+  };
+
+  const handleExport = async () => {
+    try {
+      const tabNames = {
+        'overview': 'Обзор',
+        'cashflow': 'Движение денег',
+        'profitloss': 'Прибыли и убытки',
+        'balance': 'Баланс',
+        'expenses': 'Анализ расходов',
+        'revenue': 'Анализ выручки',
+        'debts': 'Задолженности',
+        'forecast': 'Прогноз 26-30'
+      };
+
+      const tabName = tabNames[activeTab] || 'Финансы';
+      const fileName = `${tabName}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Получаем данные для текущей вкладки
+      let csvContent = '';
+      const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+
+      switch(activeTab) {
+        case 'cashflow':
+          const cashflowRes = await fetch(`${backendUrl}/api/finances/cashflow`);
+          const cashflowData = await cashflowRes.json();
+          csvContent = 'Месяц,Начальный баланс,Поступления,Расходы,Конечный баланс\n';
+          cashflowData.months?.forEach(m => {
+            csvContent += `${m.month},${m.opening_balance},${m.income},${m.expenses},${m.closing_balance}\n`;
+          });
+          break;
+
+        case 'profitloss':
+          const plRes = await fetch(`${backendUrl}/api/finances/profit-loss`);
+          const plData = await plRes.json();
+          csvContent = 'Месяц,Выручка,Расходы,Прибыль,Маржа %\n';
+          plData.months?.forEach(m => {
+            csvContent += `${m.month},${m.revenue},${m.expenses},${m.profit},${m.margin}\n`;
+          });
+          break;
+
+        case 'expenses':
+          const expRes = await fetch(`${backendUrl}/api/finances/expense-analysis`);
+          const expData = await expRes.json();
+          csvContent = 'Категория,Сумма,Процент\n';
+          expData.expenses?.forEach(e => {
+            csvContent += `${e.category},${e.amount},${e.percentage}\n`;
+          });
+          csvContent += `\nИтого,${expData.total},100\n`;
+          break;
+
+        default:
+          alert('Экспорт для этой вкладки пока не поддерживается');
+          return;
+      }
+
+      // Создаем и скачиваем файл
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      alert('Ошибка при экспорте данных');
+    }
   };
 
   return (
