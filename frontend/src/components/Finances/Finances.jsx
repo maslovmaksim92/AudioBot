@@ -45,22 +45,18 @@ function Finances() {
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
 
       switch(activeTab) {
-        case 'cashflow':
-          const cashflowRes = await fetch(`${backendUrl}/api/finances/cashflow`);
-          const cashflowData = await cashflowRes.json();
-          csvContent = 'Месяц,Начальный баланс,Поступления,Расходы,Конечный баланс\n';
-          cashflowData.months?.forEach(m => {
-            csvContent += `${m.month},${m.opening_balance},${m.income},${m.expenses},${m.closing_balance}\n`;
-          });
-          break;
+        case 'overview':
+          alert('Экспорт обзора пока не реализован');
+          return;
 
-        case 'profitloss':
-          const plRes = await fetch(`${backendUrl}/api/finances/profit-loss`);
-          const plData = await plRes.json();
-          csvContent = 'Месяц,Выручка,Расходы,Прибыль,Маржа %\n';
-          plData.months?.forEach(m => {
-            csvContent += `${m.month},${m.revenue},${m.expenses},${m.profit},${m.margin}\n`;
+        case 'revenue':
+          const revRes = await fetch(`${backendUrl}/api/finances/revenue-analysis`);
+          const revData = await revRes.json();
+          csvContent = 'Месяц,Выручка\n';
+          revData.months?.forEach(m => {
+            csvContent += `${m.month},${m.amount}\n`;
           });
+          csvContent += `\nИтого,${revData.total}\n`;
           break;
 
         case 'expenses':
@@ -72,6 +68,18 @@ function Finances() {
           });
           csvContent += `\nИтого,${expData.total},100\n`;
           break;
+
+        case 'debts':
+          alert('Экспорт задолженностей пока не реализован');
+          return;
+
+        case 'payment-calendar':
+          alert('Экспорт календаря платежей пока не реализован');
+          return;
+
+        case 'forecast':
+          alert('Экспорт прогноза пока не реализован');
+          return;
 
         default:
           alert('Экспорт для этой вкладки пока не поддерживается');
