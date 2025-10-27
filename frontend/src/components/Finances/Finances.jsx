@@ -26,86 +26,56 @@ function Finances() {
 
   const handleExport = async () => {
     try {
-      const tabNames = {
-        'overview': 'Анализ',
-        'revenue': 'Выручка',
-        'expenses': 'Расходы',
-        'debts': 'Задолженности',
-        'payment-calendar': 'Календарь платежей',
-        'forecast': 'Прогноз 26-30'
-      };
-
-      const tabName = tabNames[activeTab] || 'Финансы';
-      const fileName = `${tabName}_${new Date().toISOString().split('T')[0]}.csv`;
-
-      // Получаем данные для текущей вкладки
-      let csvContent = '';
       const backendUrl = import.meta.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
-
-      switch(activeTab) {
-        case 'overview':
-          // Экспорт анализа (обзорная информация)
-          const overviewRes = await fetch(`${backendUrl}/api/finances/profit-loss`);
-          const overviewData = await overviewRes.json();
-          csvContent = 'Показатель,Значение\n';
-          csvContent += `Общая выручка,${overviewData.summary?.total_revenue || 0}\n`;
-          csvContent += `Общие расходы,${overviewData.summary?.total_expenses || 0}\n`;
-          csvContent += `Общая прибыль,${overviewData.summary?.total_profit || 0}\n`;
-          csvContent += `Средняя маржа,${overviewData.summary?.average_margin || 0}%\n`;
-          csvContent += '\n\nПомесячный анализ\n';
-          csvContent += 'Месяц,Выручка,Расходы,Прибыль,Маржа %\n';
-          overviewData.months?.forEach(m => {
-            csvContent += `${m.month},${m.revenue},${m.expenses},${m.profit},${m.margin}\n`;
-          });
-          break;
-
-        case 'revenue':
-          const revRes = await fetch(`${backendUrl}/api/finances/revenue-analysis`);
-          const revData = await revRes.json();
-          csvContent = 'Месяц,Выручка\n';
-          revData.months?.forEach(m => {
-            csvContent += `${m.month},${m.amount}\n`;
-          });
-          csvContent += `\nИтого,${revData.total}\n`;
-          break;
-
-        case 'expenses':
-          const expRes = await fetch(`${backendUrl}/api/finances/expense-analysis`);
-          const expData = await expRes.json();
-          csvContent = 'Категория,Сумма,Процент\n';
-          expData.expenses?.forEach(e => {
-            csvContent += `${e.category},${e.amount},${e.percentage}\n`;
-          });
-          csvContent += `\nИтого,${expData.total},100\n`;
-          break;
-
-        case 'debts':
-          alert('Экспорт задолженностей пока не реализован');
-          return;
-
-        case 'payment-calendar':
-          alert('Экспорт календаря платежей пока не реализован');
-          return;
-
-        case 'forecast':
-          // Экспорт прогноза - нужно получить данные из ForecastView
-          alert('Для экспорта прогноза выберите компанию и сценарий, затем нажмите кнопку экспорта внутри раздела прогноза');
-          return;
-
-        default:
-          alert('Экспорт для этой вкладки пока не поддерживается');
-          return;
+      
+      // Показываем индикатор загрузки
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'export-loading';
+      loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;';
+      loadingDiv.innerHTML = '<p style="margin: 0; font-weight: bold;">Экспорт данных...</p><p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Это может занять несколько секунд</p>';
+      document.body.appendChild(loadingDiv);
+      
+      // Вызываем новый endpoint для экспорта всех данных
+      const response = await fetch(`${backendUrl}/api/finances/export-all`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      // Создаем и скачиваем файл
-      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+      // Получаем blob из ответа
+      const blob = await response.blob();
+      
+      // Создаем ссылку для скачивания
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
+      link.href = url;
+      
+      // Получаем имя файла из заголовка Content-Disposition или используем дефолтное
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = `financial_data_${new Date().toISOString().split('T')[0]}.xlsx`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (fileNameMatch && fileNameMatch.length === 2) {
+          fileName = fileNameMatch[1];
+        }
+      }
+      
       link.download = fileName;
+      document.body.appendChild(link);
       link.click();
+      
+      // Очистка
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(loadingDiv);
+      
     } catch (error) {
       console.error('Ошибка экспорта:', error);
-      alert('Ошибка при экспорте данных');
+      const loadingDiv = document.getElementById('export-loading');
+      if (loadingDiv) {
+        document.body.removeChild(loadingDiv);
+      }
+      alert('Ошибка при экспорте данных. Попробуйте еще раз.');
     }
   };
 
