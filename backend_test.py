@@ -1795,11 +1795,12 @@ async def test_ufic_model_forecast_expense_breakdown():
     return results
 
 async def main():
-    """Main test execution - focused on УФИЦ модель forecast testing per review request"""
-    print("🚀 ТЕСТИРОВАНИЕ ПРОГНОЗА УФИЦ МОДЕЛЬ (REVIEW REQUEST)")
+    """Main test execution - focused on export-all endpoint testing per review request"""
+    print("🚀 ТЕСТИРОВАНИЕ ЭКСПОРТА ВСЕХ ФИНАНСОВЫХ ДАННЫХ В XLSX (REVIEW REQUEST)")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
+    print("🎯 Endpoint: GET /api/finances/export-all")
     print("=" * 80)
     
     # Check basic connectivity
@@ -1817,11 +1818,11 @@ async def main():
         return
     
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ СТРУКТУРЫ EXPENSE_BREAKDOWN УФИЦ МОДЕЛЬ")
+    print("🧪 ТЕСТИРОВАНИЕ ENDPOINT GET /api/finances/export-all")
     print("=" * 80)
     
-    # Run the specific test for УФИЦ модель forecast as requested
-    result = await test_ufic_model_forecast_expense_breakdown()
+    # Run the specific test for export-all endpoint as requested
+    result = await test_export_all_endpoint()
     
     # Print summary
     print("\n" + "=" * 80)
@@ -1835,27 +1836,26 @@ async def main():
             print(f"   {i}. {error}")
         
         # Проверяем на критические ошибки
-        critical_errors = [e for e in result.errors if "КРИТИЧЕСКИЙ СБОЙ" in e or "500" in e or "КРИТЕРИЙ 1 НАРУШЕН" in e]
+        critical_errors = [e for e in result.errors if "КРИТЕРИЙ" in e and "НЕ ВЫПОЛНЕН" in e]
         if critical_errors:
-            print(f"\n⚠️ КРИТИЧЕСКИХ ОШИБОК: {len(critical_errors)}")
+            print(f"\n⚠️ НЕВЫПОЛНЕННЫХ КРИТЕРИЕВ: {len(critical_errors)}")
             print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
         else:
-            print("\n✅ Критические ошибки отсутствуют")
-            print("⚠️ Остались только проблемы с данными")
+            print("\n✅ Все критерии успеха выполнены")
     else:
         print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
         print("✅ Все критерии успеха выполнены:")
-        print("   ✅ Все сценарии возвращают 200 статус")
-        print("   ✅ Категория 'аутсорсинг_персонала' присутствует во всех годах")
-        print("   ✅ Суммы аутсорсинга соответствуют ожидаемым")
-        print("   ✅ Структура revenue_breakdown корректна")
-        print("   ✅ Расчет выручки vasdom_revenue + ufic_sewing + ufic_outsourcing = total")
+        print("   ✅ Endpoint возвращает 200 статус")
+        print("   ✅ Content-Type заголовок корректен")
+        print("   ✅ Content-Disposition заголовок содержит .xlsx")
+        print("   ✅ Ответ представляет собой binary data (XLSX файл)")
+        print("   ✅ Размер файла > 10KB (содержит данные)")
     
     print("\n" + "=" * 80)
     print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
     print("=" * 80)
     
-    return [("ВАШ ДОМ модель Forecast Test", result)]
+    return [("Export All Endpoint Test", result)]
 
 if __name__ == "__main__":
     success = asyncio.run(main())
