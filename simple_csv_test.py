@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 # Backend URL from environment
-BACKEND_URL = "https://vasdom-finance-1.preview.emergentagent.com"
+BACKEND_URL = "https://finance-forecast-14.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 async def test_endpoint_availability():

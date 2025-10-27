@@ -20,7 +20,7 @@
 Бот должен быть настроен на получение обновлений через webhook:
 ```bash
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
-  -d "url=https://vasdom-finance-1.preview.emergentagent.com/api/telegram-webhook/"
+  -d "url=https://finance-forecast-14.preview.emergentagent.com/api/telegram-webhook/"
 ```
 
 ### 2. Переменные окружения (на Render)
@@ -145,7 +145,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 ## API endpoints
 
 ### Webhook
-- **URL**: `https://vasdom-finance-1.preview.emergentagent.com/api/telegram-webhook/`
+- **URL**: `https://finance-forecast-14.preview.emergentagent.com/api/telegram-webhook/`
 - **Метод**: POST
 - **Использование**: Автоматически вызывается Telegram при обновлениях
 
@@ -154,7 +154,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://vasdom-finance-1.preview.emergentagent.com/api/telegram-webhook/",
+    "url": "https://finance-forecast-14.preview.emergentagent.com/api/telegram-webhook/",
     "allowed_updates": ["message", "callback_query"]
   }'
 ```
