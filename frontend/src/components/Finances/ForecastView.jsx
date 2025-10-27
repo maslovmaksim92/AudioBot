@@ -119,12 +119,12 @@ function ForecastView() {
               )}
               
               {scenario_info.detailed_description.revenue_factors && scenario_info.detailed_description.revenue_factors.length > 0 && (
-                <div className="p-3 bg-white rounded-lg">
-                  <p className="text-sm font-bold text-green-700 mb-2">📈 За счет чего рост выручки:</p>
-                  <ul className="space-y-1">
+                <div className="p-2 md:p-3 bg-white rounded-lg">
+                  <p className="text-xs md:text-sm font-bold text-green-700 mb-1 md:mb-2">📈 За счет чего рост выручки:</p>
+                  <ul className="space-y-0.5 md:space-y-1">
                     {scenario_info.detailed_description.revenue_factors.map((factor, idx) => (
-                      <li key={idx} className="text-sm text-gray-700 flex items-start">
-                        <span className="text-green-600 mr-2">•</span>
+                      <li key={idx} className="text-xs md:text-sm text-gray-700 flex items-start">
+                        <span className="text-green-600 mr-1">•</span>
                         <span>{factor}</span>
                       </li>
                     ))}
@@ -133,12 +133,12 @@ function ForecastView() {
               )}
               
               {scenario_info.detailed_description.expense_factors && scenario_info.detailed_description.expense_factors.length > 0 && (
-                <div className="p-3 bg-white rounded-lg">
-                  <p className="text-sm font-bold text-red-700 mb-2">📊 Структура расходов:</p>
-                  <ul className="space-y-1">
+                <div className="p-2 md:p-3 bg-white rounded-lg">
+                  <p className="text-xs md:text-sm font-bold text-red-700 mb-1 md:mb-2">📊 Структура расходов:</p>
+                  <ul className="space-y-0.5 md:space-y-1">
                     {scenario_info.detailed_description.expense_factors.map((factor, idx) => (
-                      <li key={idx} className="text-sm text-gray-700 flex items-start">
-                        <span className="text-red-600 mr-2">•</span>
+                      <li key={idx} className="text-xs md:text-sm text-gray-700 flex items-start">
+                        <span className="text-red-600 mr-1">•</span>
                         <span>{factor}</span>
                       </li>
                     ))}
@@ -148,16 +148,16 @@ function ForecastView() {
               
               {/* Юнит-экономика с таблицей по годам */}
               {scenario_info.detailed_description.unit_economics && selectedCompany === 'УФИЦ модель' && (
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-sm font-bold text-purple-800 mb-3">💰 Юнит-экономика на 1 сотрудника (2026-2030):</p>
+                <div className="p-2 md:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-xs md:text-sm font-bold text-purple-800 mb-2 md:mb-3">💰 Юнит-экономика на 1 сотрудника (2026-2030):</p>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
+                    <table className="min-w-full text-xs md:text-sm">
                       <thead>
                         <tr className="border-b border-purple-300">
-                          <th className="text-left py-2 px-2 text-purple-700">Год</th>
-                          <th className="text-right py-2 px-2 text-green-700">Выручка</th>
-                          <th className="text-right py-2 px-2 text-red-700">Расходы</th>
-                          <th className="text-right py-2 px-2 text-blue-700">Прибыль</th>
+                          <th className="text-left py-1 px-1 md:py-2 md:px-2 text-purple-700">Год</th>
+                          <th className="text-right py-1 px-1 md:py-2 md:px-2 text-green-700">Выручка</th>
+                          <th className="text-right py-1 px-1 md:py-2 md:px-2 text-red-700">Расходы</th>
+                          <th className="text-right py-1 px-1 md:py-2 md:px-2 text-blue-700">Прибыль</th>
                           <th className="text-right py-2 px-2 text-gray-700">Сотрудников</th>
                         </tr>
                       </thead>
