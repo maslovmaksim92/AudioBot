@@ -681,11 +681,11 @@ test_plan:
 
   - task: "Export functionality in Finances section"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/Finances/Finances.jsx, /app/backend/app/routers/finances.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "testing"
@@ -696,6 +696,9 @@ test_plan:
         - working: "NA"
           agent: "main"
           comment: "НОВАЯ РЕАЛИЗАЦИЯ: Экспорт всех финансовых данных в XLSX. Создан новый backend endpoint /api/finances/export-all который генерирует один XLSX файл с несколькими листами: 1) Лист 'Анализ - Выручка' - выручка по всем компаниям и месяцам, 2) Лист 'Анализ - Расходы' - расходы по всем компаниям с категориями и процентами, 3) Листы прогнозов для каждой модели и сценария (ВАШ ДОМ+УФИЦ, УФИЦ модель, ВАШ ДОМ модель × 3 сценария = 9 листов). Каждый лист прогноза включает: базовый год 2025, прогноз 2026-2030, итого за 5 лет, метрики для инвестора. Frontend обновлен: кнопка 'Экспорт' теперь вызывает новый endpoint, показывает индикатор загрузки, скачивает XLSX файл. Требуется полное тестирование: 1) Кнопка экспорта доступна и видна, 2) При клике показывается индикатор загрузки, 3) Скачивается XLSX файл с правильным именем, 4) Файл содержит все требуемые листы, 5) Данные на листах корректны и соответствуют API."
+        - working: true
+          agent: "testing"
+          comment: "✅ ТЕСТИРОВАНИЕ ENDPOINT GET /api/finances/export-all ЗАВЕРШЕНО УСПЕШНО: Протестирован новый endpoint для экспорта всех финансовых данных в XLSX согласно review request. ВСЕ 5 КРИТЕРИЕВ УСПЕХА ВЫПОЛНЕНЫ: 1) ✅ Endpoint возвращает 200 статус, 2) ✅ Content-Type заголовок = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' (корректный MIME-тип для XLSX), 3) ✅ Content-Disposition заголовок содержит filename с расширением .xlsx: 'attachment; filename=financial_data_20251027_133130.xlsx', 4) ✅ Ответ представляет собой binary data (XLSX файл) с корректной ZIP-based сигнатурой (PK), 5) ✅ Размер файла 21,971 байт (21.5 KB) > 10KB (содержит данные). Формат имени файла корректен: financial_data_YYYYMMDD_HHMMSS.xlsx. Endpoint полностью функционален и готов к использованию."
 
 agent_communication:
     - agent: "testing"
