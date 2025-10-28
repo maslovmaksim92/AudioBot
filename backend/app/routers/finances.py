@@ -2005,6 +2005,146 @@ async def export_all_financial_data():
     - Анализ - Выручка (по всем компаниям)
     - Анализ - Расходы (по всем компаниям)
     
+
+
+@router.get("/finances/export-forecast")
+async def export_forecast_data(
+    company: Optional[str] = "ВАШ ДОМ ФАКТ",
+    scenario: Optional[str] = "realistic"
+):
+    """
+    Экспорт прогноза в XLSX для конкретной модели и сценария
+    """
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.utils import get_column_letter
+        
+        # Получаем данные прогноза
+        forecast_data = await get_forecast(company=company, scenario=scenario)
+        
+        if not forecast_data or 'forecast' not in forecast_data:
+            raise HTTPException(status_code=404, detail="Forecast data not found")
+        
+        # Создаем workbook
+        wb = Workbook()
+        ws = wb.active
+        
+        # Определяем название компании для отображения
+        company_display = {
+            "ВАШ ДОМ ФАКТ": "ВАШ ДОМ+УФИЦ",
+            "УФИЦ модель": "УФИЦ модель",
+            "ВАШ ДОМ модель": "ВАШ ДОМ модель"
+        }.get(company, company)
+        
+        scenario_name = {
+            "pessimistic": "Пессимистичный",
+            "realistic": "Реалистичный",
+            "optimistic": "Оптимистичный"
+        }.get(scenario, scenario)
+        
+        ws.title = f"{company_display} - {scenario_name[:20]}"
+        
+        # Заголовок
+        ws.append([f"Прогноз: {company_display} - {scenario_name}"])
+        ws.merge_cells('A1:E1')
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal="center")
+        ws.append([])
+        
+        # Базовый год 2025
+        ws.append(["БАЗОВЫЙ ГОД 2025"])
+        ws.merge_cells(f'A{ws.max_row}:B{ws.max_row}')
+        ws[f'A{ws.max_row}'].font = Font(bold=True, size=12)
+        ws[f'A{ws.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+        
+        ws.append(["Выручка", forecast_data['base_data']['revenue'], "", "", ""])
+        ws.append(["Расходы", forecast_data['base_data']['expenses'], "", "", ""])
+        ws.append(["Прибыль", forecast_data['base_data']['profit'], "", "", ""])
+        ws.append(["Маржа (%)", forecast_data['base_data']['margin'], "", "", ""])
+        ws.append([])
+        
+        # Прогноз 2026-2030
+        ws.append(["ПРОГНОЗ 2026-2030"])
+        ws.merge_cells(f'A{ws.max_row}:E{ws.max_row}')
+        ws[f'A{ws.max_row}'].font = Font(bold=True, size=12)
+        ws[f'A{ws.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+        
+        header = ["Год", "Выручка (₽)", "Расходы (₽)", "Прибыль (₽)", "Маржа (%)"]
+        ws.append(header)
+        
+        header_row = ws.max_row
+        for col_idx in range(1, 6):
+            cell = ws.cell(header_row, col_idx)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="9B59B6", end_color="9B59B6", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+        
+        total_revenue = 0
+        total_expenses = 0
+        total_profit = 0
+        
+        for year_data in forecast_data['forecast']:
+            ws.append([
+                year_data['year'],
+                year_data['revenue'],
+                year_data['expenses'],
+                year_data['profit'],
+                year_data['margin']
+            ])
+            total_revenue += year_data['revenue']
+            total_expenses += year_data['expenses']
+            total_profit += year_data['profit']
+        
+        # Итого за 5 лет
+        ws.append([])
+        avg_margin = round(total_profit / total_revenue * 100, 2) if total_revenue > 0 else 0
+        ws.append(["ИТОГО 5 лет", total_revenue, total_expenses, total_profit, avg_margin])
+        last_row = ws.max_row
+        for col in range(1, 6):
+            ws.cell(last_row, col).font = Font(bold=True)
+            ws.cell(last_row, col).fill = PatternFill(start_color="E8DAEF", end_color="E8DAEF", fill_type="solid")
+        
+        # Метрики для инвестора
+        if 'investor_metrics' in forecast_data:
+            ws.append([])
+            ws.append(["РАСЧЕТЫ ДЛЯ ИНВЕСТОРА"])
+            ws.merge_cells(f'A{ws.max_row}:E{ws.max_row}')
+            ws[f'A{ws.max_row}'].font = Font(bold=True, size=12)
+            ws[f'A{ws.max_row}'].fill = PatternFill(start_color="BDC3C7", end_color="BDC3C7", fill_type="solid")
+            
+            metrics = forecast_data['investor_metrics']
+            ws.append(["Инвестиции", metrics.get('investment_amount', 0), "", "", ""])
+            ws.append(["Прибыль за 5 лет", metrics.get('total_profit_5_years', 0), "", "", ""])
+            ws.append(["Средняя прибыль/год", metrics.get('average_annual_profit', 0), "", "", ""])
+            ws.append(["Средняя маржа (%)", round(metrics.get('average_margin', 0), 2), "", "", ""])
+            ws.append(["ROI за 5 лет (%)", round(metrics.get('roi_5_years', 0), 2), "", "", ""])
+            ws.append(["Срок окупаемости", str(metrics.get('payback_period', 'N/A')), "", "", ""])
+        
+        # Автоширина колонок
+        for col in range(1, 6):
+            ws.column_dimensions[get_column_letter(col)].width = 20
+        
+        # Сохраняем в BytesIO
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Формируем имя файла
+        company_short = company_display.replace(" ", "_").replace("+", "")
+        scenario_short = scenario_name
+        filename = f"forecast_{company_short}_{scenario_short}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting forecast: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
     Примечание: Экспорт прогнозов доступен отдельно на странице "Прогноз 26-30"
     """
     try:
