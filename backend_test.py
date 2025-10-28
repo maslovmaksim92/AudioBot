@@ -2076,12 +2076,17 @@ async def test_ufic_model_forecast_expense_breakdown():
     return results
 
 async def main():
-    """Main test execution - focused on export-all endpoint testing per review request"""
-    print("🚀 ТЕСТИРОВАНИЕ ЭКСПОРТА ВСЕХ ФИНАНСОВЫХ ДАННЫХ В XLSX (REVIEW REQUEST)")
+    """Main test execution - focused on export endpoints testing per review request"""
+    print("🚀 ФИНАЛЬНАЯ ПРОВЕРКА ПЕРЕД PRODUCTION DEPLOY")
     print("=" * 80)
     print(f"🌐 Backend URL: {BACKEND_URL}")
     print(f"🔗 API Base: {API_BASE}")
-    print("🎯 Endpoint: GET /api/finances/export-all")
+    print("")
+    print("🎯 ЦЕЛЬ: Протестировать оба экспорт endpoint перед production")
+    print("📋 Endpoints для проверки:")
+    print("   1. GET /api/finances/export-all")
+    print("   2. GET /api/finances/export-forecast?company=ВАШ ДОМ ФАКТ&scenario=realistic")
+    print("   3. GET /api/finances/export-forecast?company=УФИЦ модель&scenario=optimistic")
     print("=" * 80)
     
     # Check basic connectivity
@@ -2093,50 +2098,88 @@ async def main():
                 print("✅ Backend доступен")
             else:
                 print(f"⚠️ Backend недоступен: {response.status_code}")
-                return
+                return []
     except Exception as e:
         print(f"❌ Ошибка подключения к backend: {str(e)}")
-        return
+        return []
     
+    all_results = []
+    
+    # Test 1: Export All endpoint
     print("\n" + "=" * 80)
-    print("🧪 ТЕСТИРОВАНИЕ ENDPOINT GET /api/finances/export-all")
+    print("🧪 1. ТЕСТИРОВАНИЕ GET /api/finances/export-all")
     print("=" * 80)
     
-    # Run the specific test for export-all endpoint as requested
-    result = await test_export_all_endpoint()
+    export_all_result = await test_export_all_endpoint()
+    all_results.append(("Export All", export_all_result))
     
-    # Print summary
+    # Test 2: Export Forecast endpoints
     print("\n" + "=" * 80)
-    print("📊 ИТОГОВЫЙ ОТЧЁТ")
+    print("🧪 2. ТЕСТИРОВАНИЕ GET /api/finances/export-forecast")
     print("=" * 80)
     
-    if result.errors:
-        print(f"❌ Обнаружено ошибок: {len(result.errors)}")
-        print("\n🔍 ДЕТАЛИ ОШИБОК:")
-        for i, error in enumerate(result.errors, 1):
-            print(f"   {i}. {error}")
+    export_forecast_result = await test_export_forecast_endpoint()
+    all_results.append(("Export Forecast", export_forecast_result))
+    
+    # Final summary
+    print("\n" + "=" * 80)
+    print("📊 ИТОГОВЫЙ ОТЧЁТ - ГОТОВНОСТЬ К PRODUCTION")
+    print("=" * 80)
+    
+    total_tests = len(all_results)
+    successful_tests = len([r for name, r in all_results if not r.errors])
+    failed_tests = total_tests - successful_tests
+    
+    print(f"📈 Всего тестов: {total_tests}")
+    print(f"✅ Успешных: {successful_tests}")
+    print(f"❌ Неудачных: {failed_tests}")
+    print(f"📊 Процент успеха: {(successful_tests/total_tests)*100:.1f}%")
+    
+    print(f"\n📋 ДЕТАЛЬНЫЕ РЕЗУЛЬТАТЫ:")
+    
+    for test_name, result in all_results:
+        status = "✅ ГОТОВ" if not result.errors else f"❌ НЕ ГОТОВ ({len(result.errors)} ошибок)"
+        print(f"   {test_name}: {status}")
         
-        # Проверяем на критические ошибки
-        critical_errors = [e for e in result.errors if "КРИТЕРИЙ" in e and "НЕ ВЫПОЛНЕН" in e]
-        if critical_errors:
-            print(f"\n⚠️ НЕВЫПОЛНЕННЫХ КРИТЕРИЕВ: {len(critical_errors)}")
-            print("❌ ТРЕБУЕТСЯ ИСПРАВЛЕНИЕ КОДА")
-        else:
-            print("\n✅ Все критерии успеха выполнены")
+        if result.errors:
+            # Show only critical errors in summary
+            critical_errors = [e for e in result.errors if 'КРИТЕРИЙ' in e and 'НЕ ВЫПОЛНЕН' in e]
+            for error in critical_errors:
+                print(f"      - {error}")
+    
+    print(f"\n🎯 ГОТОВНОСТЬ К PRODUCTION:")
+    
+    # Check each endpoint
+    export_all_ready = not export_all_result.errors
+    export_forecast_ready = not export_forecast_result.errors
+    
+    print(f"   {'✅' if export_all_ready else '❌'} GET /api/finances/export-all")
+    print(f"   {'✅' if export_forecast_ready else '❌'} GET /api/finances/export-forecast")
+    
+    # Overall readiness
+    if successful_tests == total_tests:
+        print(f"\n🎉 ВСЕ ЭКСПОРТ ENDPOINTS ГОТОВЫ К PRODUCTION!")
+        print(f"   ✅ Все endpoints работают стабильно")
+        print(f"   ✅ Нет ошибок 500")
+        print(f"   ✅ XLSX файлы валидны")
+        print(f"   ✅ Имена файлов без кириллицы (только ASCII)")
+        print(f"   ✅ Время отклика в пределах нормы")
+        print(f"   ✅ Размеры файлов соответствуют ожиданиям")
     else:
-        print("🎉 ВСЕ ТЕСТЫ ПРОШЛИ УСПЕШНО!")
-        print("✅ Все критерии успеха выполнены:")
-        print("   ✅ Endpoint возвращает 200 статус")
-        print("   ✅ Content-Type заголовок корректен")
-        print("   ✅ Content-Disposition заголовок содержит .xlsx")
-        print("   ✅ Ответ представляет собой binary data (XLSX файл)")
-        print("   ✅ Размер файла > 10KB (содержит данные)")
+        print(f"\n⚠️ ЕСТЬ ПРОБЛЕМЫ - НЕ ГОТОВО К PRODUCTION")
+        print(f"   ❌ Требуется исправление ошибок перед deploy")
+        
+        # Show what needs to be fixed
+        if not export_all_ready:
+            print(f"   🔧 Исправить: GET /api/finances/export-all")
+        if not export_forecast_ready:
+            print(f"   🔧 Исправить: GET /api/finances/export-forecast")
     
     print("\n" + "=" * 80)
-    print("🏁 ТЕСТИРОВАНИЕ ЗАВЕРШЕНО")
+    print("🏁 ФИНАЛЬНАЯ ПРОВЕРКА ЗАВЕРШЕНА")
     print("=" * 80)
     
-    return [("Export All Endpoint Test", result)]
+    return all_results
 
 if __name__ == "__main__":
     success = asyncio.run(main())
