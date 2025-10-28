@@ -761,14 +761,10 @@ async def test_export_all_endpoint():
         async with httpx.AsyncClient(timeout=60.0) as client:
             print("📊 Тестируем GET /api/finances/export-all...")
             print("🎯 КРИТЕРИИ УСПЕХА (согласно review request):")
-            print("   1. ✅ Endpoint возвращает 200 статус")
-            print("   2. ✅ Размер файла > 20KB (содержит все данные + прогнозы)")
-            print("   3. ✅ Файл валидный XLSX формат")
-            print("   4. ✅ Содержит 11 листов:")
-            print("      - 'Анализ - Выручка'")
-            print("      - 'Анализ - Расходы'")
-            print("      - 9 листов прогнозов (3 компании × 3 сценария)")
-            print("   5. ✅ Время отклика < 30 секунд")
+            print("   1. ✅ Должен возвращать 200 OK")
+            print("   2. ✅ XLSX файл с 2 листами (Анализ - Выручка, Анализ - Расходы)")
+            print("   3. ✅ Размер файла ~8KB")
+            print("   4. ✅ Время отклика < 5 секунд")
             print("")
             
             # Measure response time
@@ -793,15 +789,15 @@ async def test_export_all_endpoint():
                     print(f"   Текст ошибки: {response.text[:500]}")
                 return results
             
-            print("✅ КРИТЕРИЙ 1 ВЫПОЛНЕН: Endpoint возвращает 200 статус")
+            print("✅ КРИТЕРИЙ 1 ВЫПОЛНЕН: Endpoint возвращает 200 OK")
             
-            # 5. Check response time < 30 seconds
-            if response_time >= 30.0:
-                error_msg = f"❌ КРИТЕРИЙ 5 НЕ ВЫПОЛНЕН: Время отклика {response_time:.2f}с >= 30с"
+            # 4. Check response time < 5 seconds
+            if response_time >= 5.0:
+                error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Время отклика {response_time:.2f}с >= 5с"
                 results.errors.append(error_msg)
                 print(error_msg)
             else:
-                print(f"✅ КРИТЕРИЙ 5 ВЫПОЛНЕН: Время отклика {response_time:.2f}с < 30с")
+                print(f"✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Время отклика {response_time:.2f}с < 5с")
             
             # Get file content
             content = response.content
@@ -812,28 +808,24 @@ async def test_export_all_endpoint():
                 print(error_msg)
                 return results
             
-            # 2. Check file size > 20KB
+            # 3. Check file size ~8KB
             file_size = len(content)
-            min_size = 20 * 1024  # 20KB
+            expected_size = 8 * 1024  # 8KB
             
-            if file_size < min_size:
-                error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Размер файла {file_size:,} байт < {min_size:,} байт (20KB)"
+            print(f"📊 Размер файла: {file_size:,} байт ({file_size / 1024:.1f} KB)")
+            
+            if file_size < 4 * 1024:  # Less than 4KB is too small
+                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Размер файла {file_size:,} байт слишком мал (< 4KB)"
+                results.errors.append(error_msg)
+                print(error_msg)
+            elif file_size > 20 * 1024:  # More than 20KB is too large
+                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Размер файла {file_size:,} байт слишком велик (> 20KB)"
                 results.errors.append(error_msg)
                 print(error_msg)
             else:
-                print(f"✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Размер файла {file_size:,} байт > {min_size:,} байт (20KB)")
-                
-                # Show file size in human-readable format
-                if file_size > 1024 * 1024:
-                    size_str = f"{file_size / (1024 * 1024):.1f} MB"
-                elif file_size > 1024:
-                    size_str = f"{file_size / 1024:.1f} KB"
-                else:
-                    size_str = f"{file_size} bytes"
-                
-                print(f"   📊 Размер файла: {size_str}")
+                print(f"✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Размер файла {file_size / 1024:.1f} KB в ожидаемом диапазоне")
             
-            # 3. Check valid XLSX format and 4. Check sheet contents
+            # 2. Check valid XLSX format and sheet contents
             try:
                 import io
                 from openpyxl import load_workbook
@@ -842,39 +834,29 @@ async def test_export_all_endpoint():
                 xlsx_file = io.BytesIO(content)
                 workbook = load_workbook(xlsx_file, read_only=True)
                 
-                print("✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Файл валидный XLSX формат")
+                print("✅ Файл валидный XLSX формат")
                 
                 # Get all sheet names
                 sheet_names = workbook.sheetnames
                 print(f"📋 Найдено листов: {len(sheet_names)}")
                 
-                # Expected sheets according to actual implementation
+                # Expected sheets according to review request
                 expected_sheets = [
                     "Анализ - Выручка",
-                    "Анализ - Расходы",
-                    # 9 forecast sheets (3 companies × 3 scenarios)
-                    "ВАШ ДОМ+УФИЦ-Песс",
-                    "ВАШ ДОМ+УФИЦ-Реал", 
-                    "ВАШ ДОМ+УФИЦ-Опт",
-                    "УФИЦ-Песс",
-                    "УФИЦ-Реал",
-                    "УФИЦ-Опт", 
-                    "ВАШ ДОМ-Песс",
-                    "ВАШ ДОМ-Реал",
-                    "ВАШ ДОМ-Опт"
+                    "Анализ - Расходы"
                 ]
                 
                 print(f"📋 Листы в файле:")
                 for i, sheet_name in enumerate(sheet_names, 1):
                     print(f"   {i}. {sheet_name}")
                 
-                # Check if we have 11 sheets total
-                if len(sheet_names) != 11:
-                    error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Найдено {len(sheet_names)} листов, ожидалось 11"
+                # Check if we have 2 sheets total
+                if len(sheet_names) != 2:
+                    error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Найдено {len(sheet_names)} листов, ожидалось 2"
                     results.errors.append(error_msg)
                     print(error_msg)
                 else:
-                    print("✅ КРИТЕРИЙ 4 ЧАСТИЧНО ВЫПОЛНЕН: Найдено 11 листов")
+                    print("✅ КРИТЕРИЙ 2 ЧАСТИЧНО ВЫПОЛНЕН: Найдено 2 листа")
                 
                 # Check for required sheets
                 missing_sheets = []
@@ -889,11 +871,11 @@ async def test_export_all_endpoint():
                         print(f"❌ Отсутствует лист: '{expected_sheet}'")
                 
                 if missing_sheets:
-                    error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Отсутствуют листы: {missing_sheets}"
+                    error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Отсутствуют листы: {missing_sheets}"
                     results.errors.append(error_msg)
                     print(error_msg)
                 else:
-                    print("✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Все требуемые листы присутствуют")
+                    print("✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Все требуемые листы присутствуют")
                 
                 # Validate sheet contents (basic check)
                 print(f"\n📊 Проверка содержимого листов:")
@@ -922,40 +904,21 @@ async def test_export_all_endpoint():
                     else:
                         print("   ⚠️ Лист может быть пустым")
                 
-                # Check forecast sheets
-                forecast_companies = ["ВАШ ДОМ+УФИЦ", "УФИЦ модель", "ВАШ ДОМ модель"]
-                scenarios = ["pessimistic", "realistic", "optimistic"]
-                
-                for company in forecast_companies:
-                    for scenario in scenarios:
-                        sheet_name = f"{company} - {scenario}"
-                        if sheet_name in sheet_names:
-                            forecast_sheet = workbook[sheet_name]
-                            max_row = forecast_sheet.max_row
-                            max_col = forecast_sheet.max_column
-                            print(f"   '{sheet_name}': {max_row} строк, {max_col} столбцов")
-                            
-                            if max_row > 1 and max_col > 1:
-                                print(f"   ✅ Лист прогноза содержит данные")
-                            else:
-                                print(f"   ⚠️ Лист прогноза может быть пустым")
-                
                 workbook.close()
                 
             except ImportError:
                 print("⚠️ openpyxl не установлен - проверка содержимого XLSX пропущена")
-                print("✅ КРИТЕРИЙ 3 ЧАСТИЧНО ВЫПОЛНЕН: Файл имеет XLSX сигнатуру")
                 
                 # Basic XLSX validation - check ZIP signature
                 if content.startswith(b'PK'):
                     print("✅ Файл имеет корректную XLSX сигнатуру (ZIP-based)")
                 else:
-                    error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Неверная сигнатура файла: {content[:10]}"
+                    error_msg = f"❌ Неверная сигнатура файла: {content[:10]}"
                     results.errors.append(error_msg)
                     print(error_msg)
                 
             except Exception as xlsx_error:
-                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Ошибка чтения XLSX: {str(xlsx_error)}"
+                error_msg = f"❌ Ошибка чтения XLSX: {str(xlsx_error)}"
                 results.errors.append(error_msg)
                 print(error_msg)
             
@@ -980,9 +943,9 @@ async def test_export_all_endpoint():
             
             # Summary
             print(f"\n📊 ИТОГОВАЯ СВОДКА:")
-            success_count = 5 - len([e for e in results.errors if 'КРИТЕРИЙ' in e])
-            print(f"   ✅ Выполнено критериев: {success_count}/5")
-            print(f"   ❌ Не выполнено критериев: {len([e for e in results.errors if 'КРИТЕРИЙ' in e])}/5")
+            success_count = 4 - len([e for e in results.errors if 'КРИТЕРИЙ' in e])
+            print(f"   ✅ Выполнено критериев: {success_count}/4")
+            print(f"   ❌ Не выполнено критериев: {len([e for e in results.errors if 'КРИТЕРИЙ' in e])}/4")
             
             if not [e for e in results.errors if 'КРИТЕРИЙ' in e]:
                 print("🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
@@ -991,6 +954,221 @@ async def test_export_all_endpoint():
             
     except Exception as e:
         error_msg = f"❌ Ошибка при тестировании export-all: {str(e)}"
+        results.errors.append(error_msg)
+        print(error_msg)
+    
+    return results
+
+async def test_export_forecast_endpoint():
+    """Test GET /api/finances/export-forecast endpoint according to review request"""
+    print("\n=== ТЕСТ ЭКСПОРТА ПРОГНОЗОВ В XLSX ===\n")
+    
+    results = TestResults()
+    
+    # Test cases from review request
+    test_cases = [
+        {
+            "company": "ВАШ ДОМ ФАКТ",
+            "scenario": "realistic",
+            "expected_size_kb": 6,
+            "max_response_time": 3
+        },
+        {
+            "company": "УФИЦ модель", 
+            "scenario": "optimistic",
+            "expected_size_kb": 6,
+            "max_response_time": 3
+        }
+    ]
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for i, test_case in enumerate(test_cases, 1):
+                company = test_case["company"]
+                scenario = test_case["scenario"]
+                expected_size = test_case["expected_size_kb"] * 1024
+                max_time = test_case["max_response_time"]
+                
+                print(f"📊 {i}. Тестируем GET /api/finances/export-forecast?company={company}&scenario={scenario}")
+                print(f"🎯 КРИТЕРИИ УСПЕХА:")
+                print(f"   1. ✅ Должен возвращать 200 OK")
+                print(f"   2. ✅ XLSX файл с 1 листом прогноза")
+                print(f"   3. ✅ Размер файла ~{test_case['expected_size_kb']}KB")
+                print(f"   4. ✅ Время отклика < {max_time} секунд")
+                print(f"   5. ✅ Имя файла без кириллицы (только ASCII)")
+                print("")
+                
+                # Measure response time
+                import time
+                start_time = time.time()
+                
+                # Test the export-forecast endpoint
+                response = await client.get(f"{API_BASE}/finances/export-forecast", params={
+                    "company": company,
+                    "scenario": scenario
+                })
+                
+                end_time = time.time()
+                response_time = end_time - start_time
+                
+                print(f"📡 Ответ сервера: {response.status_code}")
+                print(f"⏱️ Время отклика: {response_time:.2f} секунд")
+                
+                # 1. Check 200 status
+                if response.status_code != 200:
+                    error_msg = f"❌ КРИТЕРИЙ 1 НЕ ВЫПОЛНЕН: Ожидался статус 200, получен {response.status_code}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    if response.text:
+                        print(f"   Текст ошибки: {response.text[:500]}")
+                    continue
+                
+                print("✅ КРИТЕРИЙ 1 ВЫПОЛНЕН: Endpoint возвращает 200 OK")
+                
+                # 4. Check response time
+                if response_time >= max_time:
+                    error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Время отклика {response_time:.2f}с >= {max_time}с"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Время отклика {response_time:.2f}с < {max_time}с")
+                
+                # Get file content
+                content = response.content
+                
+                if not content:
+                    error_msg = "❌ Ответ не содержит данных"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                    continue
+                
+                # 3. Check file size
+                file_size = len(content)
+                min_size = expected_size * 0.5  # Allow 50% smaller
+                max_size = expected_size * 2    # Allow 100% larger
+                
+                print(f"📊 Размер файла: {file_size:,} байт ({file_size / 1024:.1f} KB)")
+                
+                if file_size < min_size:
+                    error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Размер файла {file_size / 1024:.1f} KB слишком мал (< {min_size / 1024:.1f} KB)"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                elif file_size > max_size:
+                    error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Размер файла {file_size / 1024:.1f} KB слишком велик (> {max_size / 1024:.1f} KB)"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print(f"✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Размер файла {file_size / 1024:.1f} KB в ожидаемом диапазоне")
+                
+                # 5. Check filename is ASCII only
+                content_disposition = response.headers.get('content-disposition', '')
+                print(f"📋 Content-Disposition: {content_disposition}")
+                
+                # Extract filename from Content-Disposition header
+                filename = ""
+                if 'filename=' in content_disposition:
+                    filename_part = content_disposition.split('filename=')[1]
+                    if filename_part.startswith('"') and filename_part.endswith('"'):
+                        filename = filename_part[1:-1]
+                    else:
+                        filename = filename_part.split(';')[0]
+                
+                if filename:
+                    try:
+                        filename.encode('ascii')
+                        print(f"✅ КРИТЕРИЙ 5 ВЫПОЛНЕН: Имя файла '{filename}' содержит только ASCII символы")
+                    except UnicodeEncodeError:
+                        error_msg = f"❌ КРИТЕРИЙ 5 НЕ ВЫПОЛНЕН: Имя файла '{filename}' содержит не-ASCII символы"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                else:
+                    print("⚠️ Имя файла не найдено в заголовках")
+                
+                # 2. Check valid XLSX format and sheet contents
+                try:
+                    import io
+                    from openpyxl import load_workbook
+                    
+                    # Load XLSX file from memory
+                    xlsx_file = io.BytesIO(content)
+                    workbook = load_workbook(xlsx_file, read_only=True)
+                    
+                    print("✅ Файл валидный XLSX формат")
+                    
+                    # Get all sheet names
+                    sheet_names = workbook.sheetnames
+                    print(f"📋 Найдено листов: {len(sheet_names)}")
+                    
+                    print(f"📋 Листы в файле:")
+                    for j, sheet_name in enumerate(sheet_names, 1):
+                        print(f"   {j}. {sheet_name}")
+                    
+                    # Check if we have 1 sheet total
+                    if len(sheet_names) != 1:
+                        error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Найдено {len(sheet_names)} листов, ожидался 1"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    else:
+                        print("✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Найден 1 лист прогноза")
+                    
+                    # Validate sheet contents (basic check)
+                    if sheet_names:
+                        forecast_sheet = workbook[sheet_names[0]]
+                        max_row = forecast_sheet.max_row
+                        max_col = forecast_sheet.max_column
+                        print(f"   Лист прогноза: {max_row} строк, {max_col} столбцов")
+                        
+                        if max_row > 1 and max_col > 1:
+                            print("   ✅ Лист содержит данные")
+                        else:
+                            print("   ⚠️ Лист может быть пустым")
+                    
+                    workbook.close()
+                    
+                except ImportError:
+                    print("⚠️ openpyxl не установлен - проверка содержимого XLSX пропущена")
+                    
+                    # Basic XLSX validation - check ZIP signature
+                    if content.startswith(b'PK'):
+                        print("✅ Файл имеет корректную XLSX сигнатуру (ZIP-based)")
+                    else:
+                        error_msg = f"❌ Неверная сигнатура файла: {content[:10]}"
+                        results.errors.append(error_msg)
+                        print(error_msg)
+                    
+                except Exception as xlsx_error:
+                    error_msg = f"❌ Ошибка чтения XLSX: {str(xlsx_error)}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                
+                # Store results for this test case
+                results.finance_endpoints[f'export_forecast_{company}_{scenario}'] = {
+                    'status_code': response.status_code,
+                    'content_type': response.headers.get('content-type', ''),
+                    'content_disposition': content_disposition,
+                    'filename': filename,
+                    'file_size': file_size,
+                    'response_time': response_time,
+                    'sheet_count': len(sheet_names) if 'sheet_names' in locals() else 0,
+                    'headers': dict(response.headers)
+                }
+                
+                # Summary for this test case
+                print(f"\n📊 ИТОГОВАЯ СВОДКА для {company} - {scenario}:")
+                test_case_errors = [e for e in results.errors if f'{company}' in e or 'КРИТЕРИЙ' in e]
+                success_count = 5 - len([e for e in test_case_errors if 'КРИТЕРИЙ' in e])
+                print(f"   ✅ Выполнено критериев: {success_count}/5")
+                print(f"   ❌ Не выполнено критериев: {len([e for e in test_case_errors if 'КРИТЕРИЙ' in e])}/5")
+                
+                if not [e for e in test_case_errors if 'КРИТЕРИЙ' in e]:
+                    print("🎉 ВСЕ КРИТЕРИИ УСПЕХА ВЫПОЛНЕНЫ!")
+                else:
+                    print("⚠️ Есть невыполненные критерии - см. детали выше")
+                
+                print("\n" + "="*80 + "\n")
+            
+    except Exception as e:
+        error_msg = f"❌ Ошибка при тестировании export-forecast: {str(e)}"
         results.errors.append(error_msg)
         print(error_msg)
     
