@@ -2005,6 +2005,134 @@ async def export_all_financial_data():
     - Анализ - Выручка (по всем компаниям)
     - Анализ - Расходы (по всем компаниям)
     
+    Примечание: Экспорт прогнозов доступен отдельно на странице "Прогноз 26-30"
+    """
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from openpyxl.utils import get_column_letter
+        
+        wb = Workbook()
+        wb.remove(wb.active)
+        
+        conn = await get_db_connection()
+        
+        try:
+            companies = ["ВАШ ДОМ ФАКТ", "УФИЦ модель", "ВАШ ДОМ модель"]
+            
+            # === ЛИСТ 1: ВЫРУЧКА ===
+            ws_revenue = wb.create_sheet("Анализ - Выручка")
+            ws_revenue.append(["Анализ выручки по компаниям"])
+            ws_revenue.merge_cells('A1:D1')
+            ws_revenue['A1'].font = Font(bold=True, size=14)
+            ws_revenue['A1'].alignment = Alignment(horizontal="center")
+            ws_revenue.append([])
+            
+            header = ["Компания", "Месяц", "Сумма (₽)", ""]
+            ws_revenue.append(header)
+            
+            for i, cell in enumerate(ws_revenue[3], 1):
+                if i <= 3:
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="2ECC71", end_color="2ECC71", fill_type="solid")
+                    cell.alignment = Alignment(horizontal="center")
+            
+            for company in companies:
+                query = """
+                    SELECT 
+                        TO_CHAR(date, 'TMMonth YYYY') as month,
+                        SUM(amount) as total
+                    FROM financial_transactions
+                    WHERE type = 'income' AND company = $1
+                    GROUP BY TO_CHAR(date, 'TMMonth YYYY'), DATE_TRUNC('month', date)
+                    ORDER BY DATE_TRUNC('month', date)
+                """
+                rows = await conn.fetch(query, company)
+                
+                total_company = 0
+                for row in rows:
+                    month = row['month'].strip()
+                    amount = float(row['total'])
+                    total_company += amount
+                    ws_revenue.append([company, month, amount, ""])
+                
+                ws_revenue.append([company, "ИТОГО", total_company, ""])
+                last_row = ws_revenue.max_row
+                ws_revenue.cell(last_row, 1).font = Font(bold=True)
+                ws_revenue.cell(last_row, 2).font = Font(bold=True)
+                ws_revenue.cell(last_row, 3).font = Font(bold=True)
+                ws_revenue.cell(last_row, 3).fill = PatternFill(start_color="D5F4E6", end_color="D5F4E6", fill_type="solid")
+                ws_revenue.append([])
+            
+            for col in range(1, 4):
+                ws_revenue.column_dimensions[get_column_letter(col)].width = 25
+            
+            # === ЛИСТ 2: РАСХОДЫ ===
+            ws_expense = wb.create_sheet("Анализ - Расходы")
+            ws_expense.append(["Анализ расходов по компаниям"])
+            ws_expense.merge_cells('A1:E1')
+            ws_expense['A1'].font = Font(bold=True, size=14)
+            ws_expense['A1'].alignment = Alignment(horizontal="center")
+            ws_expense.append([])
+            
+            header = ["Компания", "Категория", "Сумма (₽)", "Процент (%)", ""]
+            ws_expense.append(header)
+            
+            for i, cell in enumerate(ws_expense[3], 1):
+                if i <= 4:
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="E74C3C", end_color="E74C3C", fill_type="solid")
+                    cell.alignment = Alignment(horizontal="center")
+            
+            for company in companies:
+                query = """
+                    SELECT 
+                        category,
+                        SUM(amount) as total
+                    FROM financial_transactions
+                    WHERE type = 'expense' AND company = $1
+                    GROUP BY category
+                    ORDER BY total DESC
+                """
+                rows = await conn.fetch(query, company)
+                
+                total_company = sum(float(row['total']) for row in rows)
+                
+                for row in rows:
+                    category = row['category']
+                    amount = float(row['total'])
+                    percentage = round((amount / total_company * 100), 2) if total_company > 0 else 0
+                    ws_expense.append([company, category, amount, percentage, ""])
+                
+                ws_expense.append([company, "ИТОГО", total_company, 100.0, ""])
+                last_row = ws_expense.max_row
+                for col in range(1, 5):
+                    ws_expense.cell(last_row, col).font = Font(bold=True)
+                    ws_expense.cell(last_row, col).fill = PatternFill(start_color="FADBD8", end_color="FADBD8", fill_type="solid")
+                ws_expense.append([])
+            
+            for col in range(1, 5):
+                ws_expense.column_dimensions[get_column_letter(col)].width = 25
+            
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            filename = f"financial_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            
+            return StreamingResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+            
+        finally:
+            if conn:
+                await conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error exporting all financial data: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 
 @router.get("/finances/export-forecast")
