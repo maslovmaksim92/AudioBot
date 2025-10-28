@@ -31,12 +31,33 @@ function Finances() {
       // Показываем индикатор загрузки
       const loadingDiv = document.createElement('div');
       loadingDiv.id = 'export-loading';
-      loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;';
-      loadingDiv.innerHTML = '<p style="margin: 0; font-weight: bold;">Экспорт данных...</p><p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Это может занять несколько секунд</p>';
+      loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 9999; min-width: 300px; text-align: center;';
+      loadingDiv.innerHTML = `
+        <div style="margin-bottom: 15px;">
+          <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #9B59B6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        </div>
+        <p style="margin: 0; font-weight: bold; font-size: 16px;">Экспорт данных...</p>
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">Генерация прогнозов для всех моделей и сценариев</p>
+        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">Это может занять до 30 секунд</p>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      `;
       document.body.appendChild(loadingDiv);
       
+      // Увеличенный timeout для запроса
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд
+      
       // Вызываем новый endpoint для экспорта всех данных
-      const response = await fetch(`${backendUrl}/api/finances/export-all`);
+      const response = await fetch(`${backendUrl}/api/finances/export-all`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -75,7 +96,11 @@ function Finances() {
       if (loadingDiv) {
         document.body.removeChild(loadingDiv);
       }
-      alert('Ошибка при экспорте данных. Попробуйте еще раз.');
+      if (error.name === 'AbortError') {
+        alert('Превышено время ожидания экспорта. Попробуйте еще раз.');
+      } else {
+        alert('Ошибка при экспорте данных. Попробуйте еще раз.');
+      }
     }
   };
 
