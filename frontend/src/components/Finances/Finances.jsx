@@ -37,8 +37,7 @@ function Finances() {
           <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #9B59B6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
         </div>
         <p style="margin: 0; font-weight: bold; font-size: 16px;">Экспорт данных...</p>
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">Генерация прогнозов для всех моделей и сценариев</p>
-        <p style="margin: 5px 0 0 0; font-size: 12px; color: #999;">Это может занять до 30 секунд</p>
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">Генерация отчета по анализу выручки и расходов</p>
         <style>
           @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -48,16 +47,8 @@ function Finances() {
       `;
       document.body.appendChild(loadingDiv);
       
-      // Увеличенный timeout для запроса
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд
-      
-      // Вызываем новый endpoint для экспорта всех данных
-      const response = await fetch(`${backendUrl}/api/finances/export-all`, {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      // Вызываем endpoint для экспорта данных анализа
+      const response = await fetch(`${backendUrl}/api/finances/export-all`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -73,7 +64,7 @@ function Finances() {
       
       // Получаем имя файла из заголовка Content-Disposition или используем дефолтное
       const contentDisposition = response.headers.get('Content-Disposition');
-      let fileName = `financial_data_${new Date().toISOString().split('T')[0]}.xlsx`;
+      let fileName = `financial_analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
         if (fileNameMatch && fileNameMatch.length === 2) {
@@ -96,11 +87,7 @@ function Finances() {
       if (loadingDiv) {
         document.body.removeChild(loadingDiv);
       }
-      if (error.name === 'AbortError') {
-        alert('Превышено время ожидания экспорта. Попробуйте еще раз.');
-      } else {
-        alert('Ошибка при экспорте данных. Попробуйте еще раз.');
-      }
+      alert('Ошибка при экспорте данных. Попробуйте еще раз.');
     }
   };
 
