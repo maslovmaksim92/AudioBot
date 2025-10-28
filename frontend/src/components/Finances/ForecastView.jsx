@@ -98,7 +98,17 @@ function ForecastView() {
     <div className="space-y-2 md:space-y-6 p-2 md:p-0">
       {/* Заголовок и селекторы */}
       <div className="flex flex-col gap-2 md:gap-4">
-        <h2 className="text-lg md:text-3xl font-bold">Прогноз 2026-2030</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg md:text-3xl font-bold">Прогноз 2026-2030</h2>
+          <button
+            onClick={handleExportForecast}
+            disabled={exporting}
+            className="flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
+          >
+            <Download className="h-3 w-3 md:h-4 md:w-4" />
+            {exporting ? 'Экспорт...' : 'Экспорт'}
+          </button>
+        </div>
         <div className="flex flex-col gap-2 w-full">
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
             <SelectTrigger className="w-full h-9 md:h-10 text-sm">
