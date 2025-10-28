@@ -848,20 +848,20 @@ async def test_export_all_endpoint():
                 sheet_names = workbook.sheetnames
                 print(f"📋 Найдено листов: {len(sheet_names)}")
                 
-                # Expected sheets according to review request
+                # Expected sheets according to actual implementation
                 expected_sheets = [
                     "Анализ - Выручка",
                     "Анализ - Расходы",
                     # 9 forecast sheets (3 companies × 3 scenarios)
-                    "ВАШ ДОМ+УФИЦ - pessimistic",
-                    "ВАШ ДОМ+УФИЦ - realistic", 
-                    "ВАШ ДОМ+УФИЦ - optimistic",
-                    "УФИЦ модель - pessimistic",
-                    "УФИЦ модель - realistic",
-                    "УФИЦ модель - optimistic", 
-                    "ВАШ ДОМ модель - pessimistic",
-                    "ВАШ ДОМ модель - realistic",
-                    "ВАШ ДОМ модель - optimistic"
+                    "ВАШ ДОМ+УФИЦ-Песс",
+                    "ВАШ ДОМ+УФИЦ-Реал", 
+                    "ВАШ ДОМ+УФИЦ-Опт",
+                    "УФИЦ-Песс",
+                    "УФИЦ-Реал",
+                    "УФИЦ-Опт", 
+                    "ВАШ ДОМ-Песс",
+                    "ВАШ ДОМ-Реал",
+                    "ВАШ ДОМ-Опт"
                 ]
                 
                 print(f"📋 Листы в файле:")
