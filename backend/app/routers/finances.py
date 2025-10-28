@@ -2258,9 +2258,19 @@ async def export_forecast_data(
         wb.save(output)
         output.seek(0)
         
-        # Формируем имя файла
-        company_short = company_display.replace(" ", "_").replace("+", "")
-        scenario_short = scenario_name
+        # Формируем имя файла (только ASCII)
+        company_short = {
+            "ВАШ ДОМ ФАКТ": "VASDOM_FACT",
+            "УФИЦ модель": "UFIC",
+            "ВАШ ДОМ модель": "VASDOM_MODEL"
+        }.get(company, "forecast")
+        
+        scenario_short = {
+            "pessimistic": "pessimistic",
+            "realistic": "realistic",
+            "optimistic": "optimistic"
+        }.get(scenario, scenario)
+        
         filename = f"forecast_{company_short}_{scenario_short}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         
         return StreamingResponse(
