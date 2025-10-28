@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Target, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Target, Sparkles, Download } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -17,6 +17,7 @@ function ForecastView() {
   const [selectedScenario, setSelectedScenario] = useState('realistic');
   const [forecastData, setForecastData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadForecast();
@@ -36,6 +37,44 @@ function ForecastView() {
       console.error('Error loading forecast:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportForecast = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch(
+        `${BACKEND_URL}/api/finances/export-forecast?company=${encodeURIComponent(selectedCompany)}&scenario=${selectedScenario}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = `forecast_${selectedCompany}_${selectedScenario}.xlsx`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (fileNameMatch && fileNameMatch.length === 2) {
+          fileName = fileNameMatch[1];
+        }
+      }
+      
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка экспорта прогноза:', error);
+      alert('Ошибка при экспорте прогноза. Попробуйте еще раз.');
+    } finally {
+      setExporting(false);
     }
   };
 
