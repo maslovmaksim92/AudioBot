@@ -752,7 +752,7 @@ async def test_finance_expense_details():
     return results
 
 async def test_export_all_endpoint():
-    """Test new export-all endpoint for XLSX export"""
+    """Test GET /api/finances/export-all endpoint according to review request"""
     print("\n=== ТЕСТ ЭКСПОРТА ВСЕХ ФИНАНСОВЫХ ДАННЫХ В XLSX ===\n")
     
     results = TestResults()
@@ -760,18 +760,29 @@ async def test_export_all_endpoint():
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             print("📊 Тестируем GET /api/finances/export-all...")
-            print("🎯 КРИТЕРИИ УСПЕХА:")
+            print("🎯 КРИТЕРИИ УСПЕХА (согласно review request):")
             print("   1. ✅ Endpoint возвращает 200 статус")
-            print("   2. ✅ Content-Type заголовок = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'")
-            print("   3. ✅ Content-Disposition заголовок содержит filename с расширением .xlsx")
-            print("   4. ✅ Ответ представляет собой binary data (XLSX файл)")
-            print("   5. ✅ Размер файла > 10KB (содержит данные)")
+            print("   2. ✅ Размер файла > 20KB (содержит все данные + прогнозы)")
+            print("   3. ✅ Файл валидный XLSX формат")
+            print("   4. ✅ Содержит 11 листов:")
+            print("      - 'Анализ - Выручка'")
+            print("      - 'Анализ - Расходы'")
+            print("      - 9 листов прогнозов (3 компании × 3 сценария)")
+            print("   5. ✅ Время отклика < 30 секунд")
             print("")
+            
+            # Measure response time
+            import time
+            start_time = time.time()
             
             # Test the export-all endpoint
             response = await client.get(f"{API_BASE}/finances/export-all")
             
+            end_time = time.time()
+            response_time = end_time - start_time
+            
             print(f"📡 Ответ сервера: {response.status_code}")
+            print(f"⏱️ Время отклика: {response_time:.2f} секунд")
             
             # 1. Check 200 status
             if response.status_code != 200:
@@ -784,72 +795,33 @@ async def test_export_all_endpoint():
             
             print("✅ КРИТЕРИЙ 1 ВЫПОЛНЕН: Endpoint возвращает 200 статус")
             
-            # 2. Check Content-Type header
-            content_type = response.headers.get('content-type', '').lower()
-            expected_content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            
-            if content_type != expected_content_type:
-                error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Content-Type = '{content_type}', ожидался '{expected_content_type}'"
+            # 5. Check response time < 30 seconds
+            if response_time >= 30.0:
+                error_msg = f"❌ КРИТЕРИЙ 5 НЕ ВЫПОЛНЕН: Время отклика {response_time:.2f}с >= 30с"
                 results.errors.append(error_msg)
                 print(error_msg)
             else:
-                print(f"✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Content-Type = '{content_type}'")
+                print(f"✅ КРИТЕРИЙ 5 ВЫПОЛНЕН: Время отклика {response_time:.2f}с < 30с")
             
-            # 3. Check Content-Disposition header
-            content_disposition = response.headers.get('content-disposition', '')
-            
-            if not content_disposition:
-                error_msg = "❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Отсутствует заголовок Content-Disposition"
-                results.errors.append(error_msg)
-                print(error_msg)
-            elif not content_disposition.lower().endswith('.xlsx'):
-                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Content-Disposition не содержит .xlsx: '{content_disposition}'"
-                results.errors.append(error_msg)
-                print(error_msg)
-            else:
-                print(f"✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Content-Disposition = '{content_disposition}'")
-                
-                # Extract filename for validation
-                if 'filename=' in content_disposition:
-                    filename_part = content_disposition.split('filename=')[1].strip('"')
-                    print(f"   📁 Имя файла: {filename_part}")
-                    
-                    # Check filename format (should be like "financial_data_YYYYMMDD_HHMMSS.xlsx")
-                    if filename_part.startswith('financial_data_') and filename_part.endswith('.xlsx'):
-                        print("✅ Формат имени файла корректен")
-                    else:
-                        print(f"⚠️ Неожиданный формат имени файла: {filename_part}")
-            
-            # 4. Check binary data (XLSX file)
+            # Get file content
             content = response.content
             
             if not content:
-                error_msg = "❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Ответ не содержит данных"
+                error_msg = "❌ Ответ не содержит данных"
                 results.errors.append(error_msg)
                 print(error_msg)
-            elif not isinstance(content, bytes):
-                error_msg = "❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Ответ не является binary data"
-                results.errors.append(error_msg)
-                print(error_msg)
-            else:
-                print("✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Ответ представляет собой binary data")
-                
-                # Check XLSX file signature (first few bytes should be PK for ZIP format)
-                if content.startswith(b'PK'):
-                    print("✅ Файл имеет корректную XLSX сигнатуру (ZIP-based)")
-                else:
-                    print(f"⚠️ Неожиданная сигнатура файла: {content[:10]}")
+                return results
             
-            # 5. Check file size > 10KB
+            # 2. Check file size > 20KB
             file_size = len(content)
-            min_size = 10 * 1024  # 10KB
+            min_size = 20 * 1024  # 20KB
             
             if file_size < min_size:
-                error_msg = f"❌ КРИТЕРИЙ 5 НЕ ВЫПОЛНЕН: Размер файла {file_size} байт < {min_size} байт (10KB)"
+                error_msg = f"❌ КРИТЕРИЙ 2 НЕ ВЫПОЛНЕН: Размер файла {file_size:,} байт < {min_size:,} байт (20KB)"
                 results.errors.append(error_msg)
                 print(error_msg)
             else:
-                print(f"✅ КРИТЕРИЙ 5 ВЫПОЛНЕН: Размер файла {file_size:,} байт > {min_size:,} байт (10KB)")
+                print(f"✅ КРИТЕРИЙ 2 ВЫПОЛНЕН: Размер файла {file_size:,} байт > {min_size:,} байт (20KB)")
                 
                 # Show file size in human-readable format
                 if file_size > 1024 * 1024:
@@ -861,10 +833,139 @@ async def test_export_all_endpoint():
                 
                 print(f"   📊 Размер файла: {size_str}")
             
-            # Additional validation: Check all headers
-            print(f"\n📋 Все заголовки ответа:")
-            for header_name, header_value in response.headers.items():
-                print(f"   {header_name}: {header_value}")
+            # 3. Check valid XLSX format and 4. Check sheet contents
+            try:
+                import io
+                from openpyxl import load_workbook
+                
+                # Load XLSX file from memory
+                xlsx_file = io.BytesIO(content)
+                workbook = load_workbook(xlsx_file, read_only=True)
+                
+                print("✅ КРИТЕРИЙ 3 ВЫПОЛНЕН: Файл валидный XLSX формат")
+                
+                # Get all sheet names
+                sheet_names = workbook.sheetnames
+                print(f"📋 Найдено листов: {len(sheet_names)}")
+                
+                # Expected sheets according to review request
+                expected_sheets = [
+                    "Анализ - Выручка",
+                    "Анализ - Расходы",
+                    # 9 forecast sheets (3 companies × 3 scenarios)
+                    "ВАШ ДОМ+УФИЦ - pessimistic",
+                    "ВАШ ДОМ+УФИЦ - realistic", 
+                    "ВАШ ДОМ+УФИЦ - optimistic",
+                    "УФИЦ модель - pessimistic",
+                    "УФИЦ модель - realistic",
+                    "УФИЦ модель - optimistic", 
+                    "ВАШ ДОМ модель - pessimistic",
+                    "ВАШ ДОМ модель - realistic",
+                    "ВАШ ДОМ модель - optimistic"
+                ]
+                
+                print(f"📋 Листы в файле:")
+                for i, sheet_name in enumerate(sheet_names, 1):
+                    print(f"   {i}. {sheet_name}")
+                
+                # Check if we have 11 sheets total
+                if len(sheet_names) != 11:
+                    error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Найдено {len(sheet_names)} листов, ожидалось 11"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print("✅ КРИТЕРИЙ 4 ЧАСТИЧНО ВЫПОЛНЕН: Найдено 11 листов")
+                
+                # Check for required sheets
+                missing_sheets = []
+                found_sheets = []
+                
+                for expected_sheet in expected_sheets:
+                    if expected_sheet in sheet_names:
+                        found_sheets.append(expected_sheet)
+                        print(f"✅ Найден лист: '{expected_sheet}'")
+                    else:
+                        missing_sheets.append(expected_sheet)
+                        print(f"❌ Отсутствует лист: '{expected_sheet}'")
+                
+                if missing_sheets:
+                    error_msg = f"❌ КРИТЕРИЙ 4 НЕ ВЫПОЛНЕН: Отсутствуют листы: {missing_sheets}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                else:
+                    print("✅ КРИТЕРИЙ 4 ВЫПОЛНЕН: Все требуемые листы присутствуют")
+                
+                # Validate sheet contents (basic check)
+                print(f"\n📊 Проверка содержимого листов:")
+                
+                # Check "Анализ - Выручка" sheet
+                if "Анализ - Выручка" in sheet_names:
+                    revenue_sheet = workbook["Анализ - Выручка"]
+                    max_row = revenue_sheet.max_row
+                    max_col = revenue_sheet.max_column
+                    print(f"   'Анализ - Выручка': {max_row} строк, {max_col} столбцов")
+                    
+                    if max_row > 1 and max_col > 1:
+                        print("   ✅ Лист содержит данные")
+                    else:
+                        print("   ⚠️ Лист может быть пустым")
+                
+                # Check "Анализ - Расходы" sheet  
+                if "Анализ - Расходы" in sheet_names:
+                    expense_sheet = workbook["Анализ - Расходы"]
+                    max_row = expense_sheet.max_row
+                    max_col = expense_sheet.max_column
+                    print(f"   'Анализ - Расходы': {max_row} строк, {max_col} столбцов")
+                    
+                    if max_row > 1 and max_col > 1:
+                        print("   ✅ Лист содержит данные")
+                    else:
+                        print("   ⚠️ Лист может быть пустым")
+                
+                # Check forecast sheets
+                forecast_companies = ["ВАШ ДОМ+УФИЦ", "УФИЦ модель", "ВАШ ДОМ модель"]
+                scenarios = ["pessimistic", "realistic", "optimistic"]
+                
+                for company in forecast_companies:
+                    for scenario in scenarios:
+                        sheet_name = f"{company} - {scenario}"
+                        if sheet_name in sheet_names:
+                            forecast_sheet = workbook[sheet_name]
+                            max_row = forecast_sheet.max_row
+                            max_col = forecast_sheet.max_column
+                            print(f"   '{sheet_name}': {max_row} строк, {max_col} столбцов")
+                            
+                            if max_row > 1 and max_col > 1:
+                                print(f"   ✅ Лист прогноза содержит данные")
+                            else:
+                                print(f"   ⚠️ Лист прогноза может быть пустым")
+                
+                workbook.close()
+                
+            except ImportError:
+                print("⚠️ openpyxl не установлен - проверка содержимого XLSX пропущена")
+                print("✅ КРИТЕРИЙ 3 ЧАСТИЧНО ВЫПОЛНЕН: Файл имеет XLSX сигнатуру")
+                
+                # Basic XLSX validation - check ZIP signature
+                if content.startswith(b'PK'):
+                    print("✅ Файл имеет корректную XLSX сигнатуру (ZIP-based)")
+                else:
+                    error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Неверная сигнатура файла: {content[:10]}"
+                    results.errors.append(error_msg)
+                    print(error_msg)
+                
+            except Exception as xlsx_error:
+                error_msg = f"❌ КРИТЕРИЙ 3 НЕ ВЫПОЛНЕН: Ошибка чтения XLSX: {str(xlsx_error)}"
+                results.errors.append(error_msg)
+                print(error_msg)
+            
+            # Check headers
+            content_type = response.headers.get('content-type', '').lower()
+            content_disposition = response.headers.get('content-disposition', '')
+            
+            print(f"\n📋 Заголовки ответа:")
+            print(f"   Content-Type: {content_type}")
+            print(f"   Content-Disposition: {content_disposition}")
             
             # Store results
             results.finance_endpoints['export_all'] = {
@@ -872,6 +973,8 @@ async def test_export_all_endpoint():
                 'content_type': content_type,
                 'content_disposition': content_disposition,
                 'file_size': file_size,
+                'response_time': response_time,
+                'sheet_count': len(sheet_names) if 'sheet_names' in locals() else 0,
                 'headers': dict(response.headers)
             }
             
