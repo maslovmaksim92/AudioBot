@@ -1375,6 +1375,14 @@ async def startup_event():
             logger.info('✅ Agent scheduler initialized')
         except Exception as e:
             logger.warning(f'⚠️ Could not initialize agent scheduler: {e}')
+        
+        # Запуск Novofon auto-processor scheduler
+        try:
+            from backend.app.services.scheduler import start_scheduler
+            start_scheduler()
+            logger.info('✅ Novofon auto-processor scheduler started')
+        except Exception as e:
+            logger.warning(f'⚠️ Could not start Novofon scheduler: {e}')
             
     except ImportError:
         try:
@@ -1391,6 +1399,14 @@ async def startup_event():
                 logger.info('✅ Agent scheduler initialized')
             except Exception as e:
                 logger.warning(f'⚠️ Could not initialize agent scheduler: {e}')
+            
+            # Запуск Novofon auto-processor scheduler
+            try:
+                from app.services.scheduler import start_scheduler
+                start_scheduler()
+                logger.info('✅ Novofon auto-processor scheduler started')
+            except Exception as e:
+                logger.warning(f'⚠️ Could not start Novofon scheduler: {e}')
                 
         except Exception as e:
             logger.warning(f'⚠️ Could not start task scheduler: {e}')
