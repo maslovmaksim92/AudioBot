@@ -555,7 +555,7 @@ class NovofonAutoProcessor:
     async def _mark_as_processed(self, call_id: str, success: bool = True):
         """Помечает звонок как обработанный"""
         try:
-            async with async_session_maker() as session:
+            async with AsyncSessionLocal() as session:
                 from sqlalchemy import text
                 
                 # Создаём таблицу если не существует
