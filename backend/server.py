@@ -1436,17 +1436,17 @@ async def shutdown_event():
     except Exception as e:
         logger.warning(f'⚠️ Could not stop task scheduler: {e}')
     
-    # Остановка Novofon scheduler
-    try:
-        from backend.app.services.scheduler import stop_scheduler
-        stop_scheduler()
-        logger.info('✅ Novofon scheduler stopped')
-    except ImportError:
-        try:
-            from app.services.scheduler import stop_scheduler
-            stop_scheduler()
-            logger.info('✅ Novofon scheduler stopped')
-        except Exception as e:
-            logger.warning(f'⚠️ Could not stop Novofon scheduler: {e}')
-    except Exception as e:
-        logger.warning(f'⚠️ Could not stop Novofon scheduler: {e}')
+    # Остановка Novofon scheduler (отключен - используем webhook)
+    # try:
+    #     from backend.app.services.scheduler import stop_scheduler
+    #     stop_scheduler()
+    #     logger.info('✅ Novofon scheduler stopped')
+    # except ImportError:
+    #     try:
+    #         from app.services.scheduler import stop_scheduler
+    #         stop_scheduler()
+    #         logger.info('✅ Novofon scheduler stopped')
+    #     except Exception as e:
+    #         logger.warning(f'⚠️ Could not stop Novofon scheduler: {e}')
+    # except Exception as e:
+    #     logger.warning(f'⚠️ Could not stop Novofon scheduler: {e}')
