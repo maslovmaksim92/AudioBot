@@ -334,41 +334,107 @@ async def save_to_database(
         return ""
 
 async def send_to_telegram(webhook_data: dict, summary_data: dict):
-    """Отправить саммари в Telegram"""
+    """Отправить саммари в Telegram (для агентств недвижимости)"""
     try:
         direction_emoji = "📞" if webhook_data["direction"] == "in" else "📱"
-        direction_text = "Входящий" if webhook_data["direction"] == "in" else "Исходящий"
+        direction_text = "Входящий звонок" if webhook_data["direction"] == "in" else "Исходящий звонок"
         
         # Форматируем длительность
         duration = webhook_data["duration"]
         minutes = duration // 60
         seconds = duration % 60
         
+        # Дата/время (если есть)
+        from datetime import datetime
+        timestamp = webhook_data.get("timestamp", datetime.now().isoformat())
+        try:
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            date_str = dt.strftime("%d.%m.%Y %H:%M")
+        except:
+            date_str = datetime.now().strftime("%d.%m.%Y %H:%M")
+        
+        # Номер телефона
+        if webhook_data["direction"] == "out":
+            phone = webhook_data.get("called", "")
+        else:
+            phone = webhook_data.get("caller", "")
+        
+        # Эмодзи для категории лида
+        lead_emoji = "🔥" if "ГОРЯЧ" in summary_data.get("lead_category", "") else \
+                    "🌡️" if "ТЁПЛ" in summary_data.get("lead_category", "") else \
+                    "❄️" if "ХОЛОДН" in summary_data.get("lead_category", "") else "⛔"
+        
+        # Эмодзи для приоритета
+        priority_emoji = "🔴" if summary_data.get("priority") == "ВЫСОКИЙ" else \
+                        "🟡" if summary_data.get("priority") == "СРЕДНИЙ" else "🟢"
+        
         # Формируем сообщение
-        message = f"""
-{direction_emoji} <b>{direction_text} звонок</b>
+        message = f"""{direction_emoji} <b>{direction_text}</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📋 <b>Информация:</b>
-• От: {webhook_data['caller']}
-• Кому: {webhook_data['called']}
-• Длительность: {minutes}м {seconds}с
+📅 <b>Дата:</b> {date_str}
+📱 <b>Телефон:</b> <code>{phone}</code>
+⏱️ <b>Длительность:</b> {minutes}м {seconds}с
+🏢 <b>Агентство:</b> {summary_data.get('agency_name', 'Не указано')}
 
-📝 <b>Саммари:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 <b>ОЦЕНКА ЗАИНТЕРЕСОВАННОСТИ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{lead_emoji} <b>Уровень:</b> {summary_data.get('lead_category', 'Не определено')}
+⭐ <b>Рейтинг:</b> {summary_data.get('interest_rating', 0)}/10
+
+📊 <b>Обоснование:</b>
+{chr(10).join([f"• {reason}" for reason in summary_data.get('interest_reasons', [])])}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>КОММЕРЧЕСКИЙ ПОТЕНЦИАЛ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ <b>База покупателей:</b> {'ДА' if summary_data.get('has_ready_buyers') else 'НЕТ'}{', ' + summary_data.get('buyers_count', '') if summary_data.get('buyers_count') and summary_data.get('buyers_count') != 'Не указано' else ''}
+💵 <b>Бюджет клиентов:</b> {summary_data.get('buyer_budget', 'Не указан')}
+📅 <b>Готовность к сделке:</b> {summary_data.get('readiness_timeframe', 'Не указана')}
+{f"📈 <b>Комиссия агентства:</b> {summary_data.get('commission_mentioned', 'Не указана')}" if summary_data.get('commission_mentioned') and summary_data.get('commission_mentioned') != 'Не указано' else ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 <b>КЛЮЧЕВЫЕ МОМЕНТЫ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{chr(10).join([f"✓ {point}" for point in summary_data.get('key_interests', [])])}
+"""
+
+        # Добавляем возражения если есть
+        if summary_data.get('concerns') and len(summary_data.get('concerns', [])) > 0:
+            message += f"""
+<b>⚠️ Возражения:</b>
+{chr(10).join([f"• {concern}" for concern in summary_data.get('concerns', [])])}
+"""
+
+        # Добавляем конкурентов если упомянуты
+        if summary_data.get('competitors_mentioned') and len(summary_data.get('competitors_mentioned', [])) > 0:
+            message += f"""
+<b>🏆 Упомянутые конкуренты:</b>
+{chr(10).join([f"• {comp}" for comp in summary_data.get('competitors_mentioned', [])])}
+"""
+
+        message += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ <b>РЕКОМЕНДАЦИИ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{priority_emoji} <b>Приоритет:</b> {summary_data.get('priority', 'СРЕДНИЙ')}
+
+<b>Следующие шаги:</b>
+{chr(10).join([f"• {step}" for step in summary_data.get('next_steps', [])])}
+
+<b>💡 Рекомендуемые действия:</b>
+{chr(10).join([f"• {action}" for action in summary_data.get('recommended_actions', [])])}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 <b>КРАТКОЕ САММАРИ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 {summary_data.get('summary', 'Не удалось создать саммари')}
-
-🎯 <b>Ключевые пункты:</b>
-{chr(10).join([f"• {point}" for point in summary_data.get('key_points', [])])}
-
-✅ <b>Задачи:</b>
-{chr(10).join([f"• {task}" for task in summary_data.get('action_items', [])])}
-
-💬 <b>Запрос клиента:</b>
-{summary_data.get('client_request', 'Не указан')}
-
-➡️ <b>Следующие шаги:</b>
-{summary_data.get('next_steps', 'Не указаны')}
-
-📊 <b>Тон разговора:</b> {summary_data.get('sentiment', 'neutral')}
 """
         
         # Отправляем в Telegram
