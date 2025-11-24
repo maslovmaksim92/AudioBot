@@ -17,11 +17,14 @@ class NovofonService:
     """Сервис для работы с Novofon API"""
     
     def __init__(self):
-        self.api_key = os.environ.get('NOVOFON_API_KEY', '')
-        self.api_secret = os.environ.get('NOVOFON_API_SECRET', '')
+        # Используем правильные переменные из Render
+        self.api_key = os.environ.get('novofon_appid', '')
+        self.api_secret = os.environ.get('novofon_secret', '')
         
         if not self.api_key or not self.api_secret:
             logger.warning("Novofon API credentials not configured")
+        else:
+            logger.info(f"Novofon service initialized with appid: {self.api_key[:10]}...")
     
     def _get_headers(self) -> Dict[str, str]:
         """Получить заголовки для запросов к Novofon API"""
