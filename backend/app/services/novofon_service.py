@@ -71,17 +71,12 @@ class NovofonService:
             if not end_date:
                 end_date = datetime.now()
             
-            # Параметры запроса
+            # Параметры запроса (без auth - он в headers)
             params = {
-                **self._get_auth_params(),
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d"),
-                "limit": limit,
-                "offset": offset
+                "start": start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                "end": end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                "version": "2"  # Новый формат ответа
             }
-            
-            if is_recorded:
-                params["is_recorded"] = "1"
             
             url = f"{NOVOFON_API_BASE_URL}/calls"
             
