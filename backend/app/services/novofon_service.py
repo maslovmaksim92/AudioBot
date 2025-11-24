@@ -28,17 +28,21 @@ class NovofonService:
     
     def _get_headers(self) -> Dict[str, str]:
         """Получить заголовки для запросов к Novofon API"""
+        import base64
+        
+        # Basic Authentication: base64(appid:secret)
+        credentials = f"{self.api_key}:{self.api_secret}"
+        auth_encoded = base64.b64encode(credentials.encode()).decode()
+        
         return {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "Authorization": f"Basic {auth_encoded}"
         }
     
     def _get_auth_params(self) -> Dict[str, str]:
-        """Получить параметры аутентификации"""
-        return {
-            "appid": self.api_key,
-            "secret": self.api_secret
-        }
+        """Получить параметры аутентификации (не используется для Basic Auth)"""
+        return {}
     
     async def get_calls(
         self,
