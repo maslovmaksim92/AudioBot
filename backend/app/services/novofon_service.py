@@ -112,8 +112,7 @@ class NovofonService:
         """
         try:
             params = {
-                **self._get_auth_params(),
-                "call_id": call_id
+                "id": call_id
             }
             
             url = f"{NOVOFON_API_BASE_URL}/call/recording"
