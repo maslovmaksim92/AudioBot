@@ -116,7 +116,7 @@ class NovofonAutoProcessor:
     async def _is_call_processed(self, call_id: str) -> bool:
         """Проверяет, был ли звонок уже обработан"""
         try:
-            async with async_session_maker() as session:
+            async with AsyncSessionLocal() as session:
                 from sqlalchemy import text
                 
                 result = await session.execute(
