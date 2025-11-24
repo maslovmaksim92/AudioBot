@@ -218,6 +218,18 @@ backend:
         - working: "NA"
           agent: "main"
           comment: "Для расширения интеграции с Novofon требуются API ключи (API Key, API Token, Account ID). Пользователь предоставил только SIP credentials (NOVOFON_CALLER_ID, NOVOFON_SIP_DOMAIN, NOVOFON_SIP_USERNAME, NOVOFON_SIP_PASSWORD), которые используются для VoIP, но не для REST API. Ожидаем получение API ключей от пользователя."
+  
+  - task: "Novofon automatic call transcription and analysis"
+    implemented: true
+    working: true
+    file: "/app/backend/app/services/novofon_auto_processor.py, /app/backend/app/services/scheduler.py, /app/backend/app/routers/novofon_status.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "НОВАЯ РЕАЛИЗАЦИЯ: Автоматическая обработка звонков Novofon для агентства недвижимости. Система запускается автоматически при старте backend и каждую минуту проверяет новые звонки с номера +79843330712 (входящие и исходящие). Процесс обработки: 1) Получение звонков через Novofon API (novofon_appid, novofon_secret), 2) Фильтрация по номеру телефона, 3) Проверка что звонок не обработан (таблица processed_calls), 4) Скачивание аудиозаписи, 5) Транскрипция через OpenAI Whisper, 6) AI-анализ через GPT-4o с специальным промптом для агентств недвижимости (оценка заинтересованности 1-10, категория лида, наличие покупателей, бюджет, возражения, конкуренты, рекомендации), 7) Сохранение в БД (таблица nedvigka_calls), 8) Отправка красивого протокола в Telegram группу TG_NEDVIGKA=-5007549435. Создан scheduler с APScheduler (interval 1 минута). API мониторинга: /api/novofon-status/scheduler, /api/novofon-status/stats, /api/novofon-status/nedvigka-calls, /api/novofon-status/call-detail/{id}. Переменные окружения обновлены: NOVOFON_CALLER_ID=+79843330712, TG_NEDVIGKA=-5007549435. Документация в /app/NOVOFON_AUTO_TRANSCRIPTION.md. Требуется тестирование: 1) Проверка что scheduler запущен и работает, 2) Симуляция звонка или проверка реального звонка, 3) Проверка что протокол приходит в Telegram, 4) Проверка сохранения в БД, 5) Проверка API мониторинга."
 
   - task: "Plannerka create endpoint"
     implemented: true
