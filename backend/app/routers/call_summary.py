@@ -2,7 +2,7 @@
 API роутер для саммари звонков из Новофон
 Автоматическая транскрипция и создание саммари после завершения звонка
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert
 from pydantic import BaseModel
