@@ -104,7 +104,7 @@ class NovofonService:
             from urllib.parse import urlencode
             query_string = "?" + urlencode(params)
             
-            method_path = "/v1/statistics/outgoing-calls/"
+            method_path = "/statistics/outgoing-calls/"
             url = f"{NOVOFON_API_BASE_URL}{method_path}"
             
             async with httpx.AsyncClient(timeout=30.0) as client:
