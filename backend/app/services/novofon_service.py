@@ -26,23 +26,45 @@ class NovofonService:
         else:
             logger.info(f"Novofon service initialized with appid: {self.api_key[:10]}...")
     
-    def _get_headers(self) -> Dict[str, str]:
-        """Получить заголовки для запросов к Novofon API"""
+    def _get_signature(self, method_path: str, query_string: str = "") -> str:
+        """
+        Генерирует SHA1 подпись для запроса к Novofon API
+        signature = base64(sha1(method_path + query_string, secret_key))
+        """
+        import hashlib
+        import hmac
         import base64
         
-        # Basic Authentication: base64(appid:secret)
-        credentials = f"{self.api_key}:{self.api_secret}"
-        auth_encoded = base64.b64encode(credentials.encode()).decode()
+        # Формируем строку для подписи
+        string_to_sign = method_path + query_string
+        
+        # Создаем SHA1 HMAC
+        signature_hash = hmac.new(
+            self.api_secret.encode(),
+            string_to_sign.encode(),
+            hashlib.sha1
+        ).digest()
+        
+        # Base64 кодируем
+        signature = base64.b64encode(signature_hash).decode()
+        
+        return signature
+    
+    def _get_headers(self, method_path: str = "", query_string: str = "") -> Dict[str, str]:
+        """Получить заголовки для запросов к Novofon API"""
+        signature = self._get_signature(method_path, query_string)
         
         return {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
             "Accept": "application/json",
-            "Authorization": f"Basic {auth_encoded}"
+            "X-API-Signature": signature
         }
     
     def _get_auth_params(self) -> Dict[str, str]:
-        """Получить параметры аутентификации (не используется для Basic Auth)"""
-        return {}
+        """Получить параметры аутентификации"""
+        return {
+            "id": self.api_key
+        }
     
     async def get_calls(
         self,
