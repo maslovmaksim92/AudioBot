@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Конфигурация
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_TARGET_CHAT_ID = os.getenv("TELEGRAM_TARGET_CHAT_ID", "-1002384210149")
+TELEGRAM_TARGET_CHAT_ID = os.getenv("TG_NEDVIGKA", "-5007549435")  # Группа для недвижимости
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BITRIX24_WEBHOOK_URL = os.getenv("BITRIX24_WEBHOOK_URL")
 
