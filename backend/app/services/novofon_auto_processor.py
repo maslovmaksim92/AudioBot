@@ -365,7 +365,7 @@ class NovofonAutoProcessor:
     ):
         """Сохраняет результаты в БД"""
         try:
-            async with async_session_maker() as session:
+            async with AsyncSessionLocal() as session:
                 from sqlalchemy import text
                 from uuid import uuid4
                 
