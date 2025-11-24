@@ -93,20 +93,25 @@ class NovofonService:
             if not end_date:
                 end_date = datetime.now()
             
-            # Параметры запроса (без auth - он в headers)
+            # Параметры запроса
             params = {
+                **self._get_auth_params(),
                 "start": start_date.strftime("%Y-%m-%d %H:%M:%S"),
-                "end": end_date.strftime("%Y-%m-%d %H:%M:%S"),
-                "version": "2"  # Новый формат ответа
+                "end": end_date.strftime("%Y-%m-%d %H:%M:%S")
             }
             
-            url = f"{NOVOFON_API_BASE_URL}/calls"
+            # Формируем query string для подписи
+            from urllib.parse import urlencode
+            query_string = "?" + urlencode(params)
+            
+            method_path = "/v1/statistics/outgoing-calls/"
+            url = f"{NOVOFON_API_BASE_URL}{method_path}"
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
                     url,
                     params=params,
-                    headers=self._get_headers()
+                    headers=self._get_headers(method_path, query_string)
                 )
                 
                 if response.status_code == 200:
