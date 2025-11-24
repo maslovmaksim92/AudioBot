@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import asyncio
 
 from backend.app.services.novofon_service import novofon_service
-from backend.app.config.database import async_session_maker
+from backend.app.config.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
