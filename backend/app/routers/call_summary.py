@@ -410,16 +410,19 @@ async def download_recording_with_auth(call_id_with_rec: str) -> Optional[bytes]
         f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}",
     ]
     
-    for alt_url in alt_urls:
-        try:
-            logger.info(f"🔄 Trying alternate URL: {alt_url[:60]}...")
-            response = await client.get(alt_url, headers={"Authorization": auth_header}, follow_redirects=True)
-            
-            if response.status_code == 200 and len(response.content) > 10000:
-                logger.info(f"✅ Downloaded via alternate URL: {len(response.content)} bytes")
-                return response.content
-        except Exception as e:
-            logger.warning(f"⚠️ Alternate URL failed: {e}")
+    async with httpx.AsyncClient(timeout=60.0) as client2:
+        for alt_url in alt_urls:
+            try:
+                logger.info(f"🔄 Trying alternate URL: {alt_url[:60]}...")
+                response = await client2.get(alt_url, headers={"Authorization": auth_header}, follow_redirects=True)
+                
+                if response.status_code == 200 and len(response.content) > 10000:
+                    logger.info(f"✅ Downloaded via alternate URL: {len(response.content)} bytes")
+                    return response.content
+                else:
+                    logger.warning(f"⚠️ Alternate URL returned: HTTP {response.status_code}, size: {len(response.content)}")
+            except Exception as e:
+                logger.warning(f"⚠️ Alternate URL failed: {e}")
     
     logger.error(f"❌ All download attempts failed for {call_id_with_rec}")
     return None
