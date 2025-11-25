@@ -367,7 +367,9 @@ async def download_recording_with_auth(call_id_with_rec: str) -> Optional[bytes]
             # Запрашиваем ссылку на запись
             logger.info(f"🔄 Requesting recording link with HMAC auth for {call_id_with_rec[:30]}...")
             
-            response = await client.post(url, headers=headers, data=params)
+            # Novofon API использует GET с параметрами в URL
+            full_url = f"{url}?{params_str}"
+            response = await client.get(full_url, headers=headers)
             
             logger.info(f"📥 Response status: {response.status_code}")
             
