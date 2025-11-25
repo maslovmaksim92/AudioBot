@@ -221,6 +221,142 @@ async def novofon_webhook(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
+    """
+    Фоновая задача: обработка звонка с fallback
+    1. Ждём 5 секунд (даём время на SPEECH_RECOGNITION)
+    2. Если транскрипция уже получена через SPEECH_RECOGNITION - пропускаем
+    3. Пробуем скачать запись с авторизацией
+    4. Транскрибируем через Whisper
+    5. Создаём саммари и отправляем
+    """
+    import asyncio
+    
+    call_id = call_metadata.get("call_id", "unknown")
+    call_id_with_rec = call_metadata.get("call_id_with_rec", "")
+    
+    try:
+        logger.info(f"🔄 Starting fallback processing for call {call_id}")
+        
+        # Ждём 5 секунд - может придёт SPEECH_RECOGNITION
+        await asyncio.sleep(5)
+        
+        # Проверяем не обработан ли уже этот звонок через SPEECH_RECOGNITION
+        processed_calls = getattr(novofon_webhook, '_processed_calls', set())
+        if call_id in processed_calls:
+            logger.info(f"✅ Call {call_id} already processed via SPEECH_RECOGNITION, skipping fallback")
+            return
+        
+        logger.info(f"🎙️ No SPEECH_RECOGNITION received, trying to download recording for call {call_id}")
+        
+        # Пробуем скачать запись с авторизацией
+        audio_data = await download_recording_with_auth(call_id_with_rec)
+        
+        if not audio_data:
+            logger.error(f"❌ Failed to download recording for call {call_id}")
+            return
+        
+        logger.info(f"✅ Downloaded recording for call {call_id}: {len(audio_data)} bytes")
+        
+        # Транскрибируем через Whisper
+        transcription = await transcribe_audio(audio_data)
+        
+        if not transcription:
+            logger.error(f"❌ Failed to transcribe call {call_id}")
+            return
+        
+        logger.info(f"✅ Transcription completed for {call_id}: {len(transcription)} chars")
+        
+        # Форматируем транскрипцию
+        call_metadata["transcription"] = transcription
+        
+        # Создать саммари через GPT-4o
+        summary_data = await create_call_summary(transcription, call_metadata)
+        summary_data["transcription"] = transcription
+        
+        # Сохранить в БД
+        try:
+            await save_to_database(db, call_id, call_metadata, transcription, summary_data)
+        except Exception as db_error:
+            logger.warning(f"⚠️ Could not save to database: {db_error}")
+        
+        # Отправить в Telegram
+        await send_to_telegram(call_metadata, summary_data)
+        
+        # Добавить в Bitrix24
+        try:
+            await add_to_bitrix24(call_metadata, summary_data)
+        except Exception as bitrix_error:
+            logger.warning(f"⚠️ Could not add to Bitrix24: {bitrix_error}")
+        
+        # Помечаем как обработанный
+        if not hasattr(novofon_webhook, '_processed_calls'):
+            novofon_webhook._processed_calls = set()
+        novofon_webhook._processed_calls.add(call_id)
+        
+        logger.info(f"✅ Call {call_id} processed successfully via fallback!")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in fallback processing for call {call_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+
+async def download_recording_with_auth(call_id_with_rec: str) -> Optional[bytes]:
+    """
+    Скачать запись звонка с авторизацией через Novofon API
+    Пробуем несколько методов авторизации
+    """
+    if not call_id_with_rec:
+        logger.error("No call_id_with_rec provided")
+        return None
+    
+    import base64
+    
+    # Формируем credentials для Basic Auth
+    auth_string = f"{NOVOFON_API_KEY}:{NOVOFON_API_SECRET}"
+    auth_bytes = base64.b64encode(auth_string.encode()).decode()
+    
+    # URL для скачивания записи
+    urls_to_try = [
+        f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}",
+        f"https://api.novofon.com/v1/pbx/record/request/?call_id={call_id_with_rec}",
+    ]
+    
+    headers_to_try = [
+        # Basic Auth
+        {"Authorization": f"Basic {auth_bytes}"},
+        # API Key in header
+        {"X-API-KEY": NOVOFON_API_KEY, "X-API-SECRET": NOVOFON_API_SECRET},
+        # No auth (maybe public)
+        {}
+    ]
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        for url in urls_to_try:
+            for headers in headers_to_try:
+                try:
+                    # Сначала пробуем GET
+                    logger.info(f"🔄 Trying to download: {url[:80]}...")
+                    response = await client.get(url, headers=headers, follow_redirects=True)
+                    
+                    if response.status_code == 200:
+                        content_type = response.headers.get("content-type", "")
+                        if "audio" in content_type or "octet-stream" in content_type or len(response.content) > 10000:
+                            logger.info(f"✅ Downloaded recording: {len(response.content)} bytes, content-type: {content_type}")
+                            return response.content
+                        else:
+                            logger.warning(f"⚠️ Response is not audio: {content_type}, size: {len(response.content)}")
+                    else:
+                        logger.warning(f"⚠️ HTTP {response.status_code} for {url[:50]}...")
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ Error downloading from {url[:50]}...: {e}")
+    
+    logger.error(f"❌ All download attempts failed for {call_id_with_rec}")
+    return None
+
 async def process_transcription(webhook_data: dict, db: AsyncSession):
     """
     Фоновая задача: обработка готовой транскрипции от Novofon
