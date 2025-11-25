@@ -132,6 +132,17 @@ async def novofon_webhook(
             logger.info(f"⏭️ Skipping: status={normalized_data['status']}")
             return {"status": "skipped", "reason": "not_answered"}
         
+        # Получаем URL записи
+        # Novofon хранит записи по формуле: https://api.novofon.com/v1/call/recording?id={call_id_with_rec}
+        if call_id_with_rec:
+            # Формируем прямую ссылку на запись
+            record_url = f"https://api.novofon.com/v1/call/recording?id={call_id_with_rec}"
+            normalized_data["record_url"] = record_url
+            logger.info(f"✅ Recording URL: {record_url}")
+        else:
+            logger.warning(f"⚠️ No call_id_with_rec for call {normalized_data['call_id']}")
+            return {"status": "skipped", "reason": "no_recording_id"}
+        
         # Добавляем задачу в фон для обработки
         background_tasks.add_task(
             process_call_recording,
@@ -139,6 +150,7 @@ async def novofon_webhook(
             db
         )
         
+        logger.info(f"🚀 Started processing call {normalized_data['call_id']} in background")
         return {"status": "accepted", "call_id": normalized_data["call_id"]}
         
     except Exception as e:
