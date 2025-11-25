@@ -165,11 +165,10 @@ async def novofon_webhook(
             logger.info(f"⏭️ Skipping event: {event}")
             return {"status": "skipped", "reason": "not_end_event"}
         
-        # Сохраняем метаданные звонка для использования в SPEECH_RECOGNITION
+        # Сохраняем метаданные звонка
         pbx_call_id = webhook_data.get("pbx_call_id", "")
         call_id_with_rec = webhook_data.get("call_id_with_rec", "")
         
-        # Сохраняем в кэш (простой словарь в памяти)
         call_metadata = {
             "call_id": pbx_call_id,
             "call_id_with_rec": call_id_with_rec,
@@ -181,7 +180,7 @@ async def novofon_webhook(
             "timestamp": webhook_data.get("call_start", "")
         }
         
-        # Сохраняем метаданные в глобальный кэш
+        # Сохраняем метаданные в глобальный кэш (для SPEECH_RECOGNITION если придёт)
         if not hasattr(novofon_webhook, '_call_cache'):
             novofon_webhook._call_cache = {}
         novofon_webhook._call_cache[pbx_call_id] = call_metadata
@@ -194,8 +193,27 @@ async def novofon_webhook(
             logger.info(f"⏭️ Skipping: no recording (is_recorded={is_recorded})")
             return {"status": "skipped", "reason": "no_recording"}
         
-        logger.info(f"📞 Call {pbx_call_id} has recording, waiting for SPEECH_RECOGNITION event...")
-        return {"status": "ok", "call_id": pbx_call_id, "message": "metadata_cached"}
+        # Проверяем что звонок был отвечен
+        disposition = webhook_data.get("disposition", "")
+        if disposition not in ["answered", "success", "completed", "ANSWERED"]:
+            logger.info(f"⏭️ Skipping: call not answered (disposition={disposition})")
+            return {"status": "skipped", "reason": "not_answered"}
+        
+        # СРАЗУ ЗАПУСКАЕМ ОБРАБОТКУ - не ждём SPEECH_RECOGNITION
+        # Т.к. Novofon не всегда присылает его
+        logger.info(f"🚀 Starting to process call {pbx_call_id} immediately (not waiting for SPEECH_RECOGNITION)")
+        
+        # Добавляем URL записи в метаданные
+        if call_id_with_rec:
+            call_metadata["record_url"] = f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}"
+        
+        background_tasks.add_task(
+            process_call_with_fallback,
+            call_metadata,
+            db
+        )
+        
+        return {"status": "accepted", "call_id": pbx_call_id, "message": "processing_started"}
         
     except Exception as e:
         logger.error(f"❌ Error processing webhook: {e}")
