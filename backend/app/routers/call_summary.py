@@ -95,63 +95,103 @@ async def novofon_webhook(
             logger.warning("⚠️ Empty webhook data received")
             return {"status": "ok", "message": "empty_data_received"}
         
-        # Обрабатываем только события завершения звонка с записью
+        # Обрабатываем события
         event = webhook_data.get("event", "")
         
+        # === ОБРАБОТКА SPEECH_RECOGNITION (ГОТОВАЯ ТРАНСКРИПЦИЯ ОТ NOVOFON) ===
+        if event == "SPEECH_RECOGNITION":
+            pbx_call_id = webhook_data.get("pbx_call_id", "")
+            result_json = webhook_data.get("result", "{}")
+            
+            logger.info(f"🎤 Received SPEECH_RECOGNITION for call {pbx_call_id}")
+            
+            # Парсим транскрипцию из JSON
+            import json
+            try:
+                result_data = json.loads(result_json) if isinstance(result_json, str) else result_json
+                phrases = result_data.get("phrases", [])
+                
+                # Собираем текст транскрипции с разделением по каналам
+                transcription_lines = []
+                for phrase in phrases:
+                    channel = phrase.get("channel", 0)
+                    text = phrase.get("result", "")
+                    # Канал 1 - обычно звонящий, канал 2 - принимающий
+                    speaker = "📞 Агент:" if channel == 2 else "👤 Клиент:"
+                    transcription_lines.append(f"{speaker} {text}")
+                
+                transcription = "\n".join(transcription_lines)
+                
+                if not transcription.strip():
+                    logger.warning(f"⚠️ Empty transcription for call {pbx_call_id}")
+                    return {"status": "skipped", "reason": "empty_transcription"}
+                
+                logger.info(f"✅ Got transcription for call {pbx_call_id}: {len(transcription)} chars")
+                
+                # Формируем данные для обработки
+                normalized_data = {
+                    "call_id": pbx_call_id,
+                    "call_id_with_rec": webhook_data.get("call_id", ""),
+                    "caller": "",  # Будет заполнено из кэша или оставлено пустым
+                    "called": "",
+                    "direction": "out",  # По умолчанию исходящий
+                    "duration": 0,
+                    "status": "answered",
+                    "timestamp": "",
+                    "transcription": transcription  # ВАЖНО: передаём готовую транскрипцию
+                }
+                
+                # Добавляем задачу для создания саммари
+                background_tasks.add_task(
+                    process_transcription,
+                    normalized_data,
+                    db
+                )
+                
+                logger.info(f"🚀 Started processing transcription for call {pbx_call_id}")
+                return {"status": "accepted", "call_id": pbx_call_id, "type": "speech_recognition"}
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"❌ Failed to parse SPEECH_RECOGNITION result: {e}")
+                return {"status": "error", "reason": "invalid_json"}
+        
+        # === ОБРАБОТКА СОБЫТИЙ ЗАВЕРШЕНИЯ ЗВОНКА (для получения метаданных) ===
         # Проверяем что это событие завершения с записью
-        if event not in ["NOTIFY_OUT_END", "NOTIFY_END", "NOTIFY_RECORD"]:
+        if event not in ["NOTIFY_OUT_END", "NOTIFY_END"]:
             logger.info(f"⏭️ Skipping event: {event}")
             return {"status": "skipped", "reason": "not_end_event"}
         
-        # Проверяем наличие записи
-        is_recorded = webhook_data.get("is_recorded", "0")
-        if is_recorded == "0":
-            logger.info(f"⏭️ Skipping: no recording (is_recorded={is_recorded})")
-            return {"status": "skipped", "reason": "no_recording"}
-        
-        # Нормализуем данные
+        # Сохраняем метаданные звонка для использования в SPEECH_RECOGNITION
         pbx_call_id = webhook_data.get("pbx_call_id", "")
         call_id_with_rec = webhook_data.get("call_id_with_rec", "")
         
-        normalized_data = {
-            "call_id": pbx_call_id or call_id_with_rec or "unknown",
+        # Сохраняем в кэш (простой словарь в памяти)
+        call_metadata = {
+            "call_id": pbx_call_id,
             "call_id_with_rec": call_id_with_rec,
             "caller": webhook_data.get("caller_id", ""),
-            "called": webhook_data.get("destination", ""),
+            "called": webhook_data.get("destination", webhook_data.get("called_did", "")),
             "direction": "out" if event == "NOTIFY_OUT_END" else "in",
             "duration": int(webhook_data.get("duration", 0)),
             "status": webhook_data.get("disposition", "answered"),
-            "record_url": "",  # Получим через API
             "timestamp": webhook_data.get("call_start", "")
         }
         
-        logger.info(f"📞 Normalized: call_id={normalized_data['call_id']}, status={normalized_data['status']}, is_recorded={is_recorded}")
+        # Сохраняем метаданные в глобальный кэш
+        if not hasattr(novofon_webhook, '_call_cache'):
+            novofon_webhook._call_cache = {}
+        novofon_webhook._call_cache[pbx_call_id] = call_metadata
         
-        # Проверяем что звонок был отвечен
-        if normalized_data["status"] not in ["answered", "success", "completed", "ANSWERED"]:
-            logger.info(f"⏭️ Skipping: status={normalized_data['status']}")
-            return {"status": "skipped", "reason": "not_answered"}
+        logger.info(f"📋 Cached metadata for call {pbx_call_id}: caller={call_metadata['caller']}, called={call_metadata['called']}, duration={call_metadata['duration']}s")
         
-        # Получаем URL записи
-        # Novofon хранит записи по формуле: https://api.novofon.com/v1/call/recording?id={call_id_with_rec}
-        if call_id_with_rec:
-            # Формируем прямую ссылку на запись
-            record_url = f"https://api.novofon.com/v1/call/recording?id={call_id_with_rec}"
-            normalized_data["record_url"] = record_url
-            logger.info(f"✅ Recording URL: {record_url}")
-        else:
-            logger.warning(f"⚠️ No call_id_with_rec for call {normalized_data['call_id']}")
-            return {"status": "skipped", "reason": "no_recording_id"}
+        # Проверяем наличие записи
+        is_recorded = webhook_data.get("is_recorded", "0")
+        if is_recorded != "1":
+            logger.info(f"⏭️ Skipping: no recording (is_recorded={is_recorded})")
+            return {"status": "skipped", "reason": "no_recording"}
         
-        # Добавляем задачу в фон для обработки
-        background_tasks.add_task(
-            process_call_recording,
-            normalized_data,
-            db
-        )
-        
-        logger.info(f"🚀 Started processing call {normalized_data['call_id']} in background")
-        return {"status": "accepted", "call_id": normalized_data["call_id"]}
+        logger.info(f"📞 Call {pbx_call_id} has recording, waiting for SPEECH_RECOGNITION event...")
+        return {"status": "ok", "call_id": pbx_call_id, "message": "metadata_cached"}
         
     except Exception as e:
         logger.error(f"❌ Error processing webhook: {e}")
