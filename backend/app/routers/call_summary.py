@@ -629,21 +629,71 @@ async def send_to_telegram(webhook_data: dict, summary_data: dict):
 {summary_data.get('summary', 'Не удалось создать саммари')}
 """
         
-        # Отправляем в Telegram
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                json={
-                    "chat_id": TELEGRAM_TARGET_CHAT_ID,
-                    "text": message,
-                    "parse_mode": "HTML"
-                }
-            )
+        # Добавляем транскрипцию если есть (обрезаем если очень длинная)
+        transcription = summary_data.get('transcription', '')
+        if transcription:
+            # Telegram ограничивает сообщения 4096 символами
+            # Оставляем место для основного сообщения (примерно 3000 символов)
+            max_transcription_length = 3500
+            if len(transcription) > max_transcription_length:
+                transcription = transcription[:max_transcription_length] + "\n\n... [транскрипция обрезана из-за длины]"
             
-            if response.status_code == 200:
-                logger.info(f"✅ Sent to Telegram chat {TELEGRAM_TARGET_CHAT_ID}")
-            else:
-                logger.error(f"Failed to send to Telegram: {response.text}")
+            message += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎤 <b>ТРАНСКРИПЦИЯ</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<pre>{transcription}</pre>
+"""
+        
+        # Проверяем длину сообщения для Telegram (макс 4096)
+        if len(message) > 4096:
+            # Отправляем в двух частях
+            first_part = message[:4000] + "\n\n... [продолжение в следующем сообщении]"
+            second_part = message[4000:]
+            
+            async with httpx.AsyncClient() as client:
+                # Первая часть
+                response1 = await client.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                    json={
+                        "chat_id": TELEGRAM_TARGET_CHAT_ID,
+                        "text": first_part,
+                        "parse_mode": "HTML"
+                    }
+                )
+                
+                # Вторая часть
+                if len(second_part) > 0:
+                    response2 = await client.post(
+                        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                        json={
+                            "chat_id": TELEGRAM_TARGET_CHAT_ID,
+                            "text": f"<b>Продолжение:</b>\n{second_part[:4000]}",
+                            "parse_mode": "HTML"
+                        }
+                    )
+                
+                if response1.status_code == 200:
+                    logger.info(f"✅ Sent to Telegram chat {TELEGRAM_TARGET_CHAT_ID}")
+                else:
+                    logger.error(f"Failed to send to Telegram: {response1.text}")
+        else:
+            # Отправляем одним сообщением
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                    json={
+                        "chat_id": TELEGRAM_TARGET_CHAT_ID,
+                        "text": message,
+                        "parse_mode": "HTML"
+                    }
+                )
+                
+                if response.status_code == 200:
+                    logger.info(f"✅ Sent to Telegram chat {TELEGRAM_TARGET_CHAT_ID}")
+                else:
+                    logger.error(f"Failed to send to Telegram: {response.text}")
                 
     except Exception as e:
         logger.error(f"Error sending to Telegram: {e}")
