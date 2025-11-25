@@ -311,53 +311,113 @@ async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
 async def download_recording_with_auth(call_id_with_rec: str) -> Optional[bytes]:
     """
     Скачать запись звонка с авторизацией через Novofon API
-    Пробуем несколько методов авторизации
+    Используем HMAC-SHA1 подпись как требует Novofon
     """
     if not call_id_with_rec:
         logger.error("No call_id_with_rec provided")
         return None
     
+    if not NOVOFON_API_KEY or not NOVOFON_API_SECRET:
+        logger.error("Missing NOVOFON_API_KEY or NOVOFON_API_SECRET")
+        return None
+    
     import base64
+    import hashlib
+    import hmac
+    from urllib.parse import urlencode
     
-    # Формируем credentials для Basic Auth
-    auth_string = f"{NOVOFON_API_KEY}:{NOVOFON_API_SECRET}"
-    auth_bytes = base64.b64encode(auth_string.encode()).decode()
+    # Метод API
+    method = "/v1/pbx/record/request/"
     
-    # URL для скачивания записи
-    urls_to_try = [
-        f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}",
-        f"https://api.novofon.com/v1/pbx/record/request/?call_id={call_id_with_rec}",
-    ]
+    # Параметры запроса
+    params = {
+        "call_id": call_id_with_rec,
+        "pbx_call_id": call_id_with_rec.split(".")[0] if "." in call_id_with_rec else call_id_with_rec
+    }
     
-    headers_to_try = [
-        # Basic Auth
-        {"Authorization": f"Basic {auth_bytes}"},
-        # API Key in header
-        {"X-API-KEY": NOVOFON_API_KEY, "X-API-SECRET": NOVOFON_API_SECRET},
-        # No auth (maybe public)
-        {}
-    ]
+    # Сортируем параметры по ключу
+    sorted_params = dict(sorted(params.items()))
+    params_str = urlencode(sorted_params)
+    
+    # Создаём подпись: HMAC-SHA1(method + params_str + md5(params_str), secret)
+    md5_params = hashlib.md5(params_str.encode()).hexdigest()
+    sign_string = method + params_str + md5_params
+    
+    signature = base64.b64encode(
+        hmac.new(
+            NOVOFON_API_SECRET.encode(),
+            sign_string.encode(),
+            hashlib.sha1
+        ).digest()
+    ).decode()
+    
+    # Формируем заголовок авторизации
+    auth_header = f"{NOVOFON_API_KEY}:{signature}"
+    
+    headers = {
+        "Authorization": auth_header,
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    
+    # URL для запроса ссылки на запись
+    url = f"https://api.novofon.com{method}"
     
     async with httpx.AsyncClient(timeout=60.0) as client:
-        for url in urls_to_try:
-            for headers in headers_to_try:
+        try:
+            # Запрашиваем ссылку на запись
+            logger.info(f"🔄 Requesting recording link with HMAC auth for {call_id_with_rec[:30]}...")
+            
+            response = await client.post(url, headers=headers, data=params)
+            
+            logger.info(f"📥 Response status: {response.status_code}")
+            
+            if response.status_code == 200:
                 try:
-                    # Сначала пробуем GET
-                    logger.info(f"🔄 Trying to download: {url[:80]}...")
-                    response = await client.get(url, headers=headers, follow_redirects=True)
+                    data = response.json()
+                    logger.info(f"📥 Response data: {data}")
                     
-                    if response.status_code == 200:
-                        content_type = response.headers.get("content-type", "")
-                        if "audio" in content_type or "octet-stream" in content_type or len(response.content) > 10000:
-                            logger.info(f"✅ Downloaded recording: {len(response.content)} bytes, content-type: {content_type}")
-                            return response.content
+                    # Получаем ссылку на запись из ответа
+                    if data.get("status") == "success":
+                        recording_url = data.get("data", {}).get("link") or data.get("link")
+                        if recording_url:
+                            logger.info(f"✅ Got recording URL: {recording_url[:50]}...")
+                            
+                            # Скачиваем сам файл записи
+                            audio_response = await client.get(recording_url, follow_redirects=True)
+                            if audio_response.status_code == 200:
+                                return audio_response.content
+                            else:
+                                logger.error(f"❌ Failed to download audio: HTTP {audio_response.status_code}")
                         else:
-                            logger.warning(f"⚠️ Response is not audio: {content_type}, size: {len(response.content)}")
+                            logger.warning(f"⚠️ No link in response: {data}")
                     else:
-                        logger.warning(f"⚠️ HTTP {response.status_code} for {url[:50]}...")
-                        
-                except Exception as e:
-                    logger.warning(f"⚠️ Error downloading from {url[:50]}...: {e}")
+                        logger.warning(f"⚠️ API error: {data}")
+                except Exception as parse_error:
+                    logger.warning(f"⚠️ Failed to parse response: {parse_error}")
+                    # Может это уже аудио?
+                    if len(response.content) > 10000:
+                        return response.content
+            else:
+                logger.warning(f"⚠️ HTTP {response.status_code}: {response.text[:200]}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error requesting recording: {e}")
+    
+    # Пробуем альтернативный способ - прямой URL (для совместимости)
+    alt_urls = [
+        f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}",
+    ]
+    
+    for alt_url in alt_urls:
+        try:
+            logger.info(f"🔄 Trying alternate URL: {alt_url[:60]}...")
+            response = await client.get(alt_url, headers={"Authorization": auth_header}, follow_redirects=True)
+            
+            if response.status_code == 200 and len(response.content) > 10000:
+                logger.info(f"✅ Downloaded via alternate URL: {len(response.content)} bytes")
+                return response.content
+        except Exception as e:
+            logger.warning(f"⚠️ Alternate URL failed: {e}")
     
     logger.error(f"❌ All download attempts failed for {call_id_with_rec}")
     return None
