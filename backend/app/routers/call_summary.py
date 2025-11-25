@@ -90,24 +90,29 @@ async def novofon_webhook(
         # ЛОГИРУЕМ ВСЁ ЧТО ПОЛУЧИЛИ
         logger.info(f"📞 Final webhook data: {webhook_data}")
         
+        # Если данных нет - возвращаем OK чтобы Novofon не ретраил
+        if not webhook_data:
+            logger.warning("⚠️ Empty webhook data received")
+            return {"status": "ok", "message": "empty_data_received"}
+        
         # Нормализуем данные (Novofon может присылать разные поля)
         normalized_data = {
-            "call_id": webhook_data.get("call_id") or webhook_data.get("id") or webhook_data.get("call") or "unknown",
-            "caller": webhook_data.get("caller") or webhook_data.get("from") or webhook_data.get("caller_number") or "",
-            "called": webhook_data.get("called") or webhook_data.get("to") or webhook_data.get("called_number") or webhook_data.get("callee") or "",
+            "call_id": webhook_data.get("call_id") or webhook_data.get("id") or webhook_data.get("call") or webhook_data.get("callID") or "unknown",
+            "caller": webhook_data.get("caller") or webhook_data.get("from") or webhook_data.get("caller_number") or webhook_data.get("src") or "",
+            "called": webhook_data.get("called") or webhook_data.get("to") or webhook_data.get("called_number") or webhook_data.get("callee") or webhook_data.get("dst") or "",
             "direction": webhook_data.get("direction") or ("in" if webhook_data.get("type") == "incoming" else "out"),
-            "duration": int(webhook_data.get("duration") or webhook_data.get("talk_time") or 0),
-            "status": webhook_data.get("status") or webhook_data.get("call_status") or "answered",
-            "record_url": webhook_data.get("record_url") or webhook_data.get("recording_url") or webhook_data.get("record") or "",
-            "timestamp": webhook_data.get("timestamp") or webhook_data.get("start_time") or webhook_data.get("time") or ""
+            "duration": int(webhook_data.get("duration") or webhook_data.get("talk_time") or webhook_data.get("billsec") or 0),
+            "status": webhook_data.get("status") or webhook_data.get("call_status") or webhook_data.get("disposition") or "answered",
+            "record_url": webhook_data.get("record_url") or webhook_data.get("recording_url") or webhook_data.get("record") or webhook_data.get("recordingfile") or "",
+            "timestamp": webhook_data.get("timestamp") or webhook_data.get("start_time") or webhook_data.get("time") or webhook_data.get("calldate") or ""
         }
         
         logger.info(f"📞 Normalized webhook: call_id={normalized_data['call_id']}, status={normalized_data['status']}, has_record={bool(normalized_data['record_url'])}")
         
         # Проверяем, что звонок был отвечен и есть запись
-        if normalized_data["status"] not in ["answered", "success", "completed"] or not normalized_data["record_url"]:
+        if normalized_data["status"] not in ["answered", "success", "completed", "ANSWERED"] or not normalized_data["record_url"]:
             logger.info(f"⏭️ Skipping call {normalized_data['call_id']}: status={normalized_data['status']}, has_record={bool(normalized_data['record_url'])}")
-            return {"status": "skipped", "reason": "no_recording_or_not_answered", "debug": webhook_data}
+            return {"status": "skipped", "reason": "no_recording_or_not_answered", "received_data": list(webhook_data.keys())}
         
         # Добавляем задачу в фон для обработки
         background_tasks.add_task(
