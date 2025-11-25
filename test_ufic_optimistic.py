@@ -9,7 +9,7 @@ import json
 from typing import Dict, List, Any
 
 # Backend URL from environment
-BACKEND_URL = "https://transcription-bot-1.preview.emergentagent.com"
+BACKEND_URL = "https://call-logger-6.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class TestResults:

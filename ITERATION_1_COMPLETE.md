@@ -146,6 +146,6 @@
 
 ## 🔗 Полезные ссылки
 
-- Preview URL: https://transcription-bot-1.preview.emergentagent.com
+- Preview URL: https://call-logger-6.preview.emergentagent.com
 - GitHub: https://github.com/maslovmaksim92/AudioBot
 - План разработки: `/app/DEVELOPMENT_PLAN_ITERATIONS.md`

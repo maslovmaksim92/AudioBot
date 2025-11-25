@@ -21,7 +21,7 @@
 - **Scheduler**: 3 задачи активны
 - **Single Brain**: Архитектура работает
 
-**Preview URL**: https://transcription-bot-1.preview.emergentagent.com
+**Preview URL**: https://call-logger-6.preview.emergentagent.com
 
 ---
 

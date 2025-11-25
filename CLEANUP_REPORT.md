@@ -122,7 +122,7 @@
 
 ## 🎉 Preview URL
 
-Приложение доступно: **https://transcription-bot-1.preview.emergentagent.com**
+Приложение доступно: **https://call-logger-6.preview.emergentagent.com**
 
 ---
 
