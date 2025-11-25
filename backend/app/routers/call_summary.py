@@ -44,6 +44,7 @@ class CallSummaryResponse(BaseModel):
     created_at: datetime
 
 @router.post("/webhook/novofon")
+@router.get("/webhook/novofon")
 async def novofon_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -54,11 +55,40 @@ async def novofon_webhook(
     Автоматически создаёт саммари и отправляет в Telegram + Bitrix24
     """
     try:
-        # Получаем сырые данные от Novofon
-        webhook_data = await request.json()
+        # ЛОГИРУЕМ МЕТОД И ЗАГОЛОВКИ
+        logger.info(f"📞 Received webhook: method={request.method}, content-type={request.headers.get('content-type')}")
         
-        # ЛОГИРУЕМ ВСЁ ЧТО ПРИШЛО
-        logger.info(f"📞 Received Novofon webhook data: {webhook_data}")
+        # Получаем сырое тело
+        body = await request.body()
+        logger.info(f"📞 Raw body: {body[:500]}")  # Первые 500 байт
+        
+        # Пробуем разные способы получения данных
+        webhook_data = {}
+        
+        # 1. Пробуем JSON
+        if body:
+            try:
+                webhook_data = await request.json()
+                logger.info(f"✅ Parsed as JSON: {webhook_data}")
+            except:
+                pass
+        
+        # 2. Пробуем form-data
+        if not webhook_data:
+            try:
+                form = await request.form()
+                webhook_data = dict(form)
+                logger.info(f"✅ Parsed as form-data: {webhook_data}")
+            except:
+                pass
+        
+        # 3. Пробуем query params
+        if not webhook_data:
+            webhook_data = dict(request.query_params)
+            logger.info(f"✅ Parsed as query params: {webhook_data}")
+        
+        # ЛОГИРУЕМ ВСЁ ЧТО ПОЛУЧИЛИ
+        logger.info(f"📞 Final webhook data: {webhook_data}")
         
         # Нормализуем данные (Novofon может присылать разные поля)
         normalized_data = {
