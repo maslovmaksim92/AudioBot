@@ -199,9 +199,76 @@ async def novofon_webhook(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
+async def process_transcription(webhook_data: dict, db: AsyncSession):
+    """
+    Фоновая задача: обработка готовой транскрипции от Novofon
+    1. Получить метаданные из кэша (если есть)
+    2. Создать саммари через GPT-4o
+    3. Сохранить в БД
+    4. Отправить в Telegram
+    5. Добавить в Bitrix24
+    """
+    call_id = webhook_data["call_id"]
+    transcription = webhook_data.get("transcription", "")
+    
+    try:
+        logger.info(f"🎤 Processing transcription for call: {call_id}")
+        
+        # Получаем метаданные из кэша
+        cached_metadata = getattr(novofon_webhook, '_call_cache', {}).get(call_id, {})
+        if cached_metadata:
+            webhook_data.update({
+                "caller": cached_metadata.get("caller", webhook_data.get("caller", "")),
+                "called": cached_metadata.get("called", webhook_data.get("called", "")),
+                "direction": cached_metadata.get("direction", webhook_data.get("direction", "out")),
+                "duration": cached_metadata.get("duration", webhook_data.get("duration", 0)),
+                "timestamp": cached_metadata.get("timestamp", webhook_data.get("timestamp", "")),
+            })
+            logger.info(f"📋 Using cached metadata: caller={webhook_data['caller']}, called={webhook_data['called']}")
+        
+        if not transcription:
+            logger.error(f"❌ Empty transcription for call {call_id}")
+            return
+        
+        logger.info(f"✅ Transcription ready for {call_id}: {len(transcription)} chars")
+        
+        # Создать саммари через GPT-4o
+        summary_data = await create_call_summary(transcription, webhook_data)
+        
+        # Добавляем транскрипцию в summary_data для отправки
+        summary_data["transcription"] = transcription
+        
+        # Сохранить в БД
+        try:
+            call_summary_id = await save_to_database(
+                db,
+                call_id,
+                webhook_data,
+                transcription,
+                summary_data
+            )
+        except Exception as db_error:
+            logger.warning(f"⚠️ Could not save to database: {db_error}")
+        
+        # Отправить в Telegram - ГЛАВНАЯ ЦЕЛЬ!
+        await send_to_telegram(webhook_data, summary_data)
+        
+        # Добавить в Bitrix24
+        try:
+            await add_to_bitrix24(webhook_data, summary_data)
+        except Exception as bitrix_error:
+            logger.warning(f"⚠️ Could not add to Bitrix24: {bitrix_error}")
+        
+        logger.info(f"✅ Call {call_id} processed successfully!")
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing transcription for call {call_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
 async def process_call_recording(webhook_data: dict, db: AsyncSession):
     """
-    Фоновая задача: обработка записи звонка
+    Фоновая задача: обработка записи звонка (FALLBACK если нет SPEECH_RECOGNITION)
     1. Скачать аудио
     2. Транскрибировать через Whisper
     3. Создать саммари через GPT
@@ -228,7 +295,7 @@ async def process_call_recording(webhook_data: dict, db: AsyncSession):
         
         logger.info(f"✅ Transcription completed for {call_id}: {len(transcription)} chars")
         
-        # 3. Создать саммари через GPT-5
+        # 3. Создать саммари через GPT-4o
         summary_data = await create_call_summary(transcription, webhook_data)
         
         # 4. Сохранить в БД
