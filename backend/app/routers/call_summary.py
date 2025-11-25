@@ -230,11 +230,8 @@ async def novofon_webhook(
 async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
     """
     Фоновая задача: обработка звонка с fallback
-    1. Ждём 5 секунд (даём время на SPEECH_RECOGNITION)
-    2. Если транскрипция уже получена через SPEECH_RECOGNITION - пропускаем
-    3. Пробуем скачать запись с авторизацией
-    4. Транскрибируем через Whisper
-    5. Создаём саммари и отправляем
+    1. Ждём до 3 минут на SPEECH_RECOGNITION (он приходит с задержкой)
+    2. Если не получили - пробуем скачать запись
     """
     import asyncio
     
@@ -242,24 +239,31 @@ async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
     call_id_with_rec = call_metadata.get("call_id_with_rec", "")
     
     try:
-        logger.info(f"🔄 Starting fallback processing for call {call_id}")
+        logger.info(f"🔄 Starting processing for call {call_id}, waiting up to 3 min for SPEECH_RECOGNITION")
         
-        # Ждём 5 секунд - может придёт SPEECH_RECOGNITION
-        await asyncio.sleep(5)
+        # Ждём до 3 минут, проверяя каждые 10 секунд
+        for i in range(18):  # 18 * 10 sec = 3 minutes
+            await asyncio.sleep(10)
+            
+            # Проверяем не обработан ли уже этот звонок через SPEECH_RECOGNITION
+            processed_calls = getattr(novofon_webhook, '_processed_calls', set())
+            if call_id in processed_calls:
+                logger.info(f"✅ Call {call_id} was processed via SPEECH_RECOGNITION, exiting fallback")
+                return
+            
+            logger.info(f"⏳ Waiting for SPEECH_RECOGNITION... ({(i+1)*10}s/{180}s)")
         
-        # Проверяем не обработан ли уже этот звонок через SPEECH_RECOGNITION
-        processed_calls = getattr(novofon_webhook, '_processed_calls', set())
-        if call_id in processed_calls:
-            logger.info(f"✅ Call {call_id} already processed via SPEECH_RECOGNITION, skipping fallback")
-            return
+        logger.info(f"⏰ Timeout waiting for SPEECH_RECOGNITION for call {call_id}")
         
-        logger.info(f"🎙️ No SPEECH_RECOGNITION received, trying to download recording for call {call_id}")
+        # Если SPEECH_RECOGNITION так и не пришёл - пробуем скачать запись
+        logger.info(f"🎙️ Trying to download recording for call {call_id}")
         
-        # Пробуем скачать запись с авторизацией
         audio_data = await download_recording_with_auth(call_id_with_rec)
         
         if not audio_data:
-            logger.error(f"❌ Failed to download recording for call {call_id}")
+            logger.warning(f"⚠️ Could not download recording for call {call_id}")
+            # Отправляем уведомление в Telegram что не удалось обработать
+            await send_error_notification(call_metadata, "Не удалось скачать запись звонка")
             return
         
         logger.info(f"✅ Downloaded recording for call {call_id}: {len(audio_data)} bytes")
@@ -269,6 +273,7 @@ async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
         
         if not transcription:
             logger.error(f"❌ Failed to transcribe call {call_id}")
+            await send_error_notification(call_metadata, "Не удалось транскрибировать запись")
             return
         
         logger.info(f"✅ Transcription completed for {call_id}: {len(transcription)} chars")
@@ -306,6 +311,34 @@ async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
         logger.error(f"❌ Error in fallback processing for call {call_id}: {e}")
         import traceback
         logger.error(traceback.format_exc())
+
+
+async def send_error_notification(call_metadata: dict, error_message: str):
+    """Отправить уведомление об ошибке в Telegram"""
+    try:
+        message = f"""
+⚠️ <b>ОШИБКА ОБРАБОТКИ ЗВОНКА</b>
+
+📞 Звонок: {call_metadata.get('caller', 'N/A')} → {call_metadata.get('called', 'N/A')}
+📅 Время: {call_metadata.get('timestamp', 'N/A')}
+⏱ Длительность: {call_metadata.get('duration', 0)} сек
+🆔 ID: {call_metadata.get('call_id', 'N/A')}
+
+❌ Ошибка: {error_message}
+
+<i>Запись звонка будет доступна в личном кабинете Novofon</i>
+"""
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": TELEGRAM_TARGET_CHAT_ID,
+                    "text": message,
+                    "parse_mode": "HTML"
+                }
+            )
+    except Exception as e:
+        logger.error(f"Failed to send error notification: {e}")
 
 
 async def download_recording_with_auth(call_id_with_rec: str) -> Optional[bytes]:
