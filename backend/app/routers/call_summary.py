@@ -23,6 +23,10 @@ TELEGRAM_TARGET_CHAT_ID = os.getenv("TG_NEDVIGKA", "-5007549435")  # Групп�
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BITRIX24_WEBHOOK_URL = os.getenv("BITRIX24_WEBHOOK_URL")
 
+# Novofon API credentials для скачивания записей
+NOVOFON_API_KEY = os.getenv("NOVOFON_API_KEY", "")
+NOVOFON_API_SECRET = os.getenv("NOVOFON_API_SECRET", "")
+
 class NovofonWebhook(BaseModel):
     """Webhook от Новофон о завершённом звонке"""
     call_id: str
