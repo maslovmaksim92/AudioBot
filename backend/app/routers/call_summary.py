@@ -145,6 +145,11 @@ async def novofon_webhook(
                     "transcription": transcription  # ВАЖНО: передаём готовую транскрипцию
                 }
                 
+                # Помечаем звонок как обрабатываемый через SPEECH_RECOGNITION
+                if not hasattr(novofon_webhook, '_processed_calls'):
+                    novofon_webhook._processed_calls = set()
+                novofon_webhook._processed_calls.add(pbx_call_id)
+                
                 # Добавляем задачу для создания саммари
                 background_tasks.add_task(
                     process_transcription,
