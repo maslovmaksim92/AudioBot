@@ -862,59 +862,7 @@ async def send_to_telegram(webhook_data: dict, summary_data: dict):
     except Exception as e:
         logger.error(f"Error sending to Telegram: {e}")
 
-async def add_to_bitrix24(webhook_data: dict, summary_data: dict):
-    """Добавить саммари в Bitrix24 (комментарий к сделке/контакту)"""
-    try:
-        if not BITRIX24_WEBHOOK_URL:
-            logger.warning("Bitrix24 webhook URL not configured")
-            return
-        
-        # Ищем контакт по телефону
-        phone = webhook_data["caller"] if webhook_data["direction"] == "in" else webhook_data["called"]
-        
-        async with httpx.AsyncClient() as client:
-            # Поиск контакта
-            search_response = await client.post(
-                f"{BITRIX24_WEBHOOK_URL}crm.contact.list",
-                json={
-                    "filter": {"PHONE": phone}
-                }
-            )
-            
-            if search_response.status_code == 200:
-                contacts = search_response.json().get("result", [])
-                
-                if contacts:
-                    contact_id = contacts[0]["ID"]
-                    
-                    # Добавляем комментарий
-                    comment_text = f"""Саммари звонка:
-{summary_data.get('summary', '')}
-
-Ключевые пункты:
-{chr(10).join([f"• {point}" for point in summary_data.get('key_points', [])])}
-
-Задачи:
-{chr(10).join([f"• {task}" for task in summary_data.get('action_items', [])])}
-"""
-                    
-                    await client.post(
-                        f"{BITRIX24_WEBHOOK_URL}crm.timeline.comment.add",
-                        json={
-                            "fields": {
-                                "ENTITY_ID": contact_id,
-                                "ENTITY_TYPE": "contact",
-                                "COMMENT": comment_text
-                            }
-                        }
-                    )
-                    
-                    logger.info(f"✅ Added to Bitrix24 contact {contact_id}")
-                else:
-                    logger.warning(f"No Bitrix24 contact found for phone {phone}")
-                    
-    except Exception as e:
-        logger.error(f"Error adding to Bitrix24: {e}")
+# Функция add_to_bitrix24 УДАЛЕНА - используем только Telegram
 
 @router.get("/history")
 async def get_call_history(
