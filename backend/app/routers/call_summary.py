@@ -132,16 +132,19 @@ async def novofon_webhook(
                 
                 logger.info(f"✅ Got transcription for call {pbx_call_id}: {len(transcription)} chars")
                 
+                # Получаем метаданные из кэша (если есть)
+                call_metadata = getattr(novofon_webhook, '_call_cache', {}).get(pbx_call_id, {})
+                
                 # Формируем данные для обработки
                 normalized_data = {
                     "call_id": pbx_call_id,
                     "call_id_with_rec": webhook_data.get("call_id", ""),
-                    "caller": "",  # Будет заполнено из кэша или оставлено пустым
-                    "called": "",
-                    "direction": "out",  # По умолчанию исходящий
-                    "duration": 0,
+                    "caller": call_metadata.get("caller", ""),
+                    "called": call_metadata.get("called", ""),
+                    "direction": call_metadata.get("direction", "out"),
+                    "duration": call_metadata.get("duration", 0),
                     "status": "answered",
-                    "timestamp": "",
+                    "timestamp": call_metadata.get("timestamp", ""),
                     "transcription": transcription  # ВАЖНО: передаём готовую транскрипцию
                 }
                 
@@ -150,19 +153,24 @@ async def novofon_webhook(
                     novofon_webhook._processed_calls = set()
                 novofon_webhook._processed_calls.add(pbx_call_id)
                 
-                # Добавляем задачу для создания саммари
+                # ВАЖНО: Добавляем задачу для создания саммари В ФОНЕ
                 background_tasks.add_task(
                     process_transcription,
                     normalized_data,
                     db
                 )
                 
-                logger.info(f"🚀 Started processing transcription for call {pbx_call_id}")
+                logger.info(f"🚀 Started background processing transcription for call {pbx_call_id}")
                 return {"status": "accepted", "call_id": pbx_call_id, "type": "speech_recognition"}
                 
             except json.JSONDecodeError as e:
                 logger.error(f"❌ Failed to parse SPEECH_RECOGNITION result: {e}")
                 return {"status": "error", "reason": "invalid_json"}
+            except Exception as e:
+                logger.error(f"❌ Error processing SPEECH_RECOGNITION for {pbx_call_id}: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                return {"status": "error", "reason": str(e)}
         
         # === ОБРАБОТКА СОБЫТИЙ ЗАВЕРШЕНИЯ ЗВОНКА (для получения метаданных) ===
         # Проверяем что это событие завершения с записью
