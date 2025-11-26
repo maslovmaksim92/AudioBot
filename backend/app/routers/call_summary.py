@@ -480,9 +480,6 @@ async def process_call_recording(webhook_data: dict, db: AsyncSession):
         # 5. Отправить в Telegram
         await send_to_telegram(webhook_data, summary_data)
         
-        # 6. Добавить в Bitrix24
-        await add_to_bitrix24(webhook_data, summary_data)
-        
         logger.info(f"✅ Call {call_id} processed successfully!")
         
     except Exception as e:
