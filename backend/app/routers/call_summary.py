@@ -212,21 +212,11 @@ async def novofon_webhook(
             logger.info(f"⏭️ Skipping: call not answered (disposition={disposition})")
             return {"status": "skipped", "reason": "not_answered"}
         
-        # СРАЗУ ЗАПУСКАЕМ ОБРАБОТКУ - не ждём SPEECH_RECOGNITION
-        # Т.к. Novofon не всегда присылает его
-        logger.info(f"🚀 Starting to process call {pbx_call_id} immediately (not waiting for SPEECH_RECOGNITION)")
+        # ТЕПЕРЬ ЖДЁМ ТОЛЬКО SPEECH_RECOGNITION СОБЫТИЕ
+        # НЕ запускаем обработку сразу, т.к. Novofon присылает SPEECH_RECOGNITION с готовой транскрипцией
+        logger.info(f"📋 Saved metadata for call {pbx_call_id}, waiting for SPEECH_RECOGNITION event...")
         
-        # Добавляем URL записи в метаданные
-        if call_id_with_rec:
-            call_metadata["record_url"] = f"https://api.novofon.com/v1/call/recording/?id={call_id_with_rec}"
-        
-        background_tasks.add_task(
-            process_call_with_fallback,
-            call_metadata,
-            db
-        )
-        
-        return {"status": "accepted", "call_id": pbx_call_id, "message": "processing_started"}
+        return {"status": "metadata_saved", "call_id": pbx_call_id, "message": "waiting_for_speech_recognition"}
         
     except Exception as e:
         logger.error(f"❌ Error processing webhook: {e}")
