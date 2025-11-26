@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_TARGET_CHAT_ID = os.getenv("TG_NEDVIGKA", "-5007549435")  # Группа для недвижимости
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-BITRIX24_WEBHOOK_URL = os.getenv("BITRIX24_WEBHOOK_URL")
 
 # Novofon API credentials для скачивания записей
 NOVOFON_API_KEY = os.getenv("NOVOFON_API_KEY", "")
