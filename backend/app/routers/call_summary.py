@@ -437,13 +437,12 @@ async def process_transcription(webhook_data: dict, db: AsyncSession):
 
 async def process_call_recording(webhook_data: dict, db: AsyncSession):
     """
-    Фоновая задача: обработка записи звонка (FALLBACK если нет SPEECH_RECOGNITION)
+    Фоновая задача: обработка записи звонка (УСТАРЕВШАЯ - используем SPEECH_RECOGNITION)
     1. Скачать аудио
     2. Транскрибировать через Whisper
     3. Создать саммари через GPT
     4. Сохранить в БД
     5. Отправить в Telegram
-    6. Добавить в Bitrix24
     """
     call_id = webhook_data["call_id"]
     
