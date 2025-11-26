@@ -429,12 +429,6 @@ async def process_transcription(webhook_data: dict, db: AsyncSession):
         # Отправить в Telegram - ГЛАВНАЯ ЦЕЛЬ!
         await send_to_telegram(webhook_data, summary_data)
         
-        # Добавить в Bitrix24
-        try:
-            await add_to_bitrix24(webhook_data, summary_data)
-        except Exception as bitrix_error:
-            logger.warning(f"⚠️ Could not add to Bitrix24: {bitrix_error}")
-        
         logger.info(f"✅ Call {call_id} processed successfully!")
         
     except Exception as e:
