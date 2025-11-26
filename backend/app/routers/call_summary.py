@@ -230,19 +230,22 @@ async def novofon_webhook(
 async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
     """
     Фоновая задача: обработка звонка с fallback
-    1. Ждём до 3 минут на SPEECH_RECOGNITION (он приходит с задержкой)
-    2. Если не получили - пробуем скачать запись
+    1. Ждём до 2 минут на SPEECH_RECOGNITION
+    2. Если не получили - пробуем скачать через Bitrix24
+    3. Если не получили - пробуем через Novofon API
     """
     import asyncio
+    from backend.app.services.bitrix_calls_service import BitrixCallsService
     
     call_id = call_metadata.get("call_id", "unknown")
     call_id_with_rec = call_metadata.get("call_id_with_rec", "")
+    called_number = call_metadata.get("called", "")
     
     try:
-        logger.info(f"🔄 Starting processing for call {call_id}, waiting up to 3 min for SPEECH_RECOGNITION")
+        logger.info(f"🔄 Starting processing for call {call_id}, waiting up to 2 min for SPEECH_RECOGNITION")
         
-        # Ждём до 3 минут, проверяя каждые 10 секунд
-        for i in range(18):  # 18 * 10 sec = 3 minutes
+        # Ждём до 2 минут, проверяя каждые 10 секунд
+        for i in range(12):  # 12 * 10 sec = 2 minutes
             await asyncio.sleep(10)
             
             # Проверяем не обработан ли уже этот звонок через SPEECH_RECOGNITION
@@ -251,18 +254,48 @@ async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
                 logger.info(f"✅ Call {call_id} was processed via SPEECH_RECOGNITION, exiting fallback")
                 return
             
-            logger.info(f"⏳ Waiting for SPEECH_RECOGNITION... ({(i+1)*10}s/{180}s)")
+            logger.info(f"⏳ Waiting for SPEECH_RECOGNITION... ({(i+1)*10}s/{120}s)")
         
         logger.info(f"⏰ Timeout waiting for SPEECH_RECOGNITION for call {call_id}")
         
-        # Если SPEECH_RECOGNITION так и не пришёл - пробуем скачать запись
-        logger.info(f"🎙️ Trying to download recording for call {call_id}")
+        audio_data = None
         
-        audio_data = await download_recording_with_auth(call_id_with_rec)
+        # СПОСОБ 1: Попробуем получить запись через Bitrix24
+        logger.info(f"🔄 Trying to get recording via Bitrix24...")
+        try:
+            bitrix_service = BitrixCallsService()
+            
+            # Ищем звонок по номеру телефона
+            calls = await bitrix_service.search_calls_by_phone(called_number)
+            logger.info(f"📞 Found {len(calls)} calls in Bitrix24 for {called_number}")
+            
+            for call in calls:
+                # Проверяем что это тот же звонок (по времени и длительности)
+                if call.get("RECORD_FILE_ID"):
+                    recording_url = await bitrix_service.get_call_recording(call.get("CALL_ID"))
+                    if recording_url:
+                        logger.info(f"✅ Got recording URL from Bitrix24: {recording_url[:60]}...")
+                        
+                        # Скачиваем аудио
+                        async with httpx.AsyncClient(timeout=60.0) as client:
+                            response = await client.get(recording_url, follow_redirects=True)
+                            if response.status_code == 200 and len(response.content) > 10000:
+                                audio_data = response.content
+                                logger.info(f"✅ Downloaded {len(audio_data)} bytes from Bitrix24")
+                                break
+                            else:
+                                logger.warning(f"⚠️ Bitrix24 download failed: HTTP {response.status_code}")
+        except Exception as bitrix_error:
+            logger.warning(f"⚠️ Bitrix24 fallback failed: {bitrix_error}")
         
+        # СПОСОБ 2: Если Bitrix не сработал - пробуем Novofon
+        if not audio_data:
+            logger.info(f"🔄 Trying Novofon API for call {call_id}")
+            audio_data = await download_recording_with_auth(call_id_with_rec)
+        
+        # Если ничего не сработало
         if not audio_data:
             logger.warning(f"⚠️ Could not download recording for call {call_id}")
-            # Отправляем уведомление в Telegram что не удалось обработать
             await send_error_notification(call_metadata, "Не удалось скачать запись звонка")
             return
         
