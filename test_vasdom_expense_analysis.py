@@ -11,7 +11,7 @@
 6. Должны быть категории: "Зарплата" (уменьшенная), "Налоги" (5% от выручки), возможно "Аутсорсинг персонала"
 7. НЕ должно быть категорий: "Кредиты", "Швеи", "Юридические услуги", "Продукты питания"
 
-Backend URL: https://call-logger-6.preview.emergentagent.com
+Backend URL: https://bitrix-audio-1.preview.emergentagent.com
 """
 
 import asyncio
@@ -20,7 +20,7 @@ import json
 from typing import Dict, List, Any, Optional
 
 # Backend URL from review request
-BACKEND_URL = "https://call-logger-6.preview.emergentagent.com"
+BACKEND_URL = "https://bitrix-audio-1.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class TestResults:

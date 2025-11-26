@@ -270,6 +270,6 @@ period.dates.forEach(date => {
 
 ---
 
-**Preview URL:** https://call-logger-6.preview.emergentagent.com
+**Preview URL:** https://bitrix-audio-1.preview.emergentagent.com
 
 **Дата завершения:** 12 октября 2025, 10:42 UTC
