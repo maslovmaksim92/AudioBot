@@ -382,7 +382,6 @@ async def process_transcription(webhook_data: dict, db: AsyncSession):
     2. Создать саммари через GPT-4o
     3. Сохранить в БД
     4. Отправить в Telegram
-    5. Добавить в Bitrix24
     """
     call_id = webhook_data["call_id"]
     transcription = webhook_data.get("transcription", "")
