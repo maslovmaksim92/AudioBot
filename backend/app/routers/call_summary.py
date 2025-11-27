@@ -233,7 +233,177 @@ async def novofon_webhook(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Функция process_call_with_fallback УДАЛЕНА - используем только SPEECH_RECOGNITION от Novofon
+async def process_call_with_fallback(call_metadata: dict, db: AsyncSession):
+    """
+    Fallback с таймером: ждёт SPEECH_RECOGNITION, если не пришло - скачивает и транскрибирует
+    """
+    import asyncio
+    
+    call_id = call_metadata.get("call_id", "unknown")
+    call_id_with_rec = call_metadata.get("call_id_with_rec", "")
+    
+    try:
+        logger.info(f"⏱️ Starting 3-minute fallback timer for call {call_id}")
+        
+        # Ждём 3 минуты, проверяя каждые 10 секунд
+        for i in range(18):  # 18 * 10 sec = 3 minutes
+            await asyncio.sleep(10)
+            
+            # Проверяем не обработан ли уже через SPEECH_RECOGNITION
+            processed_calls = getattr(novofon_webhook, '_processed_calls', set())
+            if call_id in processed_calls:
+                logger.info(f"✅ Call {call_id} already processed via SPEECH_RECOGNITION, exiting fallback")
+                return
+            
+            if (i + 1) % 6 == 0:  # Каждую минуту
+                logger.info(f"⏳ Waiting for SPEECH_RECOGNITION... ({(i+1)*10}s/180s)")
+        
+        logger.warning(f"⏰ SPEECH_RECOGNITION timeout for call {call_id}, trying to download recording...")
+        
+        # Пробуем скачать запись
+        audio_data = await download_recording_simple(call_id_with_rec)
+        
+        if not audio_data:
+            logger.error(f"❌ Failed to download recording for call {call_id}")
+            # Отправляем уведомление с метаданными без транскрипции
+            await send_error_notification(call_metadata, "Не удалось получить транскрипцию звонка")
+            return
+        
+        logger.info(f"✅ Downloaded recording: {len(audio_data)} bytes")
+        
+        # Транскрибируем через Whisper
+        transcription = await transcribe_audio(audio_data)
+        
+        if not transcription:
+            logger.error(f"❌ Failed to transcribe call {call_id}")
+            await send_error_notification(call_metadata, "Не удалось транскрибировать запись")
+            return
+        
+        logger.info(f"✅ Transcription completed: {len(transcription)} chars")
+        
+        # Обрабатываем как обычно
+        call_metadata["transcription"] = transcription
+        
+        # Создать саммари
+        summary_data = await create_call_summary(transcription, call_metadata)
+        summary_data["transcription"] = transcription
+        
+        # Сохранить в БД
+        try:
+            await save_to_database(db, call_id, call_metadata, transcription, summary_data)
+        except Exception as db_error:
+            logger.warning(f"⚠️ Could not save to database: {db_error}")
+        
+        # Отправить в Telegram
+        await send_to_telegram(call_metadata, summary_data)
+        
+        # Помечаем как обработанный
+        if not hasattr(novofon_webhook, '_processed_calls'):
+            novofon_webhook._processed_calls = set()
+        novofon_webhook._processed_calls.add(call_id)
+        
+        logger.info(f"✅ Call {call_id} processed via fallback successfully!")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in fallback processing for call {call_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+
+async def download_recording_simple(call_id_with_rec: str) -> bytes:
+    """Простое скачивание записи без сложной авторизации"""
+    if not call_id_with_rec:
+        return None
+    
+    # Novofon API endpoint
+    url = f"https://api.novofon.com/v1/call/recording"
+    
+    # Пробуем разные способы
+    methods = [
+        # Способ 1: GET с параметром id
+        {"method": "GET", "params": {"id": call_id_with_rec}},
+        # Способ 2: Прямой URL
+        {"method": "GET", "url": f"https://api.novofon.com/v1/call/recording/{call_id_with_rec}"},
+        # Способ 3: С auth
+        {"method": "GET", "params": {"id": call_id_with_rec}, "auth": True},
+    ]
+    
+    for i, method_config in enumerate(methods, 1):
+        try:
+            logger.info(f"🔄 Trying download method {i}/{len(methods)} for {call_id_with_rec}")
+            
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+                if method_config.get("auth"):
+                    # Используем Basic Auth с ключами из env
+                    novofon_key = os.getenv("NOVOFON_KEY", "")
+                    novofon_secret = os.getenv("NOVOFON_SECRET", "")
+                    if novofon_key and novofon_secret:
+                        auth = (novofon_key, novofon_secret)
+                        response = await client.get(
+                            method_config.get("url", url),
+                            params=method_config.get("params"),
+                            auth=auth
+                        )
+                    else:
+                        continue
+                else:
+                    response = await client.get(
+                        method_config.get("url", url),
+                        params=method_config.get("params")
+                    )
+                
+                logger.info(f"📡 Response: HTTP {response.status_code}, {len(response.content)} bytes")
+                
+                if response.status_code == 200 and len(response.content) > 10000:
+                    logger.info(f"✅ Successfully downloaded via method {i}")
+                    return response.content
+                else:
+                    logger.warning(f"⚠️ Method {i} failed: HTTP {response.status_code}")
+                    
+        except Exception as e:
+            logger.warning(f"⚠️ Method {i} error: {e}")
+            continue
+    
+    logger.error(f"❌ All download methods failed for {call_id_with_rec}")
+    return None
+
+
+async def send_error_notification(call_metadata: dict, error_message: str):
+    """Отправить уведомление об ошибке с метаданными звонка"""
+    try:
+        caller = call_metadata.get("caller", "неизвестно")
+        called = call_metadata.get("called", "неизвестно")
+        duration = call_metadata.get("duration", 0)
+        timestamp = call_metadata.get("timestamp", "")
+        
+        message = f"""⚠️ <b>ОШИБКА ОБРАБОТКИ ЗВОНКА</b>
+
+📞 Звонок: {caller} → {called}
+⏱ Длительность: {duration} сек
+🕐 Время: {timestamp}
+
+❌ <b>Ошибка:</b> {error_message}
+
+💡 Запись звонка доступна в личном кабинете Novofon
+"""
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": TELEGRAM_TARGET_CHAT_ID,
+                    "text": message,
+                    "parse_mode": "HTML"
+                }
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"✅ Sent error notification to Telegram")
+            else:
+                logger.error(f"❌ Failed to send error notification: {response.text}")
+                
+    except Exception as e:
+        logger.error(f"❌ Error sending error notification: {e}")
 
 
 async def send_error_notification(call_metadata: dict, error_message: str):
