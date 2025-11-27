@@ -1092,9 +1092,76 @@ async def get_call_history(
 @router.post("/manual/{call_id}")
 async def create_manual_summary(
     call_id: str,
-    background_tasks: BackgroundTasks,
+    call_id_with_rec: Optional[str] = None,
+    background_tasks: BackgroundTasks = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Ручное создание саммари для звонка"""
-    # TODO: Реализовать ручное создание саммари
-    return {"status": "not_implemented"}
+    """
+    Ручная обработка звонка (для ретроактивной обработки пропущенных звонков)
+    
+    Параметры:
+    - call_id: ID звонка (pbx_call_id)
+    - call_id_with_rec: ID звонка с записью (опционально)
+    """
+    try:
+        logger.info(f"🔧 Manual processing requested for call {call_id}")
+        
+        # Формируем метаданные звонка
+        call_metadata = {
+            "call_id": call_id,
+            "call_id_with_rec": call_id_with_rec or call_id,
+            "caller": "79843330712",  # Ваш номер
+            "called": "unknown",
+            "direction": "out",
+            "duration": 0,
+            "status": "answered",
+            "timestamp": datetime.now().isoformat(),
+            "record_url": f"https://api.novofon.com/v1/call/recording?id={call_id_with_rec or call_id}"
+        }
+        
+        # Попытка скачать и обработать
+        audio_data = await download_recording_simple(call_id_with_rec or call_id)
+        
+        if not audio_data:
+            return {
+                "status": "error",
+                "message": "Не удалось скачать запись звонка",
+                "call_id": call_id
+            }
+        
+        # Транскрибируем
+        transcription = await transcribe_audio(audio_data)
+        
+        if not transcription:
+            return {
+                "status": "error",
+                "message": "Не удалось транскрибировать запись",
+                "call_id": call_id
+            }
+        
+        # Создаём саммари
+        summary_data = await create_call_summary(transcription, call_metadata)
+        summary_data["transcription"] = transcription
+        
+        # Сохраняем в БД
+        try:
+            await save_to_database(db, call_id, call_metadata, transcription, summary_data)
+        except Exception as db_error:
+            logger.warning(f"⚠️ Could not save to database: {db_error}")
+        
+        # Отправляем в Telegram
+        await send_to_telegram(call_metadata, summary_data)
+        
+        return {
+            "status": "success",
+            "message": "Звонок успешно обработан и отправлен в Telegram",
+            "call_id": call_id,
+            "transcription_length": len(transcription),
+            "summary": summary_data.get("summary", "")[:200]
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error in manual processing: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
