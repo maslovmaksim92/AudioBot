@@ -335,8 +335,8 @@ async def download_recording_simple(call_id_with_rec: str) -> bytes:
             async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
                 if method_config.get("auth"):
                     # Используем Basic Auth с ключами из env
-                    novofon_key = os.getenv("NOVOFON_KEY", "")
-                    novofon_secret = os.getenv("NOVOFON_SECRET", "")
+                    novofon_key = os.getenv("NOVOFON_API_KEY") or os.getenv("novofon_appid", "")
+                    novofon_secret = os.getenv("NOVOFON_API_SECRET") or os.getenv("novofon_secret", "")
                     if novofon_key and novofon_secret:
                         auth = (novofon_key, novofon_secret)
                         response = await client.get(
