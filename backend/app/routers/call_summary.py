@@ -211,20 +211,19 @@ async def novofon_webhook(
             logger.info(f"⏭️ Skipping: call not answered (disposition={disposition})")
             return {"status": "skipped", "reason": "not_answered"}
         
-        # Запускаем fallback с таймером: ждём 3 минуты SPEECH_RECOGNITION, если не пришло - скачиваем запись
-        logger.info(f"📋 Saved metadata for call {pbx_call_id}, starting fallback timer (3 min)...")
+        # ФИЛЬТР: Обрабатываем только звонки С номера +79843330712
+        target_caller = os.getenv("NOVOFON_CALLER_ID", "+79843330712").replace("+", "")
+        current_caller = call_metadata.get("caller", "").replace("+", "")
         
-        # Добавляем URL записи в метаданные
-        if call_id_with_rec:
-            call_metadata["record_url"] = f"https://api.novofon.com/v1/call/recording?id={call_id_with_rec}"
+        if not current_caller.endswith(target_caller.replace("+", "")):
+            logger.info(f"⏭️ Skipping: not from target number {target_caller} (got {current_caller})")
+            return {"status": "skipped", "reason": "not_target_caller"}
         
-        background_tasks.add_task(
-            process_call_with_fallback,
-            call_metadata,
-            db
-        )
+        # Просто сохраняем метаданные и ждём SPEECH_RECOGNITION
+        # НЕ скачиваем запись, НЕ запускаем fallback - только SPEECH_RECOGNITION!
+        logger.info(f"✅ Saved metadata for call {pbx_call_id} from {current_caller}, waiting for SPEECH_RECOGNITION...")
         
-        return {"status": "processing", "call_id": pbx_call_id, "message": "fallback_timer_started"}
+        return {"status": "metadata_saved", "call_id": pbx_call_id, "message": "waiting_for_speech_recognition"}
         
     except Exception as e:
         logger.error(f"❌ Error processing webhook: {e}")
