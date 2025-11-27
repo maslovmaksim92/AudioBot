@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Конфигурация
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_TARGET_CHAT_ID = os.getenv("TG_NEDVIGKA", "-5007549435")  # Группа для недвижимости
+# Используем TG_NEDVIGKA для группы недвижимости (-5007549435)
+TELEGRAM_TARGET_CHAT_ID = os.getenv("TG_NEDVIGKA", "-5007549435")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Novofon API credentials для скачивания записей
