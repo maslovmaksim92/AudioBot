@@ -318,50 +318,64 @@ async def download_recording_simple(call_id_with_rec: str) -> bytes:
     # Novofon API endpoint
     url = f"https://api.novofon.com/v1/call/recording"
     
-    # Пробуем разные способы
-    methods = [
-        # Способ 1: GET с параметром id
-        {"method": "GET", "params": {"id": call_id_with_rec}},
-        # Способ 2: Прямой URL
-        {"method": "GET", "url": f"https://api.novofon.com/v1/call/recording/{call_id_with_rec}"},
-        # Способ 3: С auth
-        {"method": "GET", "params": {"id": call_id_with_rec}, "auth": True},
+    # Получаем ключи
+    novofon_appid = os.getenv("novofon_appid", "")
+    novofon_secret = os.getenv("novofon_secret", "")
+    
+    if not novofon_appid or not novofon_secret:
+        logger.error("❌ Novofon credentials not found in environment")
+        return None
+    
+    # Пробуем разные способы авторизации
+    auth_methods = [
+        # Способ 1: Custom header Authorization: appid:secret
+        {"headers": {"Authorization": f"{novofon_appid}:{novofon_secret}"}},
+        # Способ 2: Basic Auth
+        {"auth": (novofon_appid, novofon_secret)},
+        # Способ 3: Параметры в URL
+        {"params": {"appid": novofon_appid, "secret": novofon_secret}},
     ]
     
-    for i, method_config in enumerate(methods, 1):
+    for i, auth_config in enumerate(auth_methods, 1):
         try:
-            logger.info(f"🔄 Trying download method {i}/{len(methods)} for {call_id_with_rec}")
+            logger.info(f"🔄 Trying download method {i}/{len(auth_methods)} for {call_id_with_rec}")
             
             async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-                if method_config.get("auth"):
-                    # Используем Basic Auth с ключами из env
-                    novofon_key = os.getenv("NOVOFON_API_KEY") or os.getenv("novofon_appid", "")
-                    novofon_secret = os.getenv("NOVOFON_API_SECRET") or os.getenv("novofon_secret", "")
-                    if novofon_key and novofon_secret:
-                        auth = (novofon_key, novofon_secret)
-                        response = await client.get(
-                            method_config.get("url", url),
-                            params=method_config.get("params"),
-                            auth=auth
-                        )
-                    else:
-                        continue
-                else:
-                    response = await client.get(
-                        method_config.get("url", url),
-                        params=method_config.get("params")
-                    )
+                # Базовые параметры
+                params = {"id": call_id_with_rec}
+                
+                # Добавляем auth параметры если есть
+                if "params" in auth_config:
+                    params.update(auth_config["params"])
+                
+                response = await client.get(
+                    url,
+                    params=params,
+                    headers=auth_config.get("headers"),
+                    auth=auth_config.get("auth")
+                )
                 
                 logger.info(f"📡 Response: HTTP {response.status_code}, {len(response.content)} bytes")
                 
-                if response.status_code == 200 and len(response.content) > 10000:
-                    logger.info(f"✅ Successfully downloaded via method {i}")
-                    return response.content
+                # Проверяем content-type
+                content_type = response.headers.get("content-type", "")
+                logger.info(f"📋 Content-Type: {content_type}")
+                
+                if response.status_code == 200:
+                    # Проверяем что это аудио файл
+                    if len(response.content) > 10000 or "audio" in content_type or "octet-stream" in content_type:
+                        logger.info(f"✅ Successfully downloaded via method {i}")
+                        return response.content
+                    else:
+                        logger.warning(f"⚠️ Method {i}: Response too small or wrong type: {response.text[:200]}")
                 else:
                     logger.warning(f"⚠️ Method {i} failed: HTTP {response.status_code}")
+                    logger.warning(f"Response body: {response.text[:200]}")
                     
         except Exception as e:
             logger.warning(f"⚠️ Method {i} error: {e}")
+            import traceback
+            logger.warning(traceback.format_exc())
             continue
     
     logger.error(f"❌ All download methods failed for {call_id_with_rec}")
