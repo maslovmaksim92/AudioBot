@@ -108,6 +108,15 @@ async def novofon_webhook(
             
             logger.info(f"🎤 Received SPEECH_RECOGNITION for call {pbx_call_id}")
             
+            # ФИЛЬТР: Проверяем что это звонок с нужного номера
+            call_metadata = getattr(novofon_webhook, '_call_cache', {}).get(pbx_call_id, {})
+            target_caller = os.getenv("NOVOFON_CALLER_ID", "+79843330712").replace("+", "")
+            current_caller = call_metadata.get("caller", "").replace("+", "")
+            
+            if current_caller and not current_caller.endswith(target_caller.replace("+", "")):
+                logger.info(f"⏭️ Skipping SPEECH_RECOGNITION: not from target number (got {current_caller})")
+                return {"status": "skipped", "reason": "not_target_caller"}
+            
             # Парсим транскрипцию из JSON
             import json
             try:
