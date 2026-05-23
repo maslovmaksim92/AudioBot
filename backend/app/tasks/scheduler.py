@@ -6,6 +6,7 @@
 """
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -34,14 +35,15 @@ class TaskScheduler:
             logger.warning("Scheduler already running")
             return
         
-        # Синхронизация Bitrix24 каждые 30 минут (оптимально для нагрузки)
-        self.scheduler.add_job(
-            self.sync_bitrix24_houses,
-            trigger=IntervalTrigger(minutes=30),
-            id='sync_bitrix24',
-            name='Синхронизация домов из Bitrix24',
-            replace_existing=True
-        )
+        # Синхронизация Bitrix24 — только если включена (ENABLE_BITRIX_SYNC=1)
+        if os.environ.get("ENABLE_BITRIX_SYNC", "0") == "1":
+            self.scheduler.add_job(
+                self.sync_bitrix24_houses,
+                trigger=IntervalTrigger(minutes=30),
+                id='sync_bitrix24',
+                name='Синхронизация домов из Bitrix24',
+                replace_existing=True
+            )
         
         # Московский часовой пояс
         moscow_tz = pytz.timezone('Europe/Moscow')
@@ -55,23 +57,25 @@ class TaskScheduler:
             replace_existing=True
         )
         
-        # Автоматическая обработка звонков каждые 5 минут
-        self.scheduler.add_job(
-            run_call_summary_agent,
-            trigger=IntervalTrigger(minutes=5),
-            id='call_summary_agent',
-            name='Агент саммари звонков',
-            replace_existing=True
-        )
+        # Агент саммари звонков — только если включена телефония (ENABLE_CALL_SUMMARY=1)
+        if os.environ.get("ENABLE_CALL_SUMMARY", "0") == "1":
+            self.scheduler.add_job(
+                run_call_summary_agent,
+                trigger=IntervalTrigger(minutes=5),
+                id='call_summary_agent',
+                name='Агент саммари звонков',
+                replace_existing=True
+            )
         
-        # AI звонки сотрудникам каждый день в 16:55 MSK
-        self.scheduler.add_job(
-            self.ai_call_employees,
-            trigger=CronTrigger(hour=16, minute=55, timezone=moscow_tz),
-            id='ai_calls_daily',
-            name='AI звонки сотрудникам',
-            replace_existing=True
-        )
+        # AI звонки сотрудникам — только если включена телефония (ENABLE_CALL_SUMMARY=1)
+        if os.environ.get("ENABLE_CALL_SUMMARY", "0") == "1":
+            self.scheduler.add_job(
+                self.ai_call_employees,
+                trigger=CronTrigger(hour=16, minute=55, timezone=moscow_tz),
+                id='ai_calls_daily',
+                name='AI звонки сотрудникам',
+                replace_existing=True
+            )
         
         self.scheduler.start()
         self.running = True
