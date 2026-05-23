@@ -20,7 +20,7 @@ import {
   Activity,
   Mic,
   Phone
-} from 'lucide-react';
+, CheckCircle} from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Layout = ({ children }) => {
@@ -29,14 +29,10 @@ const Layout = ({ children }) => {
 
   const navigation = [
     { name: 'Обзор', href: '/dashboard', icon: Home, color: 'text-blue-600' },
+    { name: '✅ Выполнение', href: '/execution', icon: CheckCircle, color: 'text-green-600' },
     { name: 'Дома', href: '/works', icon: Building2, color: 'text-green-600' },
-    { name: 'Сотрудники', href: '/employees', icon: Users, color: 'text-orange-600' },
-    { name: 'AI Чат', href: '/ai', icon: Bot, color: 'text-purple-600' },
     { name: '🤖 Агенты', href: '/agents', icon: Settings, color: 'text-indigo-600' },
     { name: 'Воронка продаж', href: '/sales', icon: TrendingUp, color: 'text-emerald-600' },
-    { name: 'Задачи', href: '/tasks', icon: ClipboardList, color: 'text-blue-600' },
-    { name: 'Планёрка', href: '/plannerka', icon: Mic, color: 'text-purple-600' },
-    { name: 'Звонки', href: '/calls', icon: Phone, color: 'text-cyan-600' },
     { name: 'Финансы', href: '/finances', icon: DollarSign, color: 'text-green-600' },
     { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
     { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },

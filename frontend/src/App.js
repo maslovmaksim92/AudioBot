@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
+import ExecutionDashboard from './components/Execution/ExecutionDashboard';
 import Works from './components/Works/Works';
 import CleaningCalendar from './components/Calendar/CleaningCalendar';
 import WorksConstructor from './components/Works/WorksConstructor';
@@ -49,6 +50,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/execution" element={<ExecutionDashboard />} />
               <Route path="/works" element={<Works />} />
               <Route path="/works/constructor" element={<WorksConstructor />} />
               <Route path="/calendar" element={<CleaningCalendar />} />
