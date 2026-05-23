@@ -44,19 +44,17 @@ async def run_migrations(db_pool):
             with open(migration_path, 'r', encoding='utf-8') as f:
                 sql = f.read()
             
-            # Выполняем каждую команду отдельно вне транзакции
+            # Выполняем весь файл целиком: asyncpg корректно обрабатывает
+            # многооператорный SQL и dollar-quoted блоки ($$...$$ в триггерах),
+            # которые ломались при наивном split(';').
             async with db_pool.acquire() as conn:
-                # Разбиваем SQL на отдельные команды
-                commands = [cmd.strip() for cmd in sql.split(';') if cmd.strip()]
-                for command in commands:
-                    try:
-                        await conn.execute(command)
-                    except Exception as cmd_error:
-                        # Если команда уже выполнена (таблица/индекс существует), пропускаем
-                        if "already exists" in str(cmd_error).lower():
-                            continue
-                        else:
-                            raise
+                try:
+                    await conn.execute(sql)
+                except Exception as cmd_error:
+                    if "already exists" in str(cmd_error).lower():
+                        pass
+                    else:
+                        raise
             
             logger.info(f"[migrations] ✅ Migration executed: {migration_file}")
             
