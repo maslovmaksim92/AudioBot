@@ -1,0 +1,51 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: audiobot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: audiobot
+      POSTGRES_USER: audiobot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-audiobot}
+    volumes:
+      - audiobot-pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audiobot -d audiobot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: audiobot-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://audiobot:${POSTGRES_PASSWORD:-audiobot}@db:5432/audiobot
+      PGSSLMODE: disable
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8011:8011"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-https://ai.vd40.ru}
+    container_name: audiobot-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8012:80"
+    depends_on:
+      - backend
+
+volumes:
+  audiobot-pgdata:
