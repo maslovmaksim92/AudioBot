@@ -1,8 +1,8 @@
 """
 MAX-бот для уборщиц VasDom (один общий бот на всех).
-Меню: По УК | По бригадам | На сегодня → карточка адреса → отправка фото.
-Фото публикуются в канал с подписью адрес/дата + фиксируются в cleaning_photos.
-Бригада берётся из поля brigade_number (из «Ответственный» Bitrix).
+Меню: По УК | По бригадам | На сегодня → карточка адреса → сбор фото → отправка.
+Уборщица грузит несколько фото (разными сообщениями), они копятся,
+затем жмёт «Отправить» → публикация в канал с подписью + фиксация в cleaning_photos.
 """
 import os
 import logging
@@ -23,8 +23,8 @@ RU_MONTHS = {1: "january", 2: "february", 3: "march", 4: "april", 5: "may", 6: "
 RU_MONTHS_NAME = {1: "январь", 2: "февраль", 3: "март", 4: "апрель", 5: "май", 6: "июнь",
                   7: "июль", 8: "август", 9: "сентябрь", 10: "октябрь", 11: "ноябрь", 12: "декабрь"}
 
-# Простая in-memory сессия: какой дом выбрал пользователь для отправки фото
-# {user_id: {"house_id": str, "awaiting_photo": bool}}
+# Сессия пользователя: дом + буфер накопленных фото-токенов
+# {user_id: {"house_id": str, "awaiting_photo": bool, "photos": [tokens]}}
 _SESSIONS: Dict[int, Dict[str, Any]] = {}
 
 
@@ -82,7 +82,7 @@ def _fmt_card(h: House) -> str:
     return "\n".join(lines)
 
 
-# ---------- экраны ----------
+# ---------- экраны меню ----------
 
 def _main_menu_buttons():
     return [
@@ -92,12 +92,10 @@ def _main_menu_buttons():
     ]
 
 
-async def show_main_menu(chat_id: int, callback_id: Optional[str] = None):
+async def show_main_menu(chat_id, callback_id=None):
     txt = "👋 Добро пожаловать!\nВыберите, как искать адрес для уборки:"
-    if callback_id:
-        await M.answer_callback(callback_id, new_text=txt, buttons=_main_menu_buttons())
-    else:
-        await M.send_message(chat_id, txt, buttons=_main_menu_buttons())
+    await (M.answer_callback(callback_id, new_text=txt, buttons=_main_menu_buttons()) if callback_id
+           else M.send_message(chat_id, txt, buttons=_main_menu_buttons()))
 
 
 async def show_uk_list(chat_id, callback_id=None):
@@ -167,10 +165,48 @@ async def show_house_card(chat_id, house_id, callback_id=None):
            else M.send_message(chat_id, _fmt_card(h), buttons=rows))
 
 
-# ---------- приём фото ----------
+# ---------- сбор и отправка фото ----------
+
+def _collect_buttons(count: int):
+    """Кнопки в режиме сбора фото."""
+    rows = []
+    if count > 0:
+        rows.append([M.btn_callback(f"✅ Отправить ({count} фото)", "send_photos")])
+    rows.append([M.btn_callback("❌ Отмена", "menu")])
+    return rows
+
+
+async def start_photo_collection(chat_id, house_id, callback_id, user_id):
+    """Перейти в режим сбора фото для дома."""
+    _SESSIONS[user_id] = {"house_id": house_id, "awaiting_photo": True, "photos": []}
+    txt = ("📸 Присылайте фото уборки — можно несколько, разными сообщениями.\n"
+           "Когда загрузите все, нажмите «Отправить».")
+    await M.answer_callback(callback_id, new_text=txt, buttons=_collect_buttons(0))
+
+
+async def collect_photo(chat_id, user_id, image_attachments):
+    """Добавить присланные фото в буфер сессии (без отправки)."""
+    sess = _SESSIONS.get(user_id)
+    if not sess or not sess.get("awaiting_photo"):
+        # Пользователь прислал фото вне режима сбора — подсказываем
+        await M.send_message(
+            chat_id,
+            "📸 Сначала выберите адрес и нажмите «Отправить фото уборки», потом присылайте фото.",
+            buttons=[[M.btn_callback("📋 В меню", "menu")]],
+        )
+        return
+    tokens = [a["payload"]["token"] for a in image_attachments
+              if a.get("type") == "image" and a.get("payload", {}).get("token")]
+    sess["photos"].extend(tokens)
+    n = len(sess["photos"])
+    await M.send_message(
+        chat_id,
+        f"📷 Принято фото: {n}. Можно прислать ещё или нажать «Отправить».",
+        buttons=_collect_buttons(n),
+    )
+
 
 def _today_cleaning_label(h: House) -> str:
-    """Подобрать дату уборки для подписи: сегодня, иначе ближайшую в этом месяце."""
     now = datetime.now()
     items = _schedule_dates(h, now.year, now.month)
     iso = date.today().isoformat()
@@ -180,29 +216,19 @@ def _today_cleaning_label(h: House) -> str:
     return date.today().strftime("%d.%m.%Y")
 
 
-async def handle_photos(chat_id: int, user_id: int, image_attachments: List[Dict[str, Any]]):
-    """Принять фото от уборщицы, опубликовать в канал, зафиксировать в БД."""
+async def send_collected_photos(chat_id, user_id, callback_id):
+    """Опубликовать накопленные фото в канал + зафиксировать в БД."""
     sess = _SESSIONS.get(user_id)
-    if not sess or not sess.get("awaiting_photo") or not sess.get("house_id"):
-        await M.send_message(
-            chat_id,
-            "📸 Сначала выберите адрес и нажмите «Отправить фото уборки», затем пришлите фото.",
-            buttons=[[M.btn_callback("📋 В меню", "menu")]],
-        )
+    if not sess or not sess.get("photos"):
+        await M.answer_callback(callback_id, text="Нет фото для отправки")
         return
-
     h = await _house(sess["house_id"])
     if not h:
-        await M.send_message(chat_id, "❌ Адрес не найден. Откройте меню заново.",
-                             buttons=[[M.btn_callback("📋 В меню", "menu")]])
+        await M.answer_callback(callback_id, text="Адрес не найден")
+        _SESSIONS.pop(user_id, None)
         return
 
-    tokens = [a["payload"]["token"] for a in image_attachments
-              if a.get("type") == "image" and a.get("payload", {}).get("token")]
-    if not tokens:
-        await M.send_message(chat_id, "❌ Не удалось получить фото, попробуйте ещё раз.")
-        return
-
+    tokens = sess["photos"]
     date_label = _today_cleaning_label(h)
     caption = f"🏠 {h.address}\n📅 {date_label}"
     if h.company_title:
@@ -216,7 +242,7 @@ async def handle_photos(chat_id: int, user_id: int, image_attachments: List[Dict
         res = await M.send_photos(int(MAX_PHOTOS_CHANNEL_ID), tokens, caption)
         published = bool(res and not res.get("code"))
 
-    # 2) фиксируем в БД (cleaning_photos)
+    # 2) фиксируем в БД (без ON CONFLICT — просто вставка)
     try:
         async with AsyncSessionLocal() as s:
             await s.execute(sa_text("""
@@ -227,11 +253,6 @@ async def handle_photos(chat_id: int, user_id: int, image_attachments: List[Dict
                 VALUES
                   (:hid, :addr, :brig, :uid, :cdate, :tokens, :cnt, :cap, :status,
                    :sent_at, :now, :now)
-                ON CONFLICT (house_id, cleaning_date, brigade_id) DO UPDATE SET
-                   photo_file_ids = EXCLUDED.photo_file_ids,
-                   photo_count = EXCLUDED.photo_count,
-                   status = EXCLUDED.status,
-                   updated_at = EXCLUDED.updated_at
             """), {
                 "hid": h.id, "addr": h.address, "brig": h.brigade_number,
                 "uid": user_id, "cdate": date.today(),
@@ -242,15 +263,14 @@ async def handle_photos(chat_id: int, user_id: int, image_attachments: List[Dict
             })
             await s.commit()
     except Exception as e:
-        logger.error(f"[MAX bot] не удалось записать cleaning_photos: {e}")
+        logger.error(f"[MAX bot] запись cleaning_photos: {e}")
 
-    # 3) подтверждаем уборщице
     _SESSIONS.pop(user_id, None)
     if published:
-        msg = f"✅ Принято {len(tokens)} фото!\n{h.address} — {date_label}\nОпубликовано в канал отчётов."
+        msg = f"✅ Опубликовано {len(tokens)} фото в канал!\n{h.address} — {date_label}"
     else:
-        msg = f"✅ Принято {len(tokens)} фото для:\n{h.address} — {date_label}\n(зафиксировано в системе)"
-    await M.send_message(chat_id, msg, buttons=[[M.btn_callback("📋 В меню", "menu")]])
+        msg = f"✅ Принято {len(tokens)} фото\n{h.address} — {date_label}\n(зафиксировано в системе)"
+    await M.answer_callback(callback_id, new_text=msg, buttons=[[M.btn_callback("📋 В меню", "menu")]])
 
 
 # ---------- роутинг ----------
@@ -273,14 +293,9 @@ async def handle_callback(chat_id, callback_id, payload, user_id=None):
     elif payload.startswith("h:"):
         await show_house_card(chat_id, payload[2:], callback_id)
     elif payload.startswith("photo:"):
-        house_id = payload[6:]
-        if user_id:
-            _SESSIONS[user_id] = {"house_id": house_id, "awaiting_photo": True}
-        await M.answer_callback(
-            callback_id,
-            new_text="📸 Пришлите фото уборки (можно несколько одним сообщением).\nОни будут опубликованы в канал с адресом и датой.",
-            buttons=[[M.btn_callback("⬅️ В меню", "menu")]],
-        )
+        await start_photo_collection(chat_id, payload[6:], callback_id, user_id)
+    elif payload == "send_photos":
+        await send_collected_photos(chat_id, user_id, callback_id)
     else:
         await M.answer_callback(callback_id, text="Неизвестная команда")
 
@@ -295,22 +310,31 @@ async def handle_update(update: Dict[str, Any]):
 
     elif ut == "message_created":
         msg = update.get("message", {})
-        recipient = msg.get("recipient") or {}
-        chat_id = recipient.get("chat_id")
+        chat_id = (msg.get("recipient") or {}).get("chat_id")
         sender = msg.get("sender") or {}
         user_id = sender.get("user_id")
         body = msg.get("body") or {}
         attachments = body.get("attachments") or []
         images = [a for a in attachments if a.get("type") == "image"]
 
-        # Не реагируем на сообщения от самого бота
         if sender.get("is_bot"):
             return
 
+        sess = _SESSIONS.get(user_id) if user_id else None
+
         if images and user_id:
-            await handle_photos(chat_id, user_id, images)
+            # Фото — копим в буфер (не отправляем сразу)
+            await collect_photo(chat_id, user_id, images)
+        elif sess and sess.get("awaiting_photo"):
+            # В режиме сбора фото текст игнорируем (мягко напоминаем)
+            n = len(sess.get("photos", []))
+            await M.send_message(
+                chat_id,
+                f"📸 Жду фото (принято: {n}). Пришлите фотографии или нажмите «Отправить».",
+                buttons=_collect_buttons(n),
+            )
         else:
-            # Любое текстовое сообщение → показываем меню (без необходимости /start)
+            # Обычное сообщение → меню (без /start)
             if chat_id:
                 await show_main_menu(chat_id)
 
