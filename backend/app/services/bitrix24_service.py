@@ -233,6 +233,10 @@ class Bitrix24Service:
 
     async def _make_request(self, client: httpx.AsyncClient, method: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Выполнить запрос к Bitrix24 API с rate limiting и обработкой 503 ошибок"""
+        # Если webhook Bitrix не настроен — не пытаемся слать запрос (убираем шум в логах)
+        if not self.webhook_url or not self.webhook_url.lower().startswith(("http://", "https://")):
+            logger.debug("Bitrix webhook не настроен — запрос пропущен")
+            return {"result": []}
         url = f"{self.webhook_url}{method}"
         select_fields = payload.get('select') or []
         
