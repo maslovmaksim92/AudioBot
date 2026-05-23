@@ -142,3 +142,32 @@ async def list_subscriptions() -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"[MAX] list_subscriptions error: {e}")
         return None
+
+
+async def send_photos(
+    chat_id: int,
+    photo_tokens: List[str],
+    caption: str = "",
+) -> Optional[Dict[str, Any]]:
+    """Опубликовать фото (по их token) в чат/канал с подписью.
+    В MAX несколько изображений отправляются как массив attachments type=image."""
+    if not MAX_BOT_TOKEN:
+        return None
+    attachments = [{"type": "image", "payload": {"token": t}} for t in photo_tokens]
+    body: Dict[str, Any] = {"attachments": attachments}
+    if caption:
+        body["text"] = caption
+    try:
+        async with httpx.AsyncClient(timeout=60) as cli:
+            r = await cli.post(
+                f"{MAX_API_BASE}/messages",
+                params={"chat_id": chat_id},
+                headers=_headers(),
+                json=body,
+            )
+            if r.status_code >= 400:
+                logger.error(f"[MAX] send_photos {r.status_code}: {r.text[:300]}")
+            return r.json() if r.content else None
+    except Exception as e:
+        logger.error(f"[MAX] send_photos error: {e}")
+        return None
