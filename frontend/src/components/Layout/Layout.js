@@ -20,7 +20,7 @@ import {
   Activity,
   Mic,
   Phone
-, CheckCircle, Scissors} from 'lucide-react';
+, CheckCircle, Scissors, Network} from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Layout = ({ children }) => {
@@ -34,6 +34,7 @@ const Layout = ({ children }) => {
     { name: 'Дома', href: '/works', icon: Building2, color: 'text-green-600' },
     { name: 'Календарь уборок', href: '/calendar', icon: Calendar, color: 'text-purple-600' },
     { name: '🪟 Шторы', href: '/curtains', icon: Scissors, color: 'text-indigo-600' },
+    { name: '🧭 Структура', href: '/structure', icon: Network, color: 'text-sky-600' },
   ];
 
   const isActiveRoute = (href) => {
