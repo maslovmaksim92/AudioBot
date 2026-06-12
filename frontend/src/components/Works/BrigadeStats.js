@@ -1,523 +1,260 @@
 import React, { useState, useEffect } from 'react';
-import { Users, TrendingUp, Calendar as CalendarIcon, Home, Layers, ArrowUp, PieChart as PieChartIcon } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import {
+  Users, RefreshCw, Wallet, DoorOpen, Layers, Home as HomeIcon,
+  Building2, TrendingUp, Target, CheckCircle2
+} from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Cell, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
+} from 'recharts';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || import.meta?.env?.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || (import.meta?.env?.REACT_APP_BACKEND_URL);
+const money = (v) => Math.round(v || 0).toLocaleString('ru-RU');
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#ef4444', '#6366f1'];
 
 const BrigadeStats = () => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [brigadeData, setBrigadeData] = useState([]);
+  const [month, setMonth] = useState(() => {
+    const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedBrigade, setSelectedBrigade] = useState(null);
-  const [dailyStats, setDailyStats] = useState({});
-  const [brigadeDistribution, setBrigadeDistribution] = useState([]);
+  const [sortKey, setSortKey] = useState('revenue');
 
-  const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
-                  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [month]);
 
-  useEffect(() => {
-    console.log('[BrigadeStats] Month changed, reloading stats...');
-    loadBrigadeStats();
-  }, [currentMonth]);
-
-  const loadBrigadeStats = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      setBrigadeData([]);
-      setDailyStats({});
-      setBrigadeDistribution([]);
-      console.log('[BrigadeStats] Loading stats for month:', currentMonth.toISOString());
-      
-      // Загружаем распределение домов по бригадам
-      const distributionResponse = await fetch(`${BACKEND_URL}/api/dashboard/houses-by-brigade`);
-      const distributionData = await distributionResponse.json();
-      setBrigadeDistribution(distributionData.data || []);
-      
-      const response = await fetch(`${BACKEND_URL}/api/cleaning/houses?limit=1000`);
-      const data = await response.json();
-      
-      console.log('[BrigadeStats] Loaded', data.houses?.length || 0, 'houses');
-      
-      // Определяем выбранный МЕСЯЦ для фильтрации
-      const selectedYear = currentMonth.getFullYear();
-      const selectedMonth = currentMonth.getMonth();
-      const monthPrefix = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`; // YYYY-MM
-      
-      console.log('[BrigadeStats] Filtering for MONTH:', monthPrefix);
-      
-      // Подсчет статистики по бригадам
-      const stats = {};
-      const dailyWork = {};
-      
-      (data.houses || []).forEach((house, idx) => {
-        if (idx < 3) {
-          console.log('[BrigadeStats] Sample house:', {
-            brigade: house.brigade_name,
-            address: house.address?.substring(0, 30),
-            cleaning_dates: house.cleaning_dates
-          });
-        }
-        const brigade = house.brigade_number || house.brigade_name || 'Не назначена';
-        
-        if (!stats[brigade]) {
-          stats[brigade] = {
-            brigade: brigade,
-            totalHouses: 0,
-            totalApartments: 0,
-            totalEntrances: 0,
-            totalFloors: 0,
-            cleanings: {},
-            sweepings: {}
-          };
-        }
-        
-        stats[brigade].totalHouses++;
-        stats[brigade].totalApartments += house.apartments || 0;
-        stats[brigade].totalEntrances += house.entrances || 0;
-        stats[brigade].totalFloors += (house.entrances || 0) * (house.floors || 0);
-        
-        // Подсчет уборок по датам
-        // Проверяем оба возможных формата: cleaning_dates и all_cleaning_dates
-        const cleaningDatesObj = house.cleaning_dates || house.all_cleaning_dates;
-        
-        if (cleaningDatesObj && typeof cleaningDatesObj === 'object') {
-          Object.values(cleaningDatesObj).forEach(period => {
-            // period может быть объектом {dates: [...], type: '...'} 
-            // или массивом дат
-            let dates = [];
-            let type = '';
-            
-            if (Array.isArray(period)) {
-              dates = period;
-            } else if (period && typeof period === 'object') {
-              dates = period.dates || [];
-              type = period.type || '';
-            }
-            
-            if (dates && dates.length > 0) {
-              dates.forEach(dateItem => {
-                // dateItem может быть строкой или объектом {date: '...'}
-                const dateStr = typeof dateItem === 'string' ? dateItem : dateItem?.date;
-                
-                if (!dateStr) return;
-                
-                const date = dateStr.split('T')[0]; // Формат YYYY-MM-DD
-                
-                // Фильтрация: ТОЛЬКО выбранный месяц
-                if (!date.startsWith(monthPrefix)) {
-                  return; // Пропускаем все даты не из выбранного месяца
-                }
-                
-                const typeText = (type || '').toLowerCase();
-                const isFullCleaning = typeText.includes('всех этаж');
-                const isSweeping = typeText.includes('подмет');
-                
-                if (!dailyWork[date]) {
-                  dailyWork[date] = {};
-                }
-                if (!dailyWork[date][brigade]) {
-                  dailyWork[date][brigade] = {
-                    entrances: 0,
-                    floors: 0,
-                    houses: 0,
-                    sweepings: 0
-                  };
-                }
-                
-                dailyWork[date][brigade].houses++;
-                
-                if (isFullCleaning) {
-                  dailyWork[date][brigade].entrances += house.entrances || 0;
-                  dailyWork[date][brigade].floors += (house.entrances || 0) * (house.floors || 0);
-                  
-                  if (!stats[brigade].cleanings[date]) {
-                    stats[brigade].cleanings[date] = { entrances: 0, floors: 0, houses: 0 };
-                  }
-                  stats[brigade].cleanings[date].entrances += house.entrances || 0;
-                  stats[brigade].cleanings[date].floors += (house.entrances || 0) * (house.floors || 0);
-                  stats[brigade].cleanings[date].houses++;
-                }
-                
-                if (isSweeping) {
-                  dailyWork[date][brigade].sweepings++;
-                  
-                  if (!stats[brigade].sweepings[date]) {
-                    stats[brigade].sweepings[date] = 0;
-                  }
-                  stats[brigade].sweepings[date]++;
-                }
-              });
-            }
-          });
-        } else if (idx < 3) {
-          console.log('[BrigadeStats] No cleaning dates for house:', house.address?.substring(0, 30));
-        }
-      });
-      
-      const brigadeArray = Object.values(stats);
-      console.log('[BrigadeStats] Calculated stats for', brigadeArray.length, 'brigades');
-      console.log('[BrigadeStats] Daily work entries:', Object.keys(dailyWork).length);
-      
-      setBrigadeData(brigadeArray);
-      setDailyStats(dailyWork);
-    } catch (error) {
-      console.error('[BrigadeStats] Error loading brigade stats:', error);
-      console.error(error.stack);
-      setError(error.message || 'Ошибка загрузки данных');
+      const r = await fetch(`${BACKEND_URL}/api/cleaning/brigade-calc?month=${month}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setData(await r.json());
+    } catch (e) {
+      console.error('brigade-calc error', e);
+      setData(null);
     } finally {
-      console.log('[BrigadeStats] Loading complete, setting loading=false');
       setLoading(false);
     }
   };
 
-  const getDaysInMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
+  const brigades = (data?.brigades || []).filter(b => b.brigade !== '—');
+  const totals = data?.totals || {};
+  const sorted = [...brigades].sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+  const chartData = brigades.map((b, i) => ({ ...b, name: `${b.brigade} бр.`, color: COLORS[i % COLORS.length] }));
 
-  const formatDate = (year, month, day) => {
-    const m = String(month + 1).padStart(2, '0');
-    const d = String(day).padStart(2, '0');
-    return `${year}-${m}-${d}`;
-  };
-
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const day = currentMonth.getDate();
-  const formattedDate = `${day} ${months[month]} ${year}`;
-  const daysInMonth = getDaysInMonth(currentMonth);
+  // данные для radar (нормализованные) — сравнение бригад по 4 осям
+  const maxOf = (k) => Math.max(1, ...brigades.map(b => b[k] || 0));
+  const radarAxes = [
+    { key: 'revenue', label: 'Деньги' },
+    { key: 'houses', label: 'Дома' },
+    { key: 'entrances', label: 'Подъезды' },
+    { key: 'floors', label: 'Этажи' },
+    { key: 'plan_cleanings', label: 'Уборки' },
+  ];
+  const radarData = radarAxes.map(ax => {
+    const row = { axis: ax.label };
+    brigades.forEach(b => { row[`б${b.brigade}`] = Math.round((b[ax.key] || 0) / maxOf(ax.key) * 100); });
+    return row;
+  });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-200">
+            <Users className="w-6 h-6 text-white" />
+          </div>
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <Users className="w-10 h-10 text-blue-600" />
-              KPI Бригад
-            </h1>
-            <p className="text-gray-600">Статистика работы бригад на <span className="font-semibold text-blue-600">{formattedDate}</span></p>
+            <h1 className="text-2xl font-bold text-gray-900">KPI бригад</h1>
+            <p className="text-sm text-gray-500">Деньги, объёмы и выполнение по бригадам</p>
           </div>
-          
-          {/* Селектор месяца с календарем */}
-          <div className="flex items-center gap-3 bg-white rounded-lg shadow-md p-2 border border-gray-200">
-            <button
-              onClick={() => {
-                const newDate = new Date(currentMonth);
-                newDate.setMonth(newDate.getMonth() - 1);
-                setCurrentMonth(newDate);
-              }}
-              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-              title="Предыдущий месяц"
-            >
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            {/* Календарь для выбора любой даты */}
-            <input
-              type="date"
-              value={currentMonth.toISOString().split('T')[0]}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setCurrentMonth(new Date(e.target.value));
-                }
-              }}
-              className="px-3 py-2 text-sm font-semibold text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              title="Выберите дату"
-            />
-            
-            <button
-              onClick={() => {
-                const newDate = new Date(currentMonth);
-                newDate.setMonth(newDate.getMonth() + 1);
-                setCurrentMonth(newDate);
-              }}
-              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
-              title="Следующий месяц"
-            >
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-            
-            <button
-              onClick={() => setCurrentMonth(new Date())}
-              className="ml-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-              title="Текущий месяц"
-            >
-              Сегодня
-            </button>
-          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)}
+                 className="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white shadow-sm" />
+          <button onClick={fetchData} className="px-4 py-2 rounded-xl bg-white border border-gray-300 shadow-sm hover:bg-gray-50 flex items-center gap-2 text-sm">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Обновить
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Загрузка статистики...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-12">
-          <div className="text-red-600 text-xl mb-4">❌ Ошибка</div>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={loadBrigadeStats}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Повторить попытку
-          </button>
-        </div>
-      ) : (
+      {loading && <div className="text-center py-20 text-gray-400">Загрузка…</div>}
+
+      {!loading && data && (
         <>
-          {/* Распределение домов по бригадам */}
-          {brigadeDistribution.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <PieChartIcon className="w-7 h-7 text-blue-600" />
-                Распределение домов по бригадам
-              </h2>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Круговая диаграмма */}
-                <div className="flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={brigadeDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ label, value, percent }) => `${label}: ${value} (${(percent * 100).toFixed(1)}%)`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {brigadeDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value, name, props) => [
-                          `${value} домов (${((props.payload.value / brigadeDistribution.reduce((sum, b) => sum + b.value, 0)) * 100).toFixed(1)}%)`,
-                          props.payload.label
-                        ]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                {/* Таблица с данными */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-4 pb-3 border-b-2 border-gray-300 font-semibold text-gray-700">
-                    <div>Бригада</div>
-                    <div className="text-right">Домов</div>
-                    <div className="text-right">Процент</div>
-                  </div>
-                  {brigadeDistribution
-                    .sort((a, b) => b.value - a.value)
-                    .map((brigade, idx) => {
-                      const totalHouses = brigadeDistribution.reduce((sum, b) => sum + b.value, 0);
-                      const percentage = ((brigade.value / totalHouses) * 100).toFixed(1);
-                      
-                      return (
-                        <div 
-                          key={idx} 
-                          className="grid grid-cols-3 gap-4 p-3 rounded-lg hover:bg-gray-50 transition-all"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-4 h-4 rounded"
-                              style={{ backgroundColor: brigade.color }}
-                            />
-                            <span className="font-medium text-gray-900">{brigade.label}</span>
-                          </div>
-                          <div className="text-right font-semibold text-gray-900">
-                            {brigade.value}
-                          </div>
-                          <div className="text-right">
-                            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-                              {percentage}%
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  
-                  {/* Итого */}
-                  <div className="grid grid-cols-3 gap-4 pt-3 border-t-2 border-gray-300 font-bold text-gray-900">
-                    <div>Итого:</div>
-                    <div className="text-right">
-                      {brigadeDistribution.reduce((sum, b) => sum + b.value, 0)}
-                    </div>
-                    <div className="text-right">100%</div>
-                  </div>
-                </div>
+          {/* Итоги */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            {[
+              { icon: Users, label: 'Бригад', value: brigades.length, c: 'from-slate-500 to-slate-600' },
+              { icon: Wallet, label: 'Выручка ₽', value: money(totals.revenue), c: 'from-emerald-500 to-green-600' },
+              { icon: Building2, label: 'Домов', value: totals.houses, c: 'from-blue-500 to-indigo-600' },
+              { icon: DoorOpen, label: 'Подъездов', value: totals.entrances, c: 'from-indigo-500 to-purple-600' },
+              { icon: Layers, label: 'Этажей', value: totals.floors, c: 'from-purple-500 to-fuchsia-600' },
+              { icon: TrendingUp, label: 'Уборок', value: totals.plan_cleanings, c: 'from-amber-500 to-orange-600' },
+            ].map((m, i) => (
+              <div key={i} className={`bg-gradient-to-br ${m.c} text-white rounded-2xl p-4 shadow-md`}>
+                <m.icon className="w-6 h-6 opacity-80 mb-2" />
+                <div className="text-2xl font-bold leading-none">{m.value}</div>
+                <div className="text-xs opacity-90 mt-1">{m.label}</div>
               </div>
-            </div>
-          )}
-          
-          {/* Общая статистика по бригадам */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-            {brigadeData
-              .filter(b => b.brigade !== 'Не назначена')
-              .sort((a, b) => {
-                const numA = parseInt(a.brigade) || 999;
-                const numB = parseInt(b.brigade) || 999;
-                return numA - numB;
-              })
-              .map((brigade, idx) => {
-                // Подсчет СУММАРНОГО количества уборок за месяц
-                const totalCleanings = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.houses || 0), 0);
-                const totalSweepings = Object.values(brigade.sweepings).reduce((sum, count) => sum + count, 0);
-                
-                // Общее количество подъездов за месяц
-                const totalEntrances = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.entrances || 0), 0);
-                
-                // Общее количество этажей за месяц
-                const totalFloors = Object.values(brigade.cleanings).reduce((sum, day) => sum + (day.floors || 0), 0);
-                
-                // Средние значения
-                const daysWithCleanings = Object.keys(brigade.cleanings).length;
-                const avgEntrancesPerDay = daysWithCleanings > 0 
-                  ? Math.round(totalEntrances / daysWithCleanings)
-                  : 0;
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-white rounded-2xl shadow-lg p-6 border-2 cursor-pointer transition-all hover:shadow-xl ${
-                      selectedBrigade === brigade.brigade ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
-                    }`}
-                    onClick={() => setSelectedBrigade(selectedBrigade === brigade.brigade ? null : brigade.brigade)}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-2xl font-bold text-gray-900">{brigade.brigade} бригада</h3>
-                      <TrendingUp className="w-6 h-6 text-green-600" />
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Домов всего:</span>
-                        <span className="text-lg font-semibold">{brigade.totalHouses}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Подъездов всего:</span>
-                        <span className="text-lg font-semibold text-blue-600">{brigade.totalEntrances}</span>
-                      </div>
-                      
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="text-xs text-gray-500 mb-2 font-semibold">За выбранный месяц:</div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Уборок:</span>
-                            <span className="text-xl font-bold text-green-600">{totalCleanings}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Подъездов убрано:</span>
-                            <span className="text-xl font-bold text-blue-600">{totalEntrances}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Этажей убрано:</span>
-                            <span className="text-xl font-bold text-purple-600">{totalFloors}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Подметаний:</span>
-                            <span className="text-xl font-bold text-orange-600">{totalSweepings}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">Средн. подъездов/день:</span>
-                          <span className="text-sm font-bold text-gray-900">{avgEntrancesPerDay}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            ))}
           </div>
 
-          {/* Календарь работ выбранной бригады */}
-          {selectedBrigade && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <CalendarIcon className="w-6 h-6 text-blue-600" />
-                График работы: {selectedBrigade} бригада - {months[month]} {year}
-              </h2>
-              
-              <div className="grid grid-cols-7 gap-2">
-                {/* День недели */}
-                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(day => (
-                  <div key={day} className="text-center font-semibold text-gray-600 text-sm py-2">
-                    {day}
-                  </div>
-                ))}
-                
-                {/* Пустые ячейки для выравнивания */}
-                {Array(new Date(year, month, 1).getDay() === 0 ? 6 : new Date(year, month, 1).getDay() - 1)
-                  .fill(null)
-                  .map((_, i) => (
-                    <div key={`empty-${i}`} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+            {/* Выручка по бригадам */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-emerald-600" /> Выручка и объёмы по бригадам
+              </h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                  <YAxis yAxisId="l" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}к` : v} />
+                  <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                  <Tooltip formatter={(v, n) => n === 'revenue' ? [`${money(v)} ₽`, 'Выручка'] : [v, n === 'entrances' ? 'Подъезды' : 'Этажи']} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar yAxisId="l" dataKey="revenue" name="Выручка ₽" radius={[6, 6, 0, 0]}>
+                    {chartData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Bar>
+                  <Bar yAxisId="r" dataKey="entrances" name="Подъезды" fill="#cbd5e1" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Radar сравнение */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-purple-600" /> Сравнение бригад
+              </h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <RadarChart data={radarData} outerRadius={90}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11 }} />
+                  <PolarRadiusAxis tick={false} axisLine={false} />
+                  {brigades.map((b, i) => (
+                    <Radar key={b.brigade} name={`${b.brigade} бр.`} dataKey={`б${b.brigade}`}
+                           stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.08} strokeWidth={2} />
                   ))}
-                
-                {/* Дни месяца */}
-                {Array(daysInMonth).fill(null).map((_, i) => {
-                  const day = i + 1;
-                  const dateStr = formatDate(year, month, day);
-                  const work = dailyStats[dateStr]?.[selectedBrigade];
-                  const hasWork = work && (work.entrances > 0 || work.sweepings > 0);
-                  
-                  return (
-                    <div
-                      key={day}
-                      className={`aspect-square p-2 rounded-lg border-2 transition-all ${
-                        hasWork
-                          ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-300 hover:shadow-md'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}
-                    >
-                      <div className="text-sm font-bold text-gray-900 mb-1">{day}</div>
-                      {hasWork && (
-                        <div className="text-xs space-y-0.5">
-                          {work.entrances > 0 && (
-                            <div className="text-blue-700 font-medium">
-                              🏢 {work.entrances} подъездов
-                            </div>
-                          )}
-                          {work.sweepings > 0 && (
-                            <div className="text-orange-700 font-medium">
-                              🧹 {work.sweepings} подм.
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Легенда */}
-              <div className="mt-6 flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded" />
-                  <span className="text-gray-600">Есть работы</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-50 border-2 border-gray-200 rounded" />
-                  <span className="text-gray-600">Нет работ</span>
-                </div>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Детальная таблица */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800">Детально по бригадам</h3>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-gray-400 mr-1">сортировка:</span>
+                {[['revenue', 'Деньги'], ['houses', 'Дома'], ['entrances', 'Подъезды'], ['plan_cleanings', 'Уборки']].map(([k, l]) => (
+                  <button key={k} onClick={() => setSortKey(k)}
+                          className={`px-2 py-1 rounded-md ${sortKey === k ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>{l}</button>
+                ))}
               </div>
             </div>
-          )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3 font-semibold">Бригада</th>
+                    <th className="px-3 py-3 font-semibold text-center">Домов</th>
+                    <th className="px-3 py-3 font-semibold text-center">Подъездов</th>
+                    <th className="px-3 py-3 font-semibold text-center">Этажей</th>
+                    <th className="px-3 py-3 font-semibold text-center">Квартир</th>
+                    <th className="px-3 py-3 font-semibold text-center">Уборок (план)</th>
+                    <th className="px-3 py-3 font-semibold text-center">Факт (%)</th>
+                    <th className="px-4 py-3 font-semibold text-right">Выручка ₽</th>
+                    <th className="px-4 py-3 font-semibold text-right">₽/дом</th>
+                    <th className="px-4 py-3 font-semibold text-right">₽/подъезд</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sorted.map((b, i) => (
+                    <tr key={b.brigade} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ background: COLORS[brigades.findIndex(x => x.brigade === b.brigade) % COLORS.length] }} />
+                          <span className="font-semibold text-gray-800">{b.brigade} бригада</span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-center font-medium text-gray-800">{b.houses}</td>
+                      <td className="px-3 py-3 text-center text-gray-700">{b.entrances}</td>
+                      <td className="px-3 py-3 text-center text-gray-700">{b.floors}</td>
+                      <td className="px-3 py-3 text-center text-gray-700">{b.apartments}</td>
+                      <td className="px-3 py-3 text-center text-purple-700 font-medium">{b.plan_cleanings}</td>
+                      <td className="px-3 py-3 text-center">
+                        <span className={`inline-flex items-center gap-1 ${b.completion_pct >= 80 ? 'text-green-600' : b.completion_pct >= 40 ? 'text-amber-600' : 'text-red-500'}`}>
+                          {b.fact_cleanings}/{b.plan_cleanings}
+                          <span className="text-xs">({b.completion_pct}%)</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900">{money(b.revenue)}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{money(b.revenue_per_house)}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{money(b.revenue_per_entrance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-900">
+                    <td className="px-4 py-3">ИТОГО</td>
+                    <td className="px-3 py-3 text-center">{totals.houses}</td>
+                    <td className="px-3 py-3 text-center">{totals.entrances}</td>
+                    <td className="px-3 py-3 text-center">{totals.floors}</td>
+                    <td className="px-3 py-3 text-center">{totals.apartments}</td>
+                    <td className="px-3 py-3 text-center text-purple-700">{totals.plan_cleanings}</td>
+                    <td className="px-3 py-3 text-center text-green-700">{totals.fact_cleanings}</td>
+                    <td className="px-4 py-3 text-right">{money(totals.revenue)} ₽</td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* Карточки эффективности */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+            {sorted.map((b, i) => (
+              <div key={b.brigade} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="inline-flex items-center gap-2 font-semibold text-gray-800">
+                    <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm font-bold"
+                          style={{ background: COLORS[brigades.findIndex(x => x.brigade === b.brigade) % COLORS.length] }}>
+                      {b.brigade}
+                    </span>
+                    {b.brigade} бригада
+                  </span>
+                  <span className="text-lg font-bold text-emerald-600">{money(b.revenue)} ₽</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { l: 'Домов', v: b.houses, icon: Building2 },
+                    { l: 'Подъездов', v: b.entrances, icon: DoorOpen },
+                    { l: 'Этажей', v: b.floors, icon: Layers },
+                    { l: 'Квартир', v: b.apartments, icon: HomeIcon },
+                    { l: 'Уборок', v: b.plan_cleanings, icon: TrendingUp },
+                    { l: 'Выполн.', v: `${b.completion_pct}%`, icon: CheckCircle2 },
+                  ].map((m, j) => (
+                    <div key={j} className="bg-gray-50 rounded-xl py-2">
+                      <m.icon className="w-4 h-4 mx-auto text-gray-400 mb-1" />
+                      <div className="text-base font-bold text-gray-800">{m.v}</div>
+                      <div className="text-[10px] text-gray-500">{m.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-500">
+                  <span>₽/дом: <b className="text-gray-700">{money(b.revenue_per_house)}</b></span>
+                  <span>₽/подъезд: <b className="text-gray-700">{money(b.revenue_per_entrance)}</b></span>
+                </div>
+              </div>
+            ))}
+          </div>
         </>
+      )}
+
+      {!loading && !data && (
+        <div className="text-center py-20 text-gray-400">Не удалось загрузить данные.</div>
       )}
     </div>
   );

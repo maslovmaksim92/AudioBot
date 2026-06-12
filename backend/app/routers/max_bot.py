@@ -38,7 +38,7 @@ async def max_webhook(
     try:
         update = await request.json()
     except Exception as e:
-        logger.error(f"[MAX webhook] не удалось распарсить JSON: {e}")
+        logger.exception(f"[MAX webhook] не удалось распарсить JSON: {e}")
         return JSONResponse({"ok": True})
 
     logger.info(f"[MAX webhook] update_type={update.get('update_type')}")

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
+import OwnerDashboard from './components/Owner/OwnerDashboard';
 import ExecutionDashboard from './components/Execution/ExecutionDashboard';
 import Works from './components/Works/Works';
 import CleaningCalendar from './components/Calendar/CleaningCalendar';
@@ -26,6 +27,7 @@ import ArticleManagement from './components/Finances/ArticleManagement';
 import DebtsManagement from './components/Finances/DebtsManagement';
 import InventoryManagement from './components/Finances/InventoryManagement';
 import CallSummaries from './components/CallSummaries/CallSummaries';
+import Curtains from './components/Curtains/Curtains';
 
 function App() {
   const [improvementModalOpen, setImprovementModalOpen] = useState(false);
@@ -50,6 +52,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/owner" element={<OwnerDashboard />} />
               <Route path="/execution" element={<ExecutionDashboard />} />
               <Route path="/works" element={<Works />} />
               <Route path="/works/constructor" element={<WorksConstructor />} />
@@ -70,6 +73,7 @@ function App() {
               <Route path="/finances/inventory" element={<InventoryManagement />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/calls" element={<CallSummaries />} />
+              <Route path="/curtains" element={<Curtains />} />
             </Routes>
           </Layout>
         } />

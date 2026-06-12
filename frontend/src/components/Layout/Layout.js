@@ -20,7 +20,7 @@ import {
   Activity,
   Mic,
   Phone
-, CheckCircle} from 'lucide-react';
+, CheckCircle, Scissors} from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Layout = ({ children }) => {
@@ -29,13 +29,11 @@ const Layout = ({ children }) => {
 
   const navigation = [
     { name: 'Обзор', href: '/dashboard', icon: Home, color: 'text-blue-600' },
+    { name: '👑 Собственнику', href: '/owner', icon: Home, color: 'text-amber-600' },
     { name: '✅ Выполнение', href: '/execution', icon: CheckCircle, color: 'text-green-600' },
     { name: 'Дома', href: '/works', icon: Building2, color: 'text-green-600' },
-    { name: '🤖 Агенты', href: '/agents', icon: Settings, color: 'text-indigo-600' },
-    { name: 'Воронка продаж', href: '/sales', icon: TrendingUp, color: 'text-emerald-600' },
-    { name: 'Финансы', href: '/finances', icon: DollarSign, color: 'text-green-600' },
-    { name: 'Обучение', href: '/training', icon: BookOpen, color: 'text-purple-600' },
-    { name: 'Логи', href: '/logs', icon: FileText, color: 'text-gray-600' },
+    { name: 'Календарь уборок', href: '/calendar', icon: Calendar, color: 'text-purple-600' },
+    { name: '🪟 Шторы', href: '/curtains', icon: Scissors, color: 'text-indigo-600' },
   ];
 
   const isActiveRoute = (href) => {
@@ -104,38 +102,7 @@ const Layout = ({ children }) => {
             })}
           </nav>
 
-          {/* AI Improvement Button */}
-          <div className="px-4 py-4 border-t border-gray-200">
-            <button
-              onClick={() => {
-                const currentPath = window.location.hash.replace('#', '');
-                const sectionName = navigation.find(n => n.href === currentPath)?.name || 'Текущий раздел';
-                window.dispatchEvent(new CustomEvent('openAIImprovement', { detail: { section: sectionName } }));
-              }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl"
-            >
-              <Sparkles className="w-5 h-5" />
-              <span className="font-medium">Улучшить раздел</span>
-            </button>
-          </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">ВД</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">ВасДом</p>
-                  <p className="text-xs text-gray-500">Администратор</p>
-                </div>
-              </div>
-              <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-                <Settings className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

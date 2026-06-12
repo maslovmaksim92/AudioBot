@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -34,7 +34,9 @@ pgssl = os.environ.get('PGSSLMODE')
 if pgssl and pgssl.strip().lower() not in allowed_pgssl:
     os.environ['PGSSLMODE'] = 'require'
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Централизованное логирование (ротация, request_id, отдельный файл ошибок)
+from backend.app.config.logging_config import setup_logging, set_request_id
+setup_logging()
 logger = logging.getLogger("server")
 
 app = FastAPI(title="VasDom AudioBot API", version="1.1.0")
@@ -47,6 +49,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- HTTP логирование: request_id + время + статус + исключения ---
+import time as _time
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+from secrets import token_hex
+
+
+class RequestLogMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        rid = request.headers.get("X-Request-Id") or token_hex(4)
+        set_request_id(rid)
+        path = request.url.path
+        # пропускаем шумный health-чек MAX каждые ~10 сек
+        skip_log = path in ("/api/max/health", "/api/health")
+        method = request.method
+        client = request.client.host if request.client else "-"
+        if not skip_log:
+            logger.info(f"HTTP→ {method} {path} from={client}")
+        t0 = _time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception as e:
+            dur = (_time.perf_counter() - t0) * 1000
+            logger.exception(f"HTTP✗ {method} {path} 500 in {dur:.0f}ms — {type(e).__name__}: {e}")
+            return JSONResponse({"error": "Internal Server Error", "request_id": rid}, status_code=500)
+        dur = (_time.perf_counter() - t0) * 1000
+        if not skip_log or response.status_code >= 400:
+            level = logger.warning if response.status_code >= 400 else logger.info
+            level(f"HTTP← {method} {path} {response.status_code} in {dur:.0f}ms")
+        # ответ-эхо для отладки клиентом
+        response.headers["X-Request-Id"] = rid
+        return response
+
+
+app.add_middleware(RequestLogMiddleware)
+
 
 # aiohttp cleanup to avoid 'Unclosed client session'
 try:
@@ -1254,6 +1294,46 @@ async def voice_ai_call_logs(call_id: str):
         return {'call_id': call_id, 'logs': [], 'error': str(e)}
 
 
+# ---------- Шторы: калькулятор (единый источник цен с ботом MyGPT) ----------
+import sys as _sys
+_CURTAINS_DIR = "/opt/vasdom-modules"
+if _CURTAINS_DIR not in _sys.path:
+    _sys.path.insert(0, _CURTAINS_DIR)
+try:
+    import curtains as _curtains
+    logger.info("\u2705 curtains module loaded for /api/curtains")
+except Exception as _e:
+    _curtains = None
+    logger.warning(f"curtains module not available: {_e}")
+
+
+@api_router.get("/curtains/prices")
+async def curtains_get_prices():
+    if not _curtains:
+        raise HTTPException(status_code=503, detail="curtains module unavailable")
+    return _curtains.load_prices()
+
+
+@api_router.post("/curtains/calc")
+async def curtains_calc(params: dict = Body(...)):
+    if not _curtains:
+        raise HTTPException(status_code=503, detail="curtains module unavailable")
+    try:
+        return _curtains.calc(params)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.post("/curtains/prices")
+async def curtains_save_prices(prices: dict = Body(...)):
+    if not _curtains:
+        raise HTTPException(status_code=503, detail="curtains module unavailable")
+    import json as _json
+    with open(_curtains.PRICES_PATH, "w", encoding="utf-8") as f:
+        _json.dump(prices, f, ensure_ascii=False, indent=2)
+    return {"ok": True, "saved": True}
+
+
 # Mount API router with all voice endpoints
 app.include_router(api_router)
 logger.info('API router mounted with all voice endpoints')
@@ -1261,7 +1341,7 @@ logger.info('API router mounted with all voice endpoints')
 # Import and mount new modular routers
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
-    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, openai_realtime, novofon_status, max_bot, max_client_router, execution
+    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, openai_realtime, novofon_status, max_bot, max_client_router, execution
     from backend.app.routers import brain as brain_router
 
     from backend.app.routers import ai_assistant_api as ai_assistant_api_router
@@ -1275,7 +1355,7 @@ except Exception as e1:
         from app.routers import ai_assistant_api as ai_assistant_api_router
 
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
-        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, openai_realtime, novofon_status, max_bot, max_client_router, execution
+        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, openai_realtime, novofon_status, max_bot, max_client_router, execution
         logger.info('✅ Routers imported via app.routers')
     except Exception as e2:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
@@ -1322,6 +1402,7 @@ if health:
         app.include_router(bitrix_webhook.router, prefix="/api")
         app.include_router(test_agent.router, prefix="/api")
         app.include_router(debug_users.router, prefix="/api")
+        app.include_router(debug_logs.router, prefix="/api")
         app.include_router(novofon_status.router, prefix="/api")
         try:
             app.include_router(max_bot.router, prefix="/api")

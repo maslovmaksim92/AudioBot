@@ -1,7 +1,7 @@
 """
 Модель домов (объектов уборки) - синхронизация с Bitrix24
 """
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Text
+from sqlalchemy import Column, String, Integer, DateTime, JSON, Text, Numeric
 from datetime import datetime, timezone
 
 from backend.app.config.database import Base
@@ -18,6 +18,7 @@ class House(Base):
     apartments_count = Column(Integer, nullable=True)  # Количество квартир
     entrances_count = Column(Integer, nullable=True)  # Количество подъездов
     floors_count = Column(Integer, nullable=True)  # Количество этажей
+    amount_monthly = Column(Numeric, nullable=True)  # Месячная стоимость (Bitrix OPPORTUNITY)
     
     # Управляющая компания
     company_id = Column(String, nullable=True)  # ID УК в Bitrix24
