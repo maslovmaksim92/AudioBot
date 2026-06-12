@@ -26,6 +26,7 @@ import ArticleManagement from './components/Finances/ArticleManagement';
 import DebtsManagement from './components/Finances/DebtsManagement';
 import InventoryManagement from './components/Finances/InventoryManagement';
 import CallSummaries from './components/CallSummaries/CallSummaries';
+import StructurePage from './components/Structure/StructurePage';
 
 function App() {
   const [improvementModalOpen, setImprovementModalOpen] = useState(false);
@@ -70,6 +71,7 @@ function App() {
               <Route path="/finances/inventory" element={<InventoryManagement />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/calls" element={<CallSummaries />} />
+              <Route path="/structure" element={<StructurePage />} />
             </Routes>
           </Layout>
         } />
