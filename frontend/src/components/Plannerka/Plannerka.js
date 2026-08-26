@@ -20,10 +20,16 @@ const Plannerka = () => {
     try {
       setStatus('Подключение...');
       
-      // Получаем токен
-      const tokenRes = await axios.get(`${BACKEND_URL}/api/openai/realtime-token`);
-      const apiKey = tokenRes.data.token;
-      
+      // Получаем эфемерный client_secret (не сырой API-ключ!)
+      const sessRes = await axios.post(`${BACKEND_URL}/api/realtime/sessions`, {
+        voice: 'marin',
+        instructions: 'Ты помощник для транскрибации совещаний на русском языке. Транскрибируй речь точно.',
+        temperature: 0.6,
+        max_response_output_tokens: 1024,
+      });
+      const clientSecret = sessRes.data.client_secret;
+      const model = sessRes.data.model;
+
       // Получаем микрофон
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { channelCount: 1, sampleRate: 24000, echoCancellation: true } 
@@ -38,10 +44,10 @@ const Plannerka = () => {
       source.connect(processor);
       processor.connect(audioContextRef.current.destination);
 
-      // Подключаемся к OpenAI Realtime API
-      const ws = new WebSocket(`wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`, [
+      // Подключаемся к OpenAI Realtime API с ephemeral токеном
+      const ws = new WebSocket(`wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`, [
         'realtime',
-        `openai-insecure-api-key.${apiKey}`,
+        `openai-insecure-api-key.${clientSecret}`,
         'openai-beta.realtime-v1'
       ]);
       wsRef.current = ws;

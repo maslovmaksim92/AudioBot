@@ -11,6 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.config.database import get_db
 from backend.app.services.brain_router import try_fast_answer
 from backend.app.services.brain_metrics import brain_metrics
+from backend.app.utils.auth_deps import get_current_user_optional, CurrentUser
+import logging
+
+_log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/brain", tags=["brain"])
 
@@ -22,7 +26,16 @@ class BrainAskRequest(BaseModel):
 
 
 @router.post("/ask")
-async def brain_ask(req: BrainAskRequest, db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
+async def brain_ask(
+    req: BrainAskRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
+) -> Dict[str, Any]:
+    if current_user is not None:
+        # server-authoritative — доверяем токену, не полю req.user_id
+        req.user_id = current_user.id
+    else:
+        _log.warning("POST /brain/ask called without JWT (using body user_id=%s) — hardened in Phase 2", req.user_id)
     if not req.message or not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
     ans = await try_fast_answer(req.message, db=db, return_debug=bool(req.debug))

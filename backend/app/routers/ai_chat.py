@@ -18,6 +18,7 @@ from backend.app.models.ai_task import AITask, AITaskStatus, AITaskType
 from backend.app.models.house import House
 from backend.app.services.openai_service import VasDomAIAgent
 from backend.app.services.bitrix24_service import Bitrix24Service
+from backend.app.utils.auth_deps import get_current_user_optional, CurrentUser
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ai", tags=["AI Chat"])
@@ -342,9 +343,15 @@ async def handle_send_schedule_email(
 @router.post("/chat", response_model=ChatResponse)
 async def send_message(
     request: ChatRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
 ):
     """Отправить сообщение AI агенту"""
+    # Server-authoritative user_id: если пришёл JWT, берём из него (не доверяем body).
+    if current_user is not None:
+        request.user_id = current_user.id
+    else:
+        logger.warning("POST /ai/chat called without JWT (using body user_id=%s) — will be rejected in Phase 2", request.user_id)
     try:
         # Try unified Single Brain fast answers first
         try:
@@ -584,10 +591,15 @@ async def send_message(
 
 @router.get("/history", response_model=ChatHistoryResponse)
 async def get_chat_history(
-    user_id: str,
+    user_id: Optional[str] = None,
     limit: int = 50,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
 ):
+    if current_user is not None:
+        user_id = current_user.id
+    elif not user_id:
+        raise HTTPException(status_code=401, detail="user_id required (send JWT or ?user_id=)")
     """Получить историю чата пользователя"""
     try:
         # Получаем историю
@@ -630,8 +642,12 @@ async def get_chat_history(
 @router.delete("/history/{user_id}")
 async def clear_chat_history(
     user_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
 ):
+    # Пользователь может чистить только свою историю (если есть JWT).
+    if current_user is not None and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="can only clear own history")
     """Очистить историю чата пользователя"""
     try:
         await db.execute(
@@ -660,11 +676,16 @@ async def clear_chat_history(
 
 @router.get("/tasks", response_model=List[AITaskResponse])
 async def get_ai_tasks(
-    user_id: str,
+    user_id: Optional[str] = None,
     status: Optional[str] = None,
     limit: int = 50,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[CurrentUser] = Depends(get_current_user_optional),
 ):
+    if current_user is not None:
+        user_id = current_user.id
+    elif not user_id:
+        raise HTTPException(status_code=401, detail="user_id required")
     """Получить AI задачи пользователя"""
     try:
         query = select(AITask).where(

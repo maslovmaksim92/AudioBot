@@ -1341,7 +1341,7 @@ logger.info('API router mounted with all voice endpoints')
 # Import and mount new modular routers
 try:
     # Попытка импорта для Render (uvicorn backend.server:app из корня)
-    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, openai_realtime, novofon_status, max_bot, max_client_router, execution
+    from backend.app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, novofon_status, max_bot, max_client_router, execution
     from backend.app.routers import brain as brain_router
 
     from backend.app.routers import ai_assistant_api as ai_assistant_api_router
@@ -1355,7 +1355,7 @@ except Exception as e1:
         from app.routers import ai_assistant_api as ai_assistant_api_router
 
         # Попытка импорта для локальной разработки (uvicorn server:app из backend/)
-        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, openai_realtime, novofon_status, max_bot, max_client_router, execution
+        from app.routers import health, auth, houses, cleaning, telegram, dashboard, logs, ai_knowledge, tasks, meetings, notifications, employees, ai_agent, ai_chat, finances, finance_transactions, finance_articles, revenue, debts, inventory, agents, telegram_webhook, agent_dashboard, render_logs, plannerka, realtime_transcription, telegram_auth, call_summary, bitrix_calls, bitrix_webhook, test_agent, debug_users, debug_logs, novofon_status, max_bot, max_client_router, execution
         logger.info('✅ Routers imported via app.routers')
     except Exception as e2:
         logger.error(f'⚠️ Could not mount new routers: {e2}')
@@ -1395,7 +1395,6 @@ if health:
         app.include_router(render_logs.router, prefix="/api")
         app.include_router(plannerka.router, prefix="/api")
         app.include_router(realtime_transcription.router, prefix="/api")
-        app.include_router(openai_realtime.router, prefix="/api")
         app.include_router(telegram_auth.router, prefix="/api")
         app.include_router(call_summary.router, prefix="/api")
         app.include_router(bitrix_calls.router, prefix="/api")

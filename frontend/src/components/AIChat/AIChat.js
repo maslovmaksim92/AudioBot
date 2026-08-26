@@ -3,6 +3,12 @@ import './AIChat.css';
 
 const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.REACT_APP_BACKEND_URL) || process.env.REACT_APP_BACKEND_URL;
 
+// JWT reader — совместим и с новым ключом (access_token, TelegramLogin), и со старым (token).
+const authHeader = () => {
+  const t = localStorage.getItem('access_token') || localStorage.getItem('token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
+
 const AIChat = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -30,7 +36,7 @@ const AIChat = () => {
 
   const loadChatHistory = async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/ai/history?user_id=${userId}&limit=50`);
+      const res = await fetch(`${BACKEND_URL}/api/ai/history?user_id=${userId}&limit=50`, { headers: authHeader() });
       if (res.ok) {
         const data = await res.json();
         const formattedMessages = data.messages.map(msg => ({
@@ -65,7 +71,7 @@ const AIChat = () => {
       // Используем новый endpoint для AI чата с GPT-5
       const res = await fetch(`${BACKEND_URL}/api/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ 
           message: q,
           user_id: userId,
