@@ -1,0 +1,521 @@
+"""
+MAX-бот для уборщиц VasDom (neuro). Только для сотрудников:
+Меню: По УК | По бригадам | На сегодня → карточка адреса → сбор фото →
+подтверждение → отправка. После отправки можно сразу отправить для другого адреса.
+
+Сбор фото: уборщица грузит несколько фото (в т.ч. как файлы .png/.jpg),
+они копятся в буфер, затем кнопка «Отправить» → подтверждение адреса →
+публикация в канал + запись в cleaning_photos + уведомление подписчиков дома.
+Вход без /start: bot_started и любое сообщение показывают меню.
+"""
+import os
+import logging
+from datetime import date, datetime, timezone
+from typing import List, Dict, Any, Optional
+
+from sqlalchemy import select, text as sa_text
+from backend.app.config.database import AsyncSessionLocal
+from backend.app.models.house import House
+from backend.app.services import max_service as M
+
+logger = logging.getLogger(__name__)
+
+MAX_PHOTOS_CHANNEL_ID = os.environ.get("MAX_PHOTOS_CHANNEL_ID", "")
+# Ссылка на клиентский бот (Тестировщик) — для кнопки «Задать вопрос» под постом
+CLIENT_BOT_LINK = os.environ.get("MAX_CLIENT_BOT_LINK", "https://max.ru/id4028069602_1_bot")
+
+RU_MONTHS = {1: "january", 2: "february", 3: "march", 4: "april", 5: "may", 6: "june",
+             7: "july", 8: "august", 9: "september", 10: "october", 11: "november", 12: "december"}
+RU_MONTHS_NAME = {1: "январь", 2: "февраль", 3: "март", 4: "апрель", 5: "май", 6: "июнь",
+                  7: "июль", 8: "август", 9: "сентябрь", 10: "октябрь", 11: "ноябрь", 12: "декабрь"}
+
+# {user_id: {"house_id","awaiting_photo","photos":[...],"seen_msg_ids":set,"awaiting_message":bool}}
+_SESSIONS: Dict[int, Dict[str, Any]] = {}
+
+
+# ---------- данные ----------
+
+async def _all_houses() -> List[House]:
+    async with AsyncSessionLocal() as s:
+        res = await s.execute(select(House))
+        return list(res.scalars().all())
+
+
+async def _house(house_id: str) -> Optional[House]:
+    async with AsyncSessionLocal() as s:
+        res = await s.execute(select(House).where(House.id == house_id))
+        return res.scalar_one_or_none()
+
+
+def _schedule_dates(h: House, year: int, month: int) -> List[Dict[str, str]]:
+    sched = h.cleaning_schedule or {}
+    key = f"{RU_MONTHS[month]}_{year}"
+    return [i for i in (sched.get(key) or []) if i.get("date")]
+
+
+def _dates_for_today(houses: List[House], today: date) -> List[House]:
+    iso = today.isoformat()
+    out = []
+    for h in houses:
+        for it in _schedule_dates(h, today.year, today.month):
+            if it["date"] == iso:
+                out.append(h); break
+    return out
+
+
+def _fmt_card(h: House) -> str:
+    lines = [f"🏠 {h.address}"]
+    if h.company_title:
+        lines.append(f"🏢 УК: {M.pretty_uk(h.company_title)}")
+    if h.brigade_number:
+        lines.append(f"👷 Бригада: {h.brigade_number}")
+    if h.entrances_count:
+        lines.append(f"🚪 Подъездов: {h.entrances_count}")
+    now = datetime.now()
+    items = _schedule_dates(h, now.year, now.month)
+    if items:
+        lines.append(f"\n📅 Уборки на {RU_MONTHS_NAME[now.month]} {now.year}:")
+        for it in items:
+            try:
+                dd = datetime.fromisoformat(it["date"]).strftime("%d.%m")
+            except Exception:
+                dd = it["date"]
+            t = it.get("type", "")
+            lines.append(f"  • {dd} — {t}" if t else f"  • {dd}")
+    else:
+        lines.append("\n📅 На этот месяц уборки не запланированы")
+    return "\n".join(lines)
+
+
+# ---------- меню ----------
+
+def _main_menu_buttons():
+    return [
+        [M.btn_callback("📅 Адреса на сегодня", "today")],
+        [M.btn_callback("📋 По УК", "uk")],
+        [M.btn_callback("👷 По бригадам", "br")],
+        [M.btn_callback("✍️ Написать боту", "write")],
+    ]
+
+
+async def show_main_menu(chat_id, callback_id=None):
+    txt = ("👋 Здравствуйте! Это бот для уборки подъездов.\n"
+           "Выберите адрес — и отправьте фото уборки.")
+    await (M.answer_callback(callback_id, new_text=txt, buttons=_main_menu_buttons()) if callback_id
+           else M.send_message(chat_id, txt, buttons=_main_menu_buttons()))
+
+
+async def show_uk_list(chat_id, callback_id=None):
+    houses = await _all_houses()
+    uks = sorted({h.company_title for h in houses if h.company_title})
+    rows = [[M.btn_callback(f"🏢 {M.pretty_uk(uk)[:38]}", f"uk:{uk}")] for uk in uks]
+    rows.append([M.btn_callback("⬅️ Назад", "menu")])
+    txt = "Выберите управляющую компанию:" if uks else "Пока нет домов с указанной УК."
+    await (M.answer_callback(callback_id, new_text=txt, buttons=rows) if callback_id
+           else M.send_message(chat_id, txt, buttons=rows))
+
+
+async def show_uk_houses(chat_id, uk, callback_id=None):
+    houses = [h for h in await _all_houses() if h.company_title == uk]
+    rows = [[M.btn_callback(f"🏠 {h.address[:40]}", f"h:{h.id}")] for h in houses[:30]]
+    rows.append([M.btn_callback("⬅️ Назад", "uk")])
+    txt = f"🏢 {M.pretty_uk(uk)}\nАдресов: {len(houses)}"
+    await (M.answer_callback(callback_id, new_text=txt, buttons=rows) if callback_id
+           else M.send_message(chat_id, txt, buttons=rows))
+
+
+async def show_brigade_list(chat_id, callback_id=None):
+    houses = await _all_houses()
+    brigades = sorted({h.brigade_number for h in houses if h.brigade_number}, key=lambda x: (len(x), x))
+    rows = [[M.btn_callback(f"👷 Бригада {b}", f"br:{b}")] for b in brigades]
+    rows.append([M.btn_callback("⬅️ Назад", "menu")])
+    txt = "Выберите бригаду:" if brigades else "Пока нет домов с назначенной бригадой."
+    await (M.answer_callback(callback_id, new_text=txt, buttons=rows) if callback_id
+           else M.send_message(chat_id, txt, buttons=rows))
+
+
+async def show_brigade_houses(chat_id, brigade, callback_id=None):
+    houses = [h for h in await _all_houses() if h.brigade_number == brigade]
+    rows = [[M.btn_callback(f"🏠 {h.address[:40]}", f"h:{h.id}")] for h in houses[:30]]
+    rows.append([M.btn_callback("⬅️ Назад", "br")])
+    txt = f"👷 Бригада {brigade}\nАдресов: {len(houses)}"
+    await (M.answer_callback(callback_id, new_text=txt, buttons=rows) if callback_id
+           else M.send_message(chat_id, txt, buttons=rows))
+
+
+async def show_today(chat_id, callback_id=None):
+    houses = await _all_houses()
+    today = date.today()
+    todays = _dates_for_today(houses, today)
+    if todays:
+        rows = [[M.btn_callback(f"🏠 {h.address[:40]}", f"h:{h.id}")] for h in todays[:30]]
+        txt = f"📅 На сегодня ({today.strftime('%d.%m.%Y')}) уборок: {len(todays)}"
+    else:
+        rows = []
+        txt = f"📅 На сегодня ({today.strftime('%d.%m.%Y')}) уборок не запланировано.\nМожно выбрать адрес через «По УК» или «По бригадам»."
+    rows.append([M.btn_callback("⬅️ Назад", "menu")])
+    await (M.answer_callback(callback_id, new_text=txt, buttons=rows) if callback_id
+           else M.send_message(chat_id, txt, buttons=rows))
+
+
+async def show_house_card(chat_id, house_id, callback_id=None):
+    h = await _house(house_id)
+    if not h:
+        if callback_id:
+            await M.answer_callback(callback_id, text="Адрес не найден")
+        return
+    rows = [
+        [M.btn_callback("📸 Отправить фото уборки", f"photo:{h.id}")],
+        [M.btn_callback("⬅️ В меню", "menu")],
+    ]
+    await (M.answer_callback(callback_id, new_text=_fmt_card(h), buttons=rows) if callback_id
+           else M.send_message(chat_id, _fmt_card(h), buttons=rows))
+
+
+# ---------- сбор и отправка фото ----------
+
+def _collect_buttons(count: int):
+    rows = []
+    if count > 0:
+        rows.append([M.btn_callback(f"✅ Отправить ({count} фото)", "confirm")])
+    rows.append([M.btn_callback("❌ Отмена", "menu")])
+    return rows
+
+
+async def start_photo_collection(chat_id, house_id, callback_id, user_id):
+    _SESSIONS[user_id] = {"house_id": house_id, "awaiting_photo": True,
+                          "photos": [], "seen_msg_ids": set()}
+    h = await _house(house_id)
+    addr = h.address if h else "адрес"
+    txt = (f"📸 Фото для: {addr}\n\n"
+           "Присылайте фото уборки — можно несколько, разными сообщениями или альбомом.\n"
+           "Когда загрузите все, нажмите «Отправить».")
+    await M.answer_callback(callback_id, new_text=txt, buttons=_collect_buttons(0))
+
+
+def _extract_tokens(attachments: List[Dict[str, Any]]) -> List[str]:
+    """
+    Токены фото из вложений MAX. Принимаем не только image, но и file/video/photo —
+    уборщицы часто шлют скриншоты как ФАЙЛЫ. Токен ищем в разных полях payload.
+    """
+    tokens: List[str] = []
+    for a in attachments or []:
+        atype = (a.get("type") or "").lower()
+        if atype not in ("image", "photo", "file", "video", "share"):
+            continue
+        p = a.get("payload") or {}
+        tok = (p.get("token") or p.get("photo_token") or p.get("fileId")
+               or p.get("file_id") or p.get("code") or p.get("url"))
+        if tok:
+            tokens.append(tok)
+    return tokens
+
+
+async def collect_photo(chat_id, user_id, attachments, msg_id=None):
+    sess = _SESSIONS.get(user_id)
+    if not sess or not sess.get("awaiting_photo"):
+        await M.send_message(
+            chat_id,
+            "📸 Сначала выберите адрес и нажмите «Отправить фото уборки», потом присылайте фото.",
+            buttons=[[M.btn_callback("📋 В меню", "menu")]],
+        )
+        return
+
+    seen = sess.setdefault("seen_msg_ids", set())
+    if msg_id is not None:
+        if msg_id in seen:
+            return
+        seen.add(msg_id)
+
+    tokens = _extract_tokens(attachments)
+    if not tokens:
+        logger.warning(f"[MAX bot] collect_photo: не извлёк токены из {attachments}")
+        await M.send_message(
+            chat_id,
+            "⚠️ Не получилось распознать вложение. Пришлите фото ещё раз.",
+            buttons=_collect_buttons(len(sess.get("photos", []))),
+        )
+        return
+
+    sess["photos"].extend(tokens)
+    n = len(sess["photos"])
+    await M.send_message(
+        chat_id,
+        f"📷 Принято фото: {n}. Можно прислать ещё или нажать «Отправить».",
+        buttons=_collect_buttons(n),
+    )
+
+
+def _today_cleaning_label(h: House) -> str:
+    now = datetime.now()
+    items = _schedule_dates(h, now.year, now.month)
+    iso = date.today().isoformat()
+    for it in items:
+        if it["date"] == iso:
+            return datetime.fromisoformat(it["date"]).strftime("%d.%m.%Y")
+    return date.today().strftime("%d.%m.%Y")
+
+
+async def confirm_send(chat_id, user_id, callback_id):
+    """Шаг подтверждения адреса перед публикацией (защита от ошибки выбора)."""
+    sess = _SESSIONS.get(user_id)
+    if not sess or not sess.get("photos"):
+        await M.answer_callback(callback_id, text="Нет фото для отправки")
+        return
+    h = await _house(sess["house_id"])
+    if not h:
+        await M.answer_callback(callback_id, text="Адрес не найден")
+        _SESSIONS.pop(user_id, None)
+        return
+    n = len(sess["photos"])
+    date_label = _today_cleaning_label(h)
+    txt = (f"Проверьте перед отправкой:\n\n"
+           f"🏠 {h.address}\n"
+           f"📅 {date_label}\n"
+           f"📷 Фото: {n}\n\n"
+           f"Всё верно?")
+    rows = [
+        [M.btn_callback("✅ Да, отправить", "send_photos")],
+        [M.btn_callback("✏️ Выбрать другой адрес", "menu")],
+        [M.btn_callback("❌ Отмена", "menu")],
+    ]
+    await M.answer_callback(callback_id, new_text=txt, buttons=rows)
+
+
+async def _notify_house_subscribers(h: House, date_label: str, post_url: str = ""):
+    """Уведомить подписчиков дома (через клиентский бот) об уборке + ссылка на пост."""
+    try:
+        async with AsyncSessionLocal() as s:
+            rows = await s.execute(sa_text(
+                "SELECT chat_id FROM house_subscribers WHERE house_id = :hid"
+            ), {"hid": h.id})
+            chat_ids = [r[0] for r in rows.fetchall()]
+    except Exception as e:
+        logger.info(f"[MAX bot] подписчики не получены (таблица?): {e}")
+        return
+    if not chat_ids:
+        return
+    text = (f"✅ Уборка выполнена!\n🏠 {h.address}\n📅 {date_label}")
+    btns = None
+    if post_url:
+        # кнопка-ссылка на конкретный пост с фото
+        btns = [[M.btn_link("📸 Посмотреть фотоотчёт", post_url)]]
+    else:
+        text += "\n\nФотоотчёт опубликован в нашем канале."
+    # шлём через клиентский бот, чтобы сообщение пришло клиенту от «его» бота
+    try:
+        from backend.app.services import max_client_bot as CB
+        for cid in chat_ids:
+            try:
+                await CB.bot.send_message(int(cid), text, buttons=btns)
+            except Exception as e:
+                logger.warning(f"[MAX bot] уведомление {cid}: {e}")
+    except Exception as e:
+        logger.error(f"[MAX bot] notify subscribers: {e}")
+
+
+async def send_collected_photos(chat_id, user_id, callback_id):
+    sess = _SESSIONS.get(user_id)
+    if not sess or not sess.get("photos"):
+        await M.answer_callback(callback_id, text="Нет фото для отправки")
+        return
+    h = await _house(sess["house_id"])
+    if not h:
+        await M.answer_callback(callback_id, text="Адрес не найден")
+        _SESSIONS.pop(user_id, None)
+        return
+
+    tokens = sess["photos"]
+    date_label = _today_cleaning_label(h)
+    # Подпись (markdown): адрес и ЖИРНАЯ дата в одной строке, УК — отдельной строкой.
+    caption = f"🏠 {h.address} — **{date_label}**"
+    if h.company_title:
+        caption += f"\n🏢 {M.pretty_uk(h.company_title)}"
+
+    # Кнопка «Задать вопрос» под постом → ведёт в клиентский бот
+    post_buttons = [[M.btn_link("💬 Задать вопрос", CLIENT_BOT_LINK)]]
+
+    published = False
+    post_url = ""
+    if MAX_PHOTOS_CHANNEL_ID:
+        res = await M.send_photos(int(MAX_PHOTOS_CHANNEL_ID), tokens, caption,
+                                  fmt="markdown", buttons=post_buttons)
+        published = bool(res and not res.get("code"))
+        # ссылка на опубликованный пост (для уведомления подписчиков)
+        post_url = ((res or {}).get("message") or {}).get("url", "") if published else ""
+
+    try:
+        async with AsyncSessionLocal() as s:
+            await s.execute(sa_text("""
+                INSERT INTO cleaning_photos
+                  (house_id, house_address, brigade_id, telegram_user_id,
+                   cleaning_date, photo_file_ids, photo_count, ai_caption, status,
+                   sent_to_group_at, created_at, updated_at)
+                VALUES
+                  (:hid, :addr, :brig, :uid, :cdate, :tokens, :cnt, :cap, :status,
+                   :sent_at, :now, :now)
+            """), {
+                "hid": h.id, "addr": h.address, "brig": h.brigade_number,
+                "uid": user_id, "cdate": date.today(),
+                "tokens": tokens, "cnt": len(tokens), "cap": caption,
+                "status": "sent_to_group" if published else "uploaded",
+                "sent_at": datetime.utcnow() if published else None,
+                "now": datetime.utcnow(),
+            })
+            await s.commit()
+    except Exception as e:
+        logger.error(f"[MAX bot] запись cleaning_photos: {e}")
+
+    # обновим last_cleaning в доме
+    try:
+        async with AsyncSessionLocal() as s:
+            await s.execute(sa_text("UPDATE houses SET last_cleaning = :now WHERE id = :hid"),
+                            {"now": datetime.utcnow(), "hid": h.id})
+            await s.commit()
+    except Exception:
+        pass
+
+    # уведомить подписчиков дома (клиентов) со ссылкой на пост
+    await _notify_house_subscribers(h, date_label, post_url)
+
+    _SESSIONS.pop(user_id, None)
+    if published:
+        msg = f"✅ Отправлено {len(tokens)} фото!\n{h.address} — {date_label}\nСпасибо за работу 👍"
+    else:
+        msg = f"✅ Принято {len(tokens)} фото\n{h.address} — {date_label}\n(зафиксировано в системе)"
+    # после отправки — удобные кнопки: сразу новый адрес или в меню
+    rows = [
+        [M.btn_callback("📸 Отправить для другого адреса", "today")],
+        [M.btn_callback("📋 В меню", "menu")],
+    ]
+    await M.answer_callback(callback_id, new_text=msg, buttons=rows)
+
+
+# ---------- свободное сообщение боту ----------
+
+async def start_write(chat_id, user_id, callback_id):
+    """Включить режим: следующее текстовое сообщение уйдёт менеджеру."""
+    if user_id:
+        _SESSIONS[user_id] = {"awaiting_message": True}
+    txt = ("✍️ Напишите сообщение одним текстом — вопрос, замечание или просьбу.\n"
+           "Мы передадим его руководителю.")
+    await M.answer_callback(callback_id, new_text=txt, buttons=[[M.btn_callback("⬅️ В меню", "menu")]])
+
+
+async def forward_message(chat_id, user_id, text_body):
+    """Передать сообщение сотрудника менеджеру (в канал) + записать в лог."""
+    payload = f"✍️ СООБЩЕНИЕ ОТ СОТРУДНИКА\nchat_id={chat_id}, user_id={user_id}\n\n{text_body}"
+    if MAX_PHOTOS_CHANNEL_ID:
+        try:
+            await M.send_message(int(MAX_PHOTOS_CHANNEL_ID), payload)
+        except Exception as e:
+            logger.error(f"[MAX bot] forward_message: {e}")
+    try:
+        async with AsyncSessionLocal() as s:
+            await s.execute(sa_text("""
+                INSERT INTO client_requests (kind, user_id, chat_id, body, created_at)
+                VALUES ('staff_message', :uid, :cid, :body, :now)
+            """), {"uid": user_id, "cid": chat_id, "body": text_body,
+                   "now": datetime.utcnow()})
+            await s.commit()
+    except Exception as e:
+        logger.error(f"[MAX bot] forward_message save: {e}")
+    if user_id:
+        _SESSIONS.pop(user_id, None)
+    await M.send_message(
+        chat_id,
+        "✅ Сообщение передано руководителю. Спасибо!",
+        buttons=[[M.btn_callback("📋 В меню", "menu")]],
+    )
+
+
+# ---------- роутинг ----------
+
+async def handle_callback(chat_id, callback_id, payload, user_id=None):
+    if payload == "menu":
+        if user_id:
+            _SESSIONS.pop(user_id, None)
+        await M.answer_callback(callback_id, new_text="👋 Главное меню:", buttons=_main_menu_buttons())
+    elif payload == "uk":
+        await show_uk_list(chat_id, callback_id)
+    elif payload.startswith("uk:"):
+        await show_uk_houses(chat_id, payload[3:], callback_id)
+    elif payload == "br":
+        await show_brigade_list(chat_id, callback_id)
+    elif payload.startswith("br:"):
+        await show_brigade_houses(chat_id, payload[3:], callback_id)
+    elif payload == "today":
+        await show_today(chat_id, callback_id)
+    elif payload.startswith("h:"):
+        await show_house_card(chat_id, payload[2:], callback_id)
+    elif payload.startswith("photo:"):
+        await start_photo_collection(chat_id, payload[6:], callback_id, user_id)
+    elif payload == "confirm":
+        await confirm_send(chat_id, user_id, callback_id)
+    elif payload == "send_photos":
+        await send_collected_photos(chat_id, user_id, callback_id)
+    elif payload == "write":
+        await start_write(chat_id, user_id, callback_id)
+    else:
+        await M.answer_callback(callback_id, text="Неизвестная команда")
+
+
+def _chat_id_from_started(update: Dict[str, Any]):
+    """MAX по-разному кладёт chat_id в bot_started — ищем во всех местах."""
+    return (
+        update.get("chat_id")
+        or (update.get("chat") or {}).get("chat_id")
+        or ((update.get("message") or {}).get("recipient") or {}).get("chat_id")
+        or (update.get("user") or {}).get("user_id")
+        or update.get("user_id")
+    )
+
+
+async def handle_update(update: Dict[str, Any]):
+    ut = update.get("update_type")
+
+    if ut == "bot_started":
+        chat_id = _chat_id_from_started(update)
+        if chat_id:
+            await show_main_menu(chat_id)
+        else:
+            logger.warning(f"[MAX bot] bot_started без chat_id: {update}")
+
+    elif ut == "message_created":
+        msg = update.get("message", {})
+        chat_id = (msg.get("recipient") or {}).get("chat_id")
+        sender = msg.get("sender") or {}
+        user_id = sender.get("user_id")
+        body = msg.get("body") or {}
+        attachments = body.get("attachments") or []
+        msg_id = body.get("mid") or msg.get("timestamp")
+
+        if sender.get("is_bot"):
+            return
+
+        sess = _SESSIONS.get(user_id) if user_id else None
+        has_attach = bool(_extract_tokens(attachments))
+        text_in = (body.get("text") or "").strip()
+
+        if sess and sess.get("awaiting_photo") and has_attach and user_id:
+            await collect_photo(chat_id, user_id, attachments, msg_id)
+        elif sess and sess.get("awaiting_message") and text_in and user_id:
+            await forward_message(chat_id, user_id, text_in)
+        elif sess and sess.get("awaiting_photo"):
+            n = len(sess.get("photos", []))
+            await M.send_message(
+                chat_id,
+                f"📸 Жду фото (принято: {n}). Пришлите фото или нажмите «Отправить».",
+                buttons=_collect_buttons(n),
+            )
+        elif chat_id:
+            await show_main_menu(chat_id)
+
+    elif ut == "message_callback":
+        cb = update.get("callback", {})
+        callback_id = cb.get("callback_id")
+        payload = cb.get("payload", "")
+        user_id = (cb.get("user") or {}).get("user_id")
+        chat_id = ((update.get("message") or {}).get("recipient") or {}).get("chat_id")
+        if callback_id:
+            await handle_callback(chat_id, callback_id, payload, user_id)

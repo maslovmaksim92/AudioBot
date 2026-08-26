@@ -1,0 +1,453 @@
+import React, { useState, useEffect } from 'react';
+import { Calculator, Ruler, Scissors, Wrench, RefreshCw, FileText } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://ai.vd40.ru';
+
+const fmt = (n) => (n == null ? '' : Number(n).toLocaleString('ru-RU'));
+
+const PRODUCTS = [
+  { id: 'классические', name: 'Классические' },
+  { id: 'рулонные', name: 'Рулонные' },
+  { id: 'зебра', name: 'День-ночь (зебра)' },
+  { id: 'вертикальные', name: 'Вертикальные жалюзи' },
+  { id: 'плиссе', name: 'Плиссе' },
+];
+
+const Curtains = () => {
+  const [tab, setTab] = useState('calc');
+  const [prices, setPrices] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [product, setProduct] = useState('рулонные');
+
+  const [form, setForm] = useState({
+    width: 0.7,
+    height: 1.4,
+    fullness: 2,
+    fabric: '',
+    system: '',
+    lining: false,
+    cornice_type: '',
+    cornice_len: '',
+    hardware: '',
+    brackets: 0,
+    rama_plus: false,
+    zamer: true,
+    montazh: true,
+    qty: 1,
+  });
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/curtains/prices`)
+      .then((r) => r.json())
+      .then((p) => { setPrices(p); setLoading(false); })
+      .catch((e) => { setError('Не удалось загрузить прайс: ' + e.message); setLoading(false); });
+  }, []);
+
+  // дефолты при смене типа изделия
+  useEffect(() => {
+    if (!prices) return;
+    setResult(null);
+    if (product === 'классические') {
+      setForm((f) => ({ ...f, width: 3, height: 2.6, fullness: prices.fullness_default || 2,
+        fabric: Object.keys(prices.fabrics_per_m || {})[0] || '',
+        cornice_type: Object.keys(prices.cornice_per_m || {})[0] || '',
+        cornice_len: 3.2, hardware: 'лента', lining: true }));
+    } else if (product === 'рулонные') {
+      setForm((f) => ({ ...f, width: 0.7, height: 1.4,
+        fabric: Object.keys(prices.rolled?.fabrics_per_m || {})[0] || '',
+        system: Object.keys(prices.rolled?.systems_per_m || {})[0] || '' }));
+    } else if (product === 'зебра') {
+      setForm((f) => ({ ...f, width: 0.7, height: 1.4,
+        fabric: Object.keys(prices.zebra?.fabrics_per_m || {})[0] || '',
+        system: Object.keys(prices.zebra?.systems_per_m || {})[0] || '' }));
+    } else if (product === 'вертикальные') {
+      setForm((f) => ({ ...f, width: 2, height: 2.5,
+        fabric: Object.keys(prices.vertical?.fabrics_per_m2 || {})[0] || '', brackets: 0 }));
+    } else if (product === 'плиссе') {
+      setForm((f) => ({ ...f, width: 0.6, height: 1.2,
+        fabric: Object.keys(prices.plisse?.collections || {})[0] || '',
+        cornice_type: Object.keys(prices.plisse?.cornice_pc || {})[0] || '', rama_plus: false }));
+    }
+  }, [product, prices]);
+
+  const upd = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const doCalc = () => {
+    setCalcLoading(true);
+    setError('');
+    fetch(`${BACKEND_URL}/api/curtains/calc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, product }),
+    })
+      .then((r) => r.json())
+      .then((res) => { setResult(res); setCalcLoading(false); })
+      .catch((e) => { setError('Ошибка расчёта: ' + e.message); setCalcLoading(false); });
+  };
+
+  const Field = ({ label, children }) => (
+    <div className="flex flex-col space-y-1">
+      <label className="text-xs font-medium text-gray-500">{label}</label>
+      {children}
+    </div>
+  );
+
+  const inputCls =
+    'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        <RefreshCw className="w-5 h-5 mr-2 animate-spin" /> Загрузка прайса…
+      </div>
+    );
+  }
+
+  const rolledSection = product === 'зебра' ? prices?.zebra : prices?.rolled;
+
+  const renderFields = () => {
+    if (product === 'классические') {
+      return (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Ширина карниза/окна, м">
+              <input type="number" step="0.1" className={inputCls} value={form.width}
+                onChange={(e) => upd('width', parseFloat(e.target.value) || 0)} />
+            </Field>
+            <Field label="Коэффициент сборки">
+              <input type="number" step="0.1" className={inputCls} value={form.fullness}
+                onChange={(e) => upd('fullness', parseFloat(e.target.value) || 0)} />
+            </Field>
+            <Field label="Ткань">
+              <select className={inputCls} value={form.fabric} onChange={(e) => upd('fabric', e.target.value)}>
+                {Object.keys(prices.fabrics_per_m || {}).map((k) => (
+                  <option key={k} value={k}>{k} ({fmt(prices.fabrics_per_m[k])} ₽/м)</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Количество окон">
+              <input type="number" min="1" className={inputCls} value={form.qty}
+                onChange={(e) => upd('qty', parseInt(e.target.value) || 1)} />
+            </Field>
+          </div>
+          <div className="flex items-center text-gray-700 font-medium pt-2">
+            <Wrench className="w-4 h-4 mr-2 text-blue-600" /> Карниз и фурнитура
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Тип карниза">
+              <select className={inputCls} value={form.cornice_type} onChange={(e) => upd('cornice_type', e.target.value)}>
+                <option value="">— нет —</option>
+                {Object.keys(prices.cornice_per_m || {}).map((k) => (
+                  <option key={k} value={k}>{k} ({fmt(prices.cornice_per_m[k])} ₽/м)</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Длина карниза, м">
+              <input type="number" step="0.1" className={inputCls} value={form.cornice_len}
+                onChange={(e) => upd('cornice_len', parseFloat(e.target.value) || 0)} />
+            </Field>
+            <Field label="Фурнитура">
+              <select className={inputCls} value={form.hardware} onChange={(e) => upd('hardware', e.target.value)}>
+                <option value="">— нет —</option>
+                {Object.keys(prices.hardware_per_m || {}).map((k) => (
+                  <option key={k} value={k}>{k}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <div className="flex flex-wrap gap-4 pt-2">
+            <label className="flex items-center text-sm text-gray-700">
+              <input type="checkbox" className="mr-2" checked={form.lining}
+                onChange={(e) => upd('lining', e.target.checked)} /> Подкладка
+            </label>
+          </div>
+        </>
+      );
+    }
+    if (product === 'рулонные' || product === 'зебра') {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Ширина, м">
+            <input type="number" step="0.01" className={inputCls} value={form.width}
+              onChange={(e) => upd('width', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Высота, м">
+            <input type="number" step="0.01" className={inputCls} value={form.height}
+              onChange={(e) => upd('height', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Ткань">
+            <select className={inputCls} value={form.fabric} onChange={(e) => upd('fabric', e.target.value)}>
+              {Object.entries({ ...(rolledSection?.fabrics_per_m || {}), ...(rolledSection?.econom_fabrics_per_m || {}) }).map(([k, v]) => (
+                <option key={k} value={k}>{k} ({fmt(v)} ₽/п.м)</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Система">
+            <select className={inputCls} value={form.system} onChange={(e) => upd('system', e.target.value)}>
+              {Object.entries(rolledSection?.systems_per_m || {}).map(([k, v]) => (
+                <option key={k} value={k}>{k} ({fmt(v)} ₽/п.м)</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Количество изделий">
+            <input type="number" min="1" className={inputCls} value={form.qty}
+              onChange={(e) => upd('qty', parseInt(e.target.value) || 1)} />
+          </Field>
+        </div>
+      );
+    }
+    if (product === 'вертикальные') {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Ширина, м">
+            <input type="number" step="0.01" className={inputCls} value={form.width}
+              onChange={(e) => upd('width', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Высота, м">
+            <input type="number" step="0.01" className={inputCls} value={form.height}
+              onChange={(e) => upd('height', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Ткань (ламели)">
+            <select className={inputCls} value={form.fabric} onChange={(e) => upd('fabric', e.target.value)}>
+              {Object.entries(prices.vertical?.fabrics_per_m2 || {}).map(([k, v]) => (
+                <option key={k} value={k}>{k} ({fmt(v)} ₽/м²)</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Кронштейны стеновые, шт">
+            <input type="number" min="0" className={inputCls} value={form.brackets}
+              onChange={(e) => upd('brackets', parseInt(e.target.value) || 0)} />
+          </Field>
+          <Field label="Количество изделий">
+            <input type="number" min="1" className={inputCls} value={form.qty}
+              onChange={(e) => upd('qty', parseInt(e.target.value) || 1)} />
+          </Field>
+        </div>
+      );
+    }
+    // плиссе
+    return (
+      <>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Ширина, м">
+            <input type="number" step="0.01" className={inputCls} value={form.width}
+              onChange={(e) => upd('width', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Высота, м">
+            <input type="number" step="0.01" className={inputCls} value={form.height}
+              onChange={(e) => upd('height', parseFloat(e.target.value) || 0)} />
+          </Field>
+          <Field label="Коллекция ткани">
+            <select className={inputCls} value={form.fabric} onChange={(e) => upd('fabric', e.target.value)}>
+              {Object.entries(prices.plisse?.collections || {}).map(([k, g]) => (
+                <option key={k} value={k}>{k} (гр. {g} — {fmt(prices.plisse?.fabric_group_per_m2?.[g])} ₽/м²)</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Карниз">
+            <select className={inputCls} value={form.cornice_type} onChange={(e) => upd('cornice_type', e.target.value)}>
+              {Object.entries(prices.plisse?.cornice_pc || {}).map(([k, v]) => (
+                <option key={k} value={k}>{k} ({fmt(v)} ₽/шт)</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Количество изделий">
+            <input type="number" min="1" className={inputCls} value={form.qty}
+              onChange={(e) => upd('qty', parseInt(e.target.value) || 1)} />
+          </Field>
+        </div>
+        <div className="flex flex-wrap gap-4 pt-2">
+          <label className="flex items-center text-sm text-gray-700">
+            <input type="checkbox" className="mr-2" checked={form.rama_plus}
+              onChange={(e) => upd('rama_plus', e.target.checked)} /> Система «Рама плюс» (+{fmt(prices.plisse?.rama_plus_pc)} ₽)
+          </label>
+        </div>
+      </>
+    );
+  };
+
+  const PriceTable = ({ title, data, unit }) => (
+    <div>
+      <div className="font-medium text-gray-700 mb-2">{title}</div>
+      {Object.entries(data || {}).map(([k, v]) => (
+        <div key={k} className="flex justify-between border-b border-gray-100 py-1 text-sm">
+          <span className="text-gray-600">{k}</span>
+          <span className="font-medium whitespace-nowrap ml-3">{fmt(v)} {unit}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center mb-6">
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center mr-3">
+          <Scissors className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Шторы</h1>
+          <p className="text-sm text-gray-500">Расчёт: рулонные, зебра, вертикальные, плиссе, классические</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 mb-6 border-b border-gray-200">
+        {[
+          { id: 'calc', name: 'Калькулятор', icon: Calculator },
+          { id: 'prices', name: 'Прайс', icon: FileText },
+        ].map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`flex items-center px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <t.icon className="w-4 h-4 mr-2" />
+            {t.name}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>
+      )}
+
+      {/* Выбор типа изделия */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {PRODUCTS.map((p) => (
+          <button key={p.id} onClick={() => setProduct(p.id)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+              product === p.id ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}>
+            {p.name}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'calc' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Форма */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <div className="flex items-center text-gray-700 font-medium">
+              <Ruler className="w-4 h-4 mr-2 text-blue-600" /> Параметры
+            </div>
+            {renderFields()}
+            <div className="flex flex-wrap gap-4 pt-2">
+              <label className="flex items-center text-sm text-gray-700">
+                <input type="checkbox" className="mr-2" checked={form.zamer}
+                  onChange={(e) => upd('zamer', e.target.checked)} /> Замер
+              </label>
+              <label className="flex items-center text-sm text-gray-700">
+                <input type="checkbox" className="mr-2" checked={form.montazh}
+                  onChange={(e) => upd('montazh', e.target.checked)} /> Монтаж
+              </label>
+            </div>
+            <button onClick={doCalc} disabled={calcLoading}
+              className="w-full mt-2 bg-gray-900 text-white rounded-lg py-3 text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center">
+              {calcLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
+              Рассчитать
+            </button>
+          </div>
+
+          {/* Результат */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="flex items-center text-gray-700 font-medium mb-4">
+              <Calculator className="w-4 h-4 mr-2 text-green-600" /> Смета
+            </div>
+            {!result ? (
+              <div className="text-gray-400 text-sm py-12 text-center">
+                Заполни параметры и нажми «Рассчитать»
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(result.items || []).map((i, idx) => (
+                  <div key={idx} className="flex justify-between text-sm border-b border-gray-100 pb-2">
+                    <span className="text-gray-700">{i.name}<span className="text-gray-400"> · {i.qty} {i.unit} × {fmt(i.price)}</span></span>
+                    <span className="font-medium text-gray-900 whitespace-nowrap ml-3">{fmt(i.sum)} ₽</span>
+                  </div>
+                ))}
+                {result.qty > 1 && (
+                  <div className="flex justify-between text-sm pt-1">
+                    <span className="text-gray-500">На 1 изделие × {result.qty}</span>
+                    <span className="text-gray-500">{fmt(result.per_window)} ₽ × {result.qty}</span>
+                  </div>
+                )}
+                {result.zamer_fixed > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Замер (на заказ)</span>
+                    <span className="text-gray-500">{fmt(result.zamer_fixed)} ₽</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-gray-900">
+                  <span className="text-lg font-semibold text-gray-900">ИТОГО</span>
+                  <span className="text-2xl font-bold text-gray-900">{fmt(result.total)} ₽</span>
+                </div>
+                {result.warnings && result.warnings.length > 0 && (
+                  <div className="text-xs text-amber-600 pt-2">⚠️ {result.warnings.join('; ')}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'prices' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-gray-500 mb-4">
+            Текущий прайс (единый для дашборда и бота MyGPT). Файл: <code>curtains_prices.json</code>.
+            {prices?.markup && prices.markup !== 1 ? ` Наценка на материалы: ×${prices.markup}.` : ''}
+          </p>
+          {product === 'классические' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PriceTable title="Ткань (₽/пог.м)" data={prices.fabrics_per_m} unit="₽" />
+              <div className="space-y-4">
+                <PriceTable title="Карниз (₽/пог.м)" data={prices.cornice_per_m} unit="₽" />
+                <PriceTable title="Работы" data={{
+                  'Пошив, ₽/м': prices.tailoring_per_m,
+                  'Подкладка, ₽/м': prices.lining_per_m,
+                  'Замер': prices.services?.['замер'],
+                  'Монтаж карниза, ₽/м': prices.services?.['монтаж_карниза_per_m'],
+                  'Мин. заказ': prices.min_order,
+                }} unit="₽" />
+              </div>
+            </div>
+          )}
+          {(product === 'рулонные' || product === 'зебра') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PriceTable title="Ткани (₽/пог.м)" data={{ ...(rolledSection?.fabrics_per_m || {}), ...(rolledSection?.econom_fabrics_per_m || {}) }} unit="₽" />
+              <div className="space-y-4">
+                <PriceTable title="Системы (₽/пог.м)" data={rolledSection?.systems_per_m} unit="₽" />
+                <p className="text-xs text-gray-400">{rolledSection?.note}</p>
+              </div>
+            </div>
+          )}
+          {product === 'вертикальные' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PriceTable title="Ткани (₽/м²)" data={prices.vertical?.fabrics_per_m2} unit="₽" />
+              <div className="space-y-4">
+                <PriceTable title="Комплектующие" data={{
+                  'Карниз в сборе, ₽/м.п': prices.vertical?.cornice_per_m,
+                  'Кронштейн стеновой 12 см, ₽/шт': prices.vertical?.bracket_pc,
+                }} unit="₽" />
+                <p className="text-xs text-gray-400">{prices.vertical?.note}</p>
+              </div>
+            </div>
+          )}
+          {product === 'плиссе' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PriceTable title="Коллекции → ценовая группа" data={prices.plisse?.collections} unit="гр." />
+              <div className="space-y-4">
+                <PriceTable title="Цена группы (₽/м²)" data={prices.plisse?.fabric_group_per_m2} unit="₽" />
+                <PriceTable title="Карнизы (₽/шт)" data={prices.plisse?.cornice_pc} unit="₽" />
+                <p className="text-xs text-gray-400">{prices.plisse?.note}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Curtains;

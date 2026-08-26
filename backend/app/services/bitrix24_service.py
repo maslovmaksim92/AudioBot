@@ -233,6 +233,10 @@ class Bitrix24Service:
 
     async def _make_request(self, client: httpx.AsyncClient, method: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Выполнить запрос к Bitrix24 API с rate limiting и обработкой 503 ошибок"""
+        # Если webhook Bitrix не настроен — не пытаемся слать запрос (убираем шум в логах)
+        if not self.webhook_url or not self.webhook_url.lower().startswith(("http://", "https://")):
+            logger.debug("Bitrix webhook не настроен — запрос пропущен")
+            return {"result": []}
         url = f"{self.webhook_url}{method}"
         select_fields = payload.get('select') or []
         
@@ -591,7 +595,7 @@ class Bitrix24Service:
                 
                 return res
         except Exception as e:
-            logger.error(f"get_brigade_options error: {e}")
+            logger.exception(f"get_brigade_options error: {e}")
             return []
 
     def _match_brigade(self, item: Dict[str, Any], brigade: str) -> bool:
@@ -758,7 +762,7 @@ class Bitrix24Service:
                         break
                     start_param = next_val
         except Exception as e:
-            logger.error(f"Bitrix list error: {e}")
+            logger.exception(f"Bitrix list error: {e}")
             all_items = []
 
         # Server filters
@@ -947,7 +951,7 @@ class Bitrix24Service:
                     'bitrix_url': f"{self.portal_base}/crm/deal/details/{deal.get('ID')}/",
                 }
         except Exception as e:
-            logger.error(f"get_deal_details error: {e}")
+            logger.exception(f"get_deal_details error: {e}")
             return None
 
     async def get_all_deals(self) -> List[Dict[str, Any]]:
@@ -977,7 +981,7 @@ class Bitrix24Service:
                         break
                     start_param = next_val
         except Exception as e:
-            logger.error(f"❌ Ошибка загрузки домов из Bitrix24: {e}")
+            logger.exception(f"❌ Ошибка загрузки домов из Bitrix24: {e}")
         return items
 
     def parse_deal_to_house(self, deal: Dict[str, Any]) -> Dict[str, Any]:
@@ -1057,7 +1061,7 @@ class Bitrix24Service:
                     start = next_val
                 return brigades
         except Exception as e:
-            logger.error(f"Error getting brigades: {e}")
+            logger.exception(f"Error getting brigades: {e}")
             return []
 
     async def get_cleaning_types(self) -> List[Dict[str, Any]]:
@@ -1083,7 +1087,7 @@ class Bitrix24Service:
                 self.enum_cache.set(cache_key, types)
                 return types
         except Exception as e:
-            logger.error(f"Error getting cleaning types: {e}")
+            logger.exception(f"Error getting cleaning types: {e}")
             return []
 
     async def get_all_contacts(self) -> List[Dict[str, Any]]:
@@ -1112,7 +1116,7 @@ class Bitrix24Service:
                     start = next_val
                 return contacts
         except Exception as e:
-            logger.error(f"Error getting contacts: {e}")
+            logger.exception(f"Error getting contacts: {e}")
             return []
 
     async def create_contact(self, name: str, phone: str = '', comment: str = '') -> Optional[str]:
@@ -1145,7 +1149,7 @@ class Bitrix24Service:
                     return str(contact_id)
                 return None
         except Exception as e:
-            logger.error(f"Error creating contact: {e}")
+            logger.exception(f"Error creating contact: {e}")
             return None
 
     async def update_deal(self, deal_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -1228,7 +1232,7 @@ class Bitrix24Service:
                 return updated_deal
                 
         except Exception as e:
-            logger.error(f"Error updating deal {deal_id}: {e}")
+            logger.exception(f"Error updating deal {deal_id}: {e}")
             return None
 
 

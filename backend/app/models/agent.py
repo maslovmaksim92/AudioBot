@@ -2,12 +2,11 @@
 Модель Agent - AI агенты и автоматизации
 """
 from sqlalchemy import Column, String, Boolean, JSON, DateTime, Integer
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
-Base = declarative_base()
+from backend.app.config.database import Base
 
 class Agent(Base):
     """Модель агента в базе данных"""
